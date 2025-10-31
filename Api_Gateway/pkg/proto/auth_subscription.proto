@@ -1,0 +1,159 @@
+syntax="proto3";
+package auth_subscription;
+option go_package="./pkg/pb/auth_subscription";
+
+service AuthSubscriptionService{
+    rpc AdminLogin(AdminLoginRequest) returns (AdminLoginResponse);
+    rpc UserSignUp(UserSignUpRequest) returns (UserSignUpResponse);
+}
+
+message AdminLoginRequest{
+    string email=1;
+    string password=2;
+}
+message AdminLoginResponse{
+    AdminDetails adminDetails=1;
+    string token=2;
+}
+message AdminDetails{
+    uint64 id=1;
+    string email=2;
+}
+
+message UserSignUpRequest{
+    string UserName  =1;
+    string Name = 2;
+    string Email =3;
+    string Password = 4;
+    string ConfirmPassword = 5;
+}
+
+message UserSignUpResponse{
+    uint64 id=1;
+	string UserName  =2;
+    string Name = 3;
+    string Email =4;
+}
+// message RequestUserId{
+//     string UserId=1;
+// }
+// message ResponseErrorMessage{
+//     string ErrorMessage=1;
+// }
+
+// message RequestSetProfileImg{
+//     string UserId=1;
+//     string ContentType=2;
+//      bytes Img=3;
+// }
+
+// message RequestUserSearch{
+//     string UserId=1;
+//     string SearchText=2;
+//     string limit=3;
+//     string offset=4;
+// }
+
+// message ResponseUserSearch{
+//     string ErrorMessage=1;
+//     repeated SingleResponseGetFollowers SearchResult=2;
+// }
+
+// message SingleResponseGetFollowers{
+//     uint64 UserId=4;
+//     string Name=1;
+//     string UserName=2;
+//     string ProfileImageURL=3;
+// }
+// message ResponseGetUsersDetails{
+// string ErrorMessage=1;
+// repeated SingleResponseGetFollowers UserData=2;
+// }
+
+
+// message RequestEditUserProfile{
+// string Name=1;
+// string UserName=2;
+// string Bio=3;
+// string Links=4;
+// string UserId=5;
+// }
+
+
+// message RequestGetUserProfile{
+//     string UserId=1;
+//     string UserBId=2;
+// }
+
+// message ResponseUserProfile{
+// string Name=1;
+// string UserName=2;
+// string Bio=3;
+// string Links=4;
+// string ProfileImageURL=5;
+// uint64 PostsCount=6;
+// uint64 FollowerCount=7;
+// uint64 FollowingCount=8;
+// bool FollowingStat=10;
+// string ErrorMessage=9;
+// }
+
+// message RequestAccessGenerator{
+//     string AccessToken=1;
+//     string RefreshToken=2;
+// }
+// message ResponseAccessGenerator{
+//     string AccesToken=1;
+//     string ErrorMessage=2;
+// }
+
+// message RequestVerifyAccess{
+//    string AccessToken=1;
+// }
+// message ResponseVerifyAccess{
+//     string UserId=2;
+//     string ErrorMessage=1;
+// }
+
+// message RequestResetPass{
+// string Otp=1;
+// string Password=2;
+// string ConfirmPassword=3;
+// string TempToken=4;
+// }
+
+
+// message RequestForgotPass{
+//     string Email=1;
+// }
+// message ResponseForgotPass{
+//     string Token=1;
+//     string ErrorMessage=2;
+// }
+
+
+// message RequestUserLogin{
+//     string Email=1;
+//     string Password=2;
+// }
+// message ResponseUserLogin{
+//     string AccessToken=1;
+//     string RefreshToken=2;
+//     string ErrorMessage=3;
+// }
+
+
+// message RequestOtpVefification{
+//     string TempToken=1;
+//     string Otp=2;
+
+// }
+// message ResponseOtpVerification{
+//     string AccessToken=1;
+//     string RefreshToken=2;
+//     string ErrorMessage =3;
+//     string Otp=4;
+// }
+
+
+

@@ -1,0 +1,36 @@
+syntax="proto3";
+package auth_subscription;
+option go_package="./pkg/pb";
+
+service AuthSubscriptionService{
+    rpc AdminLogin(AdminLoginRequest) returns (AdminLoginResponse);
+    rpc UserSignUp(UserSignUpRequest) returns (UserSignUpResponse);
+}
+
+message AdminLoginRequest{
+    string email=1;
+    string password=2;
+}
+message AdminLoginResponse{
+    AdminDetails adminDetails=1;
+    string token=2;
+}
+message AdminDetails{
+    uint64 id=1;
+    string email=2;
+}
+
+message UserSignUpRequest{
+    string UserName  =1;
+    string Name = 2;
+    string Email =3;
+    string Password = 4;
+    string ConfirmPassword = 5;
+}
+
+message UserSignUpResponse{
+    uint64 id=1;
+	string UserName  =2;
+    string Name = 3;
+    string Email =4;
+}
