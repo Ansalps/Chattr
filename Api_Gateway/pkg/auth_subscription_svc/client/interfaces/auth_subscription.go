@@ -7,5 +7,20 @@ import (
 
 type AuthSubscriptionClient interface{
 	AdminLogin(requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse,error)
+	BlockUser(requestmodels.BlockUserRequest)(responsemodels.BlockUserResponse,error)
+	UnblockUser(requestmodels.UnblockUserRequest)(responsemodels.UnblockUserResponse,error)
+	GetAllUsers(requestmodels.GetAllUsersRequest)(responsemodels.GetAllUsersResponse,error)
+	CreateSubscriptionPlan(requestmodels.CreateSubscriptionPlanRequest)(responsemodels.CreateSubscriptionPlanResponse,error)
+	UpdateSubscriptionPlan(requestmodels.UpdateSubscriptionPlanRequest)(responsemodels.UpdateSubscriptionPlanResponse,error)
+	ActivateSubscriptionPlan(requestmodels.ActivateSubscriptionPlanRequest)(responsemodels.ActivateSubscriptionPlanResponse,error)
+	DeactivateSubscriptionPlan(requestmodels.DeactivateSubscriptionPlanRequest)(responsemodels.DeactivateSubscriptionPlanResponse,error)
+	GetAllSubscriptionPlans(requestmodels.GetAllSubscriptionPlansRequest)(responsemodels.GetAllSubscriptionPlansResponse,error)
+
 	UserSignUp(requestmodels.UserSignUpRequest)(responsemodels.UserSignupResponse,error)
+	VerifyOtp(requestmodels.OtpRequest)(responsemodels.OtpVerificationResponse,error)
+	ResendOtp(requestmodels.ResendOtpRequest)(responsemodels.ResendOtpResponse,error)
+	AccessRegenerator(requestmodels.AccessRegeneratorRequest)(responsemodels.AccessRegeneratorResponse,error)
+	ResetPassword(requestmodels.ResetPasswordRequest)(responsemodels.ResetPasswordResponse,error)
+	UserLogin(requestmodels.UserLoginRequest)(responsemodels.UserLoginResponse,error)
+	GetAllActiveSubscriptionPlans(requestmodels.GetAllActiveSubscriptionPlansRequest)(responsemodels.GetAllActiveSubscriptionPlansResponse,error)
 }

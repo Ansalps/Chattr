@@ -1,11 +1,143 @@
 syntax="proto3";
 package auth_subscription;
 option go_package="./pkg/pb/auth_subscription";
-
+import "google/protobuf/timestamp.proto";
 service AuthSubscriptionService{
     rpc AdminLogin(AdminLoginRequest) returns (AdminLoginResponse);
+    rpc BlockUser(BlockUserRequest) returns (BlockUserResponse);
+    rpc UnblockUser(UnblockUserRequest) returns (UnblockUserResponse);
+    rpc GetAllUsers(GetAllUsersRequest) returns (GetAllUsersResponse);
+    rpc CreateSubscriptionPlan(CreateSubscriptionPlanRequest) returns (CreateSubscriptionPlanResponse);
+    rpc UpdateSubscriptionPlan(UpdateSubscriptionPlanRequest) returns (UpdateSubscriptionPlanResponse);
+    rpc ActivateSubscriptionPlan(ActivateSubscriptionPlanRequest) returns (ActivateSubscriptionPlanResponse);
+    rpc DeactivateSubscriptionPlan(DeactivateSubscriptionPlanRequest) returns (DeactivateSubscriptionPlanResponse);
+    rpc GetAllSubscriptionPlans(GetAllSubscriptionPlansRequest) returns (GetAllSubscriptionPlansResponse);
+
     rpc UserSignUp(UserSignUpRequest) returns (UserSignUpResponse);
+    rpc VerifyOtp(OtpRequest) returns (OtpVerificationResponse);
+    rpc ResendOtp(ResendOtpRequest) returns (ResendOtpResponse);
+    rpc AccessRegenerator(AccessRegeneratorRequest) returns (AccessRegeneratorResponse);
+    rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+    rpc UserLogin(UserLoginRequest) returns (UserLoginResponse);
+    rpc GetAllActiveSubscriptionPlans(GetAllActiveSubscriptionPlansRequest) returns (GetAllActiveSubscriptionPlansResponse);
 }
+
+message GetAllUsersRequest{
+    uint64 limit=1;
+    uint64 offset=2;
+}
+
+message GetAllUsersResponse{
+    repeated User Users=1;
+}
+
+message User{
+    uint64 Id=1;
+    string Name=2;
+    string UserName=3;
+    string Email=4;
+    string Bio=5;
+    string ProfileImgUrl=6;
+    string Links=7;
+    string Status=8;
+}
+
+message GetAllActiveSubscriptionPlansRequest{
+    uint64 Limit=1;
+    uint64 Offset=2;
+}
+
+message GetAllActiveSubscriptionPlansResponse{
+    repeated SubscriptioPlan SubscriptioPlans=1;
+}
+
+message GetAllSubscriptionPlansRequest{
+    uint64 Limit=1;
+    uint64 Offset=2;
+}
+message SubscriptioPlan{
+    uint64 Id=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    string Name=4;
+    float Price=5;
+    uint64 DurationDays=6;
+    string Description=7;
+    bool IsActive=8;
+}
+message GetAllSubscriptionPlansResponse{
+    repeated SubscriptioPlan SubscriptioPlans=1;
+}
+
+message DeactivateSubscriptionPlanRequest{
+    uint64 Id=1;
+}
+
+message DeactivateSubscriptionPlanResponse{
+    uint64 Id=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    string Name=4;
+    float Price=5;
+    uint64 DurationDays=6;
+    string Description=7;
+    bool IsActive=8;
+}
+
+message ActivateSubscriptionPlanRequest{
+    uint64 Id=1;
+}
+message ActivateSubscriptionPlanResponse{
+    uint64 Id=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    string Name=4;
+    float Price=5;
+    uint64 DurationDays=6;
+    string Description=7;
+    bool IsActive=8;
+}
+message UpdateSubscriptionPlanRequest{
+    uint64 Id=1;
+    string Name=2;
+    float Price=3;
+    uint64 DurationDays=4;
+    string Description=5;
+}
+
+message UpdateSubscriptionPlanResponse{
+    uint64 Id=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    string Name=4;
+    float Price=5;
+    uint64 DurationDays=6;
+    string Description=7;
+    bool IsActive=8;
+}
+
+message CreateSubscriptionPlanRequest{
+    string Name=1;
+    int64 Price=2;
+    string Currency=3;
+    string Period=4;
+    uint64 Interval=5;
+    string Description=6;
+}
+
+message CreateSubscriptionPlanResponse{
+    uint64 Id=1;
+    google.protobuf.Timestamp CreatedAt = 2;
+    google.protobuf.Timestamp UpdatedAt = 3;
+    string Name=4;
+    int64 Price=5;
+    string Currency=6;
+    string Period=7;
+    uint64 Interval=8;
+    string Description=9;
+    bool IsActive=10;
+}
+
 
 message AdminLoginRequest{
     string email=1;
@@ -13,12 +145,50 @@ message AdminLoginRequest{
 }
 message AdminLoginResponse{
     AdminDetails adminDetails=1;
-    string token=2;
+    string AccessToken=2;
+    string RefreshToken=3;
 }
 message AdminDetails{
     uint64 id=1;
     string email=2;
 }
+
+message UserLoginRequest{
+    string email=1;
+    string password=2;
+}
+
+message UserLoginResponse{
+    UserDetails userDetails=1;
+    string AccessToken=2;
+    string RefreshToken=3;
+}
+
+message UserDetails{
+    uint64 id=1;
+    string Name=2;
+    string UserName=3;
+    string Email=4;
+    string Status=5;
+    bool BlueTick=6;
+}
+message BlockUserRequest{
+    uint64 UserId=1;
+}
+
+message BlockUserResponse{
+    uint64 UserId=1;
+}
+
+message UnblockUserRequest{
+    uint64 UserId=1;
+}
+
+message UnblockUserResponse{
+    uint64 UserId=1;
+}
+
+
 
 message UserSignUpRequest{
     string UserName  =1;
@@ -33,6 +203,53 @@ message UserSignUpResponse{
 	string UserName  =2;
     string Name = 3;
     string Email =4;
+    string OtpVerificationToken=5;
+}
+
+message OtpRequest{
+    uint64 UserId=1;
+    uint64 OtpCode=2;
+    string Email=3;
+    string Purpose=4;
+}
+
+message OtpVerificationResponse{
+    string Email=1;
+    string Status=2;
+    string AccessToken=3;
+    string RefreshToken=4;
+    string TempToken=5;
+}
+
+message ResendOtpRequest{
+    string Name=1;
+    string Email=2;
+}
+
+message ResendOtpResponse{
+    string Email=1;
+}
+
+message AccessRegeneratorRequest{
+    uint64 id=1;
+    string Email=2;
+    string Role=3;
+}
+
+message AccessRegeneratorResponse{
+    uint64 id=1;
+    string Email=2;
+    string Role=3;
+    string NewAccessToken=4;
+}
+
+message ResetPasswordRequest{
+    string Email=1;
+    string Password=2;
+}
+
+message ResetPasswordResponse{
+    string Email=1;
 }
 // message RequestUserId{
 //     string UserId=1;

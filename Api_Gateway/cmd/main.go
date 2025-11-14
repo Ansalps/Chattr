@@ -14,7 +14,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("cannot load configuration: %v", err)
 	}
-	fmt.Println("Config.Port",config.Port,"Config.AuthSubscriptionSvcUrl",config.AuthSubscriptionSvcUrl)
+	fmt.Println("Config.Port", config.Port, "Config.AuthSubscriptionSvcUrl", config.AuthSubscriptionSvcUrl)
 	router := gin.New()
 	err = di.DependencyInjection(router, config)
 	if err != nil {
