@@ -16,6 +16,7 @@ func main() {
 	}
 	fmt.Println("Config.Port", config.Port, "Config.AuthSubscriptionSvcUrl", config.AuthSubscriptionSvcUrl)
 	router := gin.New()
+	router.LoadHTMLGlob("./cmd/templates/*")
 	err = di.DependencyInjection(router, config)
 	if err != nil {
 		log.Fatalf("Cannot Start server due to failure in DependencyInjectin: %v", err)

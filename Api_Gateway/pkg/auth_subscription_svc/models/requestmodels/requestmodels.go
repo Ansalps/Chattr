@@ -17,7 +17,7 @@ type OtpRequest struct {
 	UserId  uint64
 	OtpCode uint64 `json:"otp_code" binding:"required"`
 	Email   string
-	Purpose string `json:"purpose" binding:"required,oneof=user-forget-password user-signup"`
+	Purpose string `json:"purpose" binding:"required,oneof=user-forgot-password user-signup"`
 }
 
 type ResendOtpRequest struct {
@@ -31,6 +31,9 @@ type AccessRegeneratorRequest struct {
 	Role  string `json:"role" binding:"required"`
 }
 
+type ForgotPasswordRequest struct{
+    Email string `json:"email" binding:"required"`
+}
 type ResetPasswordRequest struct {
 	Email           string
 	Password        string `json:"Password" binding:"required,min=3,max=30"`
@@ -66,10 +69,12 @@ type CreateSubscriptionPlanRequest struct {
 
 type UpdateSubscriptionPlanRequest struct {
 	ID           uint64
-	Name         string  `json:"name" binding:"required"`
-	Price        float64 `json:"price" binding:"required"`
-	DurationDays uint64  `json:"duration_days" binding:"required"`
-	Description  string  `json:"description" binding:"required"`
+	Name        string `json:"name" binding:"required"`
+	Price       int64  `json:"price" binding:"required"`
+	Currency    string `json:"currency" binding:"required"`
+	Period      string `json:"period" binding:"required"`
+	Interval    uint64 `json:"interval" binding:"required"`
+	Description string `json:"description" binding:"required"`
 }
 
 type ActivateSubscriptionPlanRequest struct {
@@ -88,4 +93,39 @@ type GetAllSubscriptionPlansRequest struct {
 type GetAllActiveSubscriptionPlansRequest struct {
 	Limit  uint64
 	Offset uint64
+}
+
+type SubscribeRequest struct{
+    UserId uint64
+    PlanId uint64
+}
+
+type VerifySubscriptionPaymentRequest struct{
+    RazorpaySubscriptionId string `json:"razorpay_subscription_id" binding:"required"`
+    RazorpayPaymentId string    `json:"razorpay_payment_id" binding:"required"`
+    RazorpaySignature string    `json:"razorpay_signature" binding:"required"`
+}
+
+type UnsubscribeRequest struct{
+	SubId uint64
+	CancelReason string	`json:"cancel_reason" binding:"required"`
+}
+
+type WebhookRequest struct {
+	Event   string `json:"event"`
+	Payload struct {
+		Subscription struct {
+			ID        string `json:"id"`
+			PlanID    string `json:"plan_id"`
+			Status    string `json:"status"`
+			Amount    int    `json:"amount"`
+			Currency  string `json:"currency"`
+			StartDate string `json:"start_date"`
+			EndDate   string `json:"end_date"`
+			Customer  struct {
+				ID    string `json:"id"`
+				Email string `json:"email"`
+			} `json:"customer"`
+		} `json:"subscription"`
+	} `json:"payload"`
 }

@@ -24,7 +24,6 @@ const (
 	AuthSubscriptionService_UnblockUser_FullMethodName                   = "/auth_subscription.AuthSubscriptionService/UnblockUser"
 	AuthSubscriptionService_GetAllUsers_FullMethodName                   = "/auth_subscription.AuthSubscriptionService/GetAllUsers"
 	AuthSubscriptionService_CreateSubscriptionPlan_FullMethodName        = "/auth_subscription.AuthSubscriptionService/CreateSubscriptionPlan"
-	AuthSubscriptionService_UpdateSubscriptionPlan_FullMethodName        = "/auth_subscription.AuthSubscriptionService/UpdateSubscriptionPlan"
 	AuthSubscriptionService_ActivateSubscriptionPlan_FullMethodName      = "/auth_subscription.AuthSubscriptionService/ActivateSubscriptionPlan"
 	AuthSubscriptionService_DeactivateSubscriptionPlan_FullMethodName    = "/auth_subscription.AuthSubscriptionService/DeactivateSubscriptionPlan"
 	AuthSubscriptionService_GetAllSubscriptionPlans_FullMethodName       = "/auth_subscription.AuthSubscriptionService/GetAllSubscriptionPlans"
@@ -32,9 +31,13 @@ const (
 	AuthSubscriptionService_VerifyOtp_FullMethodName                     = "/auth_subscription.AuthSubscriptionService/VerifyOtp"
 	AuthSubscriptionService_ResendOtp_FullMethodName                     = "/auth_subscription.AuthSubscriptionService/ResendOtp"
 	AuthSubscriptionService_AccessRegenerator_FullMethodName             = "/auth_subscription.AuthSubscriptionService/AccessRegenerator"
+	AuthSubscriptionService_ForgetPassword_FullMethodName                = "/auth_subscription.AuthSubscriptionService/ForgetPassword"
 	AuthSubscriptionService_ResetPassword_FullMethodName                 = "/auth_subscription.AuthSubscriptionService/ResetPassword"
 	AuthSubscriptionService_UserLogin_FullMethodName                     = "/auth_subscription.AuthSubscriptionService/UserLogin"
 	AuthSubscriptionService_GetAllActiveSubscriptionPlans_FullMethodName = "/auth_subscription.AuthSubscriptionService/GetAllActiveSubscriptionPlans"
+	AuthSubscriptionService_Subscribe_FullMethodName                     = "/auth_subscription.AuthSubscriptionService/Subscribe"
+	AuthSubscriptionService_VerifySubscriptionPayment_FullMethodName     = "/auth_subscription.AuthSubscriptionService/VerifySubscriptionPayment"
+	AuthSubscriptionService_Unsubscribe_FullMethodName                   = "/auth_subscription.AuthSubscriptionService/Unsubscribe"
 )
 
 // AuthSubscriptionServiceClient is the client API for AuthSubscriptionService service.
@@ -46,7 +49,6 @@ type AuthSubscriptionServiceClient interface {
 	UnblockUser(ctx context.Context, in *UnblockUserRequest, opts ...grpc.CallOption) (*UnblockUserResponse, error)
 	GetAllUsers(ctx context.Context, in *GetAllUsersRequest, opts ...grpc.CallOption) (*GetAllUsersResponse, error)
 	CreateSubscriptionPlan(ctx context.Context, in *CreateSubscriptionPlanRequest, opts ...grpc.CallOption) (*CreateSubscriptionPlanResponse, error)
-	UpdateSubscriptionPlan(ctx context.Context, in *UpdateSubscriptionPlanRequest, opts ...grpc.CallOption) (*UpdateSubscriptionPlanResponse, error)
 	ActivateSubscriptionPlan(ctx context.Context, in *ActivateSubscriptionPlanRequest, opts ...grpc.CallOption) (*ActivateSubscriptionPlanResponse, error)
 	DeactivateSubscriptionPlan(ctx context.Context, in *DeactivateSubscriptionPlanRequest, opts ...grpc.CallOption) (*DeactivateSubscriptionPlanResponse, error)
 	GetAllSubscriptionPlans(ctx context.Context, in *GetAllSubscriptionPlansRequest, opts ...grpc.CallOption) (*GetAllSubscriptionPlansResponse, error)
@@ -54,9 +56,13 @@ type AuthSubscriptionServiceClient interface {
 	VerifyOtp(ctx context.Context, in *OtpRequest, opts ...grpc.CallOption) (*OtpVerificationResponse, error)
 	ResendOtp(ctx context.Context, in *ResendOtpRequest, opts ...grpc.CallOption) (*ResendOtpResponse, error)
 	AccessRegenerator(ctx context.Context, in *AccessRegeneratorRequest, opts ...grpc.CallOption) (*AccessRegeneratorResponse, error)
+	ForgetPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*ForgotPasswordResponse, error)
 	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error)
 	UserLogin(ctx context.Context, in *UserLoginRequest, opts ...grpc.CallOption) (*UserLoginResponse, error)
 	GetAllActiveSubscriptionPlans(ctx context.Context, in *GetAllActiveSubscriptionPlansRequest, opts ...grpc.CallOption) (*GetAllActiveSubscriptionPlansResponse, error)
+	Subscribe(ctx context.Context, in *SubscribeReqeust, opts ...grpc.CallOption) (*SubscribeResponse, error)
+	VerifySubscriptionPayment(ctx context.Context, in *VerifySubscriptionPaymentRequest, opts ...grpc.CallOption) (*VerifySubscriptionPaymentResponse, error)
+	Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error)
 }
 
 type authSubscriptionServiceClient struct {
@@ -111,16 +117,6 @@ func (c *authSubscriptionServiceClient) CreateSubscriptionPlan(ctx context.Conte
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateSubscriptionPlanResponse)
 	err := c.cc.Invoke(ctx, AuthSubscriptionService_CreateSubscriptionPlan_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authSubscriptionServiceClient) UpdateSubscriptionPlan(ctx context.Context, in *UpdateSubscriptionPlanRequest, opts ...grpc.CallOption) (*UpdateSubscriptionPlanResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateSubscriptionPlanResponse)
-	err := c.cc.Invoke(ctx, AuthSubscriptionService_UpdateSubscriptionPlan_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -197,6 +193,16 @@ func (c *authSubscriptionServiceClient) AccessRegenerator(ctx context.Context, i
 	return out, nil
 }
 
+func (c *authSubscriptionServiceClient) ForgetPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*ForgotPasswordResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ForgotPasswordResponse)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_ForgetPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *authSubscriptionServiceClient) ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResetPasswordResponse)
@@ -227,6 +233,36 @@ func (c *authSubscriptionServiceClient) GetAllActiveSubscriptionPlans(ctx contex
 	return out, nil
 }
 
+func (c *authSubscriptionServiceClient) Subscribe(ctx context.Context, in *SubscribeReqeust, opts ...grpc.CallOption) (*SubscribeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SubscribeResponse)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_Subscribe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authSubscriptionServiceClient) VerifySubscriptionPayment(ctx context.Context, in *VerifySubscriptionPaymentRequest, opts ...grpc.CallOption) (*VerifySubscriptionPaymentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VerifySubscriptionPaymentResponse)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_VerifySubscriptionPayment_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authSubscriptionServiceClient) Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnsubscribeResponse)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_Unsubscribe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthSubscriptionServiceServer is the server API for AuthSubscriptionService service.
 // All implementations must embed UnimplementedAuthSubscriptionServiceServer
 // for forward compatibility.
@@ -236,7 +272,6 @@ type AuthSubscriptionServiceServer interface {
 	UnblockUser(context.Context, *UnblockUserRequest) (*UnblockUserResponse, error)
 	GetAllUsers(context.Context, *GetAllUsersRequest) (*GetAllUsersResponse, error)
 	CreateSubscriptionPlan(context.Context, *CreateSubscriptionPlanRequest) (*CreateSubscriptionPlanResponse, error)
-	UpdateSubscriptionPlan(context.Context, *UpdateSubscriptionPlanRequest) (*UpdateSubscriptionPlanResponse, error)
 	ActivateSubscriptionPlan(context.Context, *ActivateSubscriptionPlanRequest) (*ActivateSubscriptionPlanResponse, error)
 	DeactivateSubscriptionPlan(context.Context, *DeactivateSubscriptionPlanRequest) (*DeactivateSubscriptionPlanResponse, error)
 	GetAllSubscriptionPlans(context.Context, *GetAllSubscriptionPlansRequest) (*GetAllSubscriptionPlansResponse, error)
@@ -244,9 +279,13 @@ type AuthSubscriptionServiceServer interface {
 	VerifyOtp(context.Context, *OtpRequest) (*OtpVerificationResponse, error)
 	ResendOtp(context.Context, *ResendOtpRequest) (*ResendOtpResponse, error)
 	AccessRegenerator(context.Context, *AccessRegeneratorRequest) (*AccessRegeneratorResponse, error)
+	ForgetPassword(context.Context, *ForgotPasswordRequest) (*ForgotPasswordResponse, error)
 	ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error)
 	UserLogin(context.Context, *UserLoginRequest) (*UserLoginResponse, error)
 	GetAllActiveSubscriptionPlans(context.Context, *GetAllActiveSubscriptionPlansRequest) (*GetAllActiveSubscriptionPlansResponse, error)
+	Subscribe(context.Context, *SubscribeReqeust) (*SubscribeResponse, error)
+	VerifySubscriptionPayment(context.Context, *VerifySubscriptionPaymentRequest) (*VerifySubscriptionPaymentResponse, error)
+	Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error)
 	mustEmbedUnimplementedAuthSubscriptionServiceServer()
 }
 
@@ -272,9 +311,6 @@ func (UnimplementedAuthSubscriptionServiceServer) GetAllUsers(context.Context, *
 func (UnimplementedAuthSubscriptionServiceServer) CreateSubscriptionPlan(context.Context, *CreateSubscriptionPlanRequest) (*CreateSubscriptionPlanResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateSubscriptionPlan not implemented")
 }
-func (UnimplementedAuthSubscriptionServiceServer) UpdateSubscriptionPlan(context.Context, *UpdateSubscriptionPlanRequest) (*UpdateSubscriptionPlanResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateSubscriptionPlan not implemented")
-}
 func (UnimplementedAuthSubscriptionServiceServer) ActivateSubscriptionPlan(context.Context, *ActivateSubscriptionPlanRequest) (*ActivateSubscriptionPlanResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ActivateSubscriptionPlan not implemented")
 }
@@ -296,6 +332,9 @@ func (UnimplementedAuthSubscriptionServiceServer) ResendOtp(context.Context, *Re
 func (UnimplementedAuthSubscriptionServiceServer) AccessRegenerator(context.Context, *AccessRegeneratorRequest) (*AccessRegeneratorResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AccessRegenerator not implemented")
 }
+func (UnimplementedAuthSubscriptionServiceServer) ForgetPassword(context.Context, *ForgotPasswordRequest) (*ForgotPasswordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ForgetPassword not implemented")
+}
 func (UnimplementedAuthSubscriptionServiceServer) ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResetPassword not implemented")
 }
@@ -304,6 +343,15 @@ func (UnimplementedAuthSubscriptionServiceServer) UserLogin(context.Context, *Us
 }
 func (UnimplementedAuthSubscriptionServiceServer) GetAllActiveSubscriptionPlans(context.Context, *GetAllActiveSubscriptionPlansRequest) (*GetAllActiveSubscriptionPlansResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAllActiveSubscriptionPlans not implemented")
+}
+func (UnimplementedAuthSubscriptionServiceServer) Subscribe(context.Context, *SubscribeReqeust) (*SubscribeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
+}
+func (UnimplementedAuthSubscriptionServiceServer) VerifySubscriptionPayment(context.Context, *VerifySubscriptionPaymentRequest) (*VerifySubscriptionPaymentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VerifySubscriptionPayment not implemented")
+}
+func (UnimplementedAuthSubscriptionServiceServer) Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Unsubscribe not implemented")
 }
 func (UnimplementedAuthSubscriptionServiceServer) mustEmbedUnimplementedAuthSubscriptionServiceServer() {
 }
@@ -413,24 +461,6 @@ func _AuthSubscriptionService_CreateSubscriptionPlan_Handler(srv interface{}, ct
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthSubscriptionServiceServer).CreateSubscriptionPlan(ctx, req.(*CreateSubscriptionPlanRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthSubscriptionService_UpdateSubscriptionPlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateSubscriptionPlanRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthSubscriptionServiceServer).UpdateSubscriptionPlan(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthSubscriptionService_UpdateSubscriptionPlan_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthSubscriptionServiceServer).UpdateSubscriptionPlan(ctx, req.(*UpdateSubscriptionPlanRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -561,6 +591,24 @@ func _AuthSubscriptionService_AccessRegenerator_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthSubscriptionService_ForgetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ForgotPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthSubscriptionServiceServer).ForgetPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthSubscriptionService_ForgetPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthSubscriptionServiceServer).ForgetPassword(ctx, req.(*ForgotPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AuthSubscriptionService_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ResetPasswordRequest)
 	if err := dec(in); err != nil {
@@ -615,6 +663,60 @@ func _AuthSubscriptionService_GetAllActiveSubscriptionPlans_Handler(srv interfac
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthSubscriptionService_Subscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubscribeReqeust)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthSubscriptionServiceServer).Subscribe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthSubscriptionService_Subscribe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthSubscriptionServiceServer).Subscribe(ctx, req.(*SubscribeReqeust))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthSubscriptionService_VerifySubscriptionPayment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VerifySubscriptionPaymentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthSubscriptionServiceServer).VerifySubscriptionPayment(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthSubscriptionService_VerifySubscriptionPayment_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthSubscriptionServiceServer).VerifySubscriptionPayment(ctx, req.(*VerifySubscriptionPaymentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthSubscriptionService_Unsubscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnsubscribeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthSubscriptionServiceServer).Unsubscribe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthSubscriptionService_Unsubscribe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthSubscriptionServiceServer).Unsubscribe(ctx, req.(*UnsubscribeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthSubscriptionService_ServiceDesc is the grpc.ServiceDesc for AuthSubscriptionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -641,10 +743,6 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateSubscriptionPlan",
 			Handler:    _AuthSubscriptionService_CreateSubscriptionPlan_Handler,
-		},
-		{
-			MethodName: "UpdateSubscriptionPlan",
-			Handler:    _AuthSubscriptionService_UpdateSubscriptionPlan_Handler,
 		},
 		{
 			MethodName: "ActivateSubscriptionPlan",
@@ -675,6 +773,10 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AuthSubscriptionService_AccessRegenerator_Handler,
 		},
 		{
+			MethodName: "ForgetPassword",
+			Handler:    _AuthSubscriptionService_ForgetPassword_Handler,
+		},
+		{
 			MethodName: "ResetPassword",
 			Handler:    _AuthSubscriptionService_ResetPassword_Handler,
 		},
@@ -685,6 +787,18 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAllActiveSubscriptionPlans",
 			Handler:    _AuthSubscriptionService_GetAllActiveSubscriptionPlans_Handler,
+		},
+		{
+			MethodName: "Subscribe",
+			Handler:    _AuthSubscriptionService_Subscribe_Handler,
+		},
+		{
+			MethodName: "VerifySubscriptionPayment",
+			Handler:    _AuthSubscriptionService_VerifySubscriptionPayment_Handler,
+		},
+		{
+			MethodName: "Unsubscribe",
+			Handler:    _AuthSubscriptionService_Unsubscribe_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

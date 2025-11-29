@@ -20,11 +20,11 @@ func main() {
 	if err != nil {
 		log.Fatal("cannot start server: ", err)
 	}
-	lis, err := net.Listen("tcp", config.Port)
+	lis, err := net.Listen("tcp", config.PortMngr.RunnerPort)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Auth_Subscription_Service started on:", config.Port)
+	fmt.Println("Auth_Subscription_Service started on:", config.PortMngr.RunnerPort)
 	grpcServer := grpc.NewServer()
 	pb.RegisterAuthSubscriptionServiceServer(grpcServer, AuthSubscriptionServiceServer)
 	if err := grpcServer.Serve(lis); err != nil {
