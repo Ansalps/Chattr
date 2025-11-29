@@ -50,7 +50,10 @@ type AccessRegeneratorResponse struct{
 	Role string
 	NewAccessToken string
 }
-
+type ForgetPassordResponse struct{
+	Email string
+	TempToken string
+}
 type ResetPasswordResponse struct{
 	Email string
 }
@@ -110,8 +113,10 @@ type UpdateSubscriptionPlanResponse struct{
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Name string
-	Price float64
-	DurationDays uint64
+	Price int64
+	Currency string
+	Period string
+	Interval uint64
 	Description string
 	IsActive bool
 }
@@ -120,9 +125,12 @@ type ActivateSubscriptionPlanResponse struct{
 	ID uint64
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	RazorpayPlanId string
 	Name string
-	Price float64
-	DurationDays uint64
+	Price int64
+	Currency string
+	Period string
+	Interval uint64
 	Description string
 	IsActive bool
 }
@@ -131,9 +139,12 @@ type DeactivateSubscriptionPlanResponse struct{
 	ID uint64
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	RazorpayPlanId string
 	Name string
-	Price float64
-	DurationDays uint64
+	Price int64
+	Currency string
+	Period string
+	Interval uint64
 	Description string
 	IsActive bool
 }
@@ -142,9 +153,12 @@ type SubscriptionPlan struct{
 	ID uint64
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	RazorpayPlanId string
 	Name string
-	Price float64
-	DurationDays uint64
+	Price int64
+	Currency string
+	Period string
+	Interval uint64
 	Description string
 	IsActive bool
 }
@@ -155,4 +169,69 @@ type GetAllSubscriptionPlansResponse struct{
 
 type GetAllActiveSubscriptionPlansResponse struct{
 	SubscriptionPlans []SubscriptionPlan
+}
+
+// type SubscribeResponse struct{
+// 	RazorpaySubcriptionId string
+// }
+type SubscribeResponse struct{
+	ID uint64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID uint64
+	RazorpaySubscriptionId string
+	Status string
+	TotalCount int
+	RemainingCount int
+	PaidCount int
+}
+
+type VerifySubscriptionPaymentResponse struct{
+	ID uint64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID uint64
+	RazorpaySubscriptionId string
+	Status string
+	StartAt time.Time
+	EndAt	time.Time
+	NextChargeAt time.Time
+	TotalCount int
+	RemainingCount int
+	PaidCount int
+}
+
+type UnsubscribeResponse struct{
+	ID uint64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID uint64
+	RazorpaySubscriptionId string
+	Status string
+	StartAt time.Time
+	EndAt	time.Time
+	NextChargeAt time.Time
+	TotalCount int
+	RemainingCount int
+	PaidCount int
+	CancelledAt time.Time
+	CancelReason string
+}
+
+type WebhookResponse struct{
+	RazropaySubscriptinId string
+	Event string
+	Entity string
+	Status string
+	RazrorpayPlanId string
+	RemainingCount int
+	StartAt time.Time
+	EndAt time.Time
+	NextChargeAt time.Time
+	BillingAt int
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Amount int
+	Currency string
+	customer_notify int	
 }

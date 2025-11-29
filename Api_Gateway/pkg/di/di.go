@@ -10,7 +10,7 @@ import (
 
 func DependencyInjection(router *gin.Engine, cfg *config.Config) error {
 	authSubscriptionClient := client.NewAuthSubscriptionClient(cfg)
-	authSubscriptionHandler := handler.NewAuthSubscriptionHandler(authSubscriptionClient)
+	authSubscriptionHandler := handler.NewAuthSubscriptionHandler(authSubscriptionClient,cfg)
 	routes.AuthSubscriptionRoutes(router, authSubscriptionHandler, &cfg.Token)
 	return nil
 }

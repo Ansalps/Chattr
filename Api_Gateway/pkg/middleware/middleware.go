@@ -118,7 +118,7 @@ func VerifyJwt(requiredRoles []string, tokenType string, tokenSecurityKey string
 		// Role check
 		authorized := false
 		for _, r := range requiredRoles {
-			fmt.Println("please print roles inside for loop",r)
+			fmt.Println("please print roles inside",r)
 			if jwtClaims.Role == r {
 				authorized = true
 				break
@@ -130,7 +130,7 @@ func VerifyJwt(requiredRoles []string, tokenType string, tokenSecurityKey string
 			c.Abort()
 			return
 		}
-		//var jwtClaims responsemodels.JwtClaims
+		fmt.Println("jwt claims",jwtClaims)
 		c.Set("claims", jwtClaims)
 		c.Next()
 	}

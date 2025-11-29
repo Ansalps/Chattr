@@ -11,7 +11,7 @@ type AuthSubscriptionClient interface{
 	UnblockUser(requestmodels.UnblockUserRequest)(responsemodels.UnblockUserResponse,error)
 	GetAllUsers(requestmodels.GetAllUsersRequest)(responsemodels.GetAllUsersResponse,error)
 	CreateSubscriptionPlan(requestmodels.CreateSubscriptionPlanRequest)(responsemodels.CreateSubscriptionPlanResponse,error)
-	UpdateSubscriptionPlan(requestmodels.UpdateSubscriptionPlanRequest)(responsemodels.UpdateSubscriptionPlanResponse,error)
+	
 	ActivateSubscriptionPlan(requestmodels.ActivateSubscriptionPlanRequest)(responsemodels.ActivateSubscriptionPlanResponse,error)
 	DeactivateSubscriptionPlan(requestmodels.DeactivateSubscriptionPlanRequest)(responsemodels.DeactivateSubscriptionPlanResponse,error)
 	GetAllSubscriptionPlans(requestmodels.GetAllSubscriptionPlansRequest)(responsemodels.GetAllSubscriptionPlansResponse,error)
@@ -20,7 +20,12 @@ type AuthSubscriptionClient interface{
 	VerifyOtp(requestmodels.OtpRequest)(responsemodels.OtpVerificationResponse,error)
 	ResendOtp(requestmodels.ResendOtpRequest)(responsemodels.ResendOtpResponse,error)
 	AccessRegenerator(requestmodels.AccessRegeneratorRequest)(responsemodels.AccessRegeneratorResponse,error)
+	ForgotPassword(requestmodels.ForgotPasswordRequest)(responsemodels.ForgetPassordResponse,error)
 	ResetPassword(requestmodels.ResetPasswordRequest)(responsemodels.ResetPasswordResponse,error)
 	UserLogin(requestmodels.UserLoginRequest)(responsemodels.UserLoginResponse,error)
 	GetAllActiveSubscriptionPlans(requestmodels.GetAllActiveSubscriptionPlansRequest)(responsemodels.GetAllActiveSubscriptionPlansResponse,error)
+	Subscribe(requestmodels.SubscribeRequest)(responsemodels.SubscribeResponse,error)
+	VerifySubscriptionPayment(requestmodels.VerifySubscriptionPaymentRequest)(responsemodels.VerifySubscriptionPaymentResponse,error)
+	Unsubscribe(requestmodels.UnsubscribeRequest)(responsemodels.UnsubscribeResponse,error)
+	//Webhook(requestmodels.WebhookRequest)(responsemodels.WebhookResponse,error)
 }

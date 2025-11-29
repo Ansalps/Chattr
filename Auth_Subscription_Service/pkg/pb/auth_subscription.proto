@@ -1,11 +1,160 @@
 syntax="proto3";
 package auth_subscription;
 option go_package="./pkg/pb";
-
+import "google/protobuf/timestamp.proto";
 service AuthSubscriptionService{
     rpc AdminLogin(AdminLoginRequest) returns (AdminLoginResponse);
+    rpc BlockUser(BlockUserRequest) returns (BlockUserResponse);
+    rpc UnblockUser(UnblockUserRequest) returns (UnblockUserResponse);
+    rpc GetAllUsers(GetAllUsersRequest) returns (GetAllUsersResponse);
+    rpc CreateSubscriptionPlan(CreateSubscriptionPlanRequest) returns (CreateSubscriptionPlanResponse);
+    rpc ActivateSubscriptionPlan(ActivateSubscriptionPlanRequest) returns (ActivateSubscriptionPlanResponse);
+    rpc DeactivateSubscriptionPlan(DeactivateSubscriptionPlanRequest) returns (DeactivateSubscriptionPlanResponse);
+    rpc GetAllSubscriptionPlans(GetAllSubscriptionPlansRequest) returns (GetAllSubscriptionPlansResponse);
+
     rpc UserSignUp(UserSignUpRequest) returns (UserSignUpResponse);
+    rpc VerifyOtp(OtpRequest) returns (OtpVerificationResponse);
+    rpc ResendOtp(ResendOtpRequest) returns (ResendOtpResponse);
+    rpc AccessRegenerator(AccessRegeneratorRequest) returns (AccessRegeneratorResponse);
+    rpc ForgetPassword(ForgotPasswordReqeust) returns (ForgotPasswordResponse);
+    rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+    rpc UserLogin(UserLoginRequest) returns (UserLoginResponse);
+    rpc GetAllActiveSubscriptionPlans(GetAllActiveSubscriptionPlansRequest) returns (GetAllActiveSubscriptionPlansResponse);
+    rpc Subscribe(SubscribeReqeust) returns (SubscribeResponse);
+    rpc VerifySubscriptionPayment(VerifySubscriptionPaymentRequest) returns (VerifySubscriptionPaymentResponse);
+    rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
 }
+message UnsubscribeRequest{
+    uint64 SubId=1;
+    string CancelReason =2;
+}
+message UnsubscribeResponse{
+    uint64 Id=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    uint64 UserId=4;
+    string RazorpaySubcriptionId=5;
+    string Status=6;
+    google.protobuf.Timestamp StartAt=7;
+    google.protobuf.Timestamp EndAt=8;
+    google.protobuf.Timestamp NextChargeAt=9;
+    int64 TotalCount=10;
+    int64 RemainingCount=11;
+    int64 PaidCount=12;
+    google.protobuf.Timestamp CancelledAt=13;
+    string CancelReason=14;
+}
+message VerifySubscriptionPaymentRequest{
+    string RazorpaySubscriptionId=1;
+    string RazorpayPaymentId=2;
+    string RazorpaySignature=3;
+}
+message VerifySubscriptionPaymentResponse{
+    uint64 Id=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    uint64 UserId=4;
+    string RazorpaySubcriptionId=5;
+    string Status=6;
+    google.protobuf.Timestamp StartAt=7;
+    google.protobuf.Timestamp EndAt=8;
+    google.protobuf.Timestamp NextChargeAt=9;
+    int64 TotalCount=10;
+    int64 RemainingCount=11;
+    int64 PaidCount=12;
+}
+message SubscribeReqeust{
+    uint64 UserId=1;
+    uint64 PlanId=2;
+}
+// message SubscribeResponse{
+//     string RazorpaySubscripitonId=1;
+// }
+message SubscribeResponse{
+    uint64 Id=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    uint64 UserId=4;
+    string RazorpaySubcriptionId=5;
+    string Status=6;
+    int64 TotalCount=7;
+    int64 RemainingCount=8;
+    int64 PaidCount=9;
+}
+message ForgotPasswordReqeust{
+    string Email=1;
+}
+message ForgotPasswordResponse{
+    string Email=1;
+    string TempToken=2;
+}
+message GetAllSubscriptionPlansRequest{
+    uint64 Limit=1;
+    uint64 Offset=2;
+}
+message SubscriptioPlan{
+    uint64 Id=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    string RazorpayPlanId=4;
+    string Name=5;
+    int64 Price=6;
+    string Currency=7;
+    string Period=8;
+    uint64 Interval=9;
+    string Description=10;
+    bool IsActive=11;
+}
+
+message GetAllActiveSubscriptionPlansRequest{
+    uint64 Limit=1;
+    uint64 Offset=2;
+}
+
+message GetAllActiveSubscriptionPlansResponse{
+    repeated SubscriptioPlan SubscriptioPlans=1;
+}
+
+message GetAllSubscriptionPlansResponse{
+    repeated SubscriptioPlan SubscriptioPlans=1;
+}
+message DeactivateSubscriptionPlanRequest{
+    uint64 Id=1;
+}
+
+message DeactivateSubscriptionPlanResponse{
+    uint64 Id=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    string RazorpayPlanId=4;
+    string Name=5;
+    int64 Price=6;
+    string Currency=7;
+    string Period=8;
+    uint64 Interval=9;
+    string Description=10;
+    bool IsActive=11;
+}
+
+message ActivateSubscriptionPlanRequest{
+    uint64 Id=1;
+}
+
+message ActivateSubscriptionPlanResponse{
+    uint64 Id=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    string RazorpayPlanId=4;
+    string Name=5;
+    int64 Price=6;
+    string Currency=7;
+    string Period=8;
+    uint64 Interval=9;
+    string Description=10;
+    bool IsActive=11;
+}
+
+
 
 message AdminLoginRequest{
     string email=1;
@@ -13,11 +162,90 @@ message AdminLoginRequest{
 }
 message AdminLoginResponse{
     AdminDetails adminDetails=1;
-    string token=2;
+    string AccessToken=2;
+    string RefreshToken=3;
 }
 message AdminDetails{
     uint64 id=1;
     string email=2;
+}
+
+message UserLoginRequest{
+    string email=1;
+    string password=2;
+}
+
+message UserLoginResponse{
+    UserDetails userDetails=1;
+    string AccessToken=2;
+    string RefreshToken=3;
+}
+
+message UserDetails{
+    uint64 id=1;
+    string Name=2;
+    string UserName=3;
+    string Email=4;
+    string Status=5;
+    bool BlueTick=6;
+}
+
+message BlockUserRequest{
+    uint64 UserId=1;
+}
+
+message BlockUserResponse{
+    uint64 UserId=1;
+}
+
+message UnblockUserRequest{
+    uint64 UserId=1;
+}
+
+message UnblockUserResponse{
+    uint64 UserId=1;
+}
+
+message GetAllUsersRequest{
+    uint64 limit=1;
+    uint64 offset=2;
+}
+
+message GetAllUsersResponse{
+    repeated User Users=1;
+}
+
+message CreateSubscriptionPlanRequest{
+    string Name=1;
+    int64 Price=2;
+    string Currency=3;
+    string Period=4;
+    uint64 Interval=5;
+    string Description=6;
+}
+
+message CreateSubscriptionPlanResponse{
+    uint64 Id=1;
+    google.protobuf.Timestamp CreatedAt = 2;
+    google.protobuf.Timestamp UpdatedAt = 3;
+    string Name=4;
+    int64 Price=5;
+    string Currency=6;
+    string Period=7;
+    uint64 Interval=8;
+    string Description=9;
+    bool IsActive=10;
+}
+
+message User{
+    uint64 Id=1;
+    string Name=2;
+    string UserName=3;
+    string Email=4;
+    string Bio=5;
+    string ProfileImgUrl=6;
+    string Links=7;
+    string Status=8;
 }
 
 message UserSignUpRequest{
@@ -33,4 +261,51 @@ message UserSignUpResponse{
 	string UserName  =2;
     string Name = 3;
     string Email =4;
+    string OtpVerificationToken=5;
+}
+
+message OtpRequest{
+    uint64 UserId=1;
+    uint64 OtpCode=2;
+    string Email=3;
+    string Purpose=4;
+}
+
+message OtpVerificationResponse{
+    string Email=1;
+    string Status=2;
+    string AccessToken=3;
+    string RefreshToken=4;
+    string TempToken=5;
+}
+
+message ResendOtpRequest{
+    string Name=1;
+    string Email=2;
+}
+
+message ResendOtpResponse{
+    string Email=1;
+}
+
+message AccessRegeneratorRequest{
+    uint64 id=1;
+    string Email=2;
+    string Role=3;
+}
+
+message AccessRegeneratorResponse{
+    uint64 id=1;
+    string Email=2;
+    string Role=3;
+    string NewAccessToken=4;
+}
+
+message ResetPasswordRequest{
+    string Email=1;
+    string Password=2;
+}
+
+message ResetPasswordResponse{
+    string Email=1;
 }

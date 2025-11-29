@@ -1,0 +1,31 @@
+<html>
+
+<body>
+    <button id="rzp-button">Authenticate</button>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        var options = {
+          "key": "rzp_test_RjwgibEA2qNM9N",
+          "subscription_id": "sub_RkQ33EQo4mEWBL",
+          "name": "Chattr",
+          "description": "blue tick monthly subscription",
+          "handler": function (response){
+            
+            var paymentId = response.razorpay_payment_id;
+            var subscriptionId = response.razorpay_subscription_id; 
+            var signature = response.razorpay_signature; 
+            
+            console.log("paymentId: ",paymentId)
+            console.log("subscriptionId :",subscriptionId)
+            console.log("signature: ",signature)
+            alert("Payment ID: " + paymentId + "\nSubscription ID: " + subscriptionId + "\nSignature: " + signature);
+          }
+        };
+        var rzp1 = new Razorpay(options);
+        document.getElementById('rzp-button').onclick = function(e){
+          rzp1.open();
+        }
+    </script>
+</body>
+
+</html>
