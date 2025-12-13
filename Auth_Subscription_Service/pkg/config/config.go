@@ -31,12 +31,19 @@ type Smtp struct {
 	SmtpHost     string `mapstructure:"SMTP_HOST"`
 	SmtpPort     string `mapstructure:"SMTP_PORT"`
 }
+type Aws struct{
+	AwsRegion string `mapstructure:"AWS_REGION"`
+	AwsAccessKey string `mapstructure:"AWS_ACCESS_KEY"`
+	AwsSecretAccessKey string	`mapstructure:"AWS_SECRET_ACCESS_KEY"`
+	AwsBucket string	`mapstructure:"AWS_BUCKET"`
+}
 type Config struct{
 	PortMngr PortManager
 	DB Database
 	Token Token
 	Smtp Smtp
 	Razorpay Razorpay
+	Aws Aws
 }
 
 func LoadConfig() (*Config,error){
@@ -45,6 +52,7 @@ func LoadConfig() (*Config,error){
 	var token Token
 	var smtp Smtp
 	var razorpay Razorpay
+	var aws Aws
 	
 	viper.AddConfigPath("./pkg/config")
 	viper.SetConfigName("dev")
@@ -74,6 +82,10 @@ func LoadConfig() (*Config,error){
 	if err != nil {
 		return nil, err
 	}
-	config:=Config{PortMngr: portmngr,DB: db,Token: token,Smtp: smtp,Razorpay: razorpay}
+	err = viper.Unmarshal(&aws)
+	if err != nil {
+		return nil, err
+	}
+	config:=Config{PortMngr: portmngr,DB: db,Token: token,Smtp: smtp,Razorpay: razorpay,Aws:aws}
 	return &config,nil
 }

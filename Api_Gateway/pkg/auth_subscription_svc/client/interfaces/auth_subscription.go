@@ -27,5 +27,6 @@ type AuthSubscriptionClient interface{
 	Subscribe(requestmodels.SubscribeRequest)(responsemodels.SubscribeResponse,error)
 	VerifySubscriptionPayment(requestmodels.VerifySubscriptionPaymentRequest)(responsemodels.VerifySubscriptionPaymentResponse,error)
 	Unsubscribe(requestmodels.UnsubscribeRequest)(responsemodels.UnsubscribeResponse,error)
+	SetProfileImage(requestmodels.SetProfileImageRequest)(responsemodels.SetProfileImageResponse,error)
 	//Webhook(requestmodels.WebhookRequest)(responsemodels.WebhookResponse,error)
 }

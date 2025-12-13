@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -134,8 +135,8 @@ func (as *AuthSubscriptionHandler) VerifyOtp(c *gin.Context) {
 	fmt.Println("will call even comes here?????")
 	otpRequest.Email = jwtClaims.Email
 	otpRequest.UserId = jwtClaims.ID
-	fmt.Println("inside verify otp handler ",jwtClaims.Email,jwtClaims.ID)
-	fmt.Println("print otp request",otpRequest)
+	fmt.Println("inside verify otp handler ", jwtClaims.Email, jwtClaims.ID)
+	fmt.Println("print otp request", otpRequest)
 	otpResponse, err := as.GPPC_Client.VerifyOtp(otpRequest)
 	if err != nil {
 		var obj response.Response
@@ -209,7 +210,7 @@ func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
 	accessRegenerator.ID = jwtClaims.ID
 	accessRegenerator.Email = jwtClaims.Email
 	accessRegenerator.Role = jwtClaims.Role
-	fmt.Println("inside handler access regeneration",jwtClaims.ID,jwtClaims.Email,jwtClaims.Role)
+	fmt.Println("inside handler access regeneration", jwtClaims.ID, jwtClaims.Email, jwtClaims.Role)
 	accessRegeneratorResponse, err := as.GPPC_Client.AccessRegenerator(accessRegenerator)
 	if err != nil {
 		var obj response.Response
@@ -486,8 +487,6 @@ func (as *AuthSubscriptionHandler) CreateSubscriptionPlan(c *gin.Context) {
 	c.JSON(success.StatusCode, success)
 }
 
-
-
 func (as *AuthSubscriptionHandler) ActivateSubscriptionPlan(c *gin.Context) {
 	var activateSubscriptionPlanReq requestmodels.ActivateSubscriptionPlanRequest
 	idStr := c.Param("id")
@@ -666,9 +665,9 @@ func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
-	fmt.Println("jwt claims",jwtClaims)
+	fmt.Println("jwt claims", jwtClaims)
 	subscribeReq.UserId = jwtClaims.ID
-	fmt.Println("user id",subscribeReq.UserId)
+	fmt.Println("user id", subscribeReq.UserId)
 	subscribeResponse, err := as.GPPC_Client.Subscribe(subscribeReq)
 	if err != nil {
 		var obj response.Response
@@ -687,8 +686,8 @@ func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
 		c.JSON(obj.StatusCode, obj)
 		return
 	}
-	
-	fmt.Println("razorpay subscription it",subscribeResponse.RazorpaySubscriptionId)
+
+	fmt.Println("razorpay subscription it", subscribeResponse.RazorpaySubscriptionId)
 	data := gin.H{
 		"SubscriptionID": subscribeResponse.RazorpaySubscriptionId,
 		"KeyID":          as.config.Razorpay.KeyId,
@@ -698,7 +697,7 @@ func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
 	// c.JSON(success.StatusCode, success)
 }
 
-func (as *AuthSubscriptionHandler)VerifySubscriptionPayment(c *gin.Context){
+func (as *AuthSubscriptionHandler) VerifySubscriptionPayment(c *gin.Context) {
 	var verifySubscriptionPaymentReq requestmodels.VerifySubscriptionPaymentRequest
 	if err := c.ShouldBindJSON(&verifySubscriptionPaymentReq); err != nil {
 		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
@@ -710,24 +709,24 @@ func (as *AuthSubscriptionHandler)VerifySubscriptionPayment(c *gin.Context){
 		return
 	}
 	// Validate signature
-    if !utils.VerifyRazorpaySignature(verifySubscriptionPaymentReq.RazorpayPaymentId, verifySubscriptionPaymentReq.RazorpaySubscriptionId, verifySubscriptionPaymentReq.RazorpaySignature,as.config.Razorpay.KeySecret) {
-        c.JSON(http.StatusUnauthorized, gin.H{
+	if !utils.VerifyRazorpaySignature(verifySubscriptionPaymentReq.RazorpayPaymentId, verifySubscriptionPaymentReq.RazorpaySubscriptionId, verifySubscriptionPaymentReq.RazorpaySignature, as.config.Razorpay.KeySecret) {
+		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
 			"message": "Invalid payment signature. Request cannot be authenticated.",
 		})
 		return
-    }
-	verifySubscriptionPaymentRes,err:=as.GPPC_Client.VerifySubscriptionPayment(verifySubscriptionPaymentReq)
-	if err!=nil{
-		c.JSON(http.StatusInternalServerError,gin.H{
-			"error":"server internal error",
+	}
+	verifySubscriptionPaymentRes, err := as.GPPC_Client.VerifySubscriptionPayment(verifySubscriptionPaymentReq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "server internal error",
 		})
 		return
 	}
-	c.JSON(http.StatusOK,verifySubscriptionPaymentRes)
+	c.JSON(http.StatusOK, verifySubscriptionPaymentRes)
 }
 
-func (as *AuthSubscriptionHandler)Unsubscribe(c *gin.Context){
+func (as *AuthSubscriptionHandler) Unsubscribe(c *gin.Context) {
 	var unsubscribeReq requestmodels.UnsubscribeRequest
 	if err := c.ShouldBindJSON(&unsubscribeReq); err != nil {
 		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
@@ -745,8 +744,8 @@ func (as *AuthSubscriptionHandler)Unsubscribe(c *gin.Context){
 		return
 	}
 	unsubscribeReq.SubId = subID
-	unsubscribeResponse,err:=as.GPPC_Client.Unsubscribe(unsubscribeReq)
-	if err!=nil{
+	unsubscribeResponse, err := as.GPPC_Client.Unsubscribe(unsubscribeReq)
+	if err != nil {
 		var obj response.Response
 		// Check if it’s a gRPC status error
 		if st, ok := status.FromError(err); ok {
@@ -766,16 +765,101 @@ func (as *AuthSubscriptionHandler)Unsubscribe(c *gin.Context){
 	success := response.ClientResponse(http.StatusOK, "unsubscribed successully", unsubscribeResponse)
 	c.JSON(success.StatusCode, success)
 }
+func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
+	var setProfileImageReq requestmodels.SetProfileImageRequest
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
+		return
+	}
+	setProfileImageReq.UserId = jwtClaims.ID
+	file, err := c.FormFile("image")
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Image is required"})
+		return
+	}
+	// Check file size < 2 MB
+	if file.Size > 2*1024*1024 {
+		c.JSON(400, gin.H{"error": "Image must be less than 2MB"})
+		return
+	}
+	src, err := file.Open()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Cannot open image"})
+		return
+	}
+	defer src.Close()
 
-// func (as *AuthSubscriptionHandler)Webhook(c *gin.Context){
-// 	signature:=c.GetHeader("X-Razorpay-Signature")
+	// Read first 512 bytes to detect content type
+	buf := make([]byte, 512)
+	_, err = src.Read(buf)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid image"})
+		return
+	}
 
-// 	if !utils.VerifyRazorpayWebhookSignature(as.config.Razorpay.WebhookSecret,signature){
-// 		c.JSON(http.StatusForbidden,response.ClientResponse(http.StatusForbidden,"invalid signature",nil))
+	// Detect MIME type
+	contentType := http.DetectContentType(buf)
+
+	// Allowed types
+	allowed := map[string]bool{
+		"image/jpeg": true,
+		"image/jpg":  true,
+		"image/png":  true,
+		"image/webp": true,
+	}
+
+	if !allowed[contentType] {
+		c.JSON(400, gin.H{"error": "Only JPG, PNG, or WebP images are allowed"})
+		return
+	}
+
+	// Reset file pointer (since we read 512 bytes)
+	src.Seek(0, 0)
+
+	// Read full bytes
+	data, err := io.ReadAll(src)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Cannot read image"})
+		return
+
+	}
+	setProfileImageReq.Image = data
+	setProfileImageReq.ContentType = contentType
+	setProfileImageResponse, err := as.GPPC_Client.SetProfileImage(setProfileImageReq)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "error in resonse"})
+		return
+	}
+	c.JSON(http.StatusOK, setProfileImageResponse)
+}
+
+// func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
+// 	fmt.Println("is it reaching in webhook")
+// 	body, err := io.ReadAll(c.Request.Body)
+// 	if err != nil {
+// 		c.JSON(http.StatusBadRequest, response.ClientResponse(400, "Invalid body", nil))
+// 		return
 // 	}
+// 	signature := c.GetHeader("X-Razorpay-Signature")
+// 	fmt.Println("is it getting signature", signature)
+// 	if !utils.VerifyRazorpayWebhookSignature(body, as.config.Razorpay.WebhookSecret, signature) {
+// 		fmt.Println("invalid signature is the problem")
+// 		c.JSON(http.StatusForbidden, response.ClientResponse(http.StatusForbidden, "invalid signature", nil))
+// 	}
+// 	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+// 	fmt.Println("signature is verfied")
 // 	var webhookReq requestmodels.WebhookRequest
+// 	fmt.Println("after signature verifcation")
 // 	if err := c.ShouldBindJSON(&webhookReq); err != nil {
+// 		fmt.Println("understand")
 // 		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
+// 			fmt.Println("What woul be", validationErrors)
 // 			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
 // 			return
 // 		}
@@ -783,6 +867,16 @@ func (as *AuthSubscriptionHandler)Unsubscribe(c *gin.Context){
 // 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
 // 		return
 // 	}
-	
-	
+// 	fmt.Println("hello hi verification")
+// 	fmt.Println("print the webhook event", webhookReq.Event)
+// 	if webhookReq.Event != "subscription.completed" {
+// 		c.JSON(http.StatusPreconditionFailed, response.ClientResponse(http.StatusPreconditionFailed, "Not the expected event", nil))
+// 		return
+// 	}
+// 	WebhookResponse, err := as.GPPC_Client.Webhook(webhookReq)
+// 	if err != nil {
+
+// 	}
+// 	fmt.Println(WebhookResponse)
+// 	c.JSON(http.StatusOK, WebhookResponse)
 // }

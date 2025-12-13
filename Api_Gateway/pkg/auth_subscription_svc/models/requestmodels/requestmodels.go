@@ -112,20 +112,17 @@ type UnsubscribeRequest struct{
 }
 
 type WebhookRequest struct {
-	Event   string `json:"event"`
-	Payload struct {
-		Subscription struct {
-			ID        string `json:"id"`
-			PlanID    string `json:"plan_id"`
-			Status    string `json:"status"`
-			Amount    int    `json:"amount"`
-			Currency  string `json:"currency"`
-			StartDate string `json:"start_date"`
-			EndDate   string `json:"end_date"`
-			Customer  struct {
-				ID    string `json:"id"`
-				Email string `json:"email"`
-			} `json:"customer"`
-		} `json:"subscription"`
-	} `json:"payload"`
+    Event string `json:"event"`
+    Payload struct {
+        Subscription struct {
+            ID string `json:"id"`
+        } `json:"subscription"`
+    } `json:"payload"`
+}
+
+
+type SetProfileImageRequest struct{
+	UserId uint64
+	ContentType string
+	Image []byte
 }

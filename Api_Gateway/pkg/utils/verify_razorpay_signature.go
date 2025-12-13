@@ -22,9 +22,9 @@ func GenerateHmacSHA256(data, secret string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func VerifyRazorpayWebhookSignature(webhookSecret string, signature string) bool {
+func VerifyRazorpayWebhookSignature(body []byte,webhookSecret string, signature string) bool {
 	h := hmac.New(sha256.New, []byte(webhookSecret))
-	h.Write([]byte(webhookSecret))
+	h.Write(body)
 	computedSignature := hex.EncodeToString(h.Sum(nil))
-	return computedSignature == signature
+	return  hmac.Equal([]byte(computedSignature), []byte(signature))
 }

@@ -38,6 +38,8 @@ const (
 	AuthSubscriptionService_Subscribe_FullMethodName                     = "/auth_subscription.AuthSubscriptionService/Subscribe"
 	AuthSubscriptionService_VerifySubscriptionPayment_FullMethodName     = "/auth_subscription.AuthSubscriptionService/VerifySubscriptionPayment"
 	AuthSubscriptionService_Unsubscribe_FullMethodName                   = "/auth_subscription.AuthSubscriptionService/Unsubscribe"
+	AuthSubscriptionService_SetProfileImage_FullMethodName               = "/auth_subscription.AuthSubscriptionService/SetProfileImage"
+	AuthSubscriptionService_Webhook_FullMethodName                       = "/auth_subscription.AuthSubscriptionService/Webhook"
 )
 
 // AuthSubscriptionServiceClient is the client API for AuthSubscriptionService service.
@@ -63,6 +65,8 @@ type AuthSubscriptionServiceClient interface {
 	Subscribe(ctx context.Context, in *SubscribeReqeust, opts ...grpc.CallOption) (*SubscribeResponse, error)
 	VerifySubscriptionPayment(ctx context.Context, in *VerifySubscriptionPaymentRequest, opts ...grpc.CallOption) (*VerifySubscriptionPaymentResponse, error)
 	Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error)
+	SetProfileImage(ctx context.Context, in *SetProfileImageRequest, opts ...grpc.CallOption) (*SetProfileImageResponse, error)
+	Webhook(ctx context.Context, in *WebhookRequest, opts ...grpc.CallOption) (*WebhookResponse, error)
 }
 
 type authSubscriptionServiceClient struct {
@@ -263,6 +267,26 @@ func (c *authSubscriptionServiceClient) Unsubscribe(ctx context.Context, in *Uns
 	return out, nil
 }
 
+func (c *authSubscriptionServiceClient) SetProfileImage(ctx context.Context, in *SetProfileImageRequest, opts ...grpc.CallOption) (*SetProfileImageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetProfileImageResponse)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_SetProfileImage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authSubscriptionServiceClient) Webhook(ctx context.Context, in *WebhookRequest, opts ...grpc.CallOption) (*WebhookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebhookResponse)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_Webhook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthSubscriptionServiceServer is the server API for AuthSubscriptionService service.
 // All implementations must embed UnimplementedAuthSubscriptionServiceServer
 // for forward compatibility.
@@ -286,6 +310,8 @@ type AuthSubscriptionServiceServer interface {
 	Subscribe(context.Context, *SubscribeReqeust) (*SubscribeResponse, error)
 	VerifySubscriptionPayment(context.Context, *VerifySubscriptionPaymentRequest) (*VerifySubscriptionPaymentResponse, error)
 	Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error)
+	SetProfileImage(context.Context, *SetProfileImageRequest) (*SetProfileImageResponse, error)
+	Webhook(context.Context, *WebhookRequest) (*WebhookResponse, error)
 	mustEmbedUnimplementedAuthSubscriptionServiceServer()
 }
 
@@ -352,6 +378,12 @@ func (UnimplementedAuthSubscriptionServiceServer) VerifySubscriptionPayment(cont
 }
 func (UnimplementedAuthSubscriptionServiceServer) Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Unsubscribe not implemented")
+}
+func (UnimplementedAuthSubscriptionServiceServer) SetProfileImage(context.Context, *SetProfileImageRequest) (*SetProfileImageResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetProfileImage not implemented")
+}
+func (UnimplementedAuthSubscriptionServiceServer) Webhook(context.Context, *WebhookRequest) (*WebhookResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Webhook not implemented")
 }
 func (UnimplementedAuthSubscriptionServiceServer) mustEmbedUnimplementedAuthSubscriptionServiceServer() {
 }
@@ -717,6 +749,42 @@ func _AuthSubscriptionService_Unsubscribe_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthSubscriptionService_SetProfileImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetProfileImageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthSubscriptionServiceServer).SetProfileImage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthSubscriptionService_SetProfileImage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthSubscriptionServiceServer).SetProfileImage(ctx, req.(*SetProfileImageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthSubscriptionService_Webhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebhookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthSubscriptionServiceServer).Webhook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthSubscriptionService_Webhook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthSubscriptionServiceServer).Webhook(ctx, req.(*WebhookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthSubscriptionService_ServiceDesc is the grpc.ServiceDesc for AuthSubscriptionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -799,6 +867,14 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Unsubscribe",
 			Handler:    _AuthSubscriptionService_Unsubscribe_Handler,
+		},
+		{
+			MethodName: "SetProfileImage",
+			Handler:    _AuthSubscriptionService_SetProfileImage_Handler,
+		},
+		{
+			MethodName: "Webhook",
+			Handler:    _AuthSubscriptionService_Webhook_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

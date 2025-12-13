@@ -32,6 +32,7 @@ func AuthSubscriptionRoutes(router *gin.Engine, authSubscriptionHandler *handler
 	router.POST("/user/subscribe/:plan_id",middleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.Subscribe)
 	router.POST("/user/verify-subscription-payment",middleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.VerifySubscriptionPayment)
 	router.POST("/user/unsubscribe/:sub_id",middleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.Unsubscribe)
+	router.POST("/user/set-profile-image",middleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.SetProfileImage)
 	//router.POST("/webhook",authSubscriptionHandler.Webhook)
 	fmt.Println("is it reaching in registering routes")
 }

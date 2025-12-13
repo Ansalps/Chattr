@@ -678,3 +678,11 @@ func (ad *AuthSubscriptionRepository)TurnOffBlueTickForUserId(userid uint64)erro
 	}
 	return nil
 }
+
+func (ad *AuthSubscriptionRepository)UpdateProfileImage(userid uint64,imageUrl string)error{
+	query:=`UPDATE users SET profile_img_url=? WHERE id=?`
+	if err:=ad.DB.Exec(query,imageUrl,userid).Error; err!=nil{
+		return err
+	}
+	return nil
+}

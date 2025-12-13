@@ -48,4 +48,5 @@ type AuthSubscriptionRepository interface {
 	UpdateTimeUserSubscription(startAt,nextAt,nextChatgeAT time.Time,subid string)(responsemodels.VerifySubscriptionPaymentResponse,error)
 	FetchNextChargeAtFromUserSubcription(string)(time.Time,error)
 	TurnOffBlueTickForUserId(userid uint64)error
+	UpdateProfileImage(userid uint64,imageUrl string)(error)
 }

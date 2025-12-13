@@ -23,6 +23,31 @@ service AuthSubscriptionService{
     rpc Subscribe(SubscribeReqeust) returns (SubscribeResponse);
     rpc VerifySubscriptionPayment(VerifySubscriptionPaymentRequest) returns (VerifySubscriptionPaymentResponse);
     rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
+    rpc SetProfileImage(SetProfileImageRequest) returns (SetProfileImageResponse);
+    rpc Webhook(WebhookRequest) returns (WebhookResponse);
+}
+message WebhookRequest {
+    string event = 1;
+    Payload payload = 2;
+}
+message Payload {
+    Subscription subscription = 1;
+}
+message Subscription {
+    string id = 1;
+}
+
+message WebhookResponse{
+    string Event=1;
+    string RazorpaySubscriptionId=2;
+}
+message SetProfileImageRequest{
+    uint64 UserId=1;
+    string ContentType=2;
+    bytes Image=3;
+}
+message SetProfileImageResponse{
+    string ImageUrl=1;
 }
 message UnsubscribeRequest{
     uint64 SubId=1;
