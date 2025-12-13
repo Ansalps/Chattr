@@ -1,4 +1,5 @@
-module github.com/Ansalps/Chattr_Post_Relation_service
+
+module github.com/Ansalps/Chattr_Post_Relation_Service
 
 go 1.25.4
 
