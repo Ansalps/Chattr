@@ -1,0 +1,16 @@
+syntax="proto3";
+package post_relation;
+option go_package="./pkg/pb/post_relation";
+
+service PostRelationService{
+    rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
+}
+
+message CreatePostRequest{
+    uint64 UserId=1;
+    string Caption=2;
+    repeated string media_urls=3;
+}
+message CreatePostResponse{
+    uint64 PostId=1;
+}

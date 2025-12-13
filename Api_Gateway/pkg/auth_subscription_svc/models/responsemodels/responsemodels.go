@@ -219,19 +219,10 @@ type UnsubscribeResponse struct{
 }
 
 type WebhookResponse struct{
-	RazropaySubscriptinId string
 	Event string
-	Entity string
-	Status string
-	RazrorpayPlanId string
-	RemainingCount int
-	StartAt time.Time
-	EndAt time.Time
-	NextChargeAt time.Time
-	BillingAt int
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Amount int
-	Currency string
-	customer_notify int	
+	RazropaySubscriptinId string
+}
+
+type SetProfileImageResponse struct{
+	ImageUrl string
 }

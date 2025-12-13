@@ -23,9 +23,32 @@ service AuthSubscriptionService{
     rpc Subscribe(SubscribeReqeust) returns (SubscribeResponse);
     rpc VerifySubscriptionPayment(VerifySubscriptionPaymentRequest) returns (VerifySubscriptionPaymentResponse);
     rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
-   // rpc Webhook(WebhookRequest) returns (WebhookResponse);
+    rpc SetProfileImage(SetProfileImageRequest) returns (SetProfileImageResponse);
+    rpc Webhook(WebhookRequest) returns (WebhookResponse);
+}
+message WebhookRequest {
+    string event = 1;
+    Payload payload = 2;
+}
+message Payload {
+    Subscription subscription = 1;
+}
+message Subscription {
+    string id = 1;
 }
 
+message WebhookResponse{
+    string Event=1;
+    string RazorpaySubscriptionId=2;
+}
+message SetProfileImageRequest{
+    uint64 UserId=1;
+    string ContentType=2;
+    bytes Image=3;
+}
+message SetProfileImageResponse{
+    string ImageUrl=1;
+}
 message UnsubscribeRequest{
     uint64 SubId=1;
     string CancelReason =2;
@@ -77,9 +100,7 @@ message SubscribeReqeust{
     uint64 UserId=1;
     uint64 PlanId=2;
 }
-// message SubscribeResponse{
-//     string RazorpaySubscripitonId=1;
-// }
+
 message SubscribeResponse{
     uint64 Id=1;
     google.protobuf.Timestamp CreatedAt=2;
@@ -312,12 +333,7 @@ message ResetPasswordRequest{
 message ResetPasswordResponse{
     string Email=1;
 }
-// message WebhookRequest{
-//     string Event=1;
-// }
-// message WebhookResponse{
-//     string Event=1;
-// }
+
 // message RequestUserId{
 //     string UserId=1;
 // }

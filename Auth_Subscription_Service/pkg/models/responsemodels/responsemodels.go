@@ -211,3 +211,12 @@ type UnsubscribeResponse struct{
 	CancelledAt time.Time
 	CancelReason string
 }
+
+type SetProfileImageResponse struct{
+	ImageUrl string
+}
+
+type WebhookResponse struct{
+	Event string
+	RazropaySubscriptinId string
+}

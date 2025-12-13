@@ -20,7 +20,7 @@ type AuthSubscriptionClient struct {
 	Client auth_subscription.AuthSubscriptionServiceClient
 }
 
-func NewAuthSubscriptionClient(cfg *config.Config) interfaces.AuthSubscriptionClient /*auth_subscription.AuthSubscriptionServiceClient*/ {
+func NewAuthSubscriptionClient(cfg *config.Config) interfaces.AuthSubscriptionClient  {
 	grpcConnection, err := grpc.NewClient(cfg.AuthSubscriptionSvcUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("could not connect: %v", err)
@@ -440,16 +440,36 @@ func (as *AuthSubscriptionClient) Unsubscribe(unsubscribeReq requestmodels.Unsub
 	}, nil
 }
 
+func (as *AuthSubscriptionClient)SetProfileImage(setProfileImgReq requestmodels.SetProfileImageRequest)(responsemodels.SetProfileImageResponse,error){
+	var resp *auth_subscription.SetProfileImageResponse
+	resp,err:=as.Client.SetProfileImage(context.Background(),&auth_subscription.SetProfileImageRequest{
+		UserId: setProfileImgReq.UserId,
+		ContentType: setProfileImgReq.ContentType,
+		Image: setProfileImgReq.Image,
+	})
+	if err!=nil{
+		log.Println("print in client error",err)
+		return responsemodels.SetProfileImageResponse{},err
+	}
+	fmt.Println("if no error pint  image url",resp.ImageUrl)
+	return responsemodels.SetProfileImageResponse{
+		ImageUrl: resp.ImageUrl,
+	},nil
+}
 // func (as *AuthSubscriptionClient)Webhook(webhookReq requestmodels.WebhookRequest)(responsemodels.WebhookResponse,error){
 // 	resp,err:=as.Client.Webhook(context.Background(),&auth_subscription.WebhookRequest{
 // 		Event: webhookReq.Event,
+// 		Payload: &auth_subscription.Payload{
+// 			Subscription: &auth_subscription.Subscription{
+// 				Id: webhookReq.Payload.Subscription.ID,
+// 			},
+// 		},
 // 	})
 // 	if err!=nil{
 // 		return responsemodels.WebhookResponse{},nil
 // 	}
 // 	return responsemodels.WebhookResponse{
-// 		RazropaySubscriptinId: ,
+// 		RazropaySubscriptinId:resp.RazorpaySubscriptionId,
 // 		Event: resp.Event,
-
 // 	},nil
 // }

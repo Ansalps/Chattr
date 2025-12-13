@@ -119,3 +119,17 @@ type UnsubscribeRequest struct{
 	SubId uint64
 	CancelReason string	`json:"cancel_reason" binding:"required"`
 }
+type SetProfileImageRequest struct{
+	UserId uint64
+    ContentType string
+	Image []byte
+}
+
+type WebhookRequest struct {
+    Event string `json:"event"`
+    Payload struct {
+        Subscription struct {
+            ID string `json:"id"`
+        } `json:"subscription"`
+    } `json:"payload"`
+}
