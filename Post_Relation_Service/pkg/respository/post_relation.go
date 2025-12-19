@@ -7,7 +7,7 @@ import (
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/responsemodels"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/respository/interfacesRepository"
 	"gorm.io/gorm"
->>>>>>> develop
+
 )
 
 type PostRelationRepository struct {
