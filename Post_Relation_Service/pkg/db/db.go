@@ -3,7 +3,8 @@ package db
 import (
 	"fmt"
 
-	"github.com/Ansalps/Chattr_Post_Relation_service/pkg/config"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/config"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/domain"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -16,10 +17,10 @@ func ConnectDatabase(cfg *config.Config) (*gorm.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error connceting to auth_subscription database: %v", err)
 	}
-	// err = db.AutoMigrate(&domain.Admin{},&domain.User{},&domain.Otp{},&domain.SubscriptionPlan{},&domain.UserSubscription{},&domain.Payment{})
-	// if err != nil {
-	// 	return nil, fmt.Errorf("Error in automigrating the table: %v", err)
-	// }
+	err = db.AutoMigrate(&domain.Post{}, &domain.PostMedia{},&domain.PostLike{},&domain.Comment{},&domain.Relation{})
+	if err != nil {
+		return nil, fmt.Errorf("Error in automigrating the table: %v", err)
+	}
 
 	return db, nil
 }

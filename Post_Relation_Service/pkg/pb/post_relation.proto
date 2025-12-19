@@ -1,0 +1,130 @@
+syntax="proto3";
+package post_relation;
+option go_package="./pkg/pb";
+
+service PostRelationService{
+    rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
+    rpc EditPost(EditPostRequest) returns (EditPostResponse);
+    rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
+
+    rpc LikePost(LikePostRequest) returns (LikePostResponse);
+    rpc UnlikePost(UnlikePostRequest) returns (UnlikePostResponse);
+
+    rpc AddComment(AddCommentRequest) returns (AddCommentResponse);
+    rpc FetchComments(FetchCommentsRequest) returns (FetchCommentsResponse);
+    rpc EditComment(EditCommentRequest) returns (EditCommentResponse);
+    rpc DeleteComment(DeleteCommentRequest) returns (DeleteCommentResponse);
+
+    rpc FetchCommentsOfComment(FetchCommentsOfCommentRequest) returns (FetchCommentsOfCommentResposne);
+
+    rpc Follow(FollowRequest) returns (FollowResponse);
+    rpc Unfollow(UnfollowRequest) returns (UnfollowResponse);
+
+    rpc PostFollowCount(PostFollowCountRequest) returns (PostFollowCountResponse);
+}
+message PostFollowCountRequest{
+    uint64 UserId=1;
+}
+message PostFollowCountResponse{
+    uint64 PostCount=1;
+    uint64 FollowerCount=2;
+    uint64 FollowingCount=3;
+}
+message FetchCommentsOfCommentRequest{
+    uint64 PostId=1;
+    uint64 ParentCommentId=2;
+}
+message FetchCommentsOfCommentResposne{
+    repeated Comment Comments=1;
+}
+message FetchCommentsRequest{
+    uint64 PostId=1;
+}
+message Comment{
+    uint64 Id=1;
+    string CommentText=2;
+}
+message FetchCommentsResponse{
+    repeated Comment Comments=1;
+}
+message UnfollowRequest{
+    uint64 UserId=1;
+    uint64 UnfollowingUserId=2;
+}
+message UnfollowResponse{
+    uint64 UnfollowingUserId=1;
+}
+message FollowRequest{
+    uint64 UserId=1;
+    uint64 FollowingUserId=2;
+}
+message FollowResponse{
+    uint64 FollowingUserId=1;
+}
+message DeleteCommentRequest{
+    uint64 UserId=1;
+    uint64 PostId=2;
+    uint64 CommentId=3;
+}
+message DeleteCommentResponse{
+    uint64 CommentId=1;
+}
+message EditCommentRequest{
+    uint64 UserId=1;
+    uint64 PostId=2;
+    uint64 CommentId=3;
+    string CommentText=4;
+}
+message EditCommentResponse{
+    uint64 CommentId=1;
+    string CommentText=2;
+}
+message AddCommentRequest{
+    uint64 UserId=1;
+    uint64 PostId=2;
+    string CommentText=3;
+    optional uint64 ParentCommentId=4;
+}
+message AddCommentResponse{
+    uint64 UserId=1;
+    uint64 PostId=2;
+    string CommentText=3;
+    optional uint64 ParentCommentId=4;
+}
+message UnlikePostRequest{
+    uint64 UserId=1;
+    uint64 PostId=2;
+}
+message UnlikePostResponse{
+    uint64 PostId=1;
+}
+message LikePostRequest{
+    uint64 UserId=1;
+    uint64 PostId=2;
+}
+message LikePostResponse{
+    uint64 PostId=1;
+}
+message DeletePostRequest{
+    uint64 UserId=1;
+    uint64 PostId=2;
+}
+message DeletePostResponse{
+    uint64 PostId=1;
+}
+message EditPostRequest{
+    uint64 UserId=1;
+    uint64 PostId=2;
+    string Caption=3;
+}
+message EditPostResponse{
+    string Caption=1;
+}
+message CreatePostRequest{
+    uint64 UserId=1;
+    string Caption=2;
+    repeated string media_urls=3;
+}
+message CreatePostResponse{
+    uint64 PostId=1;
+}

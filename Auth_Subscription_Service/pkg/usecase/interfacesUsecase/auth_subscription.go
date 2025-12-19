@@ -28,4 +28,15 @@ type AuthSubscriptionUsecase interface{
 	Unsubscribe(requestmodels.UnsubscribeRequest)(responsemodels.UnsubscribeResponse,error)
 	SetProfileImage(requestmodels.SetProfileImageRequest)(responsemodels.SetProfileImageResponse,error)
 	//Webhook(requestmodels.WebhookRequest)(responsemodels.WebhookResponse,error)
+
+	ChangePassword(requestmodels.ChangePassword)(responsemodels.ChangePasswordResponse,error)
+
+	SearchUser(requestmodels.SearchUser)(responsemodels.SearchUserResponse,error)
+
+	CheckUserExists(userid uint64)(bool,error)
+	GetProfileInformation(requestmodels.GetProfileInformationRequest)(responsemodels.GetProfileInformationResponse,error)
+
+	EditProfileInformation(uint64,map[string]interface{})(responsemodels.EditProfile,error)
+
+	FetchUserPublicData(userid uint64)(responsemodels.UserPublicDataResponse,error)
 }

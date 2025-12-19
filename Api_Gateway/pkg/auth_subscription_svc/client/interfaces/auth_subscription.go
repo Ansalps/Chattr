@@ -5,7 +5,7 @@ import (
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/responsemodels"
 )
 
-type AuthSubscriptionClient interface{
+type AuthSubscriptionClientInterface interface{
 	AdminLogin(requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse,error)
 	BlockUser(requestmodels.BlockUserRequest)(responsemodels.BlockUserResponse,error)
 	UnblockUser(requestmodels.UnblockUserRequest)(responsemodels.UnblockUserResponse,error)
@@ -29,4 +29,6 @@ type AuthSubscriptionClient interface{
 	Unsubscribe(requestmodels.UnsubscribeRequest)(responsemodels.UnsubscribeResponse,error)
 	SetProfileImage(requestmodels.SetProfileImageRequest)(responsemodels.SetProfileImageResponse,error)
 	//Webhook(requestmodels.WebhookRequest)(responsemodels.WebhookResponse,error)
+
+	GetProfileInformation(requestmodels.GetProfileInformationRequest)(responsemodels.GetProfileInformationResponse,error)
 }

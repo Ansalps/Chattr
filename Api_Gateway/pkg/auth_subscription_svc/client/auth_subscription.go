@@ -20,7 +20,7 @@ type AuthSubscriptionClient struct {
 	Client auth_subscription.AuthSubscriptionServiceClient
 }
 
-func NewAuthSubscriptionClient(cfg *config.Config) interfaces.AuthSubscriptionClient  {
+func NewAuthSubscriptionClient(cfg *config.Config) interfaces.AuthSubscriptionClientInterface  {
 	grpcConnection, err := grpc.NewClient(cfg.AuthSubscriptionSvcUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("could not connect: %v", err)
@@ -441,7 +441,6 @@ func (as *AuthSubscriptionClient) Unsubscribe(unsubscribeReq requestmodels.Unsub
 }
 
 func (as *AuthSubscriptionClient)SetProfileImage(setProfileImgReq requestmodels.SetProfileImageRequest)(responsemodels.SetProfileImageResponse,error){
-	var resp *auth_subscription.SetProfileImageResponse
 	resp,err:=as.Client.SetProfileImage(context.Background(),&auth_subscription.SetProfileImageRequest{
 		UserId: setProfileImgReq.UserId,
 		ContentType: setProfileImgReq.ContentType,
@@ -456,6 +455,27 @@ func (as *AuthSubscriptionClient)SetProfileImage(setProfileImgReq requestmodels.
 		ImageUrl: resp.ImageUrl,
 	},nil
 }
+
+func (as *AuthSubscriptionClient)GetProfileInformation(req requestmodels.GetProfileInformationRequest)(responsemodels.GetProfileInformationResponse,error){
+	resp,err:=as.Client.GetProfileInformation(context.Background(),&auth_subscription.ProfileInfoReq{
+		UserId: req.UserId,
+	})
+	if err!=nil{
+		log.Println("error from grpc",err)
+		return responsemodels.GetProfileInformationResponse{},err
+	}
+	return responsemodels.GetProfileInformationResponse{
+		UserID: resp.UserId,
+		Name: resp.Name,
+		UserName: resp.Username,
+		Email: resp.Email,
+		Bio:resp.Bio,
+		ProfileImgUrl: resp.ProfileImageUrl,
+		Links: resp.Links,
+		BlueTick: resp.BlueTick,
+	},nil
+}
+
 // func (as *AuthSubscriptionClient)Webhook(webhookReq requestmodels.WebhookRequest)(responsemodels.WebhookResponse,error){
 // 	resp,err:=as.Client.Webhook(context.Background(),&auth_subscription.WebhookRequest{
 // 		Event: webhookReq.Event,

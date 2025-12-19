@@ -126,3 +126,26 @@ type SetProfileImageRequest struct{
 	ContentType string
 	Image []byte
 }
+type GetProfileInformationRequest struct{
+	UserId uint64
+}
+
+type EditProfile struct{
+	Name *string	`json:"name"`
+	Bio *string	`json:"bio"`
+	Links *string `json:"links"`
+}
+type ChangePassword struct{
+	UserID uint64
+	OldPassword	string	`json:"old_password" validate:"required"`
+	NewPassword        string `json:"new_password" binding:"required,min=3,max=30"`
+	ConfirmNewPassword string `json:"confirm_new_password" binding:"required,eqfield=NewPassword"`
+}
+type SearchUser struct{
+	SearchText string `json:"search_text"`
+	Limit int
+	Offset int
+}
+type GetPublicProfile struct{
+	UserID uint64
+}

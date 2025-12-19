@@ -32,7 +32,14 @@ func AuthSubscriptionRoutes(router *gin.Engine, authSubscriptionHandler *handler
 	router.POST("/user/subscribe/:plan_id",middleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.Subscribe)
 	router.POST("/user/verify-subscription-payment",middleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.VerifySubscriptionPayment)
 	router.POST("/user/unsubscribe/:sub_id",middleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.Unsubscribe)
+
+	router.GET("/user/get-profile-information",middleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.GetProfileInformation)
+	router.PATCH("/user/edit-profile-information",middleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.EditProfileInformation)
+	router.GET("/user/:user_id/get-public-profile",middleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.GetPublicProfile)
 	router.POST("/user/set-profile-image",middleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.SetProfileImage)
+	router.PATCH("/user/change-password",middleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.ChangePassword)
 	//router.POST("/webhook",authSubscriptionHandler.Webhook)
+
+	router.GET("/user/search",authSubscriptionHandler.SearchUser)
 	fmt.Println("is it reaching in registering routes")
 }

@@ -1,22 +1,27 @@
 package di
 
-func DependencyIndjection(cfg *config.Config) (*services.AuthSubscriptionServer, error) {
+import (
+	services "github.com/Ansalps/Chattr_Post_Relation_Service/pkg/api"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/client"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/config"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/db"
+	repository "github.com/Ansalps/Chattr_Post_Relation_Service/pkg/respository"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase"
+)
+
+func DependencyIndjection(cfg *config.Config) (*services.PostRelationServer, error) {
 	gormDB, err := db.ConnectDatabase(cfg)
 	if err != nil {
 		return nil, err
 	}
-	PostRelationRepository := repository.NewPostRelationRepository(gormDB)
-	SmtpUtil := smtp.NewSmtpUtil(&cfg.Smtp)
-	JwtUtil := jwt.NewJwtUtil()
-	RandomUtil := randomnumber.NewRandomNumberUtil()
-	AwsS3Client, err := AwsS3.NewS3Client(cfg.Aws.AwsAccessKey, cfg.Aws.AwsSecretAccessKey, cfg.Aws.AwsRegion)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize s3 client: %w", err)
+	authSubscriptionClient,err:=client.InitAuthSubscriptionServiceClient(cfg)
+	if err!=nil{
+		return nil,err
 	}
-	razorpayClient := utils.NewRazorpayClient(cfg.Razorpay.KeyId, cfg.Razorpay.KeySecret)
-	AuthSubscriptionUsecase := usecase.NewAuthSubscriptionUsecase(AuthSubscriptionRepository,
-		RandomUtil, SmtpUtil, &cfg.Token, JwtUtil, razorpayClient, AwsS3Client,cfg.Aws.AwsBucket)
-	AuthSubscriptionServiceServer := services.NewAuthSubscriptionServer(AuthSubscriptionUsecase)
 
-	return AuthSubscriptionServiceServer, nil
+	PostRelationRepository := repository.NewPostRelationRepository(gormDB)
+	PostRelationUsecase := usecase.NewPostRelationUsecase(PostRelationRepository,authSubscriptionClient)
+	PostRelationServiceServer := services.NewPostRelationSever(PostRelationUsecase)
+
+	return PostRelationServiceServer, nil
 }

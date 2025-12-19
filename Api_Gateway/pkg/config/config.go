@@ -22,9 +22,9 @@ type Token struct{
 }
 
 type Razorpay struct{
-	KeyId string	`mapstructure:"KEY_ID"`
-	KeySecret string	`mapstructure:"KEY_SECRET"`
-	WebhookSecret string `mapstructure:"WEBHOOK_SECRET"`
+	KeyId string	`mapstructure:"RAZORPAY_KEY_ID"`
+	KeySecret string	`mapstructure:"RAZORPAY_KEY_SECRET"`
+	WebhookSecret string `mapstructure:"RAZORPAY_WEBHOOK_SECRET"`
 }
 type Cloudinary struct{
 	CloundName string `mapstructure:"CLOUDINARY_CLOUD_NAME"`

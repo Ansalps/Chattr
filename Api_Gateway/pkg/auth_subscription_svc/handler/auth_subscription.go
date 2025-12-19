@@ -1,16 +1,21 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/client"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/client/interfaces"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/requestmodels"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/responsemodels"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/config"
+	"github.com/Ansalps/Chattr_Api_Gateway/pkg/pb/auth_subscription"
+	"github.com/Ansalps/Chattr_Api_Gateway/pkg/pb/post_relation"
+	postClient "github.com/Ansalps/Chattr_Api_Gateway/pkg/post_relation_svc/client"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/response"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/utils"
 	"github.com/gin-gonic/gin"
@@ -19,14 +24,18 @@ import (
 )
 
 type AuthSubscriptionHandler struct {
-	GPPC_Client interfaces.AuthSubscriptionClient
-	config      *config.Config
+	GPPC_Client      interfaces.AuthSubscriptionClientInterface
+	config           *config.Config
+	DirectClient     *client.AuthSubscriptionClient
+	PostDirectClient *postClient.PostRelationClient
 }
 
-func NewAuthSubscriptionHandler(authSubscriptionClient interfaces.AuthSubscriptionClient, cfg *config.Config) *AuthSubscriptionHandler {
+func NewAuthSubscriptionHandler(authSubscriptionClient interfaces.AuthSubscriptionClientInterface, cfg *config.Config, authSubClient *client.AuthSubscriptionClient, postDirectClient *postClient.PostRelationClient) *AuthSubscriptionHandler {
 	return &AuthSubscriptionHandler{
-		GPPC_Client: authSubscriptionClient,
-		config:      cfg,
+		GPPC_Client:      authSubscriptionClient,
+		config:           cfg,
+		DirectClient:     authSubClient,
+		PostDirectClient: postDirectClient,
 	}
 }
 
@@ -837,6 +846,223 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, setProfileImageResponse)
+}
+
+func (as *AuthSubscriptionHandler) GetProfileInformation(c *gin.Context) {
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
+		return
+	}
+	var req requestmodels.GetProfileInformationRequest
+	req.UserId = jwtClaims.ID
+	res, err := as.GPPC_Client.GetProfileInformation(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	fmt.Println("resp in api gateway", res)
+	c.JSON(http.StatusOK, res)
+
+}
+
+func (as *AuthSubscriptionHandler) EditProfileInformation(c *gin.Context) {
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
+		return
+	}
+	var editProfile requestmodels.EditProfile
+	if err := c.ShouldBindJSON(&editProfile); err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
+	//fmt.Println("**",*editProfile.Bio,"&&",*editProfile.Name,"!!",*editProfile.Links)
+	if editProfile.Links == nil {
+		fmt.Println("just checking on the firs")
+	}
+	if editProfile.Bio != nil && editProfile.Links == nil && editProfile.Name == nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Need any one data to update", nil))
+		return
+	}
+	resp, err := as.DirectClient.Client.EditProfileInfromation(context.Background(), &auth_subscription.EditProfileReq{
+		UserId: jwtClaims.ID,
+		Name:   editProfile.Name,
+		Bio:    editProfile.Bio,
+		Links:  editProfile.Links,
+	})
+	if err != nil {
+		log.Println("error from grpc calling editp profile information,error: ", err)
+		c.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "edited profile information successfully", resp))
+}
+func (as *AuthSubscriptionHandler) ChangePassword(c *gin.Context) {
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
+		return
+	}
+	var req requestmodels.ChangePassword
+	req.UserID = jwtClaims.ID
+	if err := c.ShouldBindJSON(&req); err != nil {
+		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
+			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", validationErrors))
+			return
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "bind error", err))
+		return
+	}
+	validPassword, msg2 := utils.IsValidPassword(req.ConfirmNewPassword)
+	if !validPassword {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", msg2))
+		return
+	}
+	resp, err := as.DirectClient.Client.ChangePassword(context.Background(), &auth_subscription.ChangePasswordRequest{
+		UserId:             req.UserID,
+		OldPassword:        req.OldPassword,
+		NewPasswrod:        req.NewPassword,
+		ConfirmNewPassword: req.ConfirmNewPassword,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "changed password successfully", resp))
+}
+func (as *AuthSubscriptionHandler) SearchUser(c *gin.Context) {
+	pageStr := c.Query("page")
+	limitStr := c.Query("limit")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(page), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+		return
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+
+	if err != nil || limit < 1 || limit > 100 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(limit), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+		return
+	}
+
+	offset := (page - 1) * limit
+
+	var req requestmodels.SearchUser
+	req.Limit = limit
+	req.Offset = offset
+	searchText := c.Query("username")
+	req.SearchText = searchText
+	resp, err := as.DirectClient.Client.SearchUser(context.Background(), &auth_subscription.SearchUserRequest{
+		SearchText: req.SearchText,
+		Limit:      int64(req.Limit),
+		Offset:     int64(req.Offset),
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "users retrieved successfully", resp))
+}
+func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
+	userIdStr := c.Param("user_id")
+	userId, err := strconv.ParseUint(userIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid user id", nil))
+		return
+	}
+	var req requestmodels.GetPublicProfile
+	req.UserID = userId
+	//var resp *auth_subscription.GetPublicProfileResponse
+	authChan := make(chan *auth_subscription.UserPublicDataResponse, 1)
+	postChan := make(chan *post_relation.PostFollowCountResponse, 1)
+	errChan := make(chan error, 2)
+	go func() {
+		authresp, err := as.DirectClient.Client.UserPublicData(context.Background(), &auth_subscription.UserPublicDataRequest{
+			UserId: req.UserID,
+		})
+		if err != nil {
+			errChan <- err
+		}
+		authChan <- authresp
+	}()
+	go func() {
+		postresp, err := as.PostDirectClient.Client.PostFollowCount(context.Background(), &post_relation.PostFollowCountRequest{
+			UserId: req.UserID,
+		})
+		if err != nil {
+			errChan <- err
+		}
+		postChan <- postresp
+	}()
+	// 3. Collect results using variables
+	var authData *auth_subscription.UserPublicDataResponse
+	var postData *post_relation.PostFollowCountResponse
+	// We need to wait for exactly 2 "events"
+	for i := 0; i < 2; i++ {
+		select {
+		case res := <-authChan:
+			authData = res
+		case res := <-postChan:
+			postData = res
+		case <-errChan:
+			// Handle error or just ignore to allow partial success
+		case <-c.Done():
+			c.JSON(http.StatusGatewayTimeout, "Service took too long")
+			return
+		}
+	}
+
+	// 1. Mandatory Check: Did we get the profile?
+	if authData == nil {
+		// If Auth failed, we can't show a profile at all.
+		c.JSON(http.StatusNotFound, response.ClientResponse(http.StatusNotFound, "User not found", nil))
+		return
+	}
+
+	// 2. Optional Data: Did we get stats?
+	var followers, following, posts uint64
+	if postData != nil {
+		followers = postData.FollowerCount
+		following = postData.FollowingCount
+		posts = postData.PostCount
+	} else {
+		// Log that the post service is down, but don't stop the request
+		log.Println("Warning: post_relation service unavailable for user", userId)
+	}
+
+	// 3. Construct the response
+	c.JSON(http.StatusOK, gin.H{
+		"user_info": authData,
+		"social_stats": gin.H{
+			"followers": followers,
+			"following": following,
+			"posts":     posts,
+			"is_stale":  postData == nil, // Helpful for frontend to know data might be old
+		},
+	})
 }
 
 // func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {

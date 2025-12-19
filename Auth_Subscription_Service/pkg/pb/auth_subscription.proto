@@ -25,6 +25,81 @@ service AuthSubscriptionService{
     rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
     rpc SetProfileImage(SetProfileImageRequest) returns (SetProfileImageResponse);
     rpc Webhook(WebhookRequest) returns (WebhookResponse);
+    rpc CheckUserExists(CheckUserExistsRequest) returns (CheckUserExistsResponse);
+
+    rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+
+    rpc GetProfileInformation(ProfileInfoReq) returns (ProfileInfoRes);
+    rpc EditProfileInfromation(EditProfileReq) returns (EditProfileRes);
+
+    rpc SearchUser(SearchUserRequest) returns (SearchUserResponse);
+    rpc UserPublicData(UserPublicDataRequest) returns (UserPublicDataResponse);
+}
+message UserPublicDataRequest{
+    uint64 UserId=1;
+}
+message UserPublicDataResponse{
+    uint64 UserId=1;
+    string UserName=2;
+    string Name=3;
+    string ProfileImgUrl=4;
+    string Bio=5;
+    string Links=6;
+    bool BlueTick=7;
+}   
+message SearchUserRequest{
+    string SearchText=1;
+    int64 Limit=2;
+    int64 Offset=3;
+}
+message UserMetaData{
+    uint64 UserId=1;
+    string UserName=2;
+    string Name=3;
+    string ProfileImgUrl=4;
+}
+message SearchUserResponse{
+    repeated UserMetaData userMetaData=1;
+}
+message ChangePasswordRequest{
+    uint64 UserId=1;
+    string OldPassword=2;
+    string NewPasswrod=3;
+    string ConfirmNewPassword=4;
+}
+message ChangePasswordResponse{
+    uint64 UserId=1;
+}
+message EditProfileReq{
+    uint64 UserId=1;
+    optional string Name=2;
+    optional string Bio=3;
+    optional string Links=4;
+}
+message EditProfileRes{
+    uint64 UserId=1;
+    optional string Name=2;
+    optional string Bio=3;
+    optional string Links=4;
+}
+message ProfileInfoReq{
+    uint64 UserId=1; 
+}
+message ProfileInfoRes{
+    uint64 UserId=1;
+    string Name=2;
+    string Username=3;
+    string Email=4;
+    string Bio=5;
+    string ProfileImageUrl=6;
+    string Links=7;
+    bool BlueTick=8;
+}
+message CheckUserExistsRequest{
+    uint64 UserId=1;
+}
+message CheckUserExistsResponse{
+    uint64 UserId=1;
 }
 message WebhookRequest {
     string event = 1;

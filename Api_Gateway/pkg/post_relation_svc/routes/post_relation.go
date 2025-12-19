@@ -9,4 +9,19 @@ import (
 
 func PostRelationRoutes(router *gin.Engine,postRelationHandler *handler.PostRelationHandler,cfg *config.Config){
 	router.POST("/user/post",middleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.CreatePost)
+	router.PATCH("/user/post/:post_id",middleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.EditPost)
+	router.DELETE("/user/post/:post_id",middleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.DeletePost)
+
+	router.POST("/user/post/like/:post_id",middleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.LikePost)
+	router.DELETE("/user/post/like/:post_id",middleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.UnlikePost)
+
+	router.POST("/user/post/comment/:post_id",middleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.AddComment)
+	router.GET("/user/post/comment/:post_id",middleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchComments)
+	router.PATCH("/user/post/:post_id/comment/:comment_id",middleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.EditComment)
+	router.DELETE("/user/post/:post_id/comment/:comment_id",middleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.DeleteComment)
+
+	router.GET("/user/post/:post_id/comments-of-comment/:parent_comment_id",middleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchCommentsOfComment)
+
+	router.POST("/user/relation/follow/:following_user_id",middleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.Follow)
+	router.DELETE("/user/relation/unfollow/:unfollowing_user_id",middleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.Unfollow)
 }
