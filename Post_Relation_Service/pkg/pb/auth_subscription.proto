@@ -1,0 +1,13 @@
+syntax="proto3";
+package auth_subscription;
+option go_package="./pkg/pb";
+
+service AuthSubscriptionService{
+    rpc CheckUserExists(CheckUserExistsRequest) returns (CheckUserExistsResponse);
+}
+message CheckUserExistsRequest{
+    uint64 UserId=1;
+}
+message CheckUserExistsResponse{
+    uint64 UserId=1;
+}

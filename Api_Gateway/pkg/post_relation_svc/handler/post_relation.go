@@ -5,11 +5,13 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/responsemodels"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/config"
+	"github.com/Ansalps/Chattr_Api_Gateway/pkg/post_relation_svc/client"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/post_relation_svc/client/interfaces"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/post_relation_svc/requestmodels"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/response"
@@ -17,33 +19,29 @@ import (
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type PostRelationHandler struct {
-	GPPC_Client interfaces.PostRelationClient
+	GPPC_Client interfaces.PostRelationClientInterface
 	config      *config.Config
+	DirectPostClient *client.PostRelationClient
 }
 
-func NewPostRelationHandler(postRelationClient interfaces.PostRelationClient, cfg *config.Config) *PostRelationHandler {
+func NewPostRelationHandler(postRelationClient interfaces.PostRelationClientInterface, cfg *config.Config,postDirectClient *client.PostRelationClient) *PostRelationHandler {
 	return &PostRelationHandler{
 		GPPC_Client: postRelationClient,
 		config:      cfg,
+		DirectPostClient: postDirectClient,
 	}
 }
 
 func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 	var createPostReq requestmodels.CreatePostRequest
-	if err := c.ShouldBindJSON(&createPostReq); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
-		return
-	}
+	createPostReq.Caption = c.PostForm("caption")
 
-	claims, exists := c.Get("Claims")
+	claims, exists := c.Get("claims")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
@@ -53,7 +51,7 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
-	createPostReq.UserID=jwtClaims.ID
+	createPostReq.UserID = jwtClaims.ID
 	// 1. Parse form
 	err := c.Request.ParseMultipartForm(20 << 20) // 20MB max
 	if err != nil {
@@ -116,15 +114,369 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 
 		uploadedUrls = append(uploadedUrls, uploadResp.SecureURL)
 	}
-	createPostResponse,err:=as.GPPC_Client.CreatePost(createPostReq)
-	if err!=nil{
+	createPostResponse, err := as.GPPC_Client.CreatePost(createPostReq)
+	if err != nil {
 
 	}
-
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Files uploaded successfully",
 		"urls":    uploadedUrls,
-		"res":createPostResponse,
+		"res":     createPostResponse,
 	})
+}
+
+func (as *PostRelationHandler) EditPost(c *gin.Context) {
+	postIdStr := c.Param("post_id")
+	postId, err := strconv.ParseUint(postIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post id", nil))
+		return
+	}
+	var editPostRequest requestmodels.EditPostRequest
+	editPostRequest.PostID = postId
+	if err := c.ShouldBindJSON(&editPostRequest); err != nil {
+		log.Printf("Bind error: %v", err)
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid Request Body", nil))
+		return
+	}
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims Not Found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid Claims", nil))
+		return
+	}
+	editPostRequest.UserID = jwtClaims.ID
+	editPostResponse, err := as.GPPC_Client.EditPost(editPostRequest)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.ClientResponse(http.StatusInternalServerError, "error from grpc", err))
+		return
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "Post edited Successfully", editPostResponse))
+}
+
+func (as *PostRelationHandler) DeletePost(c *gin.Context) {
+	postIdStr := c.Param("post_id")
+	postId, err := strconv.ParseUint(postIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post id", nil))
+		return
+	}
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims Not Found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
+		return
+	}
+	var deletePostReq requestmodels.DeletePostRequest
+	deletePostReq.UserID = jwtClaims.ID
+	deletePostReq.PostID = postId
+	deletePostResponse, err := as.GPPC_Client.DeletePost(deletePostReq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.ClientResponse(http.StatusInternalServerError, "error from grpc", err))
+		return
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "post deleted successfully", deletePostResponse))
+}
+
+func (as *PostRelationHandler) LikePost(c *gin.Context) {
+	postIdStr := c.Param("post_id")
+	postId, err := strconv.ParseUint(postIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post id", nil))
+		return
+	}
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
+		return
+	}
+	var likePostReq requestmodels.LikePostRequest
+	likePostReq.UserID = jwtClaims.ID
+	likePostReq.PostID = postId
+	likePostResponse, err := as.GPPC_Client.LikePost(likePostReq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.ClientResponse(http.StatusInternalServerError, "error from grpc", err))
+		return
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "post like successfully", likePostResponse))
+}
+
+func (as *PostRelationHandler) UnlikePost(c *gin.Context) {
+	postIdStr := c.Param("post_id")
+	postId, err := strconv.ParseUint(postIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalide post id", nil))
+		return
+	}
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
+		return
+	}
+	var unlikePostReq requestmodels.UnlikePostRequest
+	unlikePostReq.UserID = jwtClaims.ID
+	unlikePostReq.PostID = postId
+	unlikePostResponse, err := as.GPPC_Client.UnlikePost(unlikePostReq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.ClientResponse(http.StatusInternalServerError, "error from grpc", err))
+		return
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "post unliked successfully", unlikePostResponse))
+}
+
+func (as *PostRelationHandler) AddComment(c *gin.Context) {
+	postIdStr := c.Param("post_id")
+	postId, err := strconv.ParseUint(postIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid Post id", nil))
+		return
+	}
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
+		return
+	}
+	var addCommentRequest requestmodels.AddCommentRequest
+	addCommentRequest.UserID = jwtClaims.ID
+	addCommentRequest.PostID = postId
+	if err := c.ShouldBindJSON(&addCommentRequest); err != nil {
+		if validateioErrors := utils.FormatValidationError(err); validateioErrors != nil {
+			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", validateioErrors))
+			return
+		}
+		log.Println("Bind Error: ", err)
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", err))
+		return
+	}
+	addCommentResponse, err := as.GPPC_Client.AddComment(addCommentRequest)
+	if err != nil {
+		var obj response.Response
+		if st, ok := status.FromError(err); ok {
+			switch st.Code() {
+			case codes.FailedPrecondition:
+				obj = response.ClientResponse(http.StatusPreconditionFailed, st.Message(), nil)
+			default:
+				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
+			}
+		}
+		c.JSON(obj.StatusCode, obj)
+		return
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comment added succesfully", addCommentResponse))
+}
+
+func (as *PostRelationHandler) EditComment(c *gin.Context) {
+	postIdStr := c.Param("post_id")
+	postId, err := strconv.ParseUint(postIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post di", nil))
+		return
+	}
+	commentIdStr := c.Param("comment_id")
+	commentId, err := strconv.ParseUint(commentIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid comment id", nil))
+		return
+	}
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
+		return
+	}
+	var editCommentReq requestmodels.EditCommentRequest
+	if err := c.ShouldBindJSON(&editCommentReq); err != nil {
+		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
+			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", validationErrors))
+			return
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "bind error", err))
+		return
+	}
+	editCommentReq.UserID = jwtClaims.ID
+	editCommentReq.PostID = postId
+	editCommentReq.CommentID = commentId
+	editCommentResponse, err := as.GPPC_Client.EditComment(editCommentReq)
+	if err != nil {
+		var obj response.Response
+		if st, ok := status.FromError(err); ok {
+			switch st.Code() {
+			case codes.NotFound:
+				obj = response.ClientResponse(http.StatusNotFound, st.Message(), nil)
+			default:
+				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
+			}
+			c.JSON(obj.StatusCode, obj)
+			return
+		}
+		c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comment edited successfully", editCommentResponse))
+
+	}
+}
+func (as *PostRelationHandler) DeleteComment(c *gin.Context) {
+	postIdStr := c.Param("post_id")
+	postId, err := strconv.ParseUint(postIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post di", nil))
+		return
+	}
+	commentIdStr := c.Param("comment_id")
+	commentId, err := strconv.ParseUint(commentIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid comment id", nil))
+		return
+	}
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
+		return
+	}
+	var deletCommentReq requestmodels.DeleteCommentRequest
+	deletCommentReq.UserID = jwtClaims.ID
+	deletCommentReq.PostID = postId
+	deletCommentReq.CommentID = commentId
+	deleteCommentRes, err := as.GPPC_Client.DeleteComment(deletCommentReq)
+	if err != nil {
+		var obj response.Response
+		if st, ok := status.FromError(err); ok {
+			switch st.Code() {
+			case codes.NotFound:
+				obj = response.ClientResponse(http.StatusNotFound, st.Message(), nil)
+			default:
+				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
+			}
+			c.JSON(obj.StatusCode, obj)
+			return
+		}
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comment deleted succesfully", deleteCommentRes))
+}
+
+func (as *PostRelationHandler) Follow(c *gin.Context) {
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
+		return
+	}
+	followingUserIdStr := c.Param("following_user_id")
+	followingUserId, err := strconv.ParseUint(followingUserIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid following user id", nil))
+		return
+	}
+	var followRequest requestmodels.FollowRequest
+	followRequest.UserID = jwtClaims.ID
+	followRequest.FollowingUserID = followingUserId
+	followResponse, err := as.GPPC_Client.Follow(followRequest)
+	if err != nil {
+
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "followed user successfully", followResponse))
+}
+
+func (as *PostRelationHandler) Unfollow(c *gin.Context) {
+	unfollowningUserIdStr := c.Param("unfollowing_user_id")
+	unfollowningUserId, err := strconv.ParseUint(unfollowningUserIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalide unfollowing user id", nil))
+		return
+	}
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
+		return
+	}
+	var unfollowReq requestmodels.UnfollowRequest
+	unfollowReq.UserID = jwtClaims.ID
+	unfollowReq.UnfollowingUserID = unfollowningUserId
+	unfollowResponse, err := as.GPPC_Client.Unfollow(unfollowReq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "unfollowed user successfully", unfollowResponse))
+}
+
+func (as *PostRelationHandler) FetchComments(c *gin.Context) {
+	postIdStr := c.Param("post_id")
+	postId, err := strconv.ParseUint(postIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid post id", postId))
+		return
+	}
+	var fetchCommentsReq requestmodels.FetchCommentsReqeust
+	fetchCommentsReq.PostID = postId
+	fetchCommentsResponse, err := as.GPPC_Client.FetchComments(fetchCommentsReq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comments fetched successfully", fetchCommentsResponse))
+}
+
+func (as *PostRelationHandler) FetchCommentsOfComment(c *gin.Context) {
+	postIdStr := c.Param("post_id")
+	postId, err := strconv.ParseUint(postIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid post id", postId))
+		return
+	}
+	parentCommentIdStr := c.Param("parent_comment_id")
+	parentCommentId, err := strconv.ParseUint(parentCommentIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid parent comment id", parentCommentId))
+		return
+	}
+	var fetchCommentsOfCommentReq requestmodels.FetchCommentsOfCommentReqeust
+	fetchCommentsOfCommentReq.PostID = postId
+	fetchCommentsOfCommentReq.ParentCommentId = parentCommentId
+	fetchCommentsOfCommentResponse, err := as.GPPC_Client.FetchCommentsOfComment(fetchCommentsOfCommentReq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comments of a comment fetched successfully", fetchCommentsOfCommentResponse))
 }

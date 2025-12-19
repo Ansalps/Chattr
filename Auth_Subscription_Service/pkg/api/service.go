@@ -545,7 +545,7 @@ func (as *AuthSubscriptionServer) Unsubscribe(ctx context.Context, req *pb.Unsub
 }
 
 func (as *AuthSubscriptionServer) SetProfileImage(ctx context.Context, req *pb.SetProfileImageRequest) (*pb.SetProfileImageResponse, error) {
-	fmt.Println("inside service print type",req.ContentType)
+	fmt.Println("inside service print type", req.ContentType)
 	setProfileImageReq := requestmodels.SetProfileImageRequest{
 		UserId:      req.UserId,
 		ContentType: req.ContentType,
@@ -553,12 +553,127 @@ func (as *AuthSubscriptionServer) SetProfileImage(ctx context.Context, req *pb.S
 	}
 	setProfileImageRes, err := as.AuthSubscriptionUsecase.SetProfileImage(setProfileImageReq)
 	if err != nil {
-		log.Println("is there any error from usercase",err)
+		log.Println("is there any error from usercase", err)
 	}
-	fmt.Println("in service printing image url",setProfileImageRes.ImageUrl)
+	fmt.Println("in service printing image url", setProfileImageRes.ImageUrl)
 	return &pb.SetProfileImageResponse{
 		ImageUrl: setProfileImageRes.ImageUrl,
 	}, nil
+}
+
+func (as *AuthSubscriptionServer) CheckUserExists(ctx context.Context, req *pb.CheckUserExistsRequest) (*pb.CheckUserExistsResponse, error) {
+
+	_, err := as.AuthSubscriptionUsecase.CheckUserExists(req.UserId)
+	if err != nil {
+		if err == usecase.ErrUserNotFound {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		return nil, err
+	}
+
+	return &pb.CheckUserExistsResponse{
+		UserId: req.UserId,
+	}, nil
+}
+
+func (as *AuthSubscriptionServer) GetProfileInformation(ctx context.Context, req *pb.ProfileInfoReq) (*pb.ProfileInfoRes, error) {
+	profileReq := requestmodels.GetProfileInformationRequest{
+		UserId: req.UserId,
+	}
+	resp, err := as.AuthSubscriptionUsecase.GetProfileInformation(profileReq)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("resp in service", resp)
+	return &pb.ProfileInfoRes{
+		UserId:          resp.UserID,
+		Name:            resp.Name,
+		Username:        resp.UserName,
+		Email:           resp.Email,
+		Bio:             resp.Bio,
+		ProfileImageUrl: resp.ProfileImgUrl,
+		Links:           resp.Links,
+		BlueTick:        resp.BlueTick,
+	}, nil
+}
+func (as *AuthSubscriptionServer) EditProfileInfromation(ctx context.Context, req *pb.EditProfileReq) (*pb.EditProfileRes, error) {
+	updateData := make(map[string]interface{})
+	if req.Name != nil {
+		fmt.Println("here *")
+		updateData["name"] = *req.Name
+	}
+	if req.Bio != nil {
+		fmt.Println("here **")
+		updateData["bio"] = *req.Bio
+	}
+	if req.Links != nil {
+		fmt.Println("here **")
+		updateData["links"] = *req.Links
+	}
+	fmt.Println("update data", updateData)
+	resp, err := as.AuthSubscriptionUsecase.EditProfileInformation(req.UserId, updateData)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.EditProfileRes{
+		UserId: resp.UserID,
+		Name:   resp.Name,
+		Bio:    resp.Bio,
+		Links:  resp.Links,
+	}, nil
+}
+func (as *AuthSubscriptionServer) ChangePassword(ctx context.Context, req *pb.ChangePasswordRequest) (*pb.ChangePasswordResponse, error) {
+	passwordReq := requestmodels.ChangePassword{
+		UserID:             req.UserId,
+		OldPassword:        req.OldPassword,
+		NewPassword:        req.NewPasswrod,
+		ConfirmNewPassword: req.ConfirmNewPassword,
+	}
+	resp, err := as.AuthSubscriptionUsecase.ChangePassword(passwordReq)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.ChangePasswordResponse{
+		UserId: resp.UserID,
+	}, nil
+}
+func (as *AuthSubscriptionServer) SearchUser(ctx context.Context, req *pb.SearchUserRequest) (*pb.SearchUserResponse, error) {
+	searchUserReq := requestmodels.SearchUser{
+		SearchText: req.SearchText,
+		Limit: req.Limit,
+		Offset: req.Offset,
+	}
+	resp, err := as.AuthSubscriptionUsecase.SearchUser(searchUserReq)
+	if err != nil {
+		return nil, err
+	}
+	c := make([]*pb.UserMetaData, len(resp.Usermetadata))
+	for i, v := range resp.Usermetadata {
+		c[i]=&pb.UserMetaData{
+			UserId: v.UserID,
+			UserName: v.UserName,
+			Name: v.Name,
+			ProfileImgUrl: v.ProfileImgUrl,
+		}
+	}
+	return &pb.SearchUserResponse{
+		UserMetaData: c,
+	}, nil
+}
+func (as *AuthSubscriptionServer)UserPublicData(ctx context.Context,req *pb.UserPublicDataRequest)(*pb.UserPublicDataResponse,error){
+	resp,err:=as.AuthSubscriptionUsecase.FetchUserPublicData(req.UserId)
+	if err!=nil{
+		return &pb.UserPublicDataResponse{},err
+	}
+	return &pb.UserPublicDataResponse{
+		UserId: resp.UserID,
+		UserName: resp.UserName,
+		Name: resp.Name,
+		ProfileImgUrl: resp.ProfileImgUrl,
+		Bio: resp.Bio,
+		Links: resp.Links,
+		BlueTick: resp.BlueTick,
+	},nil
 }
 
 // func (as *AuthSubscriptionServer)Webhook(ctx context.Context,req *pb.WebhookRequest)(*pb.WebhookResponse,error){

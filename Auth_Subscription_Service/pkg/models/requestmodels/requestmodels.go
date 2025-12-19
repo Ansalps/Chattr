@@ -125,6 +125,28 @@ type SetProfileImageRequest struct{
 	Image []byte
 }
 
+type GetProfileInformationRequest struct{
+	UserId uint64
+}
+// type EditProfile struct{
+// 	Name *string	`json:"name"`
+// 	Bio *string	`json:"bio"`
+// 	Links *string `json:"links"`
+// }
+// type CheckUserExistsRequest struct{
+//     UserId uint64
+// }
+type ChangePassword struct{
+	UserID uint64
+	OldPassword	string	`json:"old_password" validate:"required"`
+	NewPassword        string `json:"new_password" binding:"required,min=3,max=30"`
+	ConfirmNewPassword string `json:"confirm_new_password" binding:"required,eqfield=Password"`
+}
+type SearchUser struct{
+	SearchText string `json:"search_text"`
+    Limit int64
+	Offset int64
+}
 type WebhookRequest struct {
     Event string `json:"event"`
     Payload struct {

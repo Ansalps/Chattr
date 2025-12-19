@@ -226,3 +226,20 @@ type WebhookResponse struct{
 type SetProfileImageResponse struct{
 	ImageUrl string
 }
+
+type GetProfileInformationResponse struct{
+	UserID uint64
+	Name string
+	UserName      string
+	Email         string
+	Bio           string
+	ProfileImgUrl string
+	Links         string
+	BlueTick	bool	
+}
+type EditProfile struct{
+	UserID uint64	`json:"user_id"`
+	Name *string	`json:"name,omitempty"`
+	Bio *string	`json:"bio,omitempty"`
+	Links *string `json:"links,omitempty"`
+}

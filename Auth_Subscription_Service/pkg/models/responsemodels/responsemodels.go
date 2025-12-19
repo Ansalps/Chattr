@@ -216,7 +216,46 @@ type SetProfileImageResponse struct{
 	ImageUrl string
 }
 
+type GetProfileInformationResponse struct{
+	UserID uint64
+	Name string
+	UserName      string
+	Email         string
+	Bio           string
+	ProfileImgUrl string
+	Links         string
+	BlueTick	bool	
+}
+
+type EditProfile struct{
+	UserID uint64	`json:"user_id"`
+	Name *string	`json:"name,omitempty"`
+	Bio *string	`json:"bio,omitempty"`
+	Links *string `json:"links,omitempty"`
+}
+
+type ChangePasswordResponse struct{
+	UserID uint64
+}
+type UserMeatData struct{
+	UserID uint64
+	UserName string
+	Name string
+	ProfileImgUrl string
+}
+type SearchUserResponse struct{
+	Usermetadata []UserMeatData
+}
 type WebhookResponse struct{
 	Event string
 	RazropaySubscriptinId string
+}
+type UserPublicDataResponse struct{
+	UserID uint64
+	UserName string
+	Name string
+	ProfileImgUrl string
+	Bio string
+	Links string
+	BlueTick bool
 }

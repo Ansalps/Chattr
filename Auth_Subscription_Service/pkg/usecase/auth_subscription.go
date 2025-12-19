@@ -757,6 +757,67 @@ func (as *AuthSubscriptionUsecase) SetProfileImage(setProfileImageReq requestmod
 	}, nil
 }
 
+func (as *AuthSubscriptionUsecase) CheckUserExists(userId uint64) (bool, error) {
+	status, err := as.AuthSubscriptionRepository.CheckUserExistsById(userId)
+	if err != nil {
+		return false, err
+	}
+	if !status {
+		return false, ErrUserNotFound
+	}
+	return status, err
+}
+
+func (as *AuthSubscriptionUsecase) GetProfileInformation(req requestmodels.GetProfileInformationRequest) (responsemodels.GetProfileInformationResponse, error) {
+	resp, err := as.AuthSubscriptionRepository.GetProfileInformation(req)
+	if err != nil {
+		return responsemodels.GetProfileInformationResponse{}, err
+	}
+	fmt.Println("resp in usecase", resp)
+	return resp, nil
+}
+func (as *AuthSubscriptionUsecase) EditProfileInformation(userId uint64, updateData map[string]interface{}) (responsemodels.EditProfile, error) {
+	resp, err := as.AuthSubscriptionRepository.EditProfileInformation(userId, updateData)
+	if err != nil {
+		return responsemodels.EditProfile{}, err
+	}
+	return resp, nil
+}
+func (as *AuthSubscriptionUsecase) ChangePassword(req requestmodels.ChangePassword) (responsemodels.ChangePasswordResponse, error) {
+	password, err := as.AuthSubscriptionRepository.FetchHashedPassword(req)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.ChangePasswordResponse{}, ErrUserNotFound
+		}
+		return responsemodels.ChangePasswordResponse{}, err
+	}
+	err = utils.CompareWithHashedPassword(password, req.OldPassword)
+	if err != nil {
+		return responsemodels.ChangePasswordResponse{}, err
+	}
+	passwordHash := utils.HashPassword(req.ConfirmNewPassword)
+	resp, err := as.AuthSubscriptionRepository.ChangePassword(req, passwordHash)
+	if err != nil {
+		return responsemodels.ChangePasswordResponse{}, err
+	}
+	return resp, nil
+}
+func (as *AuthSubscriptionUsecase) SearchUser(req requestmodels.SearchUser) (responsemodels.SearchUserResponse, error) {
+	resp, err := as.AuthSubscriptionRepository.SearchUser(req)
+	if err != nil {
+		return responsemodels.SearchUserResponse{}, err
+	}
+	return resp, nil
+}
+
+func (as *AuthSubscriptionUsecase)FetchUserPublicData(userid uint64)(responsemodels.UserPublicDataResponse,error){
+	resp,err:=as.AuthSubscriptionRepository.FetchUserPublicData(userid)
+	if err!=nil{
+		return responsemodels.UserPublicDataResponse{},err
+	}
+	return resp,nil
+}
+
 // func (as *AuthSubscriptionUsecase) Webhook(webhookReq requestmodels.WebhookRequest) (responsemodels.WebhookResponse, error) {
 // 	data := map[string]interface{}{
 // 		"remaining_count": 12,

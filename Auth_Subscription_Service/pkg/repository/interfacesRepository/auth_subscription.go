@@ -49,4 +49,16 @@ type AuthSubscriptionRepository interface {
 	FetchNextChargeAtFromUserSubcription(string)(time.Time,error)
 	TurnOffBlueTickForUserId(userid uint64)error
 	UpdateProfileImage(userid uint64,imageUrl string)(error)
+
+	CheckUserExistsById(userid uint64)(bool,error)
+
+	SearchUser(requestmodels.SearchUser)(responsemodels.SearchUserResponse,error)
+
+	GetProfileInformation(requestmodels.GetProfileInformationRequest)(responsemodels.GetProfileInformationResponse,error)
+	EditProfileInformation(uint64,map[string]interface{})(responsemodels.EditProfile,error)
+
+	FetchHashedPassword(requestmodels.ChangePassword)(string,error)
+	ChangePassword(requestmodels.ChangePassword,string)(responsemodels.ChangePasswordResponse,error)
+
+	FetchUserPublicData(uint64)(responsemodels.UserPublicDataResponse,error)
 }
