@@ -7,6 +7,7 @@ import (
 
 type PostRelationUsecase interface{
 	CreatePost(requestmodels.CreatePostRequest)(responsemodels.CreatePostResponse,error)
+	FetchAllPosts(userid uint64)(responsemodels.FetchAllPostsResponse,error)
 	EditPost(requestmodels.EditPostRequest)(responsemodels.EditPostResponse,error)
 	DeletePost(requestmodels.DeletePostRequest)(responsemodels.DeletePostResponse,error)
 
@@ -17,8 +18,6 @@ type PostRelationUsecase interface{
 	FetchComments(requestmodels.FetchCommentsReqeust)(responsemodels.FetchCommentsResponse,error)
 	EditComment(requestmodels.EditCommentRequest)(responsemodels.EditCommentResponse,error)
 	DeleteComment(requestmodels.DeleteCommentRequest)(responsemodels.DeleteCommentResponse,error)
-
-	FetchCommentsOfComment(requestmodels.FetchCommentsOfCommentReqeust)(responsemodels.FetchCommentsOfCommentResponse,error)
 
 	Follow(requestmodels.FollowRequest)(responsemodels.FollowResponse,error)
 	Unfollow(requestmodels.UnfollowRequest)(responsemodels.UnfollowResponse,error)

@@ -34,6 +34,29 @@ service AuthSubscriptionService{
 
     rpc SearchUser(SearchUserRequest) returns (SearchUserResponse);
     rpc UserPublicData(UserPublicDataRequest) returns (UserPublicDataResponse);
+
+    rpc FetchUserMetaData(UserDataReq) returns (BatchUserMetadataResponse);
+}
+message UserDataReq{
+    repeated uint64 UserId=1;
+}
+message BatchUserMetadataResponse {
+    map<uint64, UserMetaData> users = 1;
+}
+message SearchUserRequest{
+    string SearchText=1;
+    int64 Limit=2;
+    int64 Offset=3;
+}
+message UserMetaData{
+    uint64 UserId=1;
+    string UserName=2;
+    string Name=3;
+    string ProfileImgUrl=4;
+    bool BlueTick=5;
+}
+message SearchUserResponse{
+    repeated UserMetaData userMetaData=1;
 }
 message UserPublicDataRequest{
     uint64 UserId=1;
@@ -47,20 +70,7 @@ message UserPublicDataResponse{
     string Links=6;
     bool BlueTick=7;
 }   
-message SearchUserRequest{
-    string SearchText=1;
-    int64 Limit=2;
-    int64 Offset=3;
-}
-message UserMetaData{
-    uint64 UserId=1;
-    string UserName=2;
-    string Name=3;
-    string ProfileImgUrl=4;
-}
-message SearchUserResponse{
-    repeated UserMetaData userMetaData=1;
-}
+
 message ChangePasswordRequest{
     uint64 UserId=1;
     string OldPassword=2;

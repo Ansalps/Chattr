@@ -1,13 +1,16 @@
 package repository
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
+	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/requestmodels"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/responsemodels"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/respository/interfacesRepository"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
-
 )
 
 type PostRelationRepository struct {
@@ -21,22 +24,47 @@ func NewPostRelationRepository(db *gorm.DB) interfacesRepository.PostRelationRep
 }
 
 func (ad *PostRelationRepository) CreatePost(createPostReq requestmodels.CreatePostRequest) (responsemodels.CreatePostResponse, error) {
-	var postId uint64
-	query := `INSERT INTO posts (created_at,updated_at,user_id,caption) VALUES ($1,$2,$3,$4) RETURNING id`
-	err := ad.DB.Raw(query, time.Now(), time.Now(), createPostReq.UserID, createPostReq.Caption).Scan(&postId).Error
-	if err != nil {
-		return responsemodels.CreatePostResponse{}, err
+	fmt.Println("if it comes here print list of urls",createPostReq.MediaUrls)
+	var mediaRecords []domain.PostMedia
+	for _,url:=range createPostReq.MediaUrls{
+		mediaRecords=append(mediaRecords, domain.PostMedia{MediaUrl: url})
 	}
-	mediaInsertQuery := `INSERT INTO post_media (create_at,updated_at,post_id,media_url) VALUES ($1,$2,$3,$4)`
-	for _, url := range createPostReq.MediaUrls {
-		errIns := ad.DB.Exec(mediaInsertQuery, time.Now(), time.Now(), postId, url).Error
-		if errIns != nil {
-			return responsemodels.CreatePostResponse{}, errIns
-		}
+	newPost:=domain.Post{
+		UserID: uint(createPostReq.UserID),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Caption: createPostReq.Caption,
+		Media: mediaRecords,// GORM will see this and handle the insertion
 	}
-	return responsemodels.CreatePostResponse{
-		PostID: postId,
-	}, nil
+	// 2. Single call to Create
+	// GORM opens a transaction, inserts Post, gets ID, and batch inserts Media
+	// GORM will start a transaction, save the Post, 
+    // grab the new Post.ID, assign it to all mediaRecords.PostID,
+    // and set timestamps for EVERYTHING.
+	err := ad.DB.Create(&newPost).Error
+    if err != nil {
+        return responsemodels.CreatePostResponse{}, err
+    }
+
+    return responsemodels.CreatePostResponse{
+        PostID: uint64(newPost.ID),
+    }, nil
+	// var postId uint64
+	// query := `INSERT INTO posts (created_at,updated_at,user_id,caption) VALUES ($1,$2,$3,$4) RETURNING id`
+	// err := ad.DB.Raw(query, time.Now(), time.Now(), createPostReq.UserID, createPostReq.Caption).Scan(&postId).Error
+	// if err != nil {
+	// 	return responsemodels.CreatePostResponse{}, err
+	// }
+	// mediaInsertQuery := `INSERT INTO post_media (created_at,updated_at,post_id,media_url) VALUES ($1,$2,$3,$4)`
+	// for _, url := range createPostReq.MediaUrls {
+	// 	errIns := ad.DB.Exec(mediaInsertQuery, time.Now(), time.Now(), postId, url).Error
+	// 	if errIns != nil {
+	// 		return responsemodels.CreatePostResponse{}, errIns
+	// 	}
+	// }
+	// return responsemodels.CreatePostResponse{
+	// 	PostID: postId,
+	// }, nil
 }
 
 func (ad *PostRelationRepository) EditPostById(editPostReq requestmodels.EditPostRequest) (responsemodels.EditPostResponse, error) {
@@ -50,8 +78,12 @@ func (ad *PostRelationRepository) EditPostById(editPostReq requestmodels.EditPos
 }
 func (ad *PostRelationRepository) DeletePostById(deletePostReq requestmodels.DeletePostRequest) (responsemodels.DeletePostResponse, error) {
 	query := `DELETE FROM posts WHERE user_id=? and id=?`
-	if err := ad.DB.Exec(query, deletePostReq.UserID, deletePostReq.PostID).Error; err != nil {
-		return responsemodels.DeletePostResponse{}, err
+	result := ad.DB.Exec(query, deletePostReq.UserID, deletePostReq.PostID)
+	if result.Error != nil {
+		return responsemodels.DeletePostResponse{}, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return responsemodels.DeletePostResponse{}, gorm.ErrRecordNotFound
 	}
 	return responsemodels.DeletePostResponse{
 		PostID: deletePostReq.PostID,
@@ -90,14 +122,26 @@ func (ad *PostRelationRepository) CheckCommentHieracrchy(commentId *uint64) (boo
 	return true, nil
 }
 func (ad *PostRelationRepository) AddComment(addCommentReq requestmodels.AddCommentRequest) (responsemodels.AddCommentResponse, error) {
-	query := `INSERT INTO comments (created_at,updated_at,user_id,post_id,comment_text,parent_comment_id) VALUES ($1,$2,$3,$4,$5,$6)`
-	if err := ad.DB.Exec(query, time.Now(), time.Now(), addCommentReq.UserID, addCommentReq.PostID, addCommentReq.CommentText, addCommentReq.ParentCommentId).Error; err != nil {
-		return responsemodels.AddCommentResponse{}, err
+	var commetId uint64
+	query := `INSERT INTO comments (created_at,updated_at,user_id,post_id,comment_text,parent_comment_id) VALUES ($1,$2,$3,$4,$5,$6) returning id`
+	result := ad.DB.Raw(query, time.Now(), time.Now(), addCommentReq.UserID, addCommentReq.PostID, addCommentReq.CommentText, addCommentReq.ParentCommentId).Scan(&commetId)
+	if result.Error != nil {
+		fmt.Println("heelllo at least here")
+		fmt.Printf("Error Type: %T\n", result.Error)
+		var pgErr *pgconn.PgError
+		if errors.As(result.Error, &pgErr) && pgErr.Code == "23503" {
+			fmt.Println("is it reaching in postgres err", result.Error)
+			return responsemodels.AddCommentResponse{}, domain.ErrForeignKeyViolationCommentPost
+		}
+
+		return responsemodels.AddCommentResponse{}, result.Error
 	}
+	fmt.Println("is comment id printed",commetId)
 	return responsemodels.AddCommentResponse{
 		UserID:          addCommentReq.UserID,
 		PostID:          addCommentReq.PostID,
 		CommentText:     addCommentReq.CommentText,
+		CommentID:       commetId,
 		ParentCommentId: addCommentReq.ParentCommentId,
 	}, nil
 }
@@ -111,6 +155,7 @@ func (ad *PostRelationRepository) EditComment(editCommentReq requestmodels.EditC
 		return responsemodels.EditCommentResponse{}, gorm.ErrRecordNotFound
 	}
 	return responsemodels.EditCommentResponse{
+		PostID: editCommentReq.PostID,
 		CommentID:   editCommentReq.CommentID,
 		CommentText: editCommentReq.CommentText,
 	}, nil
@@ -122,6 +167,7 @@ func (ad *PostRelationRepository) DeleteCommentById(deleteCommentReq requestmode
 		return responsemodels.DeleteCommentResponse{}, result.Error
 	}
 	if result.RowsAffected == 0 {
+		fmt.Println("is it really happening in database?")
 		return responsemodels.DeleteCommentResponse{}, gorm.ErrRecordNotFound
 	}
 	return responsemodels.DeleteCommentResponse{
@@ -152,45 +198,65 @@ func (ad *PostRelationRepository) UnfollowUserById(unfollowReq requestmodels.Unf
 	}, nil
 }
 
-func (ad *PostRelationRepository) FetchCommentsByPostId(fetchCommentsReq requestmodels.FetchCommentsReqeust) (responsemodels.FetchCommentsResponse, error) {
-	var comments []responsemodels.Comment
-	query := `SELECT id,comment_text FROM comments WHERE post_id=$1 WHERE parent_comment_id IS NULL`
-	resutl := ad.DB.Raw(query, fetchCommentsReq.PostID).Scan(&comments)
-	if resutl.Error != nil {
-		return responsemodels.FetchCommentsResponse{}, resutl.Error
-	}
-	return responsemodels.FetchCommentsResponse{
-		Comments: comments,
-	}, nil
-}
-func (ad *PostRelationRepository) FetchCommentsOfCommentByParentCommentId(fetchCommentsOfCommentReq requestmodels.FetchCommentsOfCommentReqeust) (responsemodels.FetchCommentsOfCommentResponse, error) {
-	var comments []responsemodels.Comment
-	query := `SELECT id,comment_text FROM comments WHERE post_id=$1 AND parent_comment_id=$2`
-	result := ad.DB.Raw(query, fetchCommentsOfCommentReq.PostID, fetchCommentsOfCommentReq.ParentCommentId).Scan(&comments)
+func (ad *PostRelationRepository) FetchCommentsByPostId(fetchCommentsReq requestmodels.FetchCommentsReqeust) ([]responsemodels.Comments, error) {
+	var resp []responsemodels.Comments
+	query := `SELECT * FROM comments WHERE post_id=$1`
+	result := ad.DB.Raw(query, fetchCommentsReq.PostID).Scan(&resp)
 	if result.Error != nil {
-		return responsemodels.FetchCommentsOfCommentResponse{}, result.Error
+		return []responsemodels.Comments{}, result.Error
 	}
-	// fmt.Println(result)
-	// fmt.Pin
-	return responsemodels.FetchCommentsOfCommentResponse{
-		Comments: comments,
-	}, nil
+	if result.RowsAffected == 0 {
+		return []responsemodels.Comments{}, gorm.ErrRecordNotFound
+	}
+	return resp, nil
 }
-func (ad *PostRelationRepository)FetchPostCountByUserId(userid uint64)(uint64,error){
+
+func (ad *PostRelationRepository) FetchPostCountByUserId(userid uint64) (uint64, error) {
 	var postCount uint64
-	query:=`SELECT COUNT(*) as post_count FROM posts WHERE user_id=$1`
-	result:=ad.DB.Raw(query,userid).Scan(&postCount)
-	if result.Error!=nil{
-		return 0,result.Error
+	query := `SELECT COUNT(*) as post_count FROM posts WHERE user_id=$1`
+	result := ad.DB.Raw(query, userid).Scan(&postCount)
+	if result.Error != nil {
+		return 0, result.Error
 	}
-	return postCount,nil
+	return postCount, nil
 }
-func (ad *PostRelationRepository)FetchFollowCountByUserId(userid uint64)(responsemodels.PostFollowCountResponse,error){
+func (ad *PostRelationRepository) FetchFollowCountByUserId(userid uint64) (responsemodels.PostFollowCountResponse, error) {
 	var resp responsemodels.PostFollowCountResponse
-	query:=`SELECT COUNT(*) FILTER (WHERE following_id=$1) AS follower_count,COUNT(*) FILTER (WHERE follower_id=$2) AS following_count FROM relations`
-	result:=ad.DB.Raw(query,userid,userid).Scan(&resp)
-	if result.Error!=nil{
-		return responsemodels.PostFollowCountResponse{},result.Error
+	query := `SELECT COUNT(*) FILTER (WHERE following_id=$1) AS follower_count,COUNT(*) FILTER (WHERE follower_id=$2) AS following_count FROM relations`
+	result := ad.DB.Raw(query, userid, userid).Scan(&resp)
+	if result.Error != nil {
+		return responsemodels.PostFollowCountResponse{}, result.Error
 	}
-	return resp,nil
+	return resp, nil
+}
+func (ad *PostRelationRepository) FetchAllPosts(userid uint64) (responsemodels.FetchAllPostsResponse, error) {
+	var resp []responsemodels.PostSample
+	query := `SELECT id as post_id,created_at,updated_at,user_id,caption,media_url FROM posts LEFT JOIN post_media 
+	ON posts.id=post_media.post_id WHERE user_id=$1`
+	result := ad.DB.Raw(query, userid).Scan(&resp)
+	if result.Error != nil {
+		return responsemodels.FetchAllPostsResponse{}, result.Error
+	}
+	var resp1 []responsemodels.Post
+	p := make(map[uint64][]string)
+	dup := make(map[uint64]bool)
+	for _, v := range resp {
+		if !dup[v.PostID] {
+			dup[v.PostID] = true
+			resp1 = append(resp1, responsemodels.Post{
+				PostID:    v.PostID,
+				CreatedAt: v.CreatedAt,
+				UpdatedAt: v.UpdatedAt,
+				UserID:    v.UserID,
+				Caption:   v.Caption,
+			})
+		}
+		p[v.PostID] = append(p[v.PostID], v.MediaUrl)
+	}
+	for i := range resp1 {
+		resp1[i].MediaUrls = append(resp1[i].MediaUrls, p[resp1[i].PostID]...)
+	}
+	return responsemodels.FetchAllPostsResponse{
+		Posts: resp1,
+	}, nil
 }

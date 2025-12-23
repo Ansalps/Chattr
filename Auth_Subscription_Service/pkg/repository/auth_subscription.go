@@ -761,10 +761,10 @@ func (ad *AuthSubscriptionRepository) ChangePassword(req requestmodels.ChangePas
 	}, nil
 }
 func (ad *AuthSubscriptionRepository) SearchUser(req requestmodels.SearchUser) (responsemodels.SearchUserResponse, error) {
-	var userMeataData []responsemodels.UserMeatData
-	text:="%"+req.SearchText+"%"
+	var userMeataData []responsemodels.UserMetaData
+	text := "%" + req.SearchText + "%"
 	query := `SELECT id as user_id,user_name,name,profile_img_url FROM users WHERE user_name ILIKE $1 LIMIT $2 OFFSET $3`
-	result := ad.DB.Raw(query, text,req.Limit,req.Offset).Scan(&userMeataData)
+	result := ad.DB.Raw(query, text, req.Limit, req.Offset).Scan(&userMeataData)
 	if result.Error != nil {
 		return responsemodels.SearchUserResponse{}, result.Error
 	}
@@ -772,15 +772,34 @@ func (ad *AuthSubscriptionRepository) SearchUser(req requestmodels.SearchUser) (
 		Usermetadata: userMeataData,
 	}, nil
 }
-func (ad *AuthSubscriptionRepository)FetchUserPublicData(userid uint64)(responsemodels.UserPublicDataResponse,error){
+func (ad *AuthSubscriptionRepository) FetchUserPublicData(userid uint64) (responsemodels.UserPublicDataResponse, error) {
 	var resp responsemodels.UserPublicDataResponse
-	query:=`SELECT id as user_id,user_name,name,profile_img_url,bio,links,blue_tick FROM users WHERE id=$1`
-	result:=ad.DB.Raw(query,userid).Scan(&resp)
-	if result.Error!=nil{
-		return responsemodels.UserPublicDataResponse{},result.Error
+	query := `SELECT id as user_id,user_name,name,profile_img_url,bio,links,blue_tick FROM users WHERE id=$1`
+	result := ad.DB.Raw(query, userid).Scan(&resp)
+	if result.Error != nil {
+		return responsemodels.UserPublicDataResponse{}, result.Error
 	}
-	if result.RowsAffected==0{
-		return responsemodels.UserPublicDataResponse{},gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		return responsemodels.UserPublicDataResponse{}, gorm.ErrRecordNotFound
 	}
-	return resp,nil
+	return resp, nil
+}
+func (ad *AuthSubscriptionRepository) FetchUserMetaData(userids []uint64) (map[uint64]responsemodels.UserMetaData, error) {
+	var resp []responsemodels.UserMetaData
+	query := `SELECT id as user_id,user_name,name,profile_img_url,blue_tick FROM users WHERE id IN ?`
+
+	result := ad.DB.Raw(query,userids).Scan(&resp)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+	//conver slice --> map
+	m := make(map[uint64]responsemodels.UserMetaData, len(resp))
+	for _, r := range resp {
+		m[r.UserID] = r
+	}
+	return m, nil
+
 }

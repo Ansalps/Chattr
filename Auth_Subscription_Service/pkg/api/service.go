@@ -676,6 +676,30 @@ func (as *AuthSubscriptionServer)UserPublicData(ctx context.Context,req *pb.User
 	},nil
 }
 
+func (as *AuthSubscriptionServer) FetchUserMetaData(ctx context.Context,req *pb.UserDataReq)(*pb.BatchUserMetadataResponse,error){
+	var userids []uint64
+	userids=req.UserId
+	resp,err:=as.AuthSubscriptionUsecase.FetchUserMetaData(userids)
+	if err!=nil{
+		if err==usecase.ErrUserNotFound{
+			return nil,status.Error(codes.NotFound,err.Error())
+		}
+		return nil,err
+	}
+	pbMap:=make(map[uint64]*pb.UserMetaData)
+	for id,r:=range resp{
+		pbMap[id]=&pb.UserMetaData{
+			UserId: r.UserID,
+			UserName: r.UserName,
+			Name: r.Name,
+			ProfileImgUrl: r.ProfileImgUrl,
+			BlueTick: r.BlueTick,
+		}
+	}
+	return &pb.BatchUserMetadataResponse{
+		Users: pbMap,
+	},nil
+}
 // func (as *AuthSubscriptionServer)Webhook(ctx context.Context,req *pb.WebhookRequest)(*pb.WebhookResponse,error){
 // 	webhookRequest:=requestmodels.WebhookRequest{
 // 		Event: req.Event,

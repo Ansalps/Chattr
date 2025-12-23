@@ -237,14 +237,15 @@ type EditProfile struct{
 type ChangePasswordResponse struct{
 	UserID uint64
 }
-type UserMeatData struct{
-	UserID uint64
-	UserName string
-	Name string
+type UserMetaData struct {
+	UserID        uint64
+	UserName      string
+	Name          string
 	ProfileImgUrl string
+	BlueTick      bool
 }
 type SearchUserResponse struct{
-	Usermetadata []UserMeatData
+	Usermetadata []UserMetaData
 }
 type WebhookResponse struct{
 	Event string
@@ -259,3 +260,4 @@ type UserPublicDataResponse struct{
 	Links string
 	BlueTick bool
 }
+

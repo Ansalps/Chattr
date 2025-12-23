@@ -23,7 +23,7 @@ func DependencyInjection(router *gin.Engine, cfg *config.Config) error {
 	authSubscriptionHandler := authHandler.NewAuthSubscriptionHandler(authSubscriptionClient, cfg, authSubClient,postDirectClient)
 	authRoutes.AuthSubscriptionRoutes(router, authSubscriptionHandler, &cfg.Token)
 
-	postRelationHandler := postRelationHandler.NewPostRelationHandler(postRelationClient, cfg,postDirectClient)
+	postRelationHandler := postRelationHandler.NewPostRelationHandler(postRelationClient, cfg,authSubClient,postDirectClient)
 	postRelationRoutes.PostRelationRoutes(router, postRelationHandler, cfg)
 	return nil
 }

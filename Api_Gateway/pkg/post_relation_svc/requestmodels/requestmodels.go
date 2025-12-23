@@ -59,3 +59,6 @@ type FetchCommentsOfCommentReqeust struct{
 	PostID uint64
 	ParentCommentId uint64
 }
+type FetchAllPostsReq struct{
+	UserID uint64
+}

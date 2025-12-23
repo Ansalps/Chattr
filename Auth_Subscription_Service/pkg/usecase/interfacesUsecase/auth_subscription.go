@@ -39,4 +39,6 @@ type AuthSubscriptionUsecase interface{
 	EditProfileInformation(uint64,map[string]interface{})(responsemodels.EditProfile,error)
 
 	FetchUserPublicData(userid uint64)(responsemodels.UserPublicDataResponse,error)
+
+	FetchUserMetaData([]uint64)(map[uint64]responsemodels.UserMetaData,error)
 }

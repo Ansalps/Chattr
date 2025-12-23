@@ -21,6 +21,170 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type UserDataReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        []uint64               `protobuf:"varint,1,rep,packed,name=UserId,proto3" json:"UserId,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserDataReq) Reset() {
+	*x = UserDataReq{}
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserDataReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserDataReq) ProtoMessage() {}
+
+func (x *UserDataReq) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserDataReq.ProtoReflect.Descriptor instead.
+func (*UserDataReq) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *UserDataReq) GetUserId() []uint64 {
+	if x != nil {
+		return x.UserId
+	}
+	return nil
+}
+
+type BatchUserMetadataResponse struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Users         map[uint64]*UserMetadata `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchUserMetadataResponse) Reset() {
+	*x = BatchUserMetadataResponse{}
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchUserMetadataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchUserMetadataResponse) ProtoMessage() {}
+
+func (x *BatchUserMetadataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchUserMetadataResponse.ProtoReflect.Descriptor instead.
+func (*BatchUserMetadataResponse) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *BatchUserMetadataResponse) GetUsers() map[uint64]*UserMetadata {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
+type UserMetadata struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	UserName      string                 `protobuf:"bytes,2,opt,name=UserName,proto3" json:"UserName,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=Name,proto3" json:"Name,omitempty"`
+	ProfileImgUrl string                 `protobuf:"bytes,4,opt,name=ProfileImgUrl,proto3" json:"ProfileImgUrl,omitempty"`
+	BlueTick      bool                   `protobuf:"varint,5,opt,name=BlueTick,proto3" json:"BlueTick,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserMetadata) Reset() {
+	*x = UserMetadata{}
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserMetadata) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserMetadata) ProtoMessage() {}
+
+func (x *UserMetadata) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserMetadata.ProtoReflect.Descriptor instead.
+func (*UserMetadata) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *UserMetadata) GetUserId() uint64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *UserMetadata) GetUserName() string {
+	if x != nil {
+		return x.UserName
+	}
+	return ""
+}
+
+func (x *UserMetadata) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UserMetadata) GetProfileImgUrl() string {
+	if x != nil {
+		return x.ProfileImgUrl
+	}
+	return ""
+}
+
+func (x *UserMetadata) GetBlueTick() bool {
+	if x != nil {
+		return x.BlueTick
+	}
+	return false
+}
+
 type CheckUserExistsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
@@ -30,7 +194,7 @@ type CheckUserExistsRequest struct {
 
 func (x *CheckUserExistsRequest) Reset() {
 	*x = CheckUserExistsRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[0]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +206,7 @@ func (x *CheckUserExistsRequest) String() string {
 func (*CheckUserExistsRequest) ProtoMessage() {}
 
 func (x *CheckUserExistsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[0]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +219,7 @@ func (x *CheckUserExistsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckUserExistsRequest.ProtoReflect.Descriptor instead.
 func (*CheckUserExistsRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{0}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CheckUserExistsRequest) GetUserId() uint64 {
@@ -74,7 +238,7 @@ type CheckUserExistsResponse struct {
 
 func (x *CheckUserExistsResponse) Reset() {
 	*x = CheckUserExistsResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[1]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -86,7 +250,7 @@ func (x *CheckUserExistsResponse) String() string {
 func (*CheckUserExistsResponse) ProtoMessage() {}
 
 func (x *CheckUserExistsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[1]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -99,7 +263,7 @@ func (x *CheckUserExistsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckUserExistsResponse.ProtoReflect.Descriptor instead.
 func (*CheckUserExistsResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{1}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *CheckUserExistsResponse) GetUserId() uint64 {
@@ -113,13 +277,28 @@ var File_pkg_pb_auth_subscription_proto protoreflect.FileDescriptor
 
 const file_pkg_pb_auth_subscription_proto_rawDesc = "" +
 	"\n" +
-	"\x1epkg/pb/auth_subscription.proto\x12\x11auth_subscription\"0\n" +
+	"\x1epkg/pb/auth_subscription.proto\x12\x11auth_subscription\"%\n" +
+	"\vUserDataReq\x12\x16\n" +
+	"\x06UserId\x18\x01 \x03(\x04R\x06UserId\"\xc5\x01\n" +
+	"\x19BatchUserMetadataResponse\x12M\n" +
+	"\x05users\x18\x01 \x03(\v27.auth_subscription.BatchUserMetadataResponse.UsersEntryR\x05users\x1aY\n" +
+	"\n" +
+	"UsersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\x04R\x03key\x125\n" +
+	"\x05value\x18\x02 \x01(\v2\x1f.auth_subscription.UserMetadataR\x05value:\x028\x01\"\x98\x01\n" +
+	"\fUserMetadata\x12\x16\n" +
+	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x1a\n" +
+	"\bUserName\x18\x02 \x01(\tR\bUserName\x12\x12\n" +
+	"\x04Name\x18\x03 \x01(\tR\x04Name\x12$\n" +
+	"\rProfileImgUrl\x18\x04 \x01(\tR\rProfileImgUrl\x12\x1a\n" +
+	"\bBlueTick\x18\x05 \x01(\bR\bBlueTick\"0\n" +
 	"\x16CheckUserExistsRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"1\n" +
 	"\x17CheckUserExistsResponse\x12\x16\n" +
-	"\x06UserId\x18\x01 \x01(\x04R\x06UserId2\x83\x01\n" +
+	"\x06UserId\x18\x01 \x01(\x04R\x06UserId2\xe6\x01\n" +
 	"\x17AuthSubscriptionService\x12h\n" +
-	"\x0fCheckUserExists\x12).auth_subscription.CheckUserExistsRequest\x1a*.auth_subscription.CheckUserExistsResponseB\n" +
+	"\x0fCheckUserExists\x12).auth_subscription.CheckUserExistsRequest\x1a*.auth_subscription.CheckUserExistsResponse\x12a\n" +
+	"\x11FetchUserMetaData\x12\x1e.auth_subscription.UserDataReq\x1a,.auth_subscription.BatchUserMetadataResponseB\n" +
 	"Z\b./pkg/pbb\x06proto3"
 
 var (
@@ -134,19 +313,27 @@ func file_pkg_pb_auth_subscription_proto_rawDescGZIP() []byte {
 	return file_pkg_pb_auth_subscription_proto_rawDescData
 }
 
-var file_pkg_pb_auth_subscription_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_pkg_pb_auth_subscription_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_pkg_pb_auth_subscription_proto_goTypes = []any{
-	(*CheckUserExistsRequest)(nil),  // 0: auth_subscription.CheckUserExistsRequest
-	(*CheckUserExistsResponse)(nil), // 1: auth_subscription.CheckUserExistsResponse
+	(*UserDataReq)(nil),               // 0: auth_subscription.UserDataReq
+	(*BatchUserMetadataResponse)(nil), // 1: auth_subscription.BatchUserMetadataResponse
+	(*UserMetadata)(nil),              // 2: auth_subscription.UserMetadata
+	(*CheckUserExistsRequest)(nil),    // 3: auth_subscription.CheckUserExistsRequest
+	(*CheckUserExistsResponse)(nil),   // 4: auth_subscription.CheckUserExistsResponse
+	nil,                               // 5: auth_subscription.BatchUserMetadataResponse.UsersEntry
 }
 var file_pkg_pb_auth_subscription_proto_depIdxs = []int32{
-	0, // 0: auth_subscription.AuthSubscriptionService.CheckUserExists:input_type -> auth_subscription.CheckUserExistsRequest
-	1, // 1: auth_subscription.AuthSubscriptionService.CheckUserExists:output_type -> auth_subscription.CheckUserExistsResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	5, // 0: auth_subscription.BatchUserMetadataResponse.users:type_name -> auth_subscription.BatchUserMetadataResponse.UsersEntry
+	2, // 1: auth_subscription.BatchUserMetadataResponse.UsersEntry.value:type_name -> auth_subscription.UserMetadata
+	3, // 2: auth_subscription.AuthSubscriptionService.CheckUserExists:input_type -> auth_subscription.CheckUserExistsRequest
+	0, // 3: auth_subscription.AuthSubscriptionService.FetchUserMetaData:input_type -> auth_subscription.UserDataReq
+	4, // 4: auth_subscription.AuthSubscriptionService.CheckUserExists:output_type -> auth_subscription.CheckUserExistsResponse
+	1, // 5: auth_subscription.AuthSubscriptionService.FetchUserMetaData:output_type -> auth_subscription.BatchUserMetadataResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_pkg_pb_auth_subscription_proto_init() }
@@ -160,7 +347,7 @@ func file_pkg_pb_auth_subscription_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_pb_auth_subscription_proto_rawDesc), len(file_pkg_pb_auth_subscription_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

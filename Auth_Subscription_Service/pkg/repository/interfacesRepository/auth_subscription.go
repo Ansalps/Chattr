@@ -61,4 +61,6 @@ type AuthSubscriptionRepository interface {
 	ChangePassword(requestmodels.ChangePassword,string)(responsemodels.ChangePasswordResponse,error)
 
 	FetchUserPublicData(uint64)(responsemodels.UserPublicDataResponse,error)
+
+	FetchUserMetaData([]uint64)(map[uint64]responsemodels.UserMetaData,error)
 }

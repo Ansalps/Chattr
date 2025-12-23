@@ -19,19 +19,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PostRelationService_CreatePost_FullMethodName             = "/post_relation.PostRelationService/CreatePost"
-	PostRelationService_EditPost_FullMethodName               = "/post_relation.PostRelationService/EditPost"
-	PostRelationService_DeletePost_FullMethodName             = "/post_relation.PostRelationService/DeletePost"
-	PostRelationService_LikePost_FullMethodName               = "/post_relation.PostRelationService/LikePost"
-	PostRelationService_UnlikePost_FullMethodName             = "/post_relation.PostRelationService/UnlikePost"
-	PostRelationService_AddComment_FullMethodName             = "/post_relation.PostRelationService/AddComment"
-	PostRelationService_FetchComments_FullMethodName          = "/post_relation.PostRelationService/FetchComments"
-	PostRelationService_EditComment_FullMethodName            = "/post_relation.PostRelationService/EditComment"
-	PostRelationService_DeleteComment_FullMethodName          = "/post_relation.PostRelationService/DeleteComment"
-	PostRelationService_FetchCommentsOfComment_FullMethodName = "/post_relation.PostRelationService/FetchCommentsOfComment"
-	PostRelationService_Follow_FullMethodName                 = "/post_relation.PostRelationService/Follow"
-	PostRelationService_Unfollow_FullMethodName               = "/post_relation.PostRelationService/Unfollow"
-	PostRelationService_PostFollowCount_FullMethodName        = "/post_relation.PostRelationService/PostFollowCount"
+	PostRelationService_CreatePost_FullMethodName      = "/post_relation.PostRelationService/CreatePost"
+	PostRelationService_FetchAllPosts_FullMethodName   = "/post_relation.PostRelationService/FetchAllPosts"
+	PostRelationService_EditPost_FullMethodName        = "/post_relation.PostRelationService/EditPost"
+	PostRelationService_DeletePost_FullMethodName      = "/post_relation.PostRelationService/DeletePost"
+	PostRelationService_LikePost_FullMethodName        = "/post_relation.PostRelationService/LikePost"
+	PostRelationService_UnlikePost_FullMethodName      = "/post_relation.PostRelationService/UnlikePost"
+	PostRelationService_AddComment_FullMethodName      = "/post_relation.PostRelationService/AddComment"
+	PostRelationService_FetchComments_FullMethodName   = "/post_relation.PostRelationService/FetchComments"
+	PostRelationService_EditComment_FullMethodName     = "/post_relation.PostRelationService/EditComment"
+	PostRelationService_DeleteComment_FullMethodName   = "/post_relation.PostRelationService/DeleteComment"
+	PostRelationService_Follow_FullMethodName          = "/post_relation.PostRelationService/Follow"
+	PostRelationService_Unfollow_FullMethodName        = "/post_relation.PostRelationService/Unfollow"
+	PostRelationService_PostFollowCount_FullMethodName = "/post_relation.PostRelationService/PostFollowCount"
 )
 
 // PostRelationServiceClient is the client API for PostRelationService service.
@@ -39,6 +39,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PostRelationServiceClient interface {
 	CreatePost(ctx context.Context, in *CreatePostRequest, opts ...grpc.CallOption) (*CreatePostResponse, error)
+	FetchAllPosts(ctx context.Context, in *FetchAllPostsRequest, opts ...grpc.CallOption) (*FetchAllPostsResponse, error)
 	EditPost(ctx context.Context, in *EditPostRequest, opts ...grpc.CallOption) (*EditPostResponse, error)
 	DeletePost(ctx context.Context, in *DeletePostRequest, opts ...grpc.CallOption) (*DeletePostResponse, error)
 	LikePost(ctx context.Context, in *LikePostRequest, opts ...grpc.CallOption) (*LikePostResponse, error)
@@ -47,7 +48,6 @@ type PostRelationServiceClient interface {
 	FetchComments(ctx context.Context, in *FetchCommentsRequest, opts ...grpc.CallOption) (*FetchCommentsResponse, error)
 	EditComment(ctx context.Context, in *EditCommentRequest, opts ...grpc.CallOption) (*EditCommentResponse, error)
 	DeleteComment(ctx context.Context, in *DeleteCommentRequest, opts ...grpc.CallOption) (*DeleteCommentResponse, error)
-	FetchCommentsOfComment(ctx context.Context, in *FetchCommentsOfCommentRequest, opts ...grpc.CallOption) (*FetchCommentsOfCommentResposne, error)
 	Follow(ctx context.Context, in *FollowRequest, opts ...grpc.CallOption) (*FollowResponse, error)
 	Unfollow(ctx context.Context, in *UnfollowRequest, opts ...grpc.CallOption) (*UnfollowResponse, error)
 	PostFollowCount(ctx context.Context, in *PostFollowCountRequest, opts ...grpc.CallOption) (*PostFollowCountResponse, error)
@@ -65,6 +65,16 @@ func (c *postRelationServiceClient) CreatePost(ctx context.Context, in *CreatePo
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreatePostResponse)
 	err := c.cc.Invoke(ctx, PostRelationService_CreatePost_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *postRelationServiceClient) FetchAllPosts(ctx context.Context, in *FetchAllPostsRequest, opts ...grpc.CallOption) (*FetchAllPostsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FetchAllPostsResponse)
+	err := c.cc.Invoke(ctx, PostRelationService_FetchAllPosts_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -151,16 +161,6 @@ func (c *postRelationServiceClient) DeleteComment(ctx context.Context, in *Delet
 	return out, nil
 }
 
-func (c *postRelationServiceClient) FetchCommentsOfComment(ctx context.Context, in *FetchCommentsOfCommentRequest, opts ...grpc.CallOption) (*FetchCommentsOfCommentResposne, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(FetchCommentsOfCommentResposne)
-	err := c.cc.Invoke(ctx, PostRelationService_FetchCommentsOfComment_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *postRelationServiceClient) Follow(ctx context.Context, in *FollowRequest, opts ...grpc.CallOption) (*FollowResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(FollowResponse)
@@ -196,6 +196,7 @@ func (c *postRelationServiceClient) PostFollowCount(ctx context.Context, in *Pos
 // for forward compatibility.
 type PostRelationServiceServer interface {
 	CreatePost(context.Context, *CreatePostRequest) (*CreatePostResponse, error)
+	FetchAllPosts(context.Context, *FetchAllPostsRequest) (*FetchAllPostsResponse, error)
 	EditPost(context.Context, *EditPostRequest) (*EditPostResponse, error)
 	DeletePost(context.Context, *DeletePostRequest) (*DeletePostResponse, error)
 	LikePost(context.Context, *LikePostRequest) (*LikePostResponse, error)
@@ -204,7 +205,6 @@ type PostRelationServiceServer interface {
 	FetchComments(context.Context, *FetchCommentsRequest) (*FetchCommentsResponse, error)
 	EditComment(context.Context, *EditCommentRequest) (*EditCommentResponse, error)
 	DeleteComment(context.Context, *DeleteCommentRequest) (*DeleteCommentResponse, error)
-	FetchCommentsOfComment(context.Context, *FetchCommentsOfCommentRequest) (*FetchCommentsOfCommentResposne, error)
 	Follow(context.Context, *FollowRequest) (*FollowResponse, error)
 	Unfollow(context.Context, *UnfollowRequest) (*UnfollowResponse, error)
 	PostFollowCount(context.Context, *PostFollowCountRequest) (*PostFollowCountResponse, error)
@@ -220,6 +220,9 @@ type UnimplementedPostRelationServiceServer struct{}
 
 func (UnimplementedPostRelationServiceServer) CreatePost(context.Context, *CreatePostRequest) (*CreatePostResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreatePost not implemented")
+}
+func (UnimplementedPostRelationServiceServer) FetchAllPosts(context.Context, *FetchAllPostsRequest) (*FetchAllPostsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchAllPosts not implemented")
 }
 func (UnimplementedPostRelationServiceServer) EditPost(context.Context, *EditPostRequest) (*EditPostResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EditPost not implemented")
@@ -244,9 +247,6 @@ func (UnimplementedPostRelationServiceServer) EditComment(context.Context, *Edit
 }
 func (UnimplementedPostRelationServiceServer) DeleteComment(context.Context, *DeleteCommentRequest) (*DeleteCommentResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteComment not implemented")
-}
-func (UnimplementedPostRelationServiceServer) FetchCommentsOfComment(context.Context, *FetchCommentsOfCommentRequest) (*FetchCommentsOfCommentResposne, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FetchCommentsOfComment not implemented")
 }
 func (UnimplementedPostRelationServiceServer) Follow(context.Context, *FollowRequest) (*FollowResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Follow not implemented")
@@ -292,6 +292,24 @@ func _PostRelationService_CreatePost_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PostRelationServiceServer).CreatePost(ctx, req.(*CreatePostRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PostRelationService_FetchAllPosts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchAllPostsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostRelationServiceServer).FetchAllPosts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostRelationService_FetchAllPosts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostRelationServiceServer).FetchAllPosts(ctx, req.(*FetchAllPostsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -440,24 +458,6 @@ func _PostRelationService_DeleteComment_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PostRelationService_FetchCommentsOfComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(FetchCommentsOfCommentRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PostRelationServiceServer).FetchCommentsOfComment(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PostRelationService_FetchCommentsOfComment_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PostRelationServiceServer).FetchCommentsOfComment(ctx, req.(*FetchCommentsOfCommentRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _PostRelationService_Follow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FollowRequest)
 	if err := dec(in); err != nil {
@@ -524,6 +524,10 @@ var PostRelationService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PostRelationService_CreatePost_Handler,
 		},
 		{
+			MethodName: "FetchAllPosts",
+			Handler:    _PostRelationService_FetchAllPosts_Handler,
+		},
+		{
 			MethodName: "EditPost",
 			Handler:    _PostRelationService_EditPost_Handler,
 		},
@@ -554,10 +558,6 @@ var PostRelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteComment",
 			Handler:    _PostRelationService_DeleteComment_Handler,
-		},
-		{
-			MethodName: "FetchCommentsOfComment",
-			Handler:    _PostRelationService_FetchCommentsOfComment_Handler,
 		},
 		{
 			MethodName: "Follow",

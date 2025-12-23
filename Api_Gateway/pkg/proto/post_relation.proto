@@ -1,9 +1,11 @@
 syntax="proto3";
 package post_relation;
 option go_package="./pkg/pb/post_relation";
+import "google/protobuf/timestamp.proto";
 
 service PostRelationService{
     rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
+    rpc FetchAllPosts(FetchAllPostsRequest) returns (FetchAllPostsResponse);
     rpc EditPost(EditPostRequest) returns (EditPostResponse);
     rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
 
@@ -15,12 +17,24 @@ service PostRelationService{
     rpc EditComment(EditCommentRequest) returns (EditCommentResponse);
     rpc DeleteComment(DeleteCommentRequest) returns (DeleteCommentResponse);
 
-    rpc FetchCommentsOfComment(FetchCommentsOfCommentRequest) returns (FetchCommentsOfCommentResposne);
-
     rpc Follow(FollowRequest) returns (FollowResponse);
     rpc Unfollow(UnfollowRequest) returns (UnfollowResponse);
 
     rpc PostFollowCount(PostFollowCountRequest) returns (PostFollowCountResponse);
+}
+message FetchAllPostsRequest{
+    uint64 UserId=1;
+}
+message FetchAllPostsResponse{
+    repeated Post posts=1;
+}
+message Post{
+    uint64 PostId=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    uint64 UserId=4;
+    string Caption=5;
+    repeated string MediaUrls=6;
 }
 message PostFollowCountRequest{
     uint64 UserId=1;
@@ -30,19 +44,28 @@ message PostFollowCountResponse{
     uint64 FollowerCount=2;
     uint64 FollowingCount=3;
 }
-message FetchCommentsOfCommentRequest{
-    uint64 PostId=1;
-    uint64 ParentCommentId=2;
-}
-message FetchCommentsOfCommentResposne{
-    repeated Comment Comments=1;
-}
+
 message FetchCommentsRequest{
     uint64 PostId=1;
 }
+message UserMetaData{
+    uint64 UserId=1;
+    string UserName=2;
+    string Name=3;
+    string ProfileImgUrl=4;
+    bool BlueTick=5;
+}
+
 message Comment{
     uint64 Id=1;
     string CommentText=2;
+    google.protobuf.Timestamp CreatedAt=3;
+    string CommentAge=4;
+    UserMetaData UserDetails=5;
+    optional uint64 ParentCommentId=6;
+    uint64 ChildCommentCount=7;
+    repeated Comment childComment=8;
+
 }
 message FetchCommentsResponse{
     repeated Comment Comments=1;
@@ -76,8 +99,9 @@ message EditCommentRequest{
     string CommentText=4;
 }
 message EditCommentResponse{
-    uint64 CommentId=1;
-    string CommentText=2;
+    uint64 PostId=1;
+    uint64 CommentId=2;
+    string CommentText=3;
 }
 message AddCommentRequest{
     uint64 UserId=1;
@@ -88,8 +112,9 @@ message AddCommentRequest{
 message AddCommentResponse{
     uint64 UserId=1;
     uint64 PostId=2;
-    string CommentText=3;
-    optional uint64 ParentCommentId=4;
+    uint64 CommentId=3;
+    string CommentText=4;
+    optional uint64 ParentCommentId=5;
 }
 message UnlikePostRequest{
     uint64 UserId=1;

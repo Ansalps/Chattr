@@ -18,6 +18,8 @@ type Post struct {
 	UserID     uint `gorm:"not null"`
 	Caption    string
 	PostStatus postStatus `gorm:"default:normal"`
+	// This tells GORM there's a relationship
+    Media      []PostMedia `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
 }
 
 type PostMedia struct {
@@ -44,8 +46,8 @@ type Comment struct{
 	UpdatedAt time.Time 
 	UserID uint `gorm:"not null;index"`
 	PostID uint `gorm:"not null;index"`
-	Post  Post `gorm:"foreignkey:PostID;OnDelete:CASCADE"`
+	Post Post `gorm:"constraint:OnDelete:CASCADE;"`
 	CommentText string `gorm:"type:text;not null"`
 	ParentCommentID *uint
-	ParentComment *Comment `gorm:"foreignkey:ParentCommentID"`
+	ParentComment   *Comment `gorm:"constraint:OnDelete:CASCADE;"`
 }

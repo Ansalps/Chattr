@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,11 +10,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/responsemodels"
+	authClient "github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/client"
+	authResponseModel "github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/responsemodels"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/config"
+	"github.com/Ansalps/Chattr_Api_Gateway/pkg/pb/auth_subscription"
+	"github.com/Ansalps/Chattr_Api_Gateway/pkg/pb/post_relation"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/post_relation_svc/client"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/post_relation_svc/client/interfaces"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/post_relation_svc/requestmodels"
+	"github.com/Ansalps/Chattr_Api_Gateway/pkg/post_relation_svc/responsemodels"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/response"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/utils"
 	"github.com/cloudinary/cloudinary-go/v2"
@@ -24,15 +29,17 @@ import (
 )
 
 type PostRelationHandler struct {
-	GPPC_Client interfaces.PostRelationClientInterface
-	config      *config.Config
+	GPPC_Client      interfaces.PostRelationClientInterface
+	config           *config.Config
+	DirectAuthClient *authClient.AuthSubscriptionClient
 	DirectPostClient *client.PostRelationClient
 }
 
-func NewPostRelationHandler(postRelationClient interfaces.PostRelationClientInterface, cfg *config.Config,postDirectClient *client.PostRelationClient) *PostRelationHandler {
+func NewPostRelationHandler(postRelationClient interfaces.PostRelationClientInterface, cfg *config.Config, directAuthClient *authClient.AuthSubscriptionClient, postDirectClient *client.PostRelationClient) *PostRelationHandler {
 	return &PostRelationHandler{
-		GPPC_Client: postRelationClient,
-		config:      cfg,
+		GPPC_Client:      postRelationClient,
+		config:           cfg,
+		DirectAuthClient: directAuthClient,
 		DirectPostClient: postDirectClient,
 	}
 }
@@ -46,7 +53,7 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
-	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
@@ -114,6 +121,7 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 
 		uploadedUrls = append(uploadedUrls, uploadResp.SecureURL)
 	}
+	createPostReq.MediaUrls=uploadedUrls
 	createPostResponse, err := as.GPPC_Client.CreatePost(createPostReq)
 	if err != nil {
 
@@ -145,7 +153,7 @@ func (as *PostRelationHandler) EditPost(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims Not Found", nil))
 		return
 	}
-	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid Claims", nil))
 		return
@@ -171,7 +179,9 @@ func (as *PostRelationHandler) DeletePost(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims Not Found", nil))
 		return
 	}
-	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	fmt.Println("print claims", claims)
+	fmt.Printf("claims type = %T\n", claims)
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
@@ -181,7 +191,16 @@ func (as *PostRelationHandler) DeletePost(c *gin.Context) {
 	deletePostReq.PostID = postId
 	deletePostResponse, err := as.GPPC_Client.DeletePost(deletePostReq)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.ClientResponse(http.StatusInternalServerError, "error from grpc", err))
+		var obj response.Response
+		if st, ok := status.FromError(err); ok {
+			switch st.Code() {
+			case codes.NotFound:
+				obj = response.ClientResponse(http.StatusPreconditionFailed, st.Message(), nil)
+			default:
+				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
+			}
+		}
+		c.JSON(obj.StatusCode, obj)
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "post deleted successfully", deletePostResponse))
@@ -199,7 +218,7 @@ func (as *PostRelationHandler) LikePost(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
-	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
@@ -227,7 +246,7 @@ func (as *PostRelationHandler) UnlikePost(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
-	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
@@ -255,7 +274,7 @@ func (as *PostRelationHandler) AddComment(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
-	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
@@ -277,6 +296,8 @@ func (as *PostRelationHandler) AddComment(c *gin.Context) {
 		var obj response.Response
 		if st, ok := status.FromError(err); ok {
 			switch st.Code() {
+			case codes.NotFound:
+				obj = response.ClientResponse(http.StatusNotFound, st.Message(), nil)
 			case codes.FailedPrecondition:
 				obj = response.ClientResponse(http.StatusPreconditionFailed, st.Message(), nil)
 			default:
@@ -307,7 +328,7 @@ func (as *PostRelationHandler) EditComment(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
-	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
 		return
@@ -326,20 +347,11 @@ func (as *PostRelationHandler) EditComment(c *gin.Context) {
 	editCommentReq.CommentID = commentId
 	editCommentResponse, err := as.GPPC_Client.EditComment(editCommentReq)
 	if err != nil {
-		var obj response.Response
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusNotFound, st.Message(), nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-			c.JSON(obj.StatusCode, obj)
-			return
-		}
-		c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comment edited successfully", editCommentResponse))
-
+		code, msg := utils.GRPCtoHTTP(err)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return // Stop execution
 	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comment edited successfully", editCommentResponse))
 }
 func (as *PostRelationHandler) DeleteComment(c *gin.Context) {
 	postIdStr := c.Param("post_id")
@@ -359,7 +371,7 @@ func (as *PostRelationHandler) DeleteComment(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
-	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
 		return
@@ -391,7 +403,7 @@ func (as *PostRelationHandler) Follow(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
-	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
 		return
@@ -424,7 +436,7 @@ func (as *PostRelationHandler) Unfollow(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
-	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
 		return
@@ -449,34 +461,111 @@ func (as *PostRelationHandler) FetchComments(c *gin.Context) {
 	}
 	var fetchCommentsReq requestmodels.FetchCommentsReqeust
 	fetchCommentsReq.PostID = postId
-	fetchCommentsResponse, err := as.GPPC_Client.FetchComments(fetchCommentsReq)
+	fetchCommentsResponse, err := as.DirectPostClient.Client.FetchComments(context.Background(), &post_relation.FetchCommentsRequest{
+		PostId: fetchCommentsReq.PostID,
+	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+		code, msg := utils.GRPCtoHTTP(err)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
-	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comments fetched successfully", fetchCommentsResponse))
+	finalComments := make([]responsemodels.Comment, 0)
+	for _, v := range fetchCommentsResponse.Comments {
+		var childComments []responsemodels.Comment
+		if len(v.ChildComment) > 0 {
+			childComments = make([]responsemodels.Comment, len(v.ChildComment))
+			for i, v := range v.ChildComment {
+				childComments[i] = responsemodels.Comment{
+					CommentID:   v.Id,
+					CommentText: v.CommentText,
+					CreatedAt:   v.CreatedAt.AsTime().Local(),
+					UserDetails: responsemodels.UserMetaData{
+						UserID:        v.UserDetails.UserId,
+						UserName:      v.UserDetails.UserName,
+						Name:          v.UserDetails.Name,
+						ProfileImgUrl: v.UserDetails.ProfileImgUrl,
+						BlueTick:      v.UserDetails.BlueTick,
+					},
+					ParentCommentID: v.ParentCommentId,
+				}
+			}
+		}
+		finalComments = append(finalComments, responsemodels.Comment{
+			CommentID:   v.Id,
+			CommentText: v.CommentText,
+			CreatedAt:   v.CreatedAt.AsTime().Local(),
+			CommentAge:  v.CommentAge,
+			UserDetails: responsemodels.UserMetaData{
+				UserID:        v.UserDetails.UserId,
+				UserName:      v.UserDetails.UserName,
+				Name:          v.UserDetails.Name,
+				ProfileImgUrl: v.UserDetails.ProfileImgUrl,
+				BlueTick:      v.UserDetails.BlueTick,
+			},
+			ParentCommentID:   v.ParentCommentId,
+			ChildCommentCount: v.ChildCommentCount,
+			ChildComment:      childComments,
+		})
+	}
+	//fetchCommentsResponse.Comments.CreatedAt=
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comments fetched successfully", finalComments))
 }
-
-func (as *PostRelationHandler) FetchCommentsOfComment(c *gin.Context) {
-	postIdStr := c.Param("post_id")
-	postId, err := strconv.ParseUint(postIdStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid post id", postId))
+func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
-	parentCommentIdStr := c.Param("parent_comment_id")
-	parentCommentId, err := strconv.ParseUint(parentCommentIdStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid parent comment id", parentCommentId))
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
 		return
 	}
-	var fetchCommentsOfCommentReq requestmodels.FetchCommentsOfCommentReqeust
-	fetchCommentsOfCommentReq.PostID = postId
-	fetchCommentsOfCommentReq.ParentCommentId = parentCommentId
-	fetchCommentsOfCommentResponse, err := as.GPPC_Client.FetchCommentsOfComment(fetchCommentsOfCommentReq)
+	var req requestmodels.FetchAllPostsReq
+	req.UserID = jwtClaims.ID
+	authResp, err := as.DirectAuthClient.Client.GetProfileInformation(context.Background(), &auth_subscription.ProfileInfoReq{
+		UserId: req.UserID,
+	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+		log.Println("error from grpc", err)
+		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comments of a comment fetched successfully", fetchCommentsOfCommentResponse))
+	userMetaData := responsemodels.UserMetaData{
+		UserID:        authResp.UserId,
+		UserName:      authResp.Username,
+		Name:          authResp.Name,
+		ProfileImgUrl: authResp.ProfileImageUrl,
+		BlueTick:      authResp.BlueTick,
+	}
+	postResp, err := as.DirectPostClient.Client.FetchAllPosts(context.Background(), &post_relation.FetchAllPostsRequest{
+		UserId: req.UserID,
+	})
+	if err != nil {
+		log.Println("error from grpc", err)
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+	//var mediaurls []string
+	// for _,v:=range postResp.MediaUrls{
+	// 	mediaurls = append(mediaurls, v)
+	// }
+	// postsData:=&responsemodels.FetchAllPostsResponse{
+	// 	PostID: postResp.PostId,
+	// 	CreatedAt: postResp.CreatedAt.AsTime().Local(),
+	// 	UpdatedAt: postResp.UpdatedAt.AsTime().Local(),
+	// 	UserID: postResp.UserId,
+	// 	Caption: postResp.Caption,
+	// 	MediaUrls: mediaurls,
+	// }
+	// if authResp==nil{
+	// 	c.JSON(http.StatusOK,postsData)
+	// 	return
+	// }
+	if postResp == nil {
+		c.JSON(http.StatusInternalServerError, "failed to fetch from post service")
+		return
+	}
+	//for
+	c.JSON(http.StatusOK, userMetaData)
 }

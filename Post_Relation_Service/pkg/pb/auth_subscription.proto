@@ -4,6 +4,20 @@ option go_package="./pkg/pb";
 
 service AuthSubscriptionService{
     rpc CheckUserExists(CheckUserExistsRequest) returns (CheckUserExistsResponse);
+    rpc FetchUserMetaData(UserDataReq) returns (BatchUserMetadataResponse);
+}
+message UserDataReq{
+    repeated uint64 UserId=1;
+}
+message BatchUserMetadataResponse {
+    map<uint64, UserMetadata> users = 1;
+}
+message UserMetadata{
+    uint64 UserId=1;
+    string UserName=2;
+    string Name=3;
+    string ProfileImgUrl=4;
+    bool BlueTick=5;
 }
 message CheckUserExistsRequest{
     uint64 UserId=1;

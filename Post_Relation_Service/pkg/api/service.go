@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/pb"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/requestmodels"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase/interfacesUsecase"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -25,6 +27,7 @@ func NewPostRelationSever(useCase interfacesUsecase.PostRelationUsecase) *PostRe
 }
 
 func (as *PostRelationServer) CreatePost(ctx context.Context, req *pb.CreatePostRequest) (*pb.CreatePostResponse, error) {
+	fmt.Println("in service print print urls request",req.MediaUrls)
 	createPostReq := requestmodels.CreatePostRequest{
 		UserID:    req.UserId,
 		Caption:   req.Caption,
@@ -117,137 +120,169 @@ func (as *PostRelationServer) AddComment(ctx context.Context, req *pb.AddComment
 	fmt.Println("befor going to usecase")
 	addCommentRes, err := as.PostRelationUsecase.AddComment(addCommentReq)
 	if err != nil {
-		if err==usecase.ErrRecursiveComment{
-			return nil,status.Error(codes.FailedPrecondition,"can't reply to a comment reply")
+		switch err {
+		case usecase.ErrRecursiveComment:
+			return nil, status.Error(codes.FailedPrecondition, "can't reply to a comment reply")
+		case domain.ErrForeignKeyViolationCommentPost:
+			return nil, status.Error(codes.NotFound, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal server error")
 		}
-		fmt.Println("where is the erro coming?")
-		log.Println("error in service", err)
-		return nil, err
+		// if err == usecase.ErrRecursiveComment {
+		// 	return nil, status.Error(codes.FailedPrecondition, "can't reply to a comment reply")
+		// } else if err==domain.ErrForeignKeyViolationCommentPost{
+		// 	return nil,status.Error(codes.NotFound,err.Error())
+		// }
 	}
-	fmt.Println("is it reaching here", err)
+	fmt.Println("is it reaching here", addCommentRes)
+
 	return &pb.AddCommentResponse{
 		UserId:          addCommentRes.UserID,
 		PostId:          addCommentRes.PostID,
 		CommentText:     addCommentRes.CommentText,
+		CommentId:       addCommentRes.CommentID,
 		ParentCommentId: addCommentRes.ParentCommentId,
 	}, nil
 }
 
-func (as *PostRelationServer)EditComment(ctx context.Context,req *pb.EditCommentRequest)(*pb.EditCommentResponse,error){
-	editCommentReq:=requestmodels.EditCommentRequest{
-		UserID: req.UserId,
-		PostID: req.PostId,
-		CommentID: req.CommentId,
+func (as *PostRelationServer) EditComment(ctx context.Context, req *pb.EditCommentRequest) (*pb.EditCommentResponse, error) {
+	editCommentReq := requestmodels.EditCommentRequest{
+		UserID:      req.UserId,
+		PostID:      req.PostId,
+		CommentID:   req.CommentId,
 		CommentText: req.CommentText,
 	}
-	editCommentRes,err:=as.PostRelationUsecase.EditComment(editCommentReq)
-	if err!=nil{
-		log.Println("error in servic :",err)
-		if err==usecase.ErrCommentNotFound{
-			return nil,status.Error(codes.NotFound,"comment not found")
+	editCommentRes, err := as.PostRelationUsecase.EditComment(editCommentReq)
+	if err != nil {
+		log.Println("error in servic :", err)
+		if err == usecase.ErrCommentNotFound {
+			return nil, status.Error(codes.NotFound, err.Error())
 		}
-		return nil,err
+		return nil, err
 	}
+	fmt.Println("check in api for response", editCommentRes)
 	return &pb.EditCommentResponse{
-		CommentId: editCommentRes.CommentID,
+		PostId:      editCommentReq.PostID,
+		CommentId:   editCommentRes.CommentID,
 		CommentText: editCommentRes.CommentText,
-	},nil
+	}, nil
 }
-func (as *PostRelationServer)DeleteComment(ctx context.Context,req *pb.DeleteCommentRequest)(*pb.DeleteCommentResponse,error){
-	deleteCommentReq:=requestmodels.DeleteCommentRequest{
-		UserID: req.UserId,
-		PostID: req.PostId,
+func (as *PostRelationServer) DeleteComment(ctx context.Context, req *pb.DeleteCommentRequest) (*pb.DeleteCommentResponse, error) {
+	fmt.Println("what is actually the issue?")
+	deleteCommentReq := requestmodels.DeleteCommentRequest{
+		UserID:    req.UserId,
+		PostID:    req.PostId,
 		CommentID: req.CommentId,
 	}
-	deleteCommentRes,err:=as.PostRelationUsecase.DeleteComment(deleteCommentReq)
-	if err!=nil{
-		if err==usecase.ErrCommentNotFound{
-			return nil,status.Error(codes.NotFound,"comment not found")
+	deleteCommentRes, err := as.PostRelationUsecase.DeleteComment(deleteCommentReq)
+	if err != nil {
+		if err == usecase.ErrCommentNotFound {
+			return nil, status.Error(codes.NotFound, err.Error())
 		}
-		return nil,err
+		return nil, err
 	}
 	return &pb.DeleteCommentResponse{
 		CommentId: deleteCommentRes.CommentID,
-	},nil
+	}, nil
 }
 
-func (as *PostRelationServer)Follow(ctx context.Context,req *pb.FollowRequest)(*pb.FollowResponse,error){
-	followReq:=requestmodels.FollowRequest{
-		UserID: req.UserId,
+func (as *PostRelationServer) Follow(ctx context.Context, req *pb.FollowRequest) (*pb.FollowResponse, error) {
+	followReq := requestmodels.FollowRequest{
+		UserID:          req.UserId,
 		FollowingUserID: req.FollowingUserId,
 	}
-	followResponse,err:=as.PostRelationUsecase.Follow(followReq)
-	if err!=nil{
-		log.Println("error in service",err)
+	followResponse, err := as.PostRelationUsecase.Follow(followReq)
+	if err != nil {
+		log.Println("error in service", err)
 	}
 	return &pb.FollowResponse{
 		FollowingUserId: followResponse.FollowingUserID,
-	},nil
+	}, nil
 }
-func (as *PostRelationServer)Unfollow(ctx context.Context,req *pb.UnfollowRequest)(*pb.UnfollowResponse,error){
-	unfollowReq:=requestmodels.UnfollowRequest{
-		UserID: req.UserId,
+func (as *PostRelationServer) Unfollow(ctx context.Context, req *pb.UnfollowRequest) (*pb.UnfollowResponse, error) {
+	unfollowReq := requestmodels.UnfollowRequest{
+		UserID:            req.UserId,
 		UnfollowingUserID: req.UnfollowingUserId,
 	}
-	unfollowResponse,err:=as.PostRelationUsecase.Unfollow(unfollowReq)
-	if err!=nil{
+	unfollowResponse, err := as.PostRelationUsecase.Unfollow(unfollowReq)
+	if err != nil {
 		log.Println("error in service")
 	}
 	return &pb.UnfollowResponse{
 		UnfollowingUserId: unfollowResponse.UnfollowingUserID,
-	},nil
+	}, nil
 }
-func (as *PostRelationServer)FetchComments(ctx context.Context,req *pb.FetchCommentsRequest)(*pb.FetchCommentsResponse,error){
-	fetchCommentsReq:=requestmodels.FetchCommentsReqeust{
+func (as *PostRelationServer) FetchComments(ctx context.Context, req *pb.FetchCommentsRequest) (*pb.FetchCommentsResponse, error) {
+	fetchCommentsReq := requestmodels.FetchCommentsReqeust{
 		PostID: req.PostId,
 	}
-	fetchCommentsResponse,err:=as.PostRelationUsecase.FetchComments(fetchCommentsReq)
-	if err!=nil{
-		log.Println("error in service",err)
+	fetchCommentsResponse, err := as.PostRelationUsecase.FetchComments(fetchCommentsReq)
+	if err != nil {
+		if err == usecase.ErrNoComments {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		log.Println("error in service", err)
+		return nil, err
 	}
-	comments:=make([]*pb.Comment,len(fetchCommentsResponse.Comments))
-	for i,v:=range fetchCommentsResponse.Comments{
-		comments[i]=&pb.Comment{
-			Id: v.ID,
+	comments := make([]*pb.Comment, len(fetchCommentsResponse.Comments))
+
+	for i, v := range fetchCommentsResponse.Comments {
+		var childComments []*pb.Comment
+		if len(v.ChildComment) > 0 {
+			childComments = make([]*pb.Comment, len(v.ChildComment))
+			for i, v := range v.ChildComment {
+				childComments[i] = &pb.Comment{
+					Id:          v.CommentID,
+					CommentText: v.CommentText,
+					CreatedAt:   utils.ToProtoTimestamp(v.CreatedAt),
+					UserDetails: &pb.UserMetaData{
+						UserId:        v.UserDetails.UserID,
+						UserName:      v.UserDetails.UserName,
+						Name:          v.UserDetails.Name,
+						ProfileImgUrl: v.UserDetails.ProfileImgUrl,
+						BlueTick:      v.UserDetails.BlueTick,
+					},
+					ParentCommentId: v.ParentCommentID,
+				}
+			}
+		}
+		comments[i] = &pb.Comment{
+			Id:          v.CommentID,
 			CommentText: v.CommentText,
+			CreatedAt:   utils.ToProtoTimestamp(v.CreatedAt),
+			CommentAge:  v.CommentAge,
+			UserDetails: &pb.UserMetaData{
+				UserId:        v.UserDetails.UserID,
+				UserName:      v.UserDetails.UserName,
+				Name:          v.UserDetails.Name,
+				ProfileImgUrl: v.UserDetails.ProfileImgUrl,
+				BlueTick:      v.UserDetails.BlueTick,
+			},
+			ParentCommentId:   v.ParentCommentID,
+			ChildCommentCount: uint64(len(v.ChildComment)),
+			ChildComment:      childComments,
 		}
 	}
 	return &pb.FetchCommentsResponse{
 		Comments: comments,
-	},nil
+	}, nil
 }
 
-func (as *PostRelationServer)FetchCommentsOfComment(ctx context.Context,req *pb.FetchCommentsOfCommentRequest)(*pb.FetchCommentsOfCommentResposne,error){
-	fmt.Println("is it reaching the intended server function?")
-	fetchCommentsOfCommentReq:=requestmodels.FetchCommentsOfCommentReqeust{
-		PostID: req.PostId,
-		ParentCommentId: req.ParentCommentId,
-	}
-	fetchCommentsOfCommentRes,err:=as.PostRelationUsecase.FetchCommentsOfComment(fetchCommentsOfCommentReq)
-	if err!=nil{
-		log.Println("error in service",err)
-		return nil,err
-	}
-	comments:=make([]*pb.Comment,len(fetchCommentsOfCommentRes.Comments))
-	for i,v:=range fetchCommentsOfCommentRes.Comments{
-		comments[i]=&pb.Comment{
-			Id: v.ID,
-			CommentText: v.CommentText,
-		}
-	}
-	return &pb.FetchCommentsOfCommentResposne{
-		Comments: comments,
-	},nil
-}
-
-func (as *PostRelationServer)PostFollowCount(ctx context.Context,req *pb.PostFollowCountRequest)(*pb.PostFollowCountResponse,error){
-	resp,err:=as.PostRelationUsecase.PostFollowCount(req.UserId)
-	if err!=nil{
-		return nil,err
+func (as *PostRelationServer) PostFollowCount(ctx context.Context, req *pb.PostFollowCountRequest) (*pb.PostFollowCountResponse, error) {
+	resp, err := as.PostRelationUsecase.PostFollowCount(req.UserId)
+	if err != nil {
+		return nil, err
 	}
 	return &pb.PostFollowCountResponse{
-		PostCount: resp.PostCount,
-		FollowerCount: resp.FollowerCount,
+		PostCount:      resp.PostCount,
+		FollowerCount:  resp.FollowerCount,
 		FollowingCount: resp.FollowingCount,
-	},nil
+	}, nil
+}
+func (as *PostRelationServer) FetchAllPosts(ctx context.Context, req *pb.FetchAllPostsRequest) (*pb.FetchAllPostsResponse, error) {
+	_, err := as.PostRelationUsecase.FetchAllPosts(req.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.FetchAllPostsResponse{}, nil
 }

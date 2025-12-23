@@ -11,6 +11,7 @@ import (
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/responsemodels"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/respository/interfacesRepository"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase/interfacesUsecase"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/utils"
 	"gorm.io/gorm"
 )
 
@@ -20,13 +21,15 @@ type PostRelationUsecase struct {
 }
 
 var (
-	ErrPostNotFound     = errors.New("Post Not found")
+	ErrPostNotFound     = errors.New("Post Not found or user does not have permission")
 	ErrPostLikeNotFound = errors.New("Post Like Not found")
 	ErrRecursiveComment = errors.New("can't reply to a comment reply")
-	ErrCommentNotFound  = errors.New("comment not found")
+	ErrCommentNotFound  = errors.New("comment doesn't exist or post doesn't exist or user does not have permission")
 	ErrFollowOwn        = errors.New("can't follow yourself")
 	ErrUsertNotFound    = errors.New("User not found")
 	ErrUnfollowOwn      = errors.New("can't unfollow yourself")
+	ErrNoComments       = errors.New("No comments to Fetch for the Post or Post doesn't exist")
+	ErrNoPosts          = errors.New("No Posts to Fetch")
 )
 
 func NewPostRelationUsecase(repository interfacesRepository.PostRelationRepository, authSubClient pb.AuthSubscriptionServiceClient) interfacesUsecase.PostRelationUsecase {
@@ -115,25 +118,17 @@ func (as *PostRelationUsecase) AddComment(addCommentReq requestmodels.AddComment
 	if err != nil {
 		return responsemodels.AddCommentResponse{}, err
 	}
-	return responsemodels.AddCommentResponse{
-		UserID:          addCommentRes.UserID,
-		PostID:          addCommentRes.PostID,
-		CommentText:     addCommentRes.CommentText,
-		ParentCommentId: addCommentRes.ParentCommentId,
-	}, nil
+	return addCommentRes, nil
 }
 func (as *PostRelationUsecase) EditComment(editCommentReq requestmodels.EditCommentRequest) (responsemodels.EditCommentResponse, error) {
-	editCommentRes, err := as.PostRelationRepository.EditComment(editCommentReq)
+	resp, err := as.PostRelationRepository.EditComment(editCommentReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.EditCommentResponse{}, ErrCommentNotFound
 		}
 		return responsemodels.EditCommentResponse{}, err
 	}
-	return responsemodels.EditCommentResponse{
-		CommentID:   editCommentRes.CommentID,
-		CommentText: editCommentRes.CommentText,
-	}, nil
+	return resp, nil
 }
 func (as *PostRelationUsecase) DeleteComment(deleteCommentReq requestmodels.DeleteCommentRequest) (responsemodels.DeleteCommentResponse, error) {
 	deleteCommentRes, err := as.PostRelationRepository.DeleteCommentById(deleteCommentReq)
@@ -191,36 +186,105 @@ func (as *PostRelationUsecase) Unfollow(unfollowReq requestmodels.UnfollowReques
 }
 
 func (as *PostRelationUsecase) FetchComments(fetchCommentsReq requestmodels.FetchCommentsReqeust) (responsemodels.FetchCommentsResponse, error) {
-	fetchCommentsRes, err := as.PostRelationRepository.FetchCommentsByPostId(fetchCommentsReq)
+	commentsRes, err := as.PostRelationRepository.FetchCommentsByPostId(fetchCommentsReq)
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.FetchCommentsResponse{}, ErrNoComments
+		}
 		return responsemodels.FetchCommentsResponse{}, err
 	}
+	userIDs := make(map[uint64]bool)
+	for _, v := range commentsRes {
+		userIDs[v.UserID] = true
+	}
+	userids := make([]uint64, len(userIDs))
+	i := 0
+	for k, _ := range userIDs {
+		userids[i] = k
+		i++
+	}
+	userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+		UserId: userids,
+	})
+	//v:=userResp[userIDs]
+	if err != nil {
+		log.Println("error calling service auth_subcription", err)
+		return responsemodels.FetchCommentsResponse{}, err
+	}
+	var comments []responsemodels.Comment
+	for i, v := range commentsRes {
+		if commentsRes[i].ParentCommentID == nil {
+			comments = append(comments, responsemodels.Comment{
+				CommentID:   v.ID,
+				CommentText: v.CommentText,
+				CreatedAt:   v.CreatedAt,
+				CommentAge:  utils.CalcuateCommentAge(v.CreatedAt),
+				UserDetails: responsemodels.UserMetaData{
+					UserID:        userResp.Users[v.UserID].UserId,
+					UserName:      userResp.Users[v.UserID].UserName,
+					Name:          userResp.Users[v.UserID].Name,
+					ProfileImgUrl: userResp.Users[v.UserID].ProfileImgUrl,
+					BlueTick:      userResp.Users[v.UserID].BlueTick,
+				},
+				ParentCommentID: v.ParentCommentID,
+			})
+		}
+	}
+	// create index lookup for parents
+	parentIndex := make(map[uint64]int)
+	for i, c := range comments {
+		parentIndex[c.CommentID] = i
+	}
+	for i, v := range commentsRes {
+		if commentsRes[i].ParentCommentID != nil {
+			parentIdx, ok := parentIndex[*v.ParentCommentID]
+			if !ok {
+				return responsemodels.FetchCommentsResponse{}, errors.New("invalid parent comment id")
+			}
+
+			comments[parentIdx].ChildComment = append(comments[parentIdx].ChildComment, responsemodels.Comment{
+				CommentID:   v.ID,
+				CommentText: v.CommentText,
+				CreatedAt:   v.CreatedAt,
+				CommentAge:  utils.CalcuateCommentAge(v.CreatedAt),
+				UserDetails: responsemodels.UserMetaData{
+					UserID:        userResp.Users[v.UserID].UserId,
+					UserName:      userResp.Users[v.UserID].UserName,
+					Name:          userResp.Users[v.UserID].Name,
+					ProfileImgUrl: userResp.Users[v.UserID].ProfileImgUrl,
+					BlueTick:      userResp.Users[v.UserID].BlueTick,
+				},
+				ParentCommentID: v.ParentCommentID,
+			})
+		}
+	}
 	return responsemodels.FetchCommentsResponse{
-		Comments: fetchCommentsRes.Comments,
+		Comments: comments,
 	}, nil
 }
 
-func (as *PostRelationUsecase) FetchCommentsOfComment(fetchCommentsOfCommentReq requestmodels.FetchCommentsOfCommentReqeust) (responsemodels.FetchCommentsOfCommentResponse, error) {
-	fetchCommentsOfCommentRes, err := as.PostRelationRepository.FetchCommentsOfCommentByParentCommentId(fetchCommentsOfCommentReq)
-	if err != nil {
-		return responsemodels.FetchCommentsOfCommentResponse{}, err
-	}
-	return responsemodels.FetchCommentsOfCommentResponse{
-		Comments: fetchCommentsOfCommentRes.Comments,
-	}, nil
-}
 func (as *PostRelationUsecase) PostFollowCount(userid uint64) (responsemodels.PostFollowCountResponse, error) {
 	postCount, err := as.PostRelationRepository.FetchPostCountByUserId(userid)
 	if err != nil {
 		return responsemodels.PostFollowCountResponse{}, err
 	}
-	fmt.Println("print post Count in usecase",postCount)
+	fmt.Println("print post Count in usecase", postCount)
 	resp, err := as.PostRelationRepository.FetchFollowCountByUserId(userid)
 	if err != nil {
 		return responsemodels.PostFollowCountResponse{}, err
 	}
-	fmt.Println("resp print first in usecase",resp)
+	fmt.Println("resp print first in usecase", resp)
 	resp.PostCount = postCount
-	fmt.Println("resp print second in usecase",resp,resp.PostCount)
+	fmt.Println("resp print second in usecase", resp, resp.PostCount)
+	return resp, nil
+}
+func (as *PostRelationUsecase) FetchAllPosts(userid uint64) (responsemodels.FetchAllPostsResponse, error) {
+	resp, err := as.PostRelationRepository.FetchAllPosts(userid)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.FetchAllPostsResponse{}, ErrNoPosts
+		}
+		return responsemodels.FetchAllPostsResponse{}, err
+	}
 	return resp, nil
 }

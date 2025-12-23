@@ -13,11 +13,9 @@ type PostRelationClientInterface interface {
 	UnlikePost(requestmodels.UnlikePostRequest)(responsemodels.UnlikePostResponse,error)
 
 	AddComment(requestmodels.AddCommentRequest)(responsemodels.AddCommentResponse,error)
-	FetchComments(requestmodels.FetchCommentsReqeust)(responsemodels.FetchCommentsResponse,error)
+	
 	EditComment(requestmodels.EditCommentRequest)(responsemodels.EditCommentResponse,error)
 	DeleteComment(requestmodels.DeleteCommentRequest)(responsemodels.DeleteCommentResponse,error)
-
-	FetchCommentsOfComment(requestmodels.FetchCommentsOfCommentReqeust)(responsemodels.FetchCommentsOfCommentResponse,error)
 
 	Follow(requestmodels.FollowRequest)(responsemodels.FollowResponse,error)
 	Unfollow(requestmodels.UnfollowRequest)(responsemodels.UnfollowResponse,error)

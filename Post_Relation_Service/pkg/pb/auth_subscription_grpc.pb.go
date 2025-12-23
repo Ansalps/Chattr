@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthSubscriptionService_CheckUserExists_FullMethodName = "/auth_subscription.AuthSubscriptionService/CheckUserExists"
+	AuthSubscriptionService_CheckUserExists_FullMethodName   = "/auth_subscription.AuthSubscriptionService/CheckUserExists"
+	AuthSubscriptionService_FetchUserMetaData_FullMethodName = "/auth_subscription.AuthSubscriptionService/FetchUserMetaData"
 )
 
 // AuthSubscriptionServiceClient is the client API for AuthSubscriptionService service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthSubscriptionServiceClient interface {
 	CheckUserExists(ctx context.Context, in *CheckUserExistsRequest, opts ...grpc.CallOption) (*CheckUserExistsResponse, error)
+	FetchUserMetaData(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*BatchUserMetadataResponse, error)
 }
 
 type authSubscriptionServiceClient struct {
@@ -47,11 +49,22 @@ func (c *authSubscriptionServiceClient) CheckUserExists(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *authSubscriptionServiceClient) FetchUserMetaData(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*BatchUserMetadataResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchUserMetadataResponse)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_FetchUserMetaData_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthSubscriptionServiceServer is the server API for AuthSubscriptionService service.
 // All implementations must embed UnimplementedAuthSubscriptionServiceServer
 // for forward compatibility.
 type AuthSubscriptionServiceServer interface {
 	CheckUserExists(context.Context, *CheckUserExistsRequest) (*CheckUserExistsResponse, error)
+	FetchUserMetaData(context.Context, *UserDataReq) (*BatchUserMetadataResponse, error)
 	mustEmbedUnimplementedAuthSubscriptionServiceServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedAuthSubscriptionServiceServer struct{}
 
 func (UnimplementedAuthSubscriptionServiceServer) CheckUserExists(context.Context, *CheckUserExistsRequest) (*CheckUserExistsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckUserExists not implemented")
+}
+func (UnimplementedAuthSubscriptionServiceServer) FetchUserMetaData(context.Context, *UserDataReq) (*BatchUserMetadataResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchUserMetaData not implemented")
 }
 func (UnimplementedAuthSubscriptionServiceServer) mustEmbedUnimplementedAuthSubscriptionServiceServer() {
 }
@@ -105,6 +121,24 @@ func _AuthSubscriptionService_CheckUserExists_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthSubscriptionService_FetchUserMetaData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserDataReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthSubscriptionServiceServer).FetchUserMetaData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthSubscriptionService_FetchUserMetaData_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthSubscriptionServiceServer).FetchUserMetaData(ctx, req.(*UserDataReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthSubscriptionService_ServiceDesc is the grpc.ServiceDesc for AuthSubscriptionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -115,6 +149,10 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckUserExists",
 			Handler:    _AuthSubscriptionService_CheckUserExists_Handler,
+		},
+		{
+			MethodName: "FetchUserMetaData",
+			Handler:    _AuthSubscriptionService_FetchUserMetaData_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

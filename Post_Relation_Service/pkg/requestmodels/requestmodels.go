@@ -51,7 +51,3 @@ type UnfollowRequest struct{
 type FetchCommentsReqeust struct{
 	PostID uint64
 }
-type FetchCommentsOfCommentReqeust struct{
-	PostID uint64
-	ParentCommentId uint64
-}

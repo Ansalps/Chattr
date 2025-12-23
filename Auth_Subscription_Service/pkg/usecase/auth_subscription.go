@@ -817,7 +817,16 @@ func (as *AuthSubscriptionUsecase)FetchUserPublicData(userid uint64)(responsemod
 	}
 	return resp,nil
 }
-
+func (as *AuthSubscriptionUsecase)FetchUserMetaData(userids []uint64)(map[uint64]responsemodels.UserMetaData,error){
+	resp,err:=as.AuthSubscriptionRepository.FetchUserMetaData(userids)
+	if err!=nil{
+		if err==gorm.ErrRecordNotFound{
+			return nil,ErrUserNotFound
+		}
+		return nil,err
+	}
+	return resp,nil
+}
 // func (as *AuthSubscriptionUsecase) Webhook(webhookReq requestmodels.WebhookRequest) (responsemodels.WebhookResponse, error) {
 // 	data := map[string]interface{}{
 // 		"remaining_count": 12,
