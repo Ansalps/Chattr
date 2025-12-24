@@ -278,13 +278,16 @@ func (as *PostRelationUsecase) PostFollowCount(userid uint64) (responsemodels.Po
 	fmt.Println("resp print second in usecase", resp, resp.PostCount)
 	return resp, nil
 }
-func (as *PostRelationUsecase) FetchAllPosts(userid uint64) (responsemodels.FetchAllPostsResponse, error) {
+func (as *PostRelationUsecase) FetchAllPosts(userid uint64) ([]responsemodels.PostWithCounts, error) {
 	resp, err := as.PostRelationRepository.FetchAllPosts(userid)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.FetchAllPostsResponse{}, ErrNoPosts
+			return nil, ErrNoPosts
 		}
-		return responsemodels.FetchAllPostsResponse{}, err
+		return nil, err
+	}
+	for i := range resp {
+		resp[i].Age = utils.CalcuateCommentAge(resp[i].CreatedAt)
 	}
 	return resp, nil
 }

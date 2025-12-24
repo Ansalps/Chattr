@@ -121,7 +121,7 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 
 		uploadedUrls = append(uploadedUrls, uploadResp.SecureURL)
 	}
-	createPostReq.MediaUrls=uploadedUrls
+	createPostReq.MediaUrls = uploadedUrls
 	createPostResponse, err := as.GPPC_Client.CreatePost(createPostReq)
 	if err != nil {
 
@@ -546,6 +546,25 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
+	var finalResp []responsemodels.PostData
+	for _, v := range postResp.Posts {
+		var s1 []string
+		for _, v1 := range v.MediaUrls {
+			s1 = append(s1, v1)
+		}
+		finalResp = append(finalResp, responsemodels.PostData{
+			PostID:        v.PostId,
+			CreatedAt:     v.CreatedAt.AsTime().Local(),
+			UpdatedAt:     v.UpdatedAt.AsTime().Local(),
+			UserID:        v.UserId,
+			Caption:       v.Caption,
+			MediaUrls:     s1,
+			LikeCount:     v.LikesCount,
+			CommentsCount: v.CommentsCount,
+			PostAge:       v.PostAge,
+			UserData: userMetaData,
+		})
+	}
 	//var mediaurls []string
 	// for _,v:=range postResp.MediaUrls{
 	// 	mediaurls = append(mediaurls, v)
@@ -567,5 +586,5 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 		return
 	}
 	//for
-	c.JSON(http.StatusOK, userMetaData)
+	c.JSON(http.StatusOK, finalResp)
 }

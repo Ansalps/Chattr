@@ -49,22 +49,6 @@ func (ad *PostRelationRepository) CreatePost(createPostReq requestmodels.CreateP
     return responsemodels.CreatePostResponse{
         PostID: uint64(newPost.ID),
     }, nil
-	// var postId uint64
-	// query := `INSERT INTO posts (created_at,updated_at,user_id,caption) VALUES ($1,$2,$3,$4) RETURNING id`
-	// err := ad.DB.Raw(query, time.Now(), time.Now(), createPostReq.UserID, createPostReq.Caption).Scan(&postId).Error
-	// if err != nil {
-	// 	return responsemodels.CreatePostResponse{}, err
-	// }
-	// mediaInsertQuery := `INSERT INTO post_media (created_at,updated_at,post_id,media_url) VALUES ($1,$2,$3,$4)`
-	// for _, url := range createPostReq.MediaUrls {
-	// 	errIns := ad.DB.Exec(mediaInsertQuery, time.Now(), time.Now(), postId, url).Error
-	// 	if errIns != nil {
-	// 		return responsemodels.CreatePostResponse{}, errIns
-	// 	}
-	// }
-	// return responsemodels.CreatePostResponse{
-	// 	PostID: postId,
-	// }, nil
 }
 
 func (ad *PostRelationRepository) EditPostById(editPostReq requestmodels.EditPostRequest) (responsemodels.EditPostResponse, error) {
@@ -229,34 +213,66 @@ func (ad *PostRelationRepository) FetchFollowCountByUserId(userid uint64) (respo
 	}
 	return resp, nil
 }
-func (ad *PostRelationRepository) FetchAllPosts(userid uint64) (responsemodels.FetchAllPostsResponse, error) {
-	var resp []responsemodels.PostSample
-	query := `SELECT id as post_id,created_at,updated_at,user_id,caption,media_url FROM posts LEFT JOIN post_media 
-	ON posts.id=post_media.post_id WHERE user_id=$1`
-	result := ad.DB.Raw(query, userid).Scan(&resp)
-	if result.Error != nil {
-		return responsemodels.FetchAllPostsResponse{}, result.Error
-	}
-	var resp1 []responsemodels.Post
-	p := make(map[uint64][]string)
-	dup := make(map[uint64]bool)
-	for _, v := range resp {
-		if !dup[v.PostID] {
-			dup[v.PostID] = true
-			resp1 = append(resp1, responsemodels.Post{
-				PostID:    v.PostID,
-				CreatedAt: v.CreatedAt,
-				UpdatedAt: v.UpdatedAt,
-				UserID:    v.UserID,
-				Caption:   v.Caption,
-			})
-		}
-		p[v.PostID] = append(p[v.PostID], v.MediaUrl)
-	}
-	for i := range resp1 {
-		resp1[i].MediaUrls = append(resp1[i].MediaUrls, p[resp1[i].PostID]...)
-	}
-	return responsemodels.FetchAllPostsResponse{
-		Posts: resp1,
-	}, nil
+// func (ad *PostRelationRepository) FetchAllPosts(userid uint64) (responsemodels.FetchAllPostsResponse, error) {
+// 	var resp domain.Post
+// 	// query := `SELECT id as post_id,created_at,updated_at,user_id,caption,media_url FROM posts LEFT JOIN post_media 
+// 	// ON posts.id=post_media.post_id WHERE user_id=$1`
+// 	// result := ad.DB.Raw(query, userid).Scan(&resp)
+// 	// if result.Error != nil {
+// 	// 	return responsemodels.FetchAllPostsResponse{}, result.Error
+// 	// }
+// 	// var resp1 []responsemodels.Post
+// 	// p := make(map[uint64][]string)
+// 	// dup := make(map[uint64]bool)
+// 	// for _, v := range resp {
+// 	// 	if !dup[v.PostID] {
+// 	// 		dup[v.PostID] = true
+// 	// 		resp1 = append(resp1, responsemodels.Post{
+// 	// 			PostID:    v.PostID,
+// 	// 			CreatedAt: v.CreatedAt,
+// 	// 			UpdatedAt: v.UpdatedAt,
+// 	// 			UserID:    v.UserID,
+// 	// 			Caption:   v.Caption,
+// 	// 		})
+// 	// 	}
+// 	// 	p[v.PostID] = append(p[v.PostID], v.MediaUrl)
+// 	// }
+// 	// for i := range resp1 {
+// 	// 	resp1[i].MediaUrls = append(resp1[i].MediaUrls, p[resp1[i].PostID]...)
+// 	// }
+// 	// return responsemodels.FetchAllPostsResponse{
+// 	// 	Posts: resp1,
+// 	// }, nil
+// 	// Preload("Media") runs the second query automatically
+//     err := ad.DB.Preload("Media").First(&resp, postId).Error
+//     return resp, err
+// }
+// func (ad *PostRelationRepository) FetchAllPosts(userid uint64) ([]domain.Post, error) {
+//     var posts []domain.Post // Use a slice to hold multiple posts
+
+//     // Preload("Media") matches the field name in your Post struct
+//     err := ad.DB.Preload("Media").Where("user_id = ?", userid).Find(&posts).Error
+    
+//     if err != nil {
+//         return nil, err
+//     }
+
+//     return posts, nil
+// }
+func (ad *PostRelationRepository) FetchAllPosts(userid uint64) ([]responsemodels.PostWithCounts, error) {
+    var posts []responsemodels.PostWithCounts
+
+    err := ad.DB.Model(&domain.Post{}).
+        // 1. Select all post fields + Subqueries for counts
+        Select("posts.*, "+
+            "(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count, "+
+            "(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count").
+        // 2. Filter by User
+        Where("user_id = ?", userid).
+        // 3. Still Preload your Media slice
+        Preload("Media").
+        Order("created_at DESC").
+        Find(&posts).Error
+
+    return posts, err
 }

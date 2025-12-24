@@ -280,9 +280,29 @@ func (as *PostRelationServer) PostFollowCount(ctx context.Context, req *pb.PostF
 	}, nil
 }
 func (as *PostRelationServer) FetchAllPosts(ctx context.Context, req *pb.FetchAllPostsRequest) (*pb.FetchAllPostsResponse, error) {
-	_, err := as.PostRelationUsecase.FetchAllPosts(req.UserId)
+	resp, err := as.PostRelationUsecase.FetchAllPosts(req.UserId)
 	if err != nil {
 		return nil, err
 	}
-	return &pb.FetchAllPostsResponse{}, nil
+	s:=make([]*pb.Post,len(resp))
+	for i,v:=range resp{
+		var s1 []string
+		for _,v:=range resp[i].Media{
+			s1=append(s1, v.MediaUrl)
+		}
+		s[i]=&pb.Post{
+			PostId: uint64(v.ID),
+			CreatedAt: utils.ToProtoTimestamp(v.CreatedAt),
+			UpdatedAt: utils.ToProtoTimestamp(v.UpdatedAt),
+			UserId: uint64(v.UserID),
+			Caption: v.Caption,
+			MediaUrls: s1,
+			LikesCount: uint64(v.LikesCount),
+			CommentsCount: uint64(v.CommentsCount),
+			PostAge: v.Age,
+		}
+	}
+	return &pb.FetchAllPostsResponse{
+		Posts: s,
+	}, nil
 }

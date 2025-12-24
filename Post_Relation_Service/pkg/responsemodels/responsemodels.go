@@ -1,6 +1,10 @@
 package responsemodels
 
-import "time"
+import (
+	"time"
+
+	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/domain"
+)
 
 type CreatePostResponse struct {
 	PostID uint64
@@ -22,11 +26,11 @@ type AddCommentResponse struct {
 	UserID          uint64
 	PostID          uint64
 	CommentText     string
-	CommentID uint64
+	CommentID       uint64
 	ParentCommentId *uint64
 }
 type EditCommentResponse struct {
-	PostID uint64
+	PostID      uint64
 	CommentID   uint64
 	CommentText string
 }
@@ -52,7 +56,7 @@ type Comment struct {
 	CreatedAt         time.Time
 	CommentAge        string
 	UserDetails       UserMetaData
-	ParentCommentID *uint64
+	ParentCommentID   *uint64
 	ChildCommentCount uint64
 	ChildComment      []Comment
 }
@@ -60,13 +64,13 @@ type FetchCommentsResponse struct {
 	Comments []Comment
 }
 
-type Comments struct{
-	ID uint64
-	CreatedAt time.Time 
-	UpdatedAt time.Time 
-	UserID uint64 
-	PostID uint64 
-	CommentText string 
+type Comments struct {
+	ID              uint64
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	UserID          uint64
+	PostID          uint64
+	CommentText     string
 	ParentCommentID *uint64
 }
 
@@ -75,22 +79,31 @@ type PostFollowCountResponse struct {
 	FollowerCount  uint64
 	FollowingCount uint64
 }
-type Post struct{
-	PostID uint64
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	UserID uint64
-	Caption string
-	MediaUrls []string
+type Post struct {
+	PostID        uint64
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	UserID        uint64
+	Caption       string
+	MediaUrls     []string
+	LikeCount     uint64
+	CommentsCount uint64
+	PostAge       string
 }
-type FetchAllPostsResponse struct{
+type PostWithCounts struct {
+	domain.Post
+	LikesCount    int64  `gorm:"column:likes_count"`
+	CommentsCount int64  `gorm:"column:comments_count"`
+	Age           string `json:"age"` // Added this
+}
+type FetchAllPostsResponse struct {
 	Posts []Post
 }
-type PostSample struct{
-	PostID uint64
+type PostSample struct {
+	PostID    uint64
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	UserID uint64
-	Caption string
-	MediaUrl string
+	UserID    uint64
+	Caption   string
+	MediaUrl  string
 }

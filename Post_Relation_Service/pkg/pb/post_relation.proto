@@ -35,6 +35,9 @@ message Post{
     uint64 UserId=4;
     string Caption=5;
     repeated string MediaUrls=6;
+    uint64 LikesCount=7;
+    uint64 CommentsCount=8;
+    string PostAge=9;
 }
 message PostFollowCountRequest{
     uint64 UserId=1;

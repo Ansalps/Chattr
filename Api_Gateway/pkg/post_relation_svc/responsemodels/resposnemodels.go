@@ -78,6 +78,9 @@ type Post struct{
 	UserID uint64
 	Caption string
 	MediaUrls []string
+	LikeCount     uint64
+	CommentsCount uint64
+	PostAge       string
 }
 type FetchAllPostsResponse struct{
 	Posts []Post
@@ -90,5 +93,8 @@ type PostData struct{
 	UserID uint64
 	Caption string
 	MediaUrls []string
+	LikeCount     uint64
+	CommentsCount uint64
+	PostAge       string
 	UserData UserMetaData
 }

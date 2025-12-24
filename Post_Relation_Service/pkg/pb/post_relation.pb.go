@@ -118,6 +118,9 @@ type Post struct {
 	UserId        uint64                 `protobuf:"varint,4,opt,name=UserId,proto3" json:"UserId,omitempty"`
 	Caption       string                 `protobuf:"bytes,5,opt,name=Caption,proto3" json:"Caption,omitempty"`
 	MediaUrls     []string               `protobuf:"bytes,6,rep,name=MediaUrls,proto3" json:"MediaUrls,omitempty"`
+	LikesCount    uint64                 `protobuf:"varint,7,opt,name=LikesCount,proto3" json:"LikesCount,omitempty"`
+	CommentsCount uint64                 `protobuf:"varint,8,opt,name=CommentsCount,proto3" json:"CommentsCount,omitempty"`
+	PostAge       string                 `protobuf:"bytes,9,opt,name=PostAge,proto3" json:"PostAge,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -192,6 +195,27 @@ func (x *Post) GetMediaUrls() []string {
 		return x.MediaUrls
 	}
 	return nil
+}
+
+func (x *Post) GetLikesCount() uint64 {
+	if x != nil {
+		return x.LikesCount
+	}
+	return 0
+}
+
+func (x *Post) GetCommentsCount() uint64 {
+	if x != nil {
+		return x.CommentsCount
+	}
+	return 0
+}
+
+func (x *Post) GetPostAge() string {
+	if x != nil {
+		return x.PostAge
+	}
+	return ""
 }
 
 type PostFollowCountRequest struct {
@@ -1634,14 +1658,19 @@ const file_pkg_pb_post_relation_proto_rawDesc = "" +
 	"\x14FetchAllPostsRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"B\n" +
 	"\x15FetchAllPostsResponse\x12)\n" +
-	"\x05posts\x18\x01 \x03(\v2\x13.post_relation.PostR\x05posts\"\xe2\x01\n" +
+	"\x05posts\x18\x01 \x03(\v2\x13.post_relation.PostR\x05posts\"\xc2\x02\n" +
 	"\x04Post\x12\x16\n" +
 	"\x06PostId\x18\x01 \x01(\x04R\x06PostId\x128\n" +
 	"\tCreatedAt\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tCreatedAt\x128\n" +
 	"\tUpdatedAt\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tUpdatedAt\x12\x16\n" +
 	"\x06UserId\x18\x04 \x01(\x04R\x06UserId\x12\x18\n" +
 	"\aCaption\x18\x05 \x01(\tR\aCaption\x12\x1c\n" +
-	"\tMediaUrls\x18\x06 \x03(\tR\tMediaUrls\"0\n" +
+	"\tMediaUrls\x18\x06 \x03(\tR\tMediaUrls\x12\x1e\n" +
+	"\n" +
+	"LikesCount\x18\a \x01(\x04R\n" +
+	"LikesCount\x12$\n" +
+	"\rCommentsCount\x18\b \x01(\x04R\rCommentsCount\x12\x18\n" +
+	"\aPostAge\x18\t \x01(\tR\aPostAge\"0\n" +
 	"\x16PostFollowCountRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"\x85\x01\n" +
 	"\x17PostFollowCountResponse\x12\x1c\n" +
