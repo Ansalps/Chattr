@@ -31,6 +31,8 @@ const (
 	PostRelationService_DeleteComment_FullMethodName   = "/post_relation.PostRelationService/DeleteComment"
 	PostRelationService_Follow_FullMethodName          = "/post_relation.PostRelationService/Follow"
 	PostRelationService_Unfollow_FullMethodName        = "/post_relation.PostRelationService/Unfollow"
+	PostRelationService_FetchFollowers_FullMethodName  = "/post_relation.PostRelationService/FetchFollowers"
+	PostRelationService_FetchFollowing_FullMethodName  = "/post_relation.PostRelationService/FetchFollowing"
 	PostRelationService_PostFollowCount_FullMethodName = "/post_relation.PostRelationService/PostFollowCount"
 )
 
@@ -50,6 +52,8 @@ type PostRelationServiceClient interface {
 	DeleteComment(ctx context.Context, in *DeleteCommentRequest, opts ...grpc.CallOption) (*DeleteCommentResponse, error)
 	Follow(ctx context.Context, in *FollowRequest, opts ...grpc.CallOption) (*FollowResponse, error)
 	Unfollow(ctx context.Context, in *UnfollowRequest, opts ...grpc.CallOption) (*UnfollowResponse, error)
+	FetchFollowers(ctx context.Context, in *FetchFollowersRequest, opts ...grpc.CallOption) (*FetchFollowersResponse, error)
+	FetchFollowing(ctx context.Context, in *FetchFollowingRequest, opts ...grpc.CallOption) (*FetchFollowingResponse, error)
 	PostFollowCount(ctx context.Context, in *PostFollowCountRequest, opts ...grpc.CallOption) (*PostFollowCountResponse, error)
 }
 
@@ -181,6 +185,26 @@ func (c *postRelationServiceClient) Unfollow(ctx context.Context, in *UnfollowRe
 	return out, nil
 }
 
+func (c *postRelationServiceClient) FetchFollowers(ctx context.Context, in *FetchFollowersRequest, opts ...grpc.CallOption) (*FetchFollowersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FetchFollowersResponse)
+	err := c.cc.Invoke(ctx, PostRelationService_FetchFollowers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *postRelationServiceClient) FetchFollowing(ctx context.Context, in *FetchFollowingRequest, opts ...grpc.CallOption) (*FetchFollowingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FetchFollowingResponse)
+	err := c.cc.Invoke(ctx, PostRelationService_FetchFollowing_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *postRelationServiceClient) PostFollowCount(ctx context.Context, in *PostFollowCountRequest, opts ...grpc.CallOption) (*PostFollowCountResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PostFollowCountResponse)
@@ -207,6 +231,8 @@ type PostRelationServiceServer interface {
 	DeleteComment(context.Context, *DeleteCommentRequest) (*DeleteCommentResponse, error)
 	Follow(context.Context, *FollowRequest) (*FollowResponse, error)
 	Unfollow(context.Context, *UnfollowRequest) (*UnfollowResponse, error)
+	FetchFollowers(context.Context, *FetchFollowersRequest) (*FetchFollowersResponse, error)
+	FetchFollowing(context.Context, *FetchFollowingRequest) (*FetchFollowingResponse, error)
 	PostFollowCount(context.Context, *PostFollowCountRequest) (*PostFollowCountResponse, error)
 	mustEmbedUnimplementedPostRelationServiceServer()
 }
@@ -253,6 +279,12 @@ func (UnimplementedPostRelationServiceServer) Follow(context.Context, *FollowReq
 }
 func (UnimplementedPostRelationServiceServer) Unfollow(context.Context, *UnfollowRequest) (*UnfollowResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Unfollow not implemented")
+}
+func (UnimplementedPostRelationServiceServer) FetchFollowers(context.Context, *FetchFollowersRequest) (*FetchFollowersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchFollowers not implemented")
+}
+func (UnimplementedPostRelationServiceServer) FetchFollowing(context.Context, *FetchFollowingRequest) (*FetchFollowingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchFollowing not implemented")
 }
 func (UnimplementedPostRelationServiceServer) PostFollowCount(context.Context, *PostFollowCountRequest) (*PostFollowCountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostFollowCount not implemented")
@@ -494,6 +526,42 @@ func _PostRelationService_Unfollow_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PostRelationService_FetchFollowers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchFollowersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostRelationServiceServer).FetchFollowers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostRelationService_FetchFollowers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostRelationServiceServer).FetchFollowers(ctx, req.(*FetchFollowersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PostRelationService_FetchFollowing_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchFollowingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostRelationServiceServer).FetchFollowing(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostRelationService_FetchFollowing_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostRelationServiceServer).FetchFollowing(ctx, req.(*FetchFollowingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _PostRelationService_PostFollowCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PostFollowCountRequest)
 	if err := dec(in); err != nil {
@@ -566,6 +634,14 @@ var PostRelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Unfollow",
 			Handler:    _PostRelationService_Unfollow_Handler,
+		},
+		{
+			MethodName: "FetchFollowers",
+			Handler:    _PostRelationService_FetchFollowers_Handler,
+		},
+		{
+			MethodName: "FetchFollowing",
+			Handler:    _PostRelationService_FetchFollowing_Handler,
 		},
 		{
 			MethodName: "PostFollowCount",

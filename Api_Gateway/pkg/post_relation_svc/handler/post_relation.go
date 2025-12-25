@@ -522,9 +522,15 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 		return
 	}
 	var req requestmodels.FetchAllPostsReq
-	req.UserID = jwtClaims.ID
+	req.CurrentUserID = jwtClaims.ID
+	targetUserIdStr:=c.Param("user_id")
+	targetUserId,err:=strconv.ParseUint(targetUserIdStr,10,64)
+	if err!=nil{
+		c.JSON(http.StatusBadRequest,response.ClientResponse(http.StatusBadRequest,"invalid user id",nil))
+	}
+	req.TargetUserID=targetUserId
 	authResp, err := as.DirectAuthClient.Client.GetProfileInformation(context.Background(), &auth_subscription.ProfileInfoReq{
-		UserId: req.UserID,
+		UserId: req.TargetUserID,
 	})
 	if err != nil {
 		log.Println("error from grpc", err)
@@ -539,7 +545,8 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 		BlueTick:      authResp.BlueTick,
 	}
 	postResp, err := as.DirectPostClient.Client.FetchAllPosts(context.Background(), &post_relation.FetchAllPostsRequest{
-		UserId: req.UserID,
+		CurrentUserId: req.CurrentUserID,
+		TargetUserId: req.TargetUserID,
 	})
 	if err != nil {
 		log.Println("error from grpc", err)
@@ -562,29 +569,51 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 			LikeCount:     v.LikesCount,
 			CommentsCount: v.CommentsCount,
 			PostAge:       v.PostAge,
+			IsLiked: v.IsLiked,
 			UserData: userMetaData,
 		})
 	}
-	//var mediaurls []string
-	// for _,v:=range postResp.MediaUrls{
-	// 	mediaurls = append(mediaurls, v)
-	// }
-	// postsData:=&responsemodels.FetchAllPostsResponse{
-	// 	PostID: postResp.PostId,
-	// 	CreatedAt: postResp.CreatedAt.AsTime().Local(),
-	// 	UpdatedAt: postResp.UpdatedAt.AsTime().Local(),
-	// 	UserID: postResp.UserId,
-	// 	Caption: postResp.Caption,
-	// 	MediaUrls: mediaurls,
-	// }
-	// if authResp==nil{
-	// 	c.JSON(http.StatusOK,postsData)
-	// 	return
-	// }
 	if postResp == nil {
 		c.JSON(http.StatusInternalServerError, "failed to fetch from post service")
 		return
 	}
-	//for
+	
 	c.JSON(http.StatusOK, finalResp)
+}
+
+func (as *PostRelationHandler)FetchFollowers(c *gin.Context){
+	userIdStr:=c.Param("user_id")
+	userId,err:=strconv.ParseUint(userIdStr,10,64)
+	if err!=nil{
+		c.JSON(http.StatusBadRequest,response.ClientResponse(http.StatusBadRequest,"invalid user id",nil))
+		return
+	}
+	resp,err:=as.DirectPostClient.Client.FetchFollowers(context.Background(),&post_relation.FetchFollowersRequest{
+		UserId: userId,
+	})
+	if err!=nil{
+		code, msg := utils.GRPCtoHTTP(err)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return
+	}
+	c.JSON(http.StatusOK,resp)
+}
+func (as *PostRelationHandler)FetchFollowing(c *gin.Context){
+	userIdStr:=c.Param("user_id")
+	userId,err:=strconv.ParseUint(userIdStr,10,64)
+	if err!=nil{
+		c.JSON(http.StatusBadRequest,response.ClientResponse(http.StatusBadRequest,"invalid user id",nil))
+		return
+	}
+	resp,err:=as.DirectPostClient.Client.FetchFollowing(context.Background(),&post_relation.FetchFollowingRequest{
+		UserId: userId,
+	})
+	if err!=nil{
+		code, msg := utils.GRPCtoHTTP(err)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return
+	}
+	
+	fmt.Println("resp in handler",resp)
+	c.JSON(http.StatusOK,resp)
 }

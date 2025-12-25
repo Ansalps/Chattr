@@ -7,7 +7,7 @@ import (
 
 type PostRelationUsecase interface {
 	CreatePost(requestmodels.CreatePostRequest) (responsemodels.CreatePostResponse, error)
-	FetchAllPosts(userid uint64) ([]responsemodels.PostWithCounts, error)
+	FetchAllPosts(currentuserid uint64,targetuserid uint64) ([]responsemodels.PostWithCounts, error)
 	EditPost(requestmodels.EditPostRequest) (responsemodels.EditPostResponse, error)
 	DeletePost(requestmodels.DeletePostRequest) (responsemodels.DeletePostResponse, error)
 
@@ -21,6 +21,8 @@ type PostRelationUsecase interface {
 
 	Follow(requestmodels.FollowRequest) (responsemodels.FollowResponse, error)
 	Unfollow(requestmodels.UnfollowRequest) (responsemodels.UnfollowResponse, error)
+	FetchFollowers(uint64)(responsemodels.FetchFollowersResponse,error)
+	FetchFollowing(uint64)(responsemodels.FetchFollowingResponse,error)
 
 	PostFollowCount(uint64) (responsemodels.PostFollowCountResponse, error)
 }

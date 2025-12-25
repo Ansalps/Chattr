@@ -55,7 +55,7 @@ type UserMetaData struct {
 	UserID        uint64
 	UserName      string
 	Name          string
-	ProfileImgUrl string
+	ProfileImgUrl string 
 	BlueTick      bool
 }
 type Comment struct {
@@ -96,5 +96,6 @@ type PostData struct{
 	LikeCount     uint64
 	CommentsCount uint64
 	PostAge       string
+	IsLiked bool
 	UserData UserMetaData
 }

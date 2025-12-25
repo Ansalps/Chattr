@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/pb"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/requestmodels"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/responsemodels"
@@ -278,8 +279,8 @@ func (as *PostRelationUsecase) PostFollowCount(userid uint64) (responsemodels.Po
 	fmt.Println("resp print second in usecase", resp, resp.PostCount)
 	return resp, nil
 }
-func (as *PostRelationUsecase) FetchAllPosts(userid uint64) ([]responsemodels.PostWithCounts, error) {
-	resp, err := as.PostRelationRepository.FetchAllPosts(userid)
+func (as *PostRelationUsecase) FetchAllPosts(currentuserid uint64, targetuserid uint64) ([]responsemodels.PostWithCounts, error) {
+	resp, err := as.PostRelationRepository.FetchAllPosts(currentuserid, targetuserid)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, ErrNoPosts
@@ -290,4 +291,72 @@ func (as *PostRelationUsecase) FetchAllPosts(userid uint64) ([]responsemodels.Po
 		resp[i].Age = utils.CalcuateCommentAge(resp[i].CreatedAt)
 	}
 	return resp, nil
+}
+func (as *PostRelationUsecase) FetchFollowers(userid uint64) (responsemodels.FetchFollowersResponse, error) {
+	resp, err := as.PostRelationRepository.FetchFollowersUserIds(userid)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.FetchFollowersResponse{}, domain.ErrNoFollowers
+		}
+		return responsemodels.FetchFollowersResponse{}, err
+	}
+	var userids []uint64
+	for _,v:=range resp{
+		userids=append(userids, v.FollowerID)
+	}
+	userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+		UserId: userids,
+	})
+	if err != nil {
+		log.Println("error calling service auth_subcription", err)
+		return responsemodels.FetchFollowersResponse{}, err
+	}
+	var usermetada []responsemodels.UserMetaData
+	for _,v:=range userResp.Users{
+		usermetada=append(usermetada, responsemodels.UserMetaData{
+			UserID: v.UserId,
+			UserName: v.UserName,
+			Name: v.Name,
+			ProfileImgUrl: v.ProfileImgUrl,
+			BlueTick: v.BlueTick,
+		})
+	}
+	//v:=userResp[userIDs]
+	
+	return responsemodels.FetchFollowersResponse{
+		Followers: usermetada,
+	},nil
+}
+func (as *PostRelationUsecase)FetchFollowing(userid uint64)(responsemodels.FetchFollowingResponse,error){
+	resp, err := as.PostRelationRepository.FetchFollowingUserIds(userid)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.FetchFollowingResponse{}, domain.ErrNoFollowing
+		}
+		return responsemodels.FetchFollowingResponse{}, err
+	}
+	var userids []uint64
+	for _,v:=range resp{
+		userids=append(userids, v.FollowingID)
+	}
+	userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+		UserId: userids,
+	})
+	if err != nil {
+		log.Println("error calling service auth_subcription", err)
+		return responsemodels.FetchFollowingResponse{}, err
+	}
+	var usermetada []responsemodels.UserMetaData
+	for _,v:=range userResp.Users{
+		usermetada=append(usermetada, responsemodels.UserMetaData{
+			UserID: v.UserId,
+			UserName: v.UserName,
+			Name: v.Name,
+			ProfileImgUrl: v.ProfileImgUrl,
+			BlueTick: v.BlueTick,
+		})
+	}
+	return responsemodels.FetchFollowingResponse{
+		Following: usermetada,
+	},nil
 }

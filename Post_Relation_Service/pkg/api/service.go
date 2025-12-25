@@ -280,7 +280,7 @@ func (as *PostRelationServer) PostFollowCount(ctx context.Context, req *pb.PostF
 	}, nil
 }
 func (as *PostRelationServer) FetchAllPosts(ctx context.Context, req *pb.FetchAllPostsRequest) (*pb.FetchAllPostsResponse, error) {
-	resp, err := as.PostRelationUsecase.FetchAllPosts(req.UserId)
+	resp, err := as.PostRelationUsecase.FetchAllPosts(req.CurrentUserId,req.TargetUserId)
 	if err != nil {
 		return nil, err
 	}
@@ -300,9 +300,58 @@ func (as *PostRelationServer) FetchAllPosts(ctx context.Context, req *pb.FetchAl
 			LikesCount: uint64(v.LikesCount),
 			CommentsCount: uint64(v.CommentsCount),
 			PostAge: v.Age,
+			Isliked: v.IsLiked,
 		}
 	}
 	return &pb.FetchAllPostsResponse{
 		Posts: s,
 	}, nil
+}
+
+func (as *PostRelationServer)FetchFollowers(ctx context.Context,req *pb.FetchFollowersRequest)(*pb.FetchFollowersResponse,error){
+	resp,err:=as.PostRelationUsecase.FetchFollowers(req.UserId)
+	if err!=nil{
+		if err==domain.ErrNoFollowers{
+			return nil,status.Error(codes.NotFound,err.Error())
+		}
+		return nil,err
+	}
+	c:=make([]*pb.UserMetaData,len(resp.Followers))
+	for i,v:=range resp.Followers{
+		c[i]=&pb.UserMetaData{
+			UserId: v.UserID,
+			UserName: v.UserName,
+			Name: v.Name,
+			ProfileImgUrl: v.ProfileImgUrl,
+			BlueTick: v.BlueTick,
+		}
+	}
+	return &pb.FetchFollowersResponse{
+		UserMetaData: c,
+	},nil
+}
+
+func (as *PostRelationServer)FetchFollowing(ctx context.Context,req *pb.FetchFollowingRequest)(*pb.FetchFollowingResponse,error){
+	resp,err:=as.PostRelationUsecase.FetchFollowing(req.UserId)
+	if err!=nil{
+		if err==domain.ErrNoFollowers{
+			return nil,status.Error(codes.NotFound,err.Error())
+		}
+		return nil,err
+	}
+	fmt.Println("following",resp)
+	c:=make([]*pb.UserMetaData,len(resp.Following))
+	for i,v:=range resp.Following{
+		c[i]=&pb.UserMetaData{
+			UserId: v.UserID,
+			UserName: v.UserName,
+			Name: v.Name,
+			ProfileImgUrl: v.ProfileImgUrl,
+			BlueTick: v.BlueTick,
+		}
+	}
+	fmt.Println("user metadata slice",c)
+	return &pb.FetchFollowingResponse{
+		UserMetaData: c,
+	},nil
 }

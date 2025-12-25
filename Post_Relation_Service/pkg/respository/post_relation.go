@@ -259,20 +259,48 @@ func (ad *PostRelationRepository) FetchFollowCountByUserId(userid uint64) (respo
 
 //     return posts, nil
 // }
-func (ad *PostRelationRepository) FetchAllPosts(userid uint64) ([]responsemodels.PostWithCounts, error) {
+func (ad *PostRelationRepository) FetchAllPosts(currentUserID uint64,targetUserID uint64) ([]responsemodels.PostWithCounts, error) {
     var posts []responsemodels.PostWithCounts
 
     err := ad.DB.Model(&domain.Post{}).
         // 1. Select all post fields + Subqueries for counts
         Select("posts.*, "+
             "(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count, "+
-            "(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count").
+            "(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count, "+
+			// "Is Liked" Subquery (Returns true if record exists)
+            "EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked", 
+            currentUserID). // Pass the logged-in user's ID here).
         // 2. Filter by User
-        Where("user_id = ?", userid).
+        Where("user_id = ?", targetUserID).
         // 3. Still Preload your Media slice
         Preload("Media").
         Order("created_at DESC").
         Find(&posts).Error
 
     return posts, err
+}
+
+func (ad *PostRelationRepository)FetchFollowersUserIds(userid uint64)([]responsemodels.FollowerIds,error){
+	var resp []responsemodels.FollowerIds
+	query:=`SELECT follower_id FROM relations WHERE following_id=$1`
+	result:=ad.DB.Raw(query,userid).Scan(&resp)
+	if result.Error!=nil{
+		return nil,result.Error
+	}
+	if result.RowsAffected==0{
+		return nil,gorm.ErrRecordNotFound
+	}
+	return resp,nil
+}
+func (ad *PostRelationRepository)FetchFollowingUserIds(userid uint64)([]responsemodels.FollowingIds,error){
+	var resp []responsemodels.FollowingIds
+	query:=`SELECT following_id FROM relations WHERE follower_id=$1`
+	result:=ad.DB.Raw(query,userid).Scan(&resp)
+	if result.Error!=nil{
+		return nil,result.Error
+	}
+	if result.RowsAffected==0{
+		return nil,gorm.ErrRecordNotFound
+	}
+	return resp,nil
 }

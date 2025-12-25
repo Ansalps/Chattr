@@ -19,11 +19,26 @@ service PostRelationService{
 
     rpc Follow(FollowRequest) returns (FollowResponse);
     rpc Unfollow(UnfollowRequest) returns (UnfollowResponse);
+    rpc FetchFollowers(FetchFollowersRequest) returns (FetchFollowersResponse);
+    rpc FetchFollowing(FetchFollowingRequest) returns (FetchFollowingResponse);
 
     rpc PostFollowCount(PostFollowCountRequest) returns (PostFollowCountResponse);
 }
-message FetchAllPostsRequest{
+message FetchFollowingRequest{
     uint64 UserId=1;
+}
+message FetchFollowingResponse{
+    repeated UserMetaData userMetaData=1;
+}
+message FetchFollowersRequest{
+    uint64 UserId=1;
+}
+message FetchFollowersResponse{
+    repeated UserMetaData userMetaData=1;
+}
+message FetchAllPostsRequest{
+    uint64 CurrentUserId=1;
+    uint64 TargetUserId=2;
 }
 message FetchAllPostsResponse{
     repeated Post posts=1;
@@ -38,6 +53,7 @@ message Post{
     uint64 LikesCount=7;
     uint64 CommentsCount=8;
     string PostAge=9;
+    bool Isliked=10;
 }
 message PostFollowCountRequest{
     uint64 UserId=1;
