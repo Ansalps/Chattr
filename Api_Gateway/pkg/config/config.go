@@ -11,6 +11,7 @@ type Config struct {
 	Token Token
 	Razorpay Razorpay
 	Cloudinary Cloudinary
+	Redis Redis
 }
 type Token struct{
 	UserSecurityKey	string `mapstructure:"USER_SECURITY_KEY"`
@@ -31,11 +32,15 @@ type Cloudinary struct{
 	ApiKey string `mapstructure:"CLOUDINARY_API_KEY"`
 	ApiSecret string `mapstructure:"CLOUDINARY_API_SECRET"`
 }
+type Redis struct{
+	Address string	`mapstructure:"REDIS_ADDRESS"`
+}
 func LoadConfig() (*Config, error) {
 	var c Config
 	var token Token
 	var razorpay Razorpay
 	var cloudinary Cloudinary
+	var redis Redis
 	viper.AddConfigPath("./pkg/config")
 	viper.SetConfigName("dev")
 	viper.SetConfigType("env")
@@ -56,6 +61,10 @@ func LoadConfig() (*Config, error) {
 	if err!=nil{
 		return  nil,err
 	}
+	err=viper.Unmarshal(&redis)
+	if err!=nil{
+		return  nil,err
+	}
 	err = viper.Unmarshal(&c)
 	if err != nil {
 		return nil, err
@@ -63,5 +72,6 @@ func LoadConfig() (*Config, error) {
 	c.Token=token
 	c.Razorpay=razorpay
 	c.Cloudinary=cloudinary
+	c.Redis=redis
 	return &c, nil
 }

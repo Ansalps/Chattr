@@ -12,6 +12,7 @@ import (
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/client/interfaces"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/requestmodels"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/responsemodels"
+	interfacesrepository "github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/repository/interfacesRepository"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/config"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/pb/auth_subscription"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/pb/post_relation"
@@ -28,14 +29,16 @@ type AuthSubscriptionHandler struct {
 	config           *config.Config
 	DirectClient     *client.AuthSubscriptionClient
 	PostDirectClient *postClient.PostRelationClient
+	RedisRepository  interfacesrepository.RedisRepository
 }
 
-func NewAuthSubscriptionHandler(authSubscriptionClient interfaces.AuthSubscriptionClientInterface, cfg *config.Config, authSubClient *client.AuthSubscriptionClient, postDirectClient *postClient.PostRelationClient) *AuthSubscriptionHandler {
+func NewAuthSubscriptionHandler(authSubscriptionClient interfaces.AuthSubscriptionClientInterface, cfg *config.Config, authSubClient *client.AuthSubscriptionClient, postDirectClient *postClient.PostRelationClient, redisRepository interfacesrepository.RedisRepository) *AuthSubscriptionHandler {
 	return &AuthSubscriptionHandler{
 		GPPC_Client:      authSubscriptionClient,
 		config:           cfg,
 		DirectClient:     authSubClient,
 		PostDirectClient: postDirectClient,
+		RedisRepository:  redisRepository,
 	}
 }
 
@@ -1062,6 +1065,37 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 			"posts":     posts,
 			"is_stale":  postData == nil, // Helpful for frontend to know data might be old
 		},
+	})
+}
+
+func (as *AuthSubscriptionHandler) Logout(c *gin.Context) {
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
+		return
+	}
+	// Extract jti and exp
+	jti := jwtClaims.RegisteredClaims.ID
+	exp := jwtClaims.RegisteredClaims.ExpiresAt.Time
+	if jti == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "token missing jti"})
+		return
+	}
+	err := as.RedisRepository.BlacklistToken(jti, exp)
+	if err != nil {
+		// Decide your policy here
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "logout failed"})
+		return
+	}
+
+	// 5️⃣ Success
+	c.JSON(http.StatusOK, gin.H{
+		"message": "logged out successfully",
 	})
 }
 

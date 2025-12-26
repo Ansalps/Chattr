@@ -6,14 +6,23 @@ import (
 	"log"
 	"net/http"
 	"strings"
-
+	interfacesRepository "github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/repository/interfacesRepository"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/responsemodels"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/response"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func VerifyJwt(requiredRoles []string, tokenType string, tokenSecurityKey string) gin.HandlerFunc {
+type AuthMiddleware struct {
+	RedisRepo interfacesRepository.RedisRepository
+}
+
+func NewAuthMiddlware(redisRepo interfacesRepository.RedisRepository) *AuthMiddleware {
+	return &AuthMiddleware{
+		RedisRepo: redisRepo,
+	}
+}
+func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tokenSecurityKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// // Get the token from the Authorization header
 		tokenString := c.GetHeader("Authorization")
@@ -29,7 +38,7 @@ func VerifyJwt(requiredRoles []string, tokenType string, tokenSecurityKey string
 			c.Abort()
 			return
 		}
-		fmt.Println("token security key",tokenSecurityKey)
+		fmt.Println("token security key", tokenSecurityKey)
 		var jwtClaims responsemodels.JwtClaims
 		token, err := jwt.ParseWithClaims(tokenString, &jwtClaims, func(token *jwt.Token) (interface{}, error) {
 			return []byte(tokenSecurityKey), nil
@@ -73,7 +82,7 @@ func VerifyJwt(requiredRoles []string, tokenType string, tokenSecurityKey string
 			} else {
 				fmt.Println("is error reaching here not the error you thought print the error", err)
 			}
-			
+
 			// Check for an invalid signature error
 			if errors.Is(err, jwt.ErrSignatureInvalid) {
 				log.Println("Token signature is invalid.")
@@ -81,7 +90,7 @@ func VerifyJwt(requiredRoles []string, tokenType string, tokenSecurityKey string
 				c.Abort()
 				return
 			}
-		
+
 			// Check for an invalid claims error (e.g., unexpected claims)
 			if err == jwt.ErrSignatureInvalid {
 				log.Println("Invalid token signature error.")
@@ -89,10 +98,10 @@ func VerifyJwt(requiredRoles []string, tokenType string, tokenSecurityKey string
 				c.Abort()
 				return
 			}
-		
+
 			// Check for an unknown JWT parsing error
 			log.Printf("Unexpected error: %v\n", err)
-			
+
 			// Any other JWT parsing error
 			c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid token", nil))
 			// c.JSON(http.StatusUnauthorized, gin.H{
@@ -107,18 +116,41 @@ func VerifyJwt(requiredRoles []string, tokenType string, tokenSecurityKey string
 			c.Abort()
 			return
 		}
-
 		if jwtClaims.Type != tokenType {
 			c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid token type", nil))
 			//c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token type"})
 			c.Abort()
 			return
 		}
-		fmt.Println("please print role",jwtClaims.Role)
+		jti := jwtClaims.RegisteredClaims.ID
+		//exp:=jwtClaims.RegisteredClaims.ExpiresAt.Time
+
+		if jti == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "token missing jti"})
+			c.Abort()
+			return
+		}
+
+		blacklisted, err := m.RedisRepo.IsTokenBlacklisted(jti)
+		if err != nil {
+			log.Printf("redis error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.Abort()
+			return
+		}
+
+		if blacklisted {
+			c.JSON(http.StatusUnauthorized, gin.H{"message": "session logged out,please login again to continue"})
+			c.Abort()
+			return
+		}
+
+		
+		fmt.Println("please print role", jwtClaims.Role)
 		// Role check
 		authorized := false
 		for _, r := range requiredRoles {
-			fmt.Println("please print roles inside",r)
+			fmt.Println("please print roles inside", r)
 			if jwtClaims.Role == r {
 				authorized = true
 				break
@@ -130,7 +162,9 @@ func VerifyJwt(requiredRoles []string, tokenType string, tokenSecurityKey string
 			c.Abort()
 			return
 		}
-		fmt.Println("jwt claims",jwtClaims)
+		
+
+		fmt.Println("jwt claims", jwtClaims)
 		c.Set("claims", jwtClaims)
 		c.Next()
 	}
