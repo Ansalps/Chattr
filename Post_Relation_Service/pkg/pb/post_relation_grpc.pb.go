@@ -34,6 +34,7 @@ const (
 	PostRelationService_FetchFollowers_FullMethodName  = "/post_relation.PostRelationService/FetchFollowers"
 	PostRelationService_FetchFollowing_FullMethodName  = "/post_relation.PostRelationService/FetchFollowing"
 	PostRelationService_PostFollowCount_FullMethodName = "/post_relation.PostRelationService/PostFollowCount"
+	PostRelationService_FetchNewsFeed_FullMethodName   = "/post_relation.PostRelationService/FetchNewsFeed"
 )
 
 // PostRelationServiceClient is the client API for PostRelationService service.
@@ -55,6 +56,7 @@ type PostRelationServiceClient interface {
 	FetchFollowers(ctx context.Context, in *FetchFollowersRequest, opts ...grpc.CallOption) (*FetchFollowersResponse, error)
 	FetchFollowing(ctx context.Context, in *FetchFollowingRequest, opts ...grpc.CallOption) (*FetchFollowingResponse, error)
 	PostFollowCount(ctx context.Context, in *PostFollowCountRequest, opts ...grpc.CallOption) (*PostFollowCountResponse, error)
+	FetchNewsFeed(ctx context.Context, in *FetchNewsFeedRequest, opts ...grpc.CallOption) (*FetchNewsFeedResponse, error)
 }
 
 type postRelationServiceClient struct {
@@ -215,6 +217,16 @@ func (c *postRelationServiceClient) PostFollowCount(ctx context.Context, in *Pos
 	return out, nil
 }
 
+func (c *postRelationServiceClient) FetchNewsFeed(ctx context.Context, in *FetchNewsFeedRequest, opts ...grpc.CallOption) (*FetchNewsFeedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FetchNewsFeedResponse)
+	err := c.cc.Invoke(ctx, PostRelationService_FetchNewsFeed_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PostRelationServiceServer is the server API for PostRelationService service.
 // All implementations must embed UnimplementedPostRelationServiceServer
 // for forward compatibility.
@@ -234,6 +246,7 @@ type PostRelationServiceServer interface {
 	FetchFollowers(context.Context, *FetchFollowersRequest) (*FetchFollowersResponse, error)
 	FetchFollowing(context.Context, *FetchFollowingRequest) (*FetchFollowingResponse, error)
 	PostFollowCount(context.Context, *PostFollowCountRequest) (*PostFollowCountResponse, error)
+	FetchNewsFeed(context.Context, *FetchNewsFeedRequest) (*FetchNewsFeedResponse, error)
 	mustEmbedUnimplementedPostRelationServiceServer()
 }
 
@@ -288,6 +301,9 @@ func (UnimplementedPostRelationServiceServer) FetchFollowing(context.Context, *F
 }
 func (UnimplementedPostRelationServiceServer) PostFollowCount(context.Context, *PostFollowCountRequest) (*PostFollowCountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostFollowCount not implemented")
+}
+func (UnimplementedPostRelationServiceServer) FetchNewsFeed(context.Context, *FetchNewsFeedRequest) (*FetchNewsFeedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchNewsFeed not implemented")
 }
 func (UnimplementedPostRelationServiceServer) mustEmbedUnimplementedPostRelationServiceServer() {}
 func (UnimplementedPostRelationServiceServer) testEmbeddedByValue()                             {}
@@ -580,6 +596,24 @@ func _PostRelationService_PostFollowCount_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PostRelationService_FetchNewsFeed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchNewsFeedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostRelationServiceServer).FetchNewsFeed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostRelationService_FetchNewsFeed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostRelationServiceServer).FetchNewsFeed(ctx, req.(*FetchNewsFeedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PostRelationService_ServiceDesc is the grpc.ServiceDesc for PostRelationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -646,6 +680,10 @@ var PostRelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PostFollowCount",
 			Handler:    _PostRelationService_PostFollowCount_Handler,
+		},
+		{
+			MethodName: "FetchNewsFeed",
+			Handler:    _PostRelationService_FetchNewsFeed_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

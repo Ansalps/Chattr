@@ -360,3 +360,49 @@ func (as *PostRelationUsecase)FetchFollowing(userid uint64)(responsemodels.Fetch
 		Following: usermetada,
 	},nil
 }
+func (as *PostRelationUsecase)FetchPostUserDataForNewsFeed(newsfeedReq requestmodels.FetchNewsFeedRequest)(responsemodels.FetchNewsFeedResponse,error){
+	postResp,err:=as.PostRelationRepository.FetchPostDataForNewsFeed(newsfeedReq)
+	if err!=nil{
+		if len(postResp)==0{
+			return responsemodels.FetchNewsFeedResponse{},domain.ErrNoFollowingNoPost
+		}
+		return responsemodels.FetchNewsFeedResponse{},err
+	}
+	fmt.Println("postResp",postResp)
+	userIDs := make(map[uint64]bool)
+	fmt.Println("hi hello")
+	for _, v := range postResp {
+		fmt.Println("hello hi")
+		fmt.Println("v.UserID",v.UserID)
+		userIDs[uint64(v.UserID)] = true
+	}
+	fmt.Println("userIDs",userIDs)
+	userids := make([]uint64, len(userIDs))
+	i := 0
+	for k, _ := range userIDs {
+		userids[i] = k
+		i++
+	}
+	fmt.Println("userids",userids)
+	userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+		UserId: userids,
+	})
+	if err != nil {
+		log.Println("error calling service auth_subcription", err)
+		return responsemodels.FetchNewsFeedResponse{}, err
+	}
+	for i,v:=range postResp{
+		postResp[i].UserDetails=responsemodels.UserMetaData{
+			UserID: userResp.Users[uint64(v.UserID)].UserId,
+			UserName: userResp.Users[uint64(v.UserID)].UserName,
+			Name:userResp.Users[uint64(v.UserID)].Name,
+			ProfileImgUrl:userResp.Users[uint64(v.UserID)].ProfileImgUrl,
+			BlueTick:userResp.Users[uint64(v.UserID)].BlueTick,
+		}
+		postResp[i].Age=utils.CalcuateCommentAge(v.CreatedAt)
+	}
+	return responsemodels.FetchNewsFeedResponse{
+		PostUserData: postResp,
+	},nil
+}
+

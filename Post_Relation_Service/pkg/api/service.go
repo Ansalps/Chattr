@@ -355,3 +355,44 @@ func (as *PostRelationServer)FetchFollowing(ctx context.Context,req *pb.FetchFol
 		UserMetaData: c,
 	},nil
 }
+func (as *PostRelationServer)FetchNewsFeed(ctx context.Context,req *pb.FetchNewsFeedRequest)(*pb.FetchNewsFeedResponse,error){
+	newsfeedReq:=requestmodels.FetchNewsFeedRequest{
+		UserID: req.UserId,
+		Limit: req.Limit,
+		Offset: req.Offset,
+	}
+	resp,err:=as.PostRelationUsecase.FetchPostUserDataForNewsFeed(newsfeedReq)
+	if err!=nil{
+		return nil,err
+	}
+	c:=make([]*pb.PostUserData,len(resp.PostUserData))
+	for i,v:=range resp.PostUserData{
+		var s1 []string
+		for _,v:=range resp.PostUserData[i].Media{
+			s1=append(s1, v.MediaUrl)
+		}
+		c[i]=&pb.PostUserData{
+			PostId: uint64(v.ID),
+			CreatedAt: utils.ToProtoTimestamp(v.CreatedAt),
+			UpdatedAt: utils.ToProtoTimestamp(v.UpdatedAt),
+			UserId: uint64(v.UserID),
+			Caption: v.Caption,
+			PostStatus: v.PostStatus,
+			MediaUrls: s1,
+			LikesCount: uint64(v.LikesCount),
+			CommentsCount: uint64(v.CommentsCount),
+			PostAge: v.Age,
+			IsLiked: v.IsLiked,
+			UserMetaData: &pb.UserMetaData{
+				UserId: v.UserDetails.UserID,
+				UserName: v.UserDetails.UserName,
+				Name: v.UserDetails.Name,
+				ProfileImgUrl: v.UserDetails.ProfileImgUrl,
+				BlueTick: v.UserDetails.BlueTick,
+			},
+		}
+	}
+	return &pb.FetchNewsFeedResponse{
+		PostUserData: c,
+	},nil
+}

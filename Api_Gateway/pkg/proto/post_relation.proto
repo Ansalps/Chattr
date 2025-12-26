@@ -23,6 +23,30 @@ service PostRelationService{
     rpc FetchFollowing(FetchFollowingRequest) returns (FetchFollowingResponse);
 
     rpc PostFollowCount(PostFollowCountRequest) returns (PostFollowCountResponse);
+
+    rpc FetchNewsFeed(FetchNewsFeedRequest) returns (FetchNewsFeedResponse);
+}
+message FetchNewsFeedRequest{
+    uint64 UserId=1;
+    int64 Limit=2;
+    int64 Offset=3;
+}
+message PostUserData{
+    uint64 PostId=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    uint64 UserId=4;
+    string Caption=5;
+    string PostStatus=6;
+    repeated string MediaUrls=7;
+    uint64 LikesCount=8;
+    uint64 CommentsCount=9;
+    string PostAge=10;
+    bool IsLiked=11;
+    UserMetaData userMetaData=12;
+}
+message FetchNewsFeedResponse{
+    repeated PostUserData postUserData=1;
 }
 message FetchFollowingRequest{
     uint64 UserId=1;
@@ -84,7 +108,6 @@ message Comment{
     optional uint64 ParentCommentId=6;
     uint64 ChildCommentCount=7;
     repeated Comment childComment=8;
-
 }
 message FetchCommentsResponse{
     repeated Comment Comments=1;

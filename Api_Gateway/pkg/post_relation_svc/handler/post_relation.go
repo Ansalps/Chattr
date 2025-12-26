@@ -617,3 +617,84 @@ func (as *PostRelationHandler)FetchFollowing(c *gin.Context){
 	fmt.Println("resp in handler",resp)
 	c.JSON(http.StatusOK,resp)
 }
+
+func (as *PostRelationHandler)FetchNewsFeed(c *gin.Context){
+	var req requestmodels.FetchNewsFeedRequest
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
+		return
+	}
+	req.UserID=jwtClaims.ID
+	pageStr := c.Query("page")
+	limitStr := c.Query("limit")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(page), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+		return
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+
+	if err != nil || limit < 1 || limit > 100 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(limit), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+		return
+	}
+
+	offset := (page - 1) * limit
+	req.Limit = limit
+	req.Offset = offset
+	resp,err:=as.DirectPostClient.Client.FetchNewsFeed(context.Background(),&post_relation.FetchNewsFeedRequest{
+		UserId: req.UserID,
+		Limit: int64(req.Limit),
+		Offset: int64(req.Offset),
+	})
+	if err!=nil{
+		code, msg := utils.GRPCtoHTTP(err)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return
+	}
+	// c:=make([]responsemodels)
+	// for _,v:=range resp{
+
+	// }
+	var finalResp []responsemodels.PostData
+	for _, v := range resp.PostUserData {
+		var s1 []string
+		for _, v1 := range v.MediaUrls {
+			s1 = append(s1, v1)
+		}
+		finalResp = append(finalResp, responsemodels.PostData{
+			PostID:        v.PostId,
+			CreatedAt:     v.CreatedAt.AsTime().Local(),
+			UpdatedAt:     v.UpdatedAt.AsTime().Local(),
+			UserID:        v.UserId,
+			Caption:       v.Caption,
+			MediaUrls:     s1,
+			LikeCount:     v.LikesCount,
+			CommentsCount: v.CommentsCount,
+			PostAge:       v.PostAge,
+			IsLiked: v.IsLiked,
+			UserData: responsemodels.UserMetaData{
+				UserID: v.UserMetaData.UserId,
+				UserName: v.UserMetaData.UserName,
+				Name: v.UserMetaData.Name,
+				ProfileImgUrl: v.UserMetaData.ProfileImgUrl,
+				BlueTick: v.UserMetaData.BlueTick,
+			},
+		})
+	}
+	c.JSON(http.StatusOK,finalResp)
+}

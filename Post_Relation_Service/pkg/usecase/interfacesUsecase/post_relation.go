@@ -25,4 +25,6 @@ type PostRelationUsecase interface {
 	FetchFollowing(uint64)(responsemodels.FetchFollowingResponse,error)
 
 	PostFollowCount(uint64) (responsemodels.PostFollowCountResponse, error)
+
+	FetchPostUserDataForNewsFeed(requestmodels.FetchNewsFeedRequest)(responsemodels.FetchNewsFeedResponse,error)
 }

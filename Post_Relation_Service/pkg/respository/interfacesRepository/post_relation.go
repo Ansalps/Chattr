@@ -27,4 +27,6 @@ type PostRelationRepository interface {
 
 	FetchPostCountByUserId(uint64) (uint64, error)
 	FetchFollowCountByUserId(uint64) (responsemodels.PostFollowCountResponse, error)
+
+	FetchPostDataForNewsFeed(requestmodels.FetchNewsFeedRequest)([]responsemodels.PostWithStatus,error)
 }

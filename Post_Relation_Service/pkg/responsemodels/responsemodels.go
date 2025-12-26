@@ -97,6 +97,15 @@ type PostWithCounts struct {
 	IsLiked       bool   `gorm:"column:is_liked"` // New field
 	Age           string `json:"age"` // Added this
 }
+type PostWithStatus struct{
+	domain.Post
+	PostStatus string 
+	LikesCount    int64  `gorm:"column:likes_count"`
+	CommentsCount int64  `gorm:"column:comments_count"`
+	IsLiked       bool   `gorm:"column:is_liked"` // New field
+	Age           string `json:"age" gorm:"-"` // Ignore in DB scan
+    UserDetails   UserMetaData `gorm:"-"`      // Ignore in DB scan
+}
 type FetchAllPostsResponse struct {
 	Posts []Post
 }
@@ -120,4 +129,7 @@ type FollowerIds struct{
 }
 type FollowingIds struct{
 	FollowingID uint64
+}
+type FetchNewsFeedResponse struct{
+	PostUserData []PostWithStatus
 }

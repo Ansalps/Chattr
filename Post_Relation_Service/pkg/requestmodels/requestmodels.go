@@ -51,3 +51,9 @@ type UnfollowRequest struct{
 type FetchCommentsReqeust struct{
 	PostID uint64
 }
+
+type FetchNewsFeedRequest struct{
+	UserID uint64
+	Limit int64
+	Offset int64
+}

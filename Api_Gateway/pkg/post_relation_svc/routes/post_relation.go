@@ -21,10 +21,10 @@ func PostRelationRoutes(router *gin.Engine,postRelationHandler *handler.PostRela
 	router.PATCH("/user/post/:post_id/comment/:comment_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.EditComment)
 	router.DELETE("/user/post/:post_id/comment/:comment_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.DeleteComment)
 
-	
-
 	router.POST("/user/relation/follow/:following_user_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.Follow)
 	router.DELETE("/user/relation/unfollow/:unfollowing_user_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.Unfollow)
 	router.GET("/user/relation/followers/:user_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchFollowers)
 	router.GET("/user/relation/following/:user_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchFollowing)
+
+	router.GET("/user/newsfeed",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchNewsFeed)
 }

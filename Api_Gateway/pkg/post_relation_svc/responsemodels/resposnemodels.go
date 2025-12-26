@@ -99,3 +99,4 @@ type PostData struct{
 	IsLiked bool
 	UserData UserMetaData
 }
+

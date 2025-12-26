@@ -304,3 +304,28 @@ func (ad *PostRelationRepository)FetchFollowingUserIds(userid uint64)([]response
 	}
 	return resp,nil
 }
+// func (ad *PostRelationRepository)FetchPostDataForNewsFeed([]responsemodels.PostWithStatus,error){
+// 	var resp []responsemodels.PostWithStatus
+// 	query:=``
+// }
+func (ad *PostRelationRepository) FetchPostDataForNewsFeed(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error) {
+    var resp []responsemodels.PostWithStatus
+
+    err := ad.DB.Table("posts").
+        Select(`
+            posts.*, 
+            (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count,
+            (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+            EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked
+        `, newsfeedReq.UserID).
+        Joins("JOIN relations ON relations.following_id = posts.user_id").
+        Where("relations.follower_id = ?", newsfeedReq.UserID).
+        Where("posts.post_status = ?", "normal").
+        Order("posts.created_at DESC").
+        Limit(int(newsfeedReq.Limit)).
+        Offset(int(newsfeedReq.Offset)).
+        Preload("Media").
+        Find(&resp).Error
+
+    return resp, err
+}
