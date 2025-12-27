@@ -38,4 +38,6 @@ func (r *redisRepository) Incr(ctx context.Context, key string) (string,error) {
 
     return strconv.FormatInt(newVal,10),nil
 }
-
+func(r *redisRepository)ExtendTTL(ctx context.Context,key string,ttl time.Duration)error{
+	return r.rdb.Expire(ctx,key,ttl).Err()
+}

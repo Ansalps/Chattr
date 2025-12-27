@@ -465,5 +465,10 @@ func (as *PostRelationUsecase) getFeedVersion(ctx context.Context, userID uint64
 		fmt.Println(err,len(version))
         return "1"
     }
+	// OPTIONAL: Refresh the 48h timer so active users never lose their version
+    err=as.RedisRepository.ExtendTTL(ctx, versionKey, 48*time.Hour)
+	if err!=nil{
+		log.Println("failed to extend ttl")
+	}
     return string(version)
 }
