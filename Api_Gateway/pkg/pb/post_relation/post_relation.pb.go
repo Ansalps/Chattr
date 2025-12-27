@@ -27,6 +27,7 @@ type FetchNewsFeedRequest struct {
 	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
 	Limit         int64                  `protobuf:"varint,2,opt,name=Limit,proto3" json:"Limit,omitempty"`
 	Offset        int64                  `protobuf:"varint,3,opt,name=Offset,proto3" json:"Offset,omitempty"`
+	PullToRefresh bool                   `protobuf:"varint,4,opt,name=PullToRefresh,proto3" json:"PullToRefresh,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -80,6 +81,13 @@ func (x *FetchNewsFeedRequest) GetOffset() int64 {
 		return x.Offset
 	}
 	return 0
+}
+
+func (x *FetchNewsFeedRequest) GetPullToRefresh() bool {
+	if x != nil {
+		return x.PullToRefresh
+	}
+	return false
 }
 
 type PostUserData struct {
@@ -2082,11 +2090,12 @@ var File_pkg_proto_post_relation_proto protoreflect.FileDescriptor
 
 const file_pkg_proto_post_relation_proto_rawDesc = "" +
 	"\n" +
-	"\x1dpkg/proto/post_relation.proto\x12\rpost_relation\x1a\x1fgoogle/protobuf/timestamp.proto\"\\\n" +
+	"\x1dpkg/proto/post_relation.proto\x12\rpost_relation\x1a\x1fgoogle/protobuf/timestamp.proto\"\x82\x01\n" +
 	"\x14FetchNewsFeedRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x14\n" +
 	"\x05Limit\x18\x02 \x01(\x03R\x05Limit\x12\x16\n" +
-	"\x06Offset\x18\x03 \x01(\x03R\x06Offset\"\xc5\x03\n" +
+	"\x06Offset\x18\x03 \x01(\x03R\x06Offset\x12$\n" +
+	"\rPullToRefresh\x18\x04 \x01(\bR\rPullToRefresh\"\xc5\x03\n" +
 	"\fPostUserData\x12\x16\n" +
 	"\x06PostId\x18\x01 \x01(\x04R\x06PostId\x128\n" +
 	"\tCreatedAt\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tCreatedAt\x128\n" +

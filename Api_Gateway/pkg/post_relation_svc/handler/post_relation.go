@@ -619,7 +619,9 @@ func (as *PostRelationHandler)FetchFollowing(c *gin.Context){
 }
 
 func (as *PostRelationHandler)FetchNewsFeed(c *gin.Context){
+	refreshStr:=c.Query("refresh")
 	var req requestmodels.FetchNewsFeedRequest
+	
 	claims, exists := c.Get("claims")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
@@ -656,10 +658,20 @@ func (as *PostRelationHandler)FetchNewsFeed(c *gin.Context){
 	offset := (page - 1) * limit
 	req.Limit = limit
 	req.Offset = offset
+
+	if req.Offset==0&&refreshStr=="true"{
+		req.PullToRefresh=true
+	} else{
+		req.PullToRefresh=false
+	}
+	fmt.Println("req.Offset",req.Offset)
+	fmt.Println("refreshStr",refreshStr)
+	fmt.Println("req.PullToRefresh",req.PullToRefresh)
 	resp,err:=as.DirectPostClient.Client.FetchNewsFeed(context.Background(),&post_relation.FetchNewsFeedRequest{
 		UserId: req.UserID,
 		Limit: int64(req.Limit),
 		Offset: int64(req.Offset),
+		PullToRefresh: req.PullToRefresh,
 	})
 	if err!=nil{
 		code, msg := utils.GRPCtoHTTP(err)
