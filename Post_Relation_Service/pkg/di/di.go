@@ -18,9 +18,11 @@ func DependencyIndjection(cfg *config.Config) (*services.PostRelationServer, err
 	if err!=nil{
 		return nil,err
 	}
+	redisClient:=client.NewRedisClient(cfg)
+	RedisRepository:=repository.NewRedisRepository(redisClient)
 
 	PostRelationRepository := repository.NewPostRelationRepository(gormDB)
-	PostRelationUsecase := usecase.NewPostRelationUsecase(PostRelationRepository,authSubscriptionClient)
+	PostRelationUsecase := usecase.NewPostRelationUsecase(PostRelationRepository,authSubscriptionClient,RedisRepository)
 	PostRelationServiceServer := services.NewPostRelationSever(PostRelationUsecase)
 
 	return PostRelationServiceServer, nil

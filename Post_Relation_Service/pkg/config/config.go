@@ -13,14 +13,19 @@ type Database struct {
 	DBName     string `mapstructure:"DB_NAME"`
 	DBPort     string `mapstructure:"DB_PORT"`
 }
+type Redis struct{
+	Address string	`mapstructure:"REDIS_ADDRESS"`
+}
 type Config struct {
 	PortMngr PortManager
 	DB       Database
+	Redis Redis
 }
 
 func LoadConfig() (*Config, error) {
 	var portmngr PortManager
 	var db Database
+	var redis Redis
 
 	viper.AddConfigPath("./pkg/config")
 	viper.SetConfigName("dev")
@@ -38,7 +43,11 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = viper.Unmarshal(&redis)
+	if err != nil {
+		return nil, err
+	}
 	
-	config := Config{PortMngr: portmngr, DB: db}
+	config := Config{PortMngr: portmngr, DB: db,Redis: redis}
 	return &config, nil
 }

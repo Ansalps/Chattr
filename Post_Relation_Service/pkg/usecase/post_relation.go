@@ -2,9 +2,11 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/pb"
@@ -19,6 +21,7 @@ import (
 type PostRelationUsecase struct {
 	PostRelationRepository interfacesRepository.PostRelationRepository
 	AuthSubscriptionClient pb.AuthSubscriptionServiceClient
+	RedisRepository        interfacesRepository.RedisRepository
 }
 
 var (
@@ -33,10 +36,11 @@ var (
 	ErrNoPosts          = errors.New("No Posts to Fetch")
 )
 
-func NewPostRelationUsecase(repository interfacesRepository.PostRelationRepository, authSubClient pb.AuthSubscriptionServiceClient) interfacesUsecase.PostRelationUsecase {
+func NewPostRelationUsecase(repository interfacesRepository.PostRelationRepository, authSubClient pb.AuthSubscriptionServiceClient, redisRepository interfacesRepository.RedisRepository) interfacesUsecase.PostRelationUsecase {
 	return &PostRelationUsecase{
 		PostRelationRepository: repository,
 		AuthSubscriptionClient: authSubClient,
+		RedisRepository:        redisRepository,
 	}
 }
 
@@ -200,7 +204,7 @@ func (as *PostRelationUsecase) FetchComments(fetchCommentsReq requestmodels.Fetc
 	}
 	userids := make([]uint64, len(userIDs))
 	i := 0
-	for k, _ := range userIDs {
+	for k := range userIDs {
 		userids[i] = k
 		i++
 	}
@@ -301,8 +305,8 @@ func (as *PostRelationUsecase) FetchFollowers(userid uint64) (responsemodels.Fet
 		return responsemodels.FetchFollowersResponse{}, err
 	}
 	var userids []uint64
-	for _,v:=range resp{
-		userids=append(userids, v.FollowerID)
+	for _, v := range resp {
+		userids = append(userids, v.FollowerID)
 	}
 	userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
 		UserId: userids,
@@ -312,22 +316,22 @@ func (as *PostRelationUsecase) FetchFollowers(userid uint64) (responsemodels.Fet
 		return responsemodels.FetchFollowersResponse{}, err
 	}
 	var usermetada []responsemodels.UserMetaData
-	for _,v:=range userResp.Users{
-		usermetada=append(usermetada, responsemodels.UserMetaData{
-			UserID: v.UserId,
-			UserName: v.UserName,
-			Name: v.Name,
+	for _, v := range userResp.Users {
+		usermetada = append(usermetada, responsemodels.UserMetaData{
+			UserID:        v.UserId,
+			UserName:      v.UserName,
+			Name:          v.Name,
 			ProfileImgUrl: v.ProfileImgUrl,
-			BlueTick: v.BlueTick,
+			BlueTick:      v.BlueTick,
 		})
 	}
 	//v:=userResp[userIDs]
-	
+
 	return responsemodels.FetchFollowersResponse{
 		Followers: usermetada,
-	},nil
+	}, nil
 }
-func (as *PostRelationUsecase)FetchFollowing(userid uint64)(responsemodels.FetchFollowingResponse,error){
+func (as *PostRelationUsecase) FetchFollowing(userid uint64) (responsemodels.FetchFollowingResponse, error) {
 	resp, err := as.PostRelationRepository.FetchFollowingUserIds(userid)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -336,8 +340,8 @@ func (as *PostRelationUsecase)FetchFollowing(userid uint64)(responsemodels.Fetch
 		return responsemodels.FetchFollowingResponse{}, err
 	}
 	var userids []uint64
-	for _,v:=range resp{
-		userids=append(userids, v.FollowingID)
+	for _, v := range resp {
+		userids = append(userids, v.FollowingID)
 	}
 	userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
 		UserId: userids,
@@ -347,43 +351,61 @@ func (as *PostRelationUsecase)FetchFollowing(userid uint64)(responsemodels.Fetch
 		return responsemodels.FetchFollowingResponse{}, err
 	}
 	var usermetada []responsemodels.UserMetaData
-	for _,v:=range userResp.Users{
-		usermetada=append(usermetada, responsemodels.UserMetaData{
-			UserID: v.UserId,
-			UserName: v.UserName,
-			Name: v.Name,
+	for _, v := range userResp.Users {
+		usermetada = append(usermetada, responsemodels.UserMetaData{
+			UserID:        v.UserId,
+			UserName:      v.UserName,
+			Name:          v.Name,
 			ProfileImgUrl: v.ProfileImgUrl,
-			BlueTick: v.BlueTick,
+			BlueTick:      v.BlueTick,
 		})
 	}
 	return responsemodels.FetchFollowingResponse{
 		Following: usermetada,
-	},nil
+	}, nil
 }
-func (as *PostRelationUsecase)FetchPostUserDataForNewsFeed(newsfeedReq requestmodels.FetchNewsFeedRequest)(responsemodels.FetchNewsFeedResponse,error){
-	postResp,err:=as.PostRelationRepository.FetchPostDataForNewsFeed(newsfeedReq)
-	if err!=nil{
-		if len(postResp)==0{
-			return responsemodels.FetchNewsFeedResponse{},domain.ErrNoFollowingNoPost
+func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestmodels.FetchNewsFeedRequest) (responsemodels.FetchNewsFeedResponse, error) {
+	// Create a unique key based on UserID, Limit, and Offset
+	cacheKey := fmt.Sprintf("newsfeed:%d:limit:%d:offset:%d", newsfeedReq.UserID, newsfeedReq.Limit, newsfeedReq.Offset)
+
+	// 1. Try to get from Redis
+	cachedData, err := as.RedisRepository.CacheGet(context.Background(),cacheKey)
+	if err != nil {
+		log.Print("print error of fetching cache",err)
+	} else{
+		// CACHE HIT: Unmarshal and return
+		var cachedResp responsemodels.FetchNewsFeedResponse
+		if err := json.Unmarshal([]byte(cachedData), &cachedResp); err != nil {
+			log.Println("print error unmarshalling cached data",err)
+		}else{
+			log.Println("retuning cachedResponse")
+			return cachedResp, nil
 		}
-		return responsemodels.FetchNewsFeedResponse{},err
 	}
-	fmt.Println("postResp",postResp)
+	
+
+	// 2. CACHE MISS: Execute your existing logic
+	postResp, err := as.PostRelationRepository.FetchPostDataForNewsFeed(newsfeedReq)
+	if err != nil {
+		if len(postResp) == 0 {
+			return responsemodels.FetchNewsFeedResponse{}, domain.ErrNoFollowingNoPost
+		}
+		return responsemodels.FetchNewsFeedResponse{}, err
+	}
 	userIDs := make(map[uint64]bool)
-	fmt.Println("hi hello")
+
 	for _, v := range postResp {
-		fmt.Println("hello hi")
-		fmt.Println("v.UserID",v.UserID)
+	
 		userIDs[uint64(v.UserID)] = true
 	}
-	fmt.Println("userIDs",userIDs)
+	
 	userids := make([]uint64, len(userIDs))
 	i := 0
-	for k, _ := range userIDs {
+	for k := range userIDs {
 		userids[i] = k
 		i++
 	}
-	fmt.Println("userids",userids)
+
 	userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
 		UserId: userids,
 	})
@@ -391,18 +413,30 @@ func (as *PostRelationUsecase)FetchPostUserDataForNewsFeed(newsfeedReq requestmo
 		log.Println("error calling service auth_subcription", err)
 		return responsemodels.FetchNewsFeedResponse{}, err
 	}
-	for i,v:=range postResp{
-		postResp[i].UserDetails=responsemodels.UserMetaData{
-			UserID: userResp.Users[uint64(v.UserID)].UserId,
-			UserName: userResp.Users[uint64(v.UserID)].UserName,
-			Name:userResp.Users[uint64(v.UserID)].Name,
-			ProfileImgUrl:userResp.Users[uint64(v.UserID)].ProfileImgUrl,
-			BlueTick:userResp.Users[uint64(v.UserID)].BlueTick,
+	for i, v := range postResp {
+		postResp[i].UserDetails = responsemodels.UserMetaData{
+			UserID:        userResp.Users[uint64(v.UserID)].UserId,
+			UserName:      userResp.Users[uint64(v.UserID)].UserName,
+			Name:          userResp.Users[uint64(v.UserID)].Name,
+			ProfileImgUrl: userResp.Users[uint64(v.UserID)].ProfileImgUrl,
+			BlueTick:      userResp.Users[uint64(v.UserID)].BlueTick,
 		}
-		postResp[i].Age=utils.CalcuateCommentAge(v.CreatedAt)
+		postResp[i].Age = utils.CalcuateCommentAge(v.CreatedAt)
 	}
-	return responsemodels.FetchNewsFeedResponse{
-		PostUserData: postResp,
-	},nil
+	finalResponse := responsemodels.FetchNewsFeedResponse{
+        PostUserData: postResp,
+    }
+	// 3. Store in Redis for future requests (e.g., 5 minutes TTL)
+	dataToCache, err := json.Marshal(finalResponse)
+	if err != nil {
+		return responsemodels.FetchNewsFeedResponse{}, err
+	}
+	err=as.RedisRepository.CacheSet(context.Background(), cacheKey, dataToCache, 5*time.Minute)
+	if err != nil {
+		log.Printf("Failed to cache newsfeed for key %s: %v", cacheKey, err)
+		// Note: Usually we don't return an error here because we still have the data
+		// to return to the user; the cache failing shouldn't break the whole app.
+	}
+	log.Println("returning sql response")
+	return finalResponse,nil
 }
-
