@@ -365,32 +365,41 @@ func (as *PostRelationUsecase) FetchFollowing(userid uint64) (responsemodels.Fet
 	}, nil
 }
 func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestmodels.FetchNewsFeedRequest) (responsemodels.FetchNewsFeedResponse, error) {
-	// Create a unique key based on UserID, Limit, and Offset
-	cacheKey := fmt.Sprintf("newsfeed:%d:limit:%d:offset:%d", newsfeedReq.UserID, newsfeedReq.Limit, newsfeedReq.Offset)
+	
+	// 1. Get current version for this user
+    version := as.getFeedVersion(context.Background(), newsfeedReq.UserID)
+	// Create a unique key based on UserID, Limit, and Offset,version
+	cacheKey := fmt.Sprintf("newsfeed:%d:v:%s:lim:%d:off:%d", 
+        newsfeedReq.UserID, version, newsfeedReq.Limit, newsfeedReq.Offset)
 
-	// 1. Try to get from Redis
-	cachedData, err := as.RedisRepository.CacheGet(context.Background(),cacheKey)
-	if err != nil {
-		log.Print("print error of fetching cache",err)
-	} else{
-		// CACHE HIT: Unmarshal and return
-		var cachedResp responsemodels.FetchNewsFeedResponse
-		if err := json.Unmarshal([]byte(cachedData), &cachedResp); err != nil {
-			log.Println("print error unmarshalling cached data",err)
-		}else{
-			log.Println("retuning cachedResponse")
-			return cachedResp, nil
-		}
-	}
+	// 3. Handle "Pull to Refresh"
+    if newsfeedReq.PullToRefresh {
+        // Increment version to effectively "clear" all pages at once
+        versionKey := fmt.Sprintf("user:%d:feed_version", newsfeedReq.UserID)
+        as.RedisRepository.Incr(context.Background(), versionKey) // Need to add Incr to your interface
+        // Update local version variable so we fetch/save to the NEW key
+        version = as.getFeedVersion(context.Background(), newsfeedReq.UserID)
+        cacheKey = fmt.Sprintf("newsfeed:%d:v:%s:lim:%d:off:%d", 
+            newsfeedReq.UserID, version, newsfeedReq.Limit, newsfeedReq.Offset)
+    } else {
+        // Normal check: Try to get from Redis
+        cachedData, err := as.RedisRepository.CacheGet(context.Background(), cacheKey)
+        if err == nil {
+            var cachedResp responsemodels.FetchNewsFeedResponse
+            json.Unmarshal([]byte(cachedData), &cachedResp)
+			log.Println("retuning cached response",cachedResp)
+            return cachedResp, nil
+        }
+    }
 	
 
 	// 2. CACHE MISS: Execute your existing logic
 	postResp, err := as.PostRelationRepository.FetchPostDataForNewsFeed(newsfeedReq)
 	if err != nil {
-		if len(postResp) == 0 {
-			return responsemodels.FetchNewsFeedResponse{}, domain.ErrNoFollowingNoPost
-		}
 		return responsemodels.FetchNewsFeedResponse{}, err
+	}
+	if len(postResp) == 0 {
+		return responsemodels.FetchNewsFeedResponse{}, domain.ErrNoFollowingNoPost
 	}
 	userIDs := make(map[uint64]bool)
 
@@ -414,13 +423,21 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 		return responsemodels.FetchNewsFeedResponse{}, err
 	}
 	for i, v := range postResp {
-		postResp[i].UserDetails = responsemodels.UserMetaData{
-			UserID:        userResp.Users[uint64(v.UserID)].UserId,
-			UserName:      userResp.Users[uint64(v.UserID)].UserName,
-			Name:          userResp.Users[uint64(v.UserID)].Name,
-			ProfileImgUrl: userResp.Users[uint64(v.UserID)].ProfileImgUrl,
-			BlueTick:      userResp.Users[uint64(v.UserID)].BlueTick,
+		uid := uint64(v.UserID)
+		
+		// SAFE MAPPING: check if user exists in the map
+		if userData, ok := userResp.Users[uid]; ok {
+			postResp[i].UserDetails = responsemodels.UserMetaData{
+				UserID:        userData.UserId,
+				UserName:      userData.UserName,
+				Name:          userData.Name,
+				ProfileImgUrl: userData.ProfileImgUrl,
+				BlueTick:      userData.BlueTick,
+			}
+		} else {
+			log.Printf("Warning: Metadata for user %d not found in auth service", uid)
 		}
+		
 		postResp[i].Age = utils.CalcuateCommentAge(v.CreatedAt)
 	}
 	finalResponse := responsemodels.FetchNewsFeedResponse{
@@ -439,4 +456,15 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 	}
 	log.Println("returning sql response")
 	return finalResponse,nil
+}
+func (as *PostRelationUsecase) getFeedVersion(ctx context.Context, userID uint64) string {
+    versionKey := fmt.Sprintf("user:%d:feed_version", userID)
+    version, err := as.RedisRepository.CacheGet(ctx, versionKey)
+    if err != nil || len(version) == 0 {
+        // If no version exists, start at 1
+		as.RedisRepository.CacheSet(ctx, versionKey, []byte("1"), 48*time.Hour)
+		fmt.Println(err,len(version))
+        return "1"
+    }
+    return string(version)
 }

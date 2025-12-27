@@ -56,4 +56,5 @@ type FetchNewsFeedRequest struct{
 	UserID uint64
 	Limit int64
 	Offset int64
+	PullToRefresh bool
 }

@@ -360,9 +360,13 @@ func (as *PostRelationServer)FetchNewsFeed(ctx context.Context,req *pb.FetchNews
 		UserID: req.UserId,
 		Limit: req.Limit,
 		Offset: req.Offset,
+		PullToRefresh: req.PullToRefresh,
 	}
 	resp,err:=as.PostRelationUsecase.FetchPostUserDataForNewsFeed(newsfeedReq)
 	if err!=nil{
+		if err==domain.ErrNoFollowingNoPost{
+			return nil,status.Error(codes.NotFound,err.Error())
+		}
 		return nil,err
 	}
 	c:=make([]*pb.PostUserData,len(resp.PostUserData))

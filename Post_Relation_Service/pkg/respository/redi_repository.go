@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/respository/interfacesRepository"
@@ -28,3 +29,13 @@ func (r *redisRepository) CacheSet(ctx context.Context, cacheKey string, dataToC
 	// r.Client is your *redis.Client (go-redis)
 	return r.rdb.Set(ctx, cacheKey, dataToCache, expiration).Err()
 }
+
+func (r *redisRepository) Incr(ctx context.Context, key string) (string,error) {
+	newVal,err:=r.rdb.Incr(context.Background(),key).Result()
+	if err!=nil{
+		return "",err
+	}
+
+    return strconv.FormatInt(newVal,10),nil
+}
+
