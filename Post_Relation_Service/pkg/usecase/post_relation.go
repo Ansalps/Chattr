@@ -365,34 +365,33 @@ func (as *PostRelationUsecase) FetchFollowing(userid uint64) (responsemodels.Fet
 	}, nil
 }
 func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestmodels.FetchNewsFeedRequest) (responsemodels.FetchNewsFeedResponse, error) {
+	ctx := context.Background()
+    var version string
+    var err error
 	
-	// 1. Get current version for this user
-    version := as.getFeedVersion(context.Background(), newsfeedReq.UserID)
-	// Create a unique key based on UserID, Limit, and Offset,version
-	cacheKey := fmt.Sprintf("newsfeed:%d:v:%s:lim:%d:off:%d", 
-        newsfeedReq.UserID, version, newsfeedReq.Limit, newsfeedReq.Offset)
-
-	// 3. Handle "Pull to Refresh"
     if newsfeedReq.PullToRefresh {
         // Increment version to effectively "clear" all pages at once
         versionKey := fmt.Sprintf("user:%d:feed_version", newsfeedReq.UserID)
-        as.RedisRepository.Incr(context.Background(), versionKey) // Need to add Incr to your interface
-        // Update local version variable so we fetch/save to the NEW key
-        version = as.getFeedVersion(context.Background(), newsfeedReq.UserID)
-        cacheKey = fmt.Sprintf("newsfeed:%d:v:%s:lim:%d:off:%d", 
-            newsfeedReq.UserID, version, newsfeedReq.Limit, newsfeedReq.Offset)
-    } else {
-        // Normal check: Try to get from Redis
-        cachedData, err := as.RedisRepository.CacheGet(context.Background(), cacheKey)
-        if err == nil {
-            var cachedResp responsemodels.FetchNewsFeedResponse
-            json.Unmarshal([]byte(cachedData), &cachedResp)
-			log.Println("retuning cached response",cachedResp)
-            return cachedResp, nil
+        version,err=as.RedisRepository.Incr(context.Background(), versionKey) // Need to add Incr to your interface
+		if err != nil {
+            version = "1" // Fallback
         }
+    } else {
+        // Normal flow: Get the CURRENT version
+        version = as.getFeedVersion(ctx, newsfeedReq.UserID)
     }
-	
-
+	// Now generate the cacheKey once
+    cacheKey := fmt.Sprintf("newsfeed:%d:v:%s:lim:%d:off:%d", 
+        newsfeedReq.UserID, version, newsfeedReq.Limit, newsfeedReq.Offset)
+		if !newsfeedReq.PullToRefresh {
+			// Only check cache if it's NOT a pull-to-refresh
+			cachedData, err := as.RedisRepository.CacheGet(ctx, cacheKey)
+			if err == nil {
+				var cachedResp responsemodels.FetchNewsFeedResponse
+				json.Unmarshal([]byte(cachedData), &cachedResp)
+				return cachedResp, nil
+			}
+		}
 	// 2. CACHE MISS: Execute your existing logic
 	postResp, err := as.PostRelationRepository.FetchPostDataForNewsFeed(newsfeedReq)
 	if err != nil {
