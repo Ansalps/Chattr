@@ -66,6 +66,6 @@ type FetchAllPostsReq struct{
 type FetchNewsFeedRequest struct{
 	UserID uint64
 	Limit int
-	Offset int
+	LastID uint64
 	PullToRefresh bool
 }

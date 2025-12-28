@@ -26,7 +26,7 @@ type FetchNewsFeedRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
 	Limit         int64                  `protobuf:"varint,2,opt,name=Limit,proto3" json:"Limit,omitempty"`
-	Offset        int64                  `protobuf:"varint,3,opt,name=Offset,proto3" json:"Offset,omitempty"`
+	LastId        uint64                 `protobuf:"varint,3,opt,name=LastId,proto3" json:"LastId,omitempty"`
 	PullToRefresh bool                   `protobuf:"varint,4,opt,name=PullToRefresh,proto3" json:"PullToRefresh,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -76,9 +76,9 @@ func (x *FetchNewsFeedRequest) GetLimit() int64 {
 	return 0
 }
 
-func (x *FetchNewsFeedRequest) GetOffset() int64 {
+func (x *FetchNewsFeedRequest) GetLastId() uint64 {
 	if x != nil {
-		return x.Offset
+		return x.LastId
 	}
 	return 0
 }
@@ -225,6 +225,8 @@ func (x *PostUserData) GetUserMetaData() *UserMetaData {
 type FetchNewsFeedResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PostUserData  []*PostUserData        `protobuf:"bytes,1,rep,name=postUserData,proto3" json:"postUserData,omitempty"`
+	NextCursor    uint64                 `protobuf:"varint,2,opt,name=NextCursor,proto3" json:"NextCursor,omitempty"`
+	HasMore       bool                   `protobuf:"varint,3,opt,name=HasMore,proto3" json:"HasMore,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -264,6 +266,20 @@ func (x *FetchNewsFeedResponse) GetPostUserData() []*PostUserData {
 		return x.PostUserData
 	}
 	return nil
+}
+
+func (x *FetchNewsFeedResponse) GetNextCursor() uint64 {
+	if x != nil {
+		return x.NextCursor
+	}
+	return 0
+}
+
+func (x *FetchNewsFeedResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
 }
 
 type FetchFollowingRequest struct {
@@ -2094,7 +2110,7 @@ const file_pkg_proto_post_relation_proto_rawDesc = "" +
 	"\x14FetchNewsFeedRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x14\n" +
 	"\x05Limit\x18\x02 \x01(\x03R\x05Limit\x12\x16\n" +
-	"\x06Offset\x18\x03 \x01(\x03R\x06Offset\x12$\n" +
+	"\x06LastId\x18\x03 \x01(\x04R\x06LastId\x12$\n" +
 	"\rPullToRefresh\x18\x04 \x01(\bR\rPullToRefresh\"\xc5\x03\n" +
 	"\fPostUserData\x12\x16\n" +
 	"\x06PostId\x18\x01 \x01(\x04R\x06PostId\x128\n" +
@@ -2113,9 +2129,13 @@ const file_pkg_proto_post_relation_proto_rawDesc = "" +
 	"\aPostAge\x18\n" +
 	" \x01(\tR\aPostAge\x12\x18\n" +
 	"\aIsLiked\x18\v \x01(\bR\aIsLiked\x12?\n" +
-	"\fuserMetaData\x18\f \x01(\v2\x1b.post_relation.UserMetaDataR\fuserMetaData\"X\n" +
+	"\fuserMetaData\x18\f \x01(\v2\x1b.post_relation.UserMetaDataR\fuserMetaData\"\x92\x01\n" +
 	"\x15FetchNewsFeedResponse\x12?\n" +
-	"\fpostUserData\x18\x01 \x03(\v2\x1b.post_relation.PostUserDataR\fpostUserData\"/\n" +
+	"\fpostUserData\x18\x01 \x03(\v2\x1b.post_relation.PostUserDataR\fpostUserData\x12\x1e\n" +
+	"\n" +
+	"NextCursor\x18\x02 \x01(\x04R\n" +
+	"NextCursor\x12\x18\n" +
+	"\aHasMore\x18\x03 \x01(\bR\aHasMore\"/\n" +
 	"\x15FetchFollowingRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"Y\n" +
 	"\x16FetchFollowingResponse\x12?\n" +

@@ -15,6 +15,8 @@ func GRPCtoHTTP(err error) (int, string) {
 		switch st.Code() {
 		case codes.NotFound:
 			return http.StatusNotFound, st.Message()
+		case codes.FailedPrecondition:
+			return http.StatusPreconditionFailed,st.Message()
 		case codes.InvalidArgument:
 			return http.StatusBadRequest, st.Message()
 		}

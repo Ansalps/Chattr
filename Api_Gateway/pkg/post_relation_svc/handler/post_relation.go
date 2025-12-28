@@ -228,7 +228,8 @@ func (as *PostRelationHandler) LikePost(c *gin.Context) {
 	likePostReq.PostID = postId
 	likePostResponse, err := as.GPPC_Client.LikePost(likePostReq)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.ClientResponse(http.StatusInternalServerError, "error from grpc", err))
+		code, msg := utils.GRPCtoHTTP(err)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "post like successfully", likePostResponse))
@@ -256,7 +257,8 @@ func (as *PostRelationHandler) UnlikePost(c *gin.Context) {
 	unlikePostReq.PostID = postId
 	unlikePostResponse, err := as.GPPC_Client.UnlikePost(unlikePostReq)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.ClientResponse(http.StatusInternalServerError, "error from grpc", err))
+		code, msg := utils.GRPCtoHTTP(err)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "post unliked successfully", unlikePostResponse))
@@ -419,7 +421,9 @@ func (as *PostRelationHandler) Follow(c *gin.Context) {
 	followRequest.FollowingUserID = followingUserId
 	followResponse, err := as.GPPC_Client.Follow(followRequest)
 	if err != nil {
-
+		code, msg := utils.GRPCtoHTTP(err)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "followed user successfully", followResponse))
 }
@@ -446,7 +450,8 @@ func (as *PostRelationHandler) Unfollow(c *gin.Context) {
 	unfollowReq.UnfollowingUserID = unfollowningUserId
 	unfollowResponse, err := as.GPPC_Client.Unfollow(unfollowReq)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+		code, msg := utils.GRPCtoHTTP(err)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "unfollowed user successfully", unfollowResponse))
@@ -620,8 +625,12 @@ func (as *PostRelationHandler)FetchFollowing(c *gin.Context){
 
 func (as *PostRelationHandler)FetchNewsFeed(c *gin.Context){
 	refreshStr:=c.Query("refresh")
+	lastIdStr:=c.Query("last_id")
+
 	var req requestmodels.FetchNewsFeedRequest
-	
+	// 1. Parse LastID (The Cursor)
+    lastID, _ := strconv.ParseUint(lastIdStr, 10, 64)
+    req.LastID = lastID
 	claims, exists := c.Get("claims")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
@@ -633,17 +642,10 @@ func (as *PostRelationHandler)FetchNewsFeed(c *gin.Context){
 		return
 	}
 	req.UserID=jwtClaims.ID
-	pageStr := c.Query("page")
+
 	limitStr := c.Query("limit")
 
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 1 {
-		if err != nil {
-			log.Printf("Error while string to int conversion(page), error: %v", err)
-		}
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
-		return
-	}
+	
 
 	limit, err := strconv.Atoi(limitStr)
 
@@ -655,22 +657,22 @@ func (as *PostRelationHandler)FetchNewsFeed(c *gin.Context){
 		return
 	}
 
-	offset := (page - 1) * limit
+	
 	req.Limit = limit
-	req.Offset = offset
+	
 
-	if req.Offset==0&&refreshStr=="true"{
+	if req.LastID==0&&refreshStr=="true"{
 		req.PullToRefresh=true
 	} else{
 		req.PullToRefresh=false
 	}
-	fmt.Println("req.Offset",req.Offset)
+	fmt.Println("req.LastID",req.LastID)
 	fmt.Println("refreshStr",refreshStr)
 	fmt.Println("req.PullToRefresh",req.PullToRefresh)
 	resp,err:=as.DirectPostClient.Client.FetchNewsFeed(context.Background(),&post_relation.FetchNewsFeedRequest{
 		UserId: req.UserID,
 		Limit: int64(req.Limit),
-		Offset: int64(req.Offset),
+		LastId: req.LastID,
 		PullToRefresh: req.PullToRefresh,
 	})
 	if err!=nil{
@@ -708,5 +710,19 @@ func (as *PostRelationHandler)FetchNewsFeed(c *gin.Context){
 			},
 		})
 	}
-	c.JSON(http.StatusOK,finalResp)
+
+	// var lastID1 uint64
+    // if len(finalResp) > 0 {
+    //     // Use the ID of the last post in our mapped response
+    //     lastID1 = finalResp[len(finalResp)-1].PostID
+    // }
+	// // Determine HasMore based on the gRPC response or slice length
+    // hasMore := len(finalResp) == limit
+
+	finallyResp:=responsemodels.FetchNewsFeedResponse{
+		PostUserData: finalResp,
+		NextCursor: resp.NextCursor,
+        HasMore:    resp.HasMore,
+	}
+	c.JSON(http.StatusOK,finallyResp)
 }

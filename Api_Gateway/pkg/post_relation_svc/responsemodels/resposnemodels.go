@@ -100,3 +100,8 @@ type PostData struct{
 	UserData UserMetaData
 }
 
+type FetchNewsFeedResponse struct{
+	PostUserData []PostData
+	NextCursor uint64
+	HasMore bool
+}
