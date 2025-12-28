@@ -76,8 +76,14 @@ func (ad *PostRelationRepository) DeletePostById(deletePostReq requestmodels.Del
 
 func (ad *PostRelationRepository) LikePostById(likePostReq requestmodels.LikePostRequest) (responsemodels.LikePostResponse, error) {
 	query := `INSERT INTO post_likes (user_id,post_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`
-	if err := ad.DB.Exec(query, likePostReq.UserID, likePostReq.PostID).Error; err != nil {
-		return responsemodels.LikePostResponse{}, err
+	result:= ad.DB.Exec(query, likePostReq.UserID, likePostReq.PostID)
+	if result.Error!= nil {
+		var pgErr *pgconn.PgError
+		if errors.As(result.Error, &pgErr) && pgErr.Code == "23503" {
+			fmt.Println("is it reaching in postgres err", result.Error)
+			return responsemodels.LikePostResponse{}, domain.ErrForeignKeyViolationCommentPost
+		}
+		return responsemodels.LikePostResponse{}, result.Error
 	}
 	return responsemodels.LikePostResponse{
 		PostID: likePostReq.PostID,
@@ -86,8 +92,12 @@ func (ad *PostRelationRepository) LikePostById(likePostReq requestmodels.LikePos
 
 func (ad *PostRelationRepository) UnlikePostById(unlikePostReq requestmodels.UnlikePostRequest) (responsemodels.UnlikePostResponse, error) {
 	query := `DELETE FROM post_likes WHERE user_id=? AND post_id=?`
-	if err := ad.DB.Exec(query, unlikePostReq.UserID, unlikePostReq.PostID).Error; err != nil {
-		return responsemodels.UnlikePostResponse{}, err
+	result := ad.DB.Exec(query, unlikePostReq.UserID, unlikePostReq.PostID)
+	if result.Error != nil {
+		return responsemodels.UnlikePostResponse{}, result.Error
+	}
+	if result.RowsAffected==0{
+		return responsemodels.UnlikePostResponse{},gorm.ErrRecordNotFound
 	}
 	return responsemodels.UnlikePostResponse{
 		PostID: unlikePostReq.PostID,
@@ -161,8 +171,13 @@ func (ad *PostRelationRepository) DeleteCommentById(deleteCommentReq requestmode
 func (ad *PostRelationRepository) Follow(followReq requestmodels.FollowRequest) (responsemodels.FollowResponse, error) {
 	query := `INSERT INTO relations (follower_id,following_id,created_at,updated_at) VALUES ($1,$2,$3,$4) 
 	ON CONFLICT (follower_id,following_id) DO NOTHING`
-	if err := ad.DB.Exec(query, followReq.UserID, followReq.FollowingUserID, time.Now(), time.Now()).Error; err != nil {
-		return responsemodels.FollowResponse{}, err
+	result := ad.DB.Exec(query, followReq.UserID, followReq.FollowingUserID, time.Now(), time.Now())
+	if result.Error != nil {
+		return responsemodels.FollowResponse{}, result.Error
+	}
+	if result.RowsAffected==0{
+		fmt.Println("is it entering")
+		return responsemodels.FollowResponse{},gorm.ErrRecordNotFound
 	}
 	return responsemodels.FollowResponse{
 		FollowingUserID: followReq.FollowingUserID,
@@ -304,26 +319,36 @@ func (ad *PostRelationRepository)FetchFollowingUserIds(userid uint64)([]response
 	}
 	return resp,nil
 }
-// func (ad *PostRelationRepository)FetchPostDataForNewsFeed([]responsemodels.PostWithStatus,error){
-// 	var resp []responsemodels.PostWithStatus
-// 	query:=``
-// }
+
 func (ad *PostRelationRepository) FetchPostDataForNewsFeed(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error) {
     var resp []responsemodels.PostWithStatus
 
-    err := ad.DB.Table("posts").
+    query := ad.DB.Table("posts").
         Select(`
             posts.*, 
             (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count,
             (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
             EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked
-        `, newsfeedReq.UserID).
-        Joins("JOIN relations ON relations.following_id = posts.user_id").
-        Where("relations.follower_id = ?", newsfeedReq.UserID).
-        Where("posts.post_status = ?", "normal").
-        Order("posts.created_at DESC").
-        Limit(int(newsfeedReq.Limit)).
-        Offset(int(newsfeedReq.Offset)).
+        `, newsfeedReq.UserID)//.
+        //Joins("JOIN relations ON relations.following_id = posts.user_id").
+        //Where("relations.follower_id = ?", newsfeedReq.UserID).
+        //Where("posts.post_status = ?", "normal")//.
+
+		// 2. Logic to include Followings + Self
+    // We use a subquery for following_ids to make the 'OR' condition efficient
+    query = query.Where("posts.user_id = ? OR posts.user_id IN (SELECT following_id FROM relations WHERE follower_id = ?)", 
+        newsfeedReq.UserID, newsfeedReq.UserID)
+
+    // 3. Keep existing filters
+    query = query.Where("posts.post_status = ?", "normal")
+        
+		// CURSOR LOGIC: If LastID is provided, fetch posts older than that ID
+		if newsfeedReq.LastID > 0 {
+			query = query.Where("posts.id < ?", newsfeedReq.LastID)
+		}
+
+		err := query.Order("posts.id DESC"). // Using ID DESC is faster and safer than CreatedAt
+        Limit(int(newsfeedReq.Limit)+1).
         Preload("Media").
         Find(&resp).Error
 

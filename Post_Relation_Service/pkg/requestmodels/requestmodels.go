@@ -55,6 +55,6 @@ type FetchCommentsReqeust struct{
 type FetchNewsFeedRequest struct{
 	UserID uint64
 	Limit int64
-	Offset int64
+	LastID uint64
 	PullToRefresh bool
 }

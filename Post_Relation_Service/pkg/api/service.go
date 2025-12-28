@@ -83,9 +83,13 @@ func (as *PostRelationServer) LikePost(ctx context.Context, req *pb.LikePostRequ
 	}
 	likePostRes, err := as.PostRelationUsecase.LikePost(likePostReq)
 	if err != nil {
-
-		log.Println("internal error", err)
-		return nil, status.Error(codes.Internal, "internal server error")
+		fmt.Println("hi hwillo")
+		switch err {
+		case domain.ErrForeignKeyViolationCommentPost:
+			return nil, status.Error(codes.NotFound, err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal server error")
+		}
 	}
 	return &pb.LikePostResponse{
 		PostId: likePostRes.PostID,
@@ -100,7 +104,7 @@ func (as *PostRelationServer) UnlikePost(ctx context.Context, req *pb.UnlikePost
 	unlikePostResponse, err := as.PostRelationUsecase.UnlikePost(unlikePostReq)
 	if err != nil {
 		if err == usecase.ErrPostLikeNotFound {
-			return nil, status.Error(codes.NotFound, "post like not found")
+			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		log.Println("error in service", err)
 		return nil, status.Error(codes.Internal, "internal server error")
@@ -193,7 +197,15 @@ func (as *PostRelationServer) Follow(ctx context.Context, req *pb.FollowRequest)
 	}
 	followResponse, err := as.PostRelationUsecase.Follow(followReq)
 	if err != nil {
-		log.Println("error in service", err)
+		fmt.Println("hi hwillo")
+		switch err {
+		case domain.ErrAlreadyFollowing:
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		case usecase.ErrUsertNotFound:
+			return nil,status.Error(codes.NotFound,err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal server error")
+		}
 	}
 	return &pb.FollowResponse{
 		FollowingUserId: followResponse.FollowingUserID,
@@ -206,7 +218,14 @@ func (as *PostRelationServer) Unfollow(ctx context.Context, req *pb.UnfollowRequ
 	}
 	unfollowResponse, err := as.PostRelationUsecase.Unfollow(unfollowReq)
 	if err != nil {
-		log.Println("error in service")
+		switch err {
+		case domain.ErrNoFollower:
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		case usecase.ErrUsertNotFound:
+			return nil,status.Error(codes.NotFound,err.Error())
+		default:
+			return nil, status.Error(codes.Internal, "internal server error")
+		}
 	}
 	return &pb.UnfollowResponse{
 		UnfollowingUserId: unfollowResponse.UnfollowingUserID,
@@ -359,7 +378,7 @@ func (as *PostRelationServer)FetchNewsFeed(ctx context.Context,req *pb.FetchNews
 	newsfeedReq:=requestmodels.FetchNewsFeedRequest{
 		UserID: req.UserId,
 		Limit: req.Limit,
-		Offset: req.Offset,
+		LastID: req.LastId,
 		PullToRefresh: req.PullToRefresh,
 	}
 	resp,err:=as.PostRelationUsecase.FetchPostUserDataForNewsFeed(newsfeedReq)
@@ -398,5 +417,7 @@ func (as *PostRelationServer)FetchNewsFeed(ctx context.Context,req *pb.FetchNews
 	}
 	return &pb.FetchNewsFeedResponse{
 		PostUserData: c,
+		NextCursor: resp.NextCursor,
+		HasMore: resp.HasMore,
 	},nil
 }

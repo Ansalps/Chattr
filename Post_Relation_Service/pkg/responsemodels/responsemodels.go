@@ -132,4 +132,6 @@ type FollowingIds struct{
 }
 type FetchNewsFeedResponse struct{
 	PostUserData []PostWithStatus
+	NextCursor uint64
+	HasMore bool
 }

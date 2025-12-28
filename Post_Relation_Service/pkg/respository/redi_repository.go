@@ -41,3 +41,6 @@ func (r *redisRepository) Incr(ctx context.Context, key string) (string,error) {
 func(r *redisRepository)ExtendTTL(ctx context.Context,key string,ttl time.Duration)error{
 	return r.rdb.Expire(ctx,key,ttl).Err()
 }
+func (r *redisRepository) Pipeline() redis.Pipeliner {
+    return r.rdb.Pipeline()
+}	
