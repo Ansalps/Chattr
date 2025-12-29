@@ -28,5 +28,13 @@ type PostRelationRepository interface {
 	FetchPostCountByUserId(uint64) (uint64, error)
 	FetchFollowCountByUserId(uint64) (responsemodels.PostFollowCountResponse, error)
 
-	FetchPostDataForNewsFeed(requestmodels.FetchNewsFeedRequest)([]responsemodels.PostWithStatus,error)
+	//FetchPostDataForNewsFeed(requestmodels.FetchNewsFeedRequest)([]responsemodels.PostWithStatus,error)
+	FetchNormalPostData(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error)
+	GetFollowedCelebrityIDs(userID uint64) ([]uint64, error)
+	FetchPostsByIDs(postIDs []uint64, viewerID uint64) ([]responsemodels.PostWithStatus, error)
+	FetchCelebrityPostIDsFromSQL(celebIDs []uint64, lastID uint64, limit int) ([]uint64, error)
+	FetchLatestPostIDsByUserID(userID uint64, limit int) ([]uint64, error)
+
+	PromoteToCelebrity(userid uint64)error
+	DepromoteToNormalUser(userid uint64)error
 }

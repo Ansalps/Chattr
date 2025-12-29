@@ -201,6 +201,8 @@ func (as *PostRelationServer) Follow(ctx context.Context, req *pb.FollowRequest)
 		switch err {
 		case domain.ErrAlreadyFollowing:
 			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		case usecase.ErrFollowOwn:
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
 		case usecase.ErrUsertNotFound:
 			return nil,status.Error(codes.NotFound,err.Error())
 		default:
@@ -220,6 +222,8 @@ func (as *PostRelationServer) Unfollow(ctx context.Context, req *pb.UnfollowRequ
 	if err != nil {
 		switch err {
 		case domain.ErrNoFollower:
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		case usecase.ErrUnfollowOwn:
 			return nil, status.Error(codes.FailedPrecondition, err.Error())
 		case usecase.ErrUsertNotFound:
 			return nil,status.Error(codes.NotFound,err.Error())

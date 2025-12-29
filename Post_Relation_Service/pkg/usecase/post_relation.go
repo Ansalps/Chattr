@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/domain"
@@ -150,6 +151,56 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 	versionKey := fmt.Sprintf("user:%d:feed_version", deletePostReq.UserID)
 	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
 
+	// 3. Handle Celebrity Cache Removal
+	// We run this in a background goroutine to keep the response time fast
+	go func() {
+		ctx := context.Background()
+		followers, err := as.PostRelationRepository.FetchFollowersUserIds(deletePostReq.UserID)
+		if err != nil || len(followers) == 0 {
+			return
+		}
+		if len(followers) > 50000 {
+			key := fmt.Sprintf("celeb:posts:%d", deletePostReq.UserID)
+			// ZRem removes the specific PostID from the ZSet
+			pipe := as.RedisRepository.Pipeline()
+			pipe.ZRem(ctx, key, deletePostRes.PostID)
+			_, err := pipe.Exec(ctx)
+			if err != nil {
+				log.Printf("Failed to remove post from celeb cache: %v", err)
+			}
+			return
+		}
+		// Check if the user is a celebrity
+		// Option A: Use the Celebrity Table we discussed
+		//isCeleb := as.PostRelationRepository.IsUserCelebrity(deletePostReq.UserID)
+
+		// Option B: Fallback check by follower count if table doesn't exist yet
+		//if !isCeleb {
+		//  followers, _ := as.PostRelationRepository.FetchFollowersUserIds(deletePostReq.UserID)
+		//if len(followers) > 50000 {
+		//  isCeleb = true
+		//}
+		//}
+
+		//if isCeleb {
+		//  key := fmt.Sprintf("celeb:posts:%d", deletePostReq.UserID)
+		// ZRem removes the specific PostID from the ZSet
+		//err := as.RedisRepository.ZRem(ctx, key, deletePostRes.PostID)
+		//if err != nil {
+		//  log.Printf("Failed to remove post %d from celeb cache: %v", deletePostRes.PostID, err)
+		//}
+		//} else {
+		// For non-celebrities, we should ideally increment the feed_version
+		// of all followers so they don't see the deleted post in their cached feed.
+		// followers, _ := as.PostRelationRepository.FetchFollowersUserIds(deletePostReq.UserID)
+		pipe := as.RedisRepository.Pipeline()
+		for _, fID := range followers {
+			fVersionKey := fmt.Sprintf("user:%d:feed_version", fID.FollowerID)
+			pipe.Incr(ctx, fVersionKey)
+		}
+		_, _ = pipe.Exec(ctx)
+	}()
+
 	return responsemodels.DeletePostResponse{
 		PostID: deletePostRes.PostID,
 	}, nil
@@ -222,7 +273,6 @@ func (as *PostRelationUsecase) EditComment(editCommentReq requestmodels.EditComm
 		return responsemodels.EditCommentResponse{}, err
 	}
 
-
 	return resp, nil
 }
 func (as *PostRelationUsecase) DeleteComment(deleteCommentReq requestmodels.DeleteCommentRequest) (responsemodels.DeleteCommentResponse, error) {
@@ -270,14 +320,17 @@ func (as *PostRelationUsecase) Follow(followReq requestmodels.FollowRequest) (re
 	versionKey := fmt.Sprintf("user:%d:feed_version", followReq.UserID)
 	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
 
-	go func ()  {
-		ans,err:=as.PostRelationRepository.FetchFollowCountByUserId(followReq.FollowingUserID)
-		if err!=nil{
+	go func() {
+		ans, err := as.PostRelationRepository.FetchFollowCountByUserId(followReq.FollowingUserID)
+		if err != nil {
 			log.Println("error in executing goroutine for fetching follow count")
-			return 
+			return
 		}
-		if ans.FollowerCount>=49999{
-			as.PostRelationRepository.PromoteToCelebrity()
+		if ans.FollowerCount >= 2 {
+			err := as.PostRelationRepository.PromoteToCelebrity(followReq.FollowingUserID)
+			if err != nil {
+				log.Println("database error in promoting to celebrrity", err)
+			}
 		}
 	}()
 
@@ -312,6 +365,20 @@ func (as *PostRelationUsecase) Unfollow(unfollowReq requestmodels.UnfollowReques
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", unfollowReq.UserID)
 	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
+
+	go func() {
+		ans, err := as.PostRelationRepository.FetchFollowCountByUserId(unfollowReq.UnfollowingUserID)
+		if err != nil {
+			log.Println("error in executing goroutine for fetching follow count")
+			return
+		}
+		if ans.FollowerCount <= 3 {
+			err := as.PostRelationRepository.DepromoteToNormalUser(unfollowReq.UnfollowingUserID)
+			if err != nil {
+				log.Println("database error in depromoting to normal user", err)
+			}
+		}
+	}()
 
 	return responsemodels.UnfollowResponse{
 		UnfollowingUserID: unfollowRes.UnfollowingUserID,
@@ -492,115 +559,249 @@ func (as *PostRelationUsecase) FetchFollowing(userid uint64) (responsemodels.Fet
 		Following: usermetada,
 	}, nil
 }
+
+// func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestmodels.FetchNewsFeedRequest) (responsemodels.FetchNewsFeedResponse, error) {
+// 	ctx := context.Background()
+// 	version := as.getFeedVersion(ctx, newsfeedReq.UserID)
+
+// 	// Key now uses LastID instead of Offset
+// 	cacheKey := fmt.Sprintf("newsfeed:%d:v:%s:lim:%d:last:%d",
+// 		newsfeedReq.UserID, version, newsfeedReq.Limit, newsfeedReq.LastID)
+
+// 	if newsfeedReq.PullToRefresh {
+// 		// Increment version to effectively "clear" all pages at once
+// 		versionKey := fmt.Sprintf("user:%d:feed_version", newsfeedReq.UserID)
+// 		version, _ = as.RedisRepository.Incr(context.Background(), versionKey) // Need to add Incr to your interface
+// 		//if err != nil {
+// 		//  version = "1" // Fallback
+// 		newsfeedReq.LastID = 0
+// 		cacheKey = fmt.Sprintf("newsfeed:%d:v:%s:lim:%d:last:0", newsfeedReq.UserID, version, newsfeedReq.Limit)
+// 	} else {
+// 		cachedData, err := as.RedisRepository.CacheGet(ctx, cacheKey)
+// 		if err == nil {
+// 			var cachedResp responsemodels.FetchNewsFeedResponse
+// 			if err := json.Unmarshal([]byte(cachedData), &cachedResp); err == nil {
+// 				fmt.Println("getting cached response")
+// 				return cachedResp, nil
+// 			}
+// 		}
+// 	}
+
+// 	// 2. CACHE MISS: Execute your existing logic
+// 	postResp, err := as.PostRelationRepository.FetchPostDataForNewsFeed(newsfeedReq)
+// 	if err != nil {
+// 		return responsemodels.FetchNewsFeedResponse{}, err
+// 	}
+// 	if len(postResp) == 0 {
+// 		if newsfeedReq.LastID == 0 {
+// 			return responsemodels.FetchNewsFeedResponse{}, domain.ErrNoFollowingNoPost
+// 		}
+// 		// Return empty response with HasMore false
+// 		return responsemodels.FetchNewsFeedResponse{HasMore: false}, nil
+// 	}
+// 	userIDs := make(map[uint64]bool)
+
+// 	for _, v := range postResp {
+
+// 		userIDs[uint64(v.UserID)] = true
+// 	}
+
+// 	userids := make([]uint64, len(userIDs))
+// 	i := 0
+// 	for k := range userIDs {
+// 		userids[i] = k
+// 		i++
+// 	}
+
+// 	userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+// 		UserId: userids,
+// 	})
+// 	if err != nil {
+// 		log.Println("error calling service auth_subcription", err)
+// 		return responsemodels.FetchNewsFeedResponse{}, err
+// 	}
+// 	for i, v := range postResp {
+// 		uid := uint64(v.UserID)
+
+// 		// SAFE MAPPING: check if user exists in the map
+// 		if userData, ok := userResp.Users[uid]; ok {
+// 			postResp[i].UserDetails = responsemodels.UserMetaData{
+// 				UserID:        userData.UserId,
+// 				UserName:      userData.UserName,
+// 				Name:          userData.Name,
+// 				ProfileImgUrl: userData.ProfileImgUrl,
+// 				BlueTick:      userData.BlueTick,
+// 			}
+// 		} else {
+// 			log.Printf("Warning: Metadata for user %d not found in auth service", uid)
+// 		}
+
+// 		postResp[i].Age = utils.CalcuateCommentAge(v.CreatedAt)
+// 	}
+
+// 	var nextCursor uint64
+// 	hasMore := false
+// 	if len(postResp) > int(newsfeedReq.Limit) {
+// 		hasMore = true
+// 		// Remove the extra item so the user only gets the 10 they asked for
+// 		postResp = postResp[:newsfeedReq.Limit]
+// 	}
+// 	if len(postResp) > 0 {
+// 		// The ID of the last item in our result is the cursor for the next request
+// 		nextCursor = uint64(postResp[len(postResp)-1].ID)
+// 	}
+
+//		finalResponse := responsemodels.FetchNewsFeedResponse{
+//			PostUserData: postResp,
+//			NextCursor:   nextCursor,
+//			HasMore:      hasMore,
+//		}
+//		// 3. Store in Redis for future requests (e.g., 5 minutes TTL)
+//		dataToCache, err := json.Marshal(finalResponse)
+//		if err != nil {
+//			return responsemodels.FetchNewsFeedResponse{}, err
+//		}
+//		err = as.RedisRepository.CacheSet(context.Background(), cacheKey, dataToCache, 5*time.Minute)
+//		if err != nil {
+//			log.Printf("Failed to cache newsfeed for key %s: %v", cacheKey, err)
+//			// Note: Usually we don't return an error here because we still have the data
+//			// to return to the user; the cache failing shouldn't break the whole app.
+//		}
+//		log.Println("returning sql response")
+//		return finalResponse, nil
+//	}
 func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestmodels.FetchNewsFeedRequest) (responsemodels.FetchNewsFeedResponse, error) {
 	ctx := context.Background()
+
+	// 1. TRY CACHE (ONLY for Normal Posts)
 	version := as.getFeedVersion(ctx, newsfeedReq.UserID)
+	normalCacheKey := fmt.Sprintf("newsfeed:normal:%d:v:%s:lim:%d:last:%d", newsfeedReq.UserID, version, newsfeedReq.Limit, newsfeedReq.LastID)
 
-	// Key now uses LastID instead of Offset
-	cacheKey := fmt.Sprintf("newsfeed:%d:v:%s:lim:%d:last:%d",
-		newsfeedReq.UserID, version, newsfeedReq.Limit, newsfeedReq.LastID)
+	var normalPosts []responsemodels.PostWithStatus
+	cacheHit := false
 
-	if newsfeedReq.PullToRefresh {
-		// Increment version to effectively "clear" all pages at once
-		versionKey := fmt.Sprintf("user:%d:feed_version", newsfeedReq.UserID)
-		version, _ = as.RedisRepository.Incr(context.Background(), versionKey) // Need to add Incr to your interface
-		//if err != nil {
-		//  version = "1" // Fallback
-		newsfeedReq.LastID = 0
-		cacheKey = fmt.Sprintf("newsfeed:%d:v:%s:lim:%d:last:0", newsfeedReq.UserID, version, newsfeedReq.Limit)
-	} else {
-		cachedData, err := as.RedisRepository.CacheGet(ctx, cacheKey)
+	if !newsfeedReq.PullToRefresh {
+		cachedData, err := as.RedisRepository.CacheGet(ctx, normalCacheKey)
 		if err == nil {
-			var cachedResp responsemodels.FetchNewsFeedResponse
-			if err := json.Unmarshal([]byte(cachedData), &cachedResp); err == nil {
-				fmt.Println("getting cached response")
-				return cachedResp, nil
+			json.Unmarshal([]byte(cachedData), &normalPosts)
+			cacheHit = true
+			fmt.Println("returnnig cached response of normal users")
+		}
+	}
+
+	// 2. IF CACHE MISS: Get Normal Posts from DB
+	if !cacheHit {
+		normalPosts, _ = as.PostRelationRepository.FetchNormalPostData(newsfeedReq)
+		// Store in cache for 5 minutes
+		data, _ := json.Marshal(normalPosts)
+		fmt.Println("returning posts of normal users from db")
+		as.RedisRepository.CacheSet(ctx, normalCacheKey, data, 5*time.Minute)
+	}
+
+	// 3. LIVE INJECTION: Get Celebrity Posts
+	celebIDs, _ := as.PostRelationRepository.GetFollowedCelebrityIDs(newsfeedReq.UserID)
+	var celebPosts []responsemodels.PostWithStatus
+
+	if len(celebIDs) > 0 {
+        // A. Try pulling IDs from Redis ZSets
+        celebPostIDs, err := as.RedisRepository.PullCelebPostIDsFromRedis(ctx, celebIDs, newsfeedReq.LastID, int(newsfeedReq.Limit))
+        
+        // B. CACHE MISS FALLBACK: If Redis is empty, fetch IDs from SQL
+        if err != nil || len(celebPostIDs) == 0 {
+            log.Printf("Celeb cache miss for user %d, falling back to SQL", newsfeedReq.UserID)
+            celebPostIDs, _ = as.PostRelationRepository.FetchCelebrityPostIDsFromSQL(celebIDs, newsfeedReq.LastID, int(newsfeedReq.Limit))
+            if len(celebPostIDs)==0{
+				fmt.Println("justp printing to see number of post id is 0")
+			}	
+            // OPTIONAL: You could trigger a background job here to re-populate 
+            // the Redis ZSET so the next request is faster.
+			// Repopulate in the background
+			if len(celebPostIDs) > 0 {
+				go as.RepopulateCelebrityCache(context.Background(), celebIDs)
 			}
-		}
+        } 
+        
+        // C. Hydrate those IDs from SQL (Get full post details, counts, etc.)
+        if len(celebPostIDs) > 0 {
+			fmt.Println("showning response from db, but fecthed post ids though cache")
+            celebPosts, _ = as.PostRelationRepository.FetchPostsByIDs(celebPostIDs, newsfeedReq.UserID)
+        }
+    }else{
+		fmt.Println("just printing to see number of celeb id is 0, means no data for celebs")
 	}
 
-	// 2. CACHE MISS: Execute your existing logic
-	postResp, err := as.PostRelationRepository.FetchPostDataForNewsFeed(newsfeedReq)
-	if err != nil {
-		return responsemodels.FetchNewsFeedResponse{}, err
-	}
-	if len(postResp) == 0 {
-		if newsfeedReq.LastID == 0 {
-			return responsemodels.FetchNewsFeedResponse{}, domain.ErrNoFollowingNoPost
-		}
-		// Return empty response with HasMore false
-		return responsemodels.FetchNewsFeedResponse{HasMore: false}, nil
-	}
-	userIDs := make(map[uint64]bool)
-
-	for _, v := range postResp {
-
-		userIDs[uint64(v.UserID)] = true
-	}
-
-	userids := make([]uint64, len(userIDs))
-	i := 0
-	for k := range userIDs {
-		userids[i] = k
-		i++
-	}
-
-	userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
-		UserId: userids,
+	// 4. MERGE & SORT
+	allPosts := append(normalPosts, celebPosts...)
+	sort.Slice(allPosts, func(i, j int) bool {
+		return allPosts[i].ID > allPosts[j].ID
 	})
-	if err != nil {
-		log.Println("error calling service auth_subcription", err)
-		return responsemodels.FetchNewsFeedResponse{}, err
-	}
-	for i, v := range postResp {
-		uid := uint64(v.UserID)
 
-		// SAFE MAPPING: check if user exists in the map
-		if userData, ok := userResp.Users[uid]; ok {
-			postResp[i].UserDetails = responsemodels.UserMetaData{
-				UserID:        userData.UserId,
-				UserName:      userData.UserName,
-				Name:          userData.Name,
-				ProfileImgUrl: userData.ProfileImgUrl,
-				BlueTick:      userData.BlueTick,
-			}
-		} else {
-			log.Printf("Warning: Metadata for user %d not found in auth service", uid)
-		}
+	// 5. ENRICH (User Metadata from Auth Service)
+	// ... use your existing userResp / AuthSubscriptionClient logic here ...
 
-		postResp[i].Age = utils.CalcuateCommentAge(v.CreatedAt)
-	}
-
+	//return as.buildFinalResponse(allPosts, newsfeedReq.Limit), nil
+//}
 	var nextCursor uint64
 	hasMore := false
-	if len(postResp) > int(newsfeedReq.Limit) {
+	if len(allPosts) > int(newsfeedReq.Limit) {
 		hasMore = true
 		// Remove the extra item so the user only gets the 10 they asked for
-		postResp = postResp[:newsfeedReq.Limit]
+		allPosts = allPosts[:newsfeedReq.Limit]
 	}
-	if len(postResp) > 0 {
+	if len(allPosts) > 0 {
 		// The ID of the last item in our result is the cursor for the next request
-		nextCursor = uint64(postResp[len(postResp)-1].ID)
+		nextCursor = uint64(allPosts[len(allPosts)-1].ID)
 	}
 
-	finalResponse := responsemodels.FetchNewsFeedResponse{
-		PostUserData: postResp,
-		NextCursor:   nextCursor,
-		HasMore:      hasMore,
+		finalResponse := responsemodels.FetchNewsFeedResponse{
+			PostUserData: allPosts,
+			NextCursor:   nextCursor,
+			HasMore:      hasMore,
+		}
+		// 3. Store in Redis for future requests (e.g., 5 minutes TTL)
+		// dataToCache, err := json.Marshal(finalResponse)
+		// if err != nil {
+		// 	return responsemodels.FetchNewsFeedResponse{}, err
+		// }
+		// err = as.RedisRepository.CacheSet(context.Background(), cacheKey, dataToCache, 5*time.Minute)
+		// if err != nil {
+		// 	log.Printf("Failed to cache newsfeed for key %s: %v", cacheKey, err)
+		// 	// Note: Usually we don't return an error here because we still have the data
+		// 	// to return to the user; the cache failing shouldn't break the whole app.
+		// }
+		//log.Println("returning sql response")
+		return finalResponse, nil
 	}
-	// 3. Store in Redis for future requests (e.g., 5 minutes TTL)
-	dataToCache, err := json.Marshal(finalResponse)
-	if err != nil {
-		return responsemodels.FetchNewsFeedResponse{}, err
-	}
-	err = as.RedisRepository.CacheSet(context.Background(), cacheKey, dataToCache, 5*time.Minute)
-	if err != nil {
-		log.Printf("Failed to cache newsfeed for key %s: %v", cacheKey, err)
-		// Note: Usually we don't return an error here because we still have the data
-		// to return to the user; the cache failing shouldn't break the whole app.
-	}
-	log.Println("returning sql response")
-	return finalResponse, nil
+func (as *PostRelationUsecase) RepopulateCelebrityCache(ctx context.Context, celebIDs []uint64) {
+    for _, cID := range celebIDs {
+        // 1. Fetch the latest 50 posts for this specific celebrity from SQL
+        // We do this per celebrity to keep the ZSet clean
+        posts, err := as.PostRelationRepository.FetchLatestPostIDsByUserID(cID, 50)
+        if err != nil || len(posts) == 0 {
+            continue
+        }
+
+        key := fmt.Sprintf("celeb:posts:%d", cID)
+        pipe := as.RedisRepository.Pipeline()
+
+        for _, pID := range posts {
+            // Score = PostID for chronological order
+            // Correct way to use ZAdd in a Pipeline
+            pipe.ZAdd(ctx, key, redis.Z{
+                Score:  float64(pID), // The sorting criteria
+                Member: pID,          // The actual value stored
+            })
+        }
+
+        // 2. Keep only the last 50 and set TTL
+        pipe.ZRemRangeByRank(ctx, key, 0, -51)
+        pipe.Expire(ctx, key, 7*24*time.Hour)
+
+        _, err = pipe.Exec(ctx)
+        if err != nil {
+            log.Printf("Failed to repopulate cache for celeb %d: %v", cID, err)
+        }
+    }
 }
 func (as *PostRelationUsecase) getFeedVersion(ctx context.Context, userID uint64) string {
 	versionKey := fmt.Sprintf("user:%d:feed_version", userID)

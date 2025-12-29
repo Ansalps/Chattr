@@ -320,37 +320,127 @@ func (ad *PostRelationRepository)FetchFollowingUserIds(userid uint64)([]response
 	return resp,nil
 }
 
-func (ad *PostRelationRepository) FetchPostDataForNewsFeed(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error) {
+// func (ad *PostRelationRepository) FetchPostDataForNewsFeed(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error) {
+//     var resp []responsemodels.PostWithStatus
+
+//     query := ad.DB.Table("posts").
+//         Select(`
+//             posts.*, 
+//             (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count,
+//             (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+//             EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked
+//         `, newsfeedReq.UserID)//.
+//         //Joins("JOIN relations ON relations.following_id = posts.user_id").
+//         //Where("relations.follower_id = ?", newsfeedReq.UserID).
+//         //Where("posts.post_status = ?", "normal")//.
+
+// 		// 2. Logic to include Followings + Self
+//     // We use a subquery for following_ids to make the 'OR' condition efficient
+//     query = query.Where("posts.user_id = ? OR posts.user_id IN (SELECT following_id FROM relations WHERE follower_id = ?)", 
+//         newsfeedReq.UserID, newsfeedReq.UserID)
+
+//     // 3. Keep existing filters
+//     query = query.Where("posts.post_status = ?", "normal")
+        
+// 		// CURSOR LOGIC: If LastID is provided, fetch posts older than that ID
+// 		if newsfeedReq.LastID > 0 {
+// 			query = query.Where("posts.id < ?", newsfeedReq.LastID)
+// 		}
+
+// 		err := query.Order("posts.id DESC"). // Using ID DESC is faster and safer than CreatedAt
+//         Limit(int(newsfeedReq.Limit)+1).
+//         Preload("Media").
+//         Find(&resp).Error
+
+//     return resp, err
+// }
+func (ad *PostRelationRepository) FetchNormalPostData(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error) {
     var resp []responsemodels.PostWithStatus
 
+    // Subquery to get Followings who are NOT celebrities
+    normalFollowingSubquery := ad.DB.Table("relations").
+        Select("following_id").
+        Where("follower_id = ? AND following_id NOT IN (SELECT user_id FROM celebrities)", newsfeedReq.UserID)
+
     query := ad.DB.Table("posts").
-        Select(`
-            posts.*, 
-            (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count,
-            (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
-            EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked
-        `, newsfeedReq.UserID)//.
-        //Joins("JOIN relations ON relations.following_id = posts.user_id").
-        //Where("relations.follower_id = ?", newsfeedReq.UserID).
-        //Where("posts.post_status = ?", "normal")//.
+        Select(`posts.*, 
+		(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count,
+		(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+		EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?)  as is_liked
+		`,newsfeedReq.UserID). // Use your existing SELECT logic
+        Where("(posts.user_id = ? OR posts.user_id IN (?))", newsfeedReq.UserID, normalFollowingSubquery).
+        Where("posts.post_status = ?", "normal")
 
-		// 2. Logic to include Followings + Self
-    // We use a subquery for following_ids to make the 'OR' condition efficient
-    query = query.Where("posts.user_id = ? OR posts.user_id IN (SELECT following_id FROM relations WHERE follower_id = ?)", 
-        newsfeedReq.UserID, newsfeedReq.UserID)
+    if newsfeedReq.LastID > 0 {
+        query = query.Where("posts.id < ?", newsfeedReq.LastID)
+    }
 
-    // 3. Keep existing filters
-    query = query.Where("posts.post_status = ?", "normal")
-        
-		// CURSOR LOGIC: If LastID is provided, fetch posts older than that ID
-		if newsfeedReq.LastID > 0 {
-			query = query.Where("posts.id < ?", newsfeedReq.LastID)
-		}
-
-		err := query.Order("posts.id DESC"). // Using ID DESC is faster and safer than CreatedAt
-        Limit(int(newsfeedReq.Limit)+1).
-        Preload("Media").
-        Find(&resp).Error
-
+    err := query.Order("posts.id DESC").Limit(int(newsfeedReq.Limit) + 1).Preload("Media").Find(&resp).Error
     return resp, err
+}
+func (ad *PostRelationRepository) GetFollowedCelebrityIDs(userID uint64) ([]uint64, error) {
+    var celebIDs []uint64
+    err := ad.DB.Table("relations").
+        Select("following_id").
+        Where("follower_id = ? AND following_id IN (SELECT id FROM celebrities)", userID).
+        Pluck("following_id", &celebIDs).Error
+    return celebIDs, err
+}
+func (ad *PostRelationRepository) FetchPostsByIDs(postIDs []uint64, viewerID uint64) ([]responsemodels.PostWithStatus, error) {
+    var resp []responsemodels.PostWithStatus
+    if len(postIDs) == 0 { return resp, nil }
+
+    err := ad.DB.Table("posts").
+        Select(`posts.*, 
+		(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count,
+		(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+		EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?)  as is_liked
+		`, viewerID). // Existing SELECT with counts
+        Where("id IN ?", postIDs).
+        Preload("Media").
+        Order("id DESC"). // Keep them sorted for the merge
+        Find(&resp).Error
+    return resp, err
+}
+func (ad *PostRelationRepository) FetchCelebrityPostIDsFromSQL(celebIDs []uint64, lastID uint64, limit int) ([]uint64, error) {
+    var postIDs []uint64
+
+    query := ad.DB.Table("posts").
+        Select("id").
+        Where("user_id IN ? AND post_status = 'normal'", celebIDs)
+
+    if lastID > 0 {
+        query = query.Where("id < ?", lastID)
+    }
+
+    // We pull 'limit' posts per request to ensure we have enough to merge
+    err := query.Order("id DESC").Limit(limit).Pluck("id", &postIDs).Error
+    
+    return postIDs, err
+}
+func (ad *PostRelationRepository) FetchLatestPostIDsByUserID(userID uint64, limit int) ([]uint64, error) {
+    var ids []uint64
+    err := ad.DB.Table("posts").
+        Select("id").
+        Where("user_id = ? AND post_status = 'normal'", userID).
+        Order("id DESC").
+        Limit(limit).
+        Pluck("id", &ids).Error
+    return ids, err
+}
+func (ad *PostRelationRepository)PromoteToCelebrity(userid uint64)error{
+	query:=`INSERT INTO celebrities (id,created_at) VALUES ($1,$2)`
+	result:=ad.DB.Exec(query,userid,time.Now())
+	if result.Error!=nil{
+		return result.Error
+	}
+	return nil
+}
+func (ad *PostRelationRepository)DepromoteToNormalUser(userid uint64)error{
+	query:=`DELETE FROM celebrities WHERE id=$1`
+	result:=ad.DB.Exec(query,userid)
+	if result.Error!=nil{
+		return result.Error
+	}
+	return nil
 }

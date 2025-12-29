@@ -10,7 +10,10 @@ const (
 	Normal   postStatus = "normal"
 	Archived postStatus = "archived"
 )
-
+type Celebrity struct{
+	ID uint `gorm:"primarykey"`
+	CreatedAt time.Time
+}
 type Post struct {
 	ID         uint `gorm:"primarykey"`
 	CreatedAt  time.Time
