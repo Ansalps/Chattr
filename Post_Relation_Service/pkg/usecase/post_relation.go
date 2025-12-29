@@ -15,6 +15,7 @@ import (
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/respository/interfacesRepository"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase/interfacesUsecase"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/utils"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -67,19 +68,19 @@ func (as *PostRelationUsecase) CreatePost(createPostReq requestmodels.CreatePost
 			return
 		}
 		if len(followers) > 50000 {
-			//key := fmt.Sprintf("celeb:posts:%d", createPostReq.UserID)
+			key := fmt.Sprintf("celeb:posts:%d", createPostReq.UserID)
 
-			//pipe := as.RedisRepository.Pipeline()
-			// 1. Add the new post ID
-			//pipe.ZAdd(context.Background(), key, redis.Z{Score: float64(createPostRes.PostID), Member: createPostRes.PostID})
+			pipe := as.RedisRepository.Pipeline()
+			//1. Add the new post ID
+			pipe.ZAdd(context.Background(), key, redis.Z{Score: float64(createPostRes.PostID), Member: createPostRes.PostID})
 
-			// 2. Keep only the latest 50 posts (remove everything from index 0 to -51)
-			//pipe.ZRemRangeByRank(context.Background(), key, 0, -51)
+			//2. Keep only the latest 50 posts (remove everything from index 0 to -51)
+			pipe.ZRemRangeByRank(context.Background(), key, 0, -51)
 
-			// 3. Set a long TTL (e.g., 7 days) because this is the primary cache for their feed
-			//pipe.Expire(context.Background(), key, 7*24*time.Hour)
+			//3. Set a long TTL (e.g., 7 days) because this is the primary cache for their feed
+			pipe.Expire(context.Background(), key, 7*24*time.Hour)
 
-			//_, _ = pipe.Exec(context.TODO())
+			_, _ = pipe.Exec(context.TODO())
 			return
 		}
 
@@ -131,7 +132,6 @@ func (as *PostRelationUsecase) EditPost(editPostReq requestmodels.EditPostReques
 	versionKey := fmt.Sprintf("user:%d:feed_version", editPostReq.UserID)
 	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
 
-
 	return responsemodels.EditPostResponse{
 		Caption: editPostRes.Caption,
 	}, nil
@@ -149,7 +149,6 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", deletePostReq.UserID)
 	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
-
 
 	return responsemodels.DeletePostResponse{
 		PostID: deletePostRes.PostID,
@@ -212,7 +211,6 @@ func (as *PostRelationUsecase) AddComment(addCommentReq requestmodels.AddComment
 	versionKey := fmt.Sprintf("user:%d:feed_version", addCommentReq.UserID)
 	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
 
-
 	return addCommentRes, nil
 }
 func (as *PostRelationUsecase) EditComment(editCommentReq requestmodels.EditCommentRequest) (responsemodels.EditCommentResponse, error) {
@@ -224,9 +222,6 @@ func (as *PostRelationUsecase) EditComment(editCommentReq requestmodels.EditComm
 		return responsemodels.EditCommentResponse{}, err
 	}
 
-	//invalidate cach
-	versionKey := fmt.Sprintf("user:%d:feed_version", editCommentReq.UserID)
-	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
 
 	return resp, nil
 }
@@ -274,6 +269,17 @@ func (as *PostRelationUsecase) Follow(followReq requestmodels.FollowRequest) (re
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", followReq.UserID)
 	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
+
+	go func ()  {
+		ans,err:=as.PostRelationRepository.FetchFollowCountByUserId(followReq.FollowingUserID)
+		if err!=nil{
+			log.Println("error in executing goroutine for fetching follow count")
+			return 
+		}
+		if ans.FollowerCount>=49999{
+			as.PostRelationRepository.PromoteToCelebrity()
+		}
+	}()
 
 	return responsemodels.FollowResponse{
 		FollowingUserID: followRes.FollowingUserID,
