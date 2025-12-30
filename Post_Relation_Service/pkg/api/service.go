@@ -50,9 +50,12 @@ func (as *PostRelationServer) EditPost(ctx context.Context, req *pb.EditPostRequ
 	}
 	editPostRes, err := as.PostRelationUsecase.EditPost(editPostReq)
 	if err != nil {
+		fmt.Println("print error")
 		if err == usecase.ErrPostNotFound {
-			return nil, status.Error(codes.NotFound, "post not found")
+			fmt.Println("is in here")
+			return nil, status.Error(codes.NotFound, err.Error())
 		}
+		fmt.Println("means here")
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 	return &pb.EditPostResponse{
@@ -67,7 +70,7 @@ func (as *PostRelationServer) DeletePost(ctx context.Context, req *pb.DeletePost
 	deletPostRes, err := as.PostRelationUsecase.DeletePost(deletePostReq)
 	if err != nil {
 		if err == usecase.ErrPostNotFound {
-			return nil, status.Error(codes.NotFound, "post not found")
+			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
@@ -357,7 +360,7 @@ func (as *PostRelationServer)FetchFollowers(ctx context.Context,req *pb.FetchFol
 func (as *PostRelationServer)FetchFollowing(ctx context.Context,req *pb.FetchFollowingRequest)(*pb.FetchFollowingResponse,error){
 	resp,err:=as.PostRelationUsecase.FetchFollowing(req.UserId)
 	if err!=nil{
-		if err==domain.ErrNoFollowers{
+		if err==domain.ErrNoFollowing{
 			return nil,status.Error(codes.NotFound,err.Error())
 		}
 		return nil,err
@@ -422,6 +425,51 @@ func (as *PostRelationServer)FetchNewsFeed(ctx context.Context,req *pb.FetchNews
 	return &pb.FetchNewsFeedResponse{
 		PostUserData: c,
 		NextCursor: resp.NextCursor,
+		HasMore: resp.HasMore,
+	},nil
+}
+
+func (as *PostRelationServer)FetchGlobalNewsFeed(ctx context.Context,req *pb.FetchGlobalNewsFeedRequest)(*pb.FetchGlobalNewsFeedResponse,error){
+	newsfeedReq:=requestmodels.GlobalNewsFeedRequest{
+		UserID: req.UserId,
+		Limit: int(req.Limit),
+		LastScore: float64(req.LastScore),
+	}
+	resp,err:=as.PostRelationUsecase.FetchGlobalNewsFeed(newsfeedReq)
+	if err!=nil{
+
+	}
+	c:=make([]*pb.PostUserDataWithTrendingScore,len(resp.PostUserData))
+	for i,v:=range resp.PostUserData{
+		var s1 []string
+		for _,v:=range resp.PostUserData[i].Media{
+			s1=append(s1, v.MediaUrl)
+		}
+		c[i]=&pb.PostUserDataWithTrendingScore{
+			PostId: uint64(v.ID),
+			CreatedAt: utils.ToProtoTimestamp(v.CreatedAt),
+			UpdatedAt: utils.ToProtoTimestamp(v.UpdatedAt),
+			UserId: uint64(v.UserID),
+			Caption: v.Caption,
+			PostStatus: v.PostStatus,
+			MediaUrls: s1,
+			LikesCount: uint64(v.LikesCount),
+			CommentsCount: uint64(v.CommentsCount),
+			PostAge: v.Age,
+			IsLiked: v.IsLiked,
+			TrendingScore: float32(v.TrendingScore),
+			UserMetaData: &pb.UserMetaData{
+				UserId: v.UserDetails.UserID,
+				UserName: v.UserDetails.UserName,
+				Name: v.UserDetails.Name,
+				ProfileImgUrl: v.UserDetails.ProfileImgUrl,
+				BlueTick: v.UserDetails.BlueTick,
+			},
+		}
+	}
+	return &pb.FetchGlobalNewsFeedResponse{
+		PostUserData: c,
+		NextCursor: float32(resp.NextCursor),
 		HasMore: resp.HasMore,
 	},nil
 }

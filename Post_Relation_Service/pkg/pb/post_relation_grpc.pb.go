@@ -19,22 +19,23 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PostRelationService_CreatePost_FullMethodName      = "/post_relation.PostRelationService/CreatePost"
-	PostRelationService_FetchAllPosts_FullMethodName   = "/post_relation.PostRelationService/FetchAllPosts"
-	PostRelationService_EditPost_FullMethodName        = "/post_relation.PostRelationService/EditPost"
-	PostRelationService_DeletePost_FullMethodName      = "/post_relation.PostRelationService/DeletePost"
-	PostRelationService_LikePost_FullMethodName        = "/post_relation.PostRelationService/LikePost"
-	PostRelationService_UnlikePost_FullMethodName      = "/post_relation.PostRelationService/UnlikePost"
-	PostRelationService_AddComment_FullMethodName      = "/post_relation.PostRelationService/AddComment"
-	PostRelationService_FetchComments_FullMethodName   = "/post_relation.PostRelationService/FetchComments"
-	PostRelationService_EditComment_FullMethodName     = "/post_relation.PostRelationService/EditComment"
-	PostRelationService_DeleteComment_FullMethodName   = "/post_relation.PostRelationService/DeleteComment"
-	PostRelationService_Follow_FullMethodName          = "/post_relation.PostRelationService/Follow"
-	PostRelationService_Unfollow_FullMethodName        = "/post_relation.PostRelationService/Unfollow"
-	PostRelationService_FetchFollowers_FullMethodName  = "/post_relation.PostRelationService/FetchFollowers"
-	PostRelationService_FetchFollowing_FullMethodName  = "/post_relation.PostRelationService/FetchFollowing"
-	PostRelationService_PostFollowCount_FullMethodName = "/post_relation.PostRelationService/PostFollowCount"
-	PostRelationService_FetchNewsFeed_FullMethodName   = "/post_relation.PostRelationService/FetchNewsFeed"
+	PostRelationService_CreatePost_FullMethodName          = "/post_relation.PostRelationService/CreatePost"
+	PostRelationService_FetchAllPosts_FullMethodName       = "/post_relation.PostRelationService/FetchAllPosts"
+	PostRelationService_EditPost_FullMethodName            = "/post_relation.PostRelationService/EditPost"
+	PostRelationService_DeletePost_FullMethodName          = "/post_relation.PostRelationService/DeletePost"
+	PostRelationService_LikePost_FullMethodName            = "/post_relation.PostRelationService/LikePost"
+	PostRelationService_UnlikePost_FullMethodName          = "/post_relation.PostRelationService/UnlikePost"
+	PostRelationService_AddComment_FullMethodName          = "/post_relation.PostRelationService/AddComment"
+	PostRelationService_FetchComments_FullMethodName       = "/post_relation.PostRelationService/FetchComments"
+	PostRelationService_EditComment_FullMethodName         = "/post_relation.PostRelationService/EditComment"
+	PostRelationService_DeleteComment_FullMethodName       = "/post_relation.PostRelationService/DeleteComment"
+	PostRelationService_Follow_FullMethodName              = "/post_relation.PostRelationService/Follow"
+	PostRelationService_Unfollow_FullMethodName            = "/post_relation.PostRelationService/Unfollow"
+	PostRelationService_FetchFollowers_FullMethodName      = "/post_relation.PostRelationService/FetchFollowers"
+	PostRelationService_FetchFollowing_FullMethodName      = "/post_relation.PostRelationService/FetchFollowing"
+	PostRelationService_PostFollowCount_FullMethodName     = "/post_relation.PostRelationService/PostFollowCount"
+	PostRelationService_FetchNewsFeed_FullMethodName       = "/post_relation.PostRelationService/FetchNewsFeed"
+	PostRelationService_FetchGlobalNewsFeed_FullMethodName = "/post_relation.PostRelationService/FetchGlobalNewsFeed"
 )
 
 // PostRelationServiceClient is the client API for PostRelationService service.
@@ -57,6 +58,7 @@ type PostRelationServiceClient interface {
 	FetchFollowing(ctx context.Context, in *FetchFollowingRequest, opts ...grpc.CallOption) (*FetchFollowingResponse, error)
 	PostFollowCount(ctx context.Context, in *PostFollowCountRequest, opts ...grpc.CallOption) (*PostFollowCountResponse, error)
 	FetchNewsFeed(ctx context.Context, in *FetchNewsFeedRequest, opts ...grpc.CallOption) (*FetchNewsFeedResponse, error)
+	FetchGlobalNewsFeed(ctx context.Context, in *FetchGlobalNewsFeedRequest, opts ...grpc.CallOption) (*FetchGlobalNewsFeedResponse, error)
 }
 
 type postRelationServiceClient struct {
@@ -227,6 +229,16 @@ func (c *postRelationServiceClient) FetchNewsFeed(ctx context.Context, in *Fetch
 	return out, nil
 }
 
+func (c *postRelationServiceClient) FetchGlobalNewsFeed(ctx context.Context, in *FetchGlobalNewsFeedRequest, opts ...grpc.CallOption) (*FetchGlobalNewsFeedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FetchGlobalNewsFeedResponse)
+	err := c.cc.Invoke(ctx, PostRelationService_FetchGlobalNewsFeed_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PostRelationServiceServer is the server API for PostRelationService service.
 // All implementations must embed UnimplementedPostRelationServiceServer
 // for forward compatibility.
@@ -247,6 +259,7 @@ type PostRelationServiceServer interface {
 	FetchFollowing(context.Context, *FetchFollowingRequest) (*FetchFollowingResponse, error)
 	PostFollowCount(context.Context, *PostFollowCountRequest) (*PostFollowCountResponse, error)
 	FetchNewsFeed(context.Context, *FetchNewsFeedRequest) (*FetchNewsFeedResponse, error)
+	FetchGlobalNewsFeed(context.Context, *FetchGlobalNewsFeedRequest) (*FetchGlobalNewsFeedResponse, error)
 	mustEmbedUnimplementedPostRelationServiceServer()
 }
 
@@ -304,6 +317,9 @@ func (UnimplementedPostRelationServiceServer) PostFollowCount(context.Context, *
 }
 func (UnimplementedPostRelationServiceServer) FetchNewsFeed(context.Context, *FetchNewsFeedRequest) (*FetchNewsFeedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FetchNewsFeed not implemented")
+}
+func (UnimplementedPostRelationServiceServer) FetchGlobalNewsFeed(context.Context, *FetchGlobalNewsFeedRequest) (*FetchGlobalNewsFeedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchGlobalNewsFeed not implemented")
 }
 func (UnimplementedPostRelationServiceServer) mustEmbedUnimplementedPostRelationServiceServer() {}
 func (UnimplementedPostRelationServiceServer) testEmbeddedByValue()                             {}
@@ -614,6 +630,24 @@ func _PostRelationService_FetchNewsFeed_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PostRelationService_FetchGlobalNewsFeed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchGlobalNewsFeedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostRelationServiceServer).FetchGlobalNewsFeed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostRelationService_FetchGlobalNewsFeed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostRelationServiceServer).FetchGlobalNewsFeed(ctx, req.(*FetchGlobalNewsFeedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PostRelationService_ServiceDesc is the grpc.ServiceDesc for PostRelationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -684,6 +718,10 @@ var PostRelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FetchNewsFeed",
 			Handler:    _PostRelationService_FetchNewsFeed_Handler,
+		},
+		{
+			MethodName: "FetchGlobalNewsFeed",
+			Handler:    _PostRelationService_FetchGlobalNewsFeed_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

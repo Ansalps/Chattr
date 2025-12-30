@@ -106,6 +106,16 @@ type PostWithStatus struct{
 	Age           string `json:"age" gorm:"-"` // Ignore in DB scan
     UserDetails   UserMetaData `gorm:"-"`      // Ignore in DB scan
 }
+type PostWithStatusWithTrendingScore struct{
+	domain.Post
+	PostStatus string 
+	LikesCount    int64  `gorm:"column:likes_count"`
+	CommentsCount int64  `gorm:"column:comments_count"`
+	IsLiked       bool   `gorm:"column:is_liked"` // New field
+	Age           string `json:"age" gorm:"-"` // Ignore in DB scan
+	TrendingScore float64    `json:"trending_score" gorm:"column:trending_score;->"`
+    UserDetails   UserMetaData `gorm:"-"`      // Ignore in DB scan
+}
 type FetchAllPostsResponse struct {
 	Posts []Post
 }
@@ -133,5 +143,10 @@ type FollowingIds struct{
 type FetchNewsFeedResponse struct{
 	PostUserData []PostWithStatus
 	NextCursor uint64
+	HasMore bool
+}
+type FetchGlobalNewsFeedResponse struct{
+	PostUserData []PostWithStatusWithTrendingScore
+	NextCursor float64
 	HasMore bool
 }

@@ -58,3 +58,8 @@ type FetchNewsFeedRequest struct{
 	LastID uint64
 	PullToRefresh bool
 }
+type GlobalNewsFeedRequest struct{
+	UserID uint64
+	Limit int
+	LastScore float64
+}

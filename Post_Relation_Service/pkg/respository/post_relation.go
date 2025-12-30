@@ -53,8 +53,12 @@ func (ad *PostRelationRepository) CreatePost(createPostReq requestmodels.CreateP
 
 func (ad *PostRelationRepository) EditPostById(editPostReq requestmodels.EditPostRequest) (responsemodels.EditPostResponse, error) {
 	query := `UPDATE posts SET caption=? WHERE user_id=? and id=?`
-	if err := ad.DB.Exec(query, editPostReq.Caption, editPostReq.UserID, editPostReq.PostID).Error; err != nil {
-		return responsemodels.EditPostResponse{}, err
+	result := ad.DB.Exec(query, editPostReq.Caption, editPostReq.UserID, editPostReq.PostID)
+	 if result.Error != nil {
+		return responsemodels.EditPostResponse{}, result.Error
+	}
+	if result.RowsAffected==0{
+		return responsemodels.EditPostResponse{},gorm.ErrRecordNotFound
 	}
 	return responsemodels.EditPostResponse{
 		Caption: editPostReq.Caption,
@@ -312,6 +316,7 @@ func (ad *PostRelationRepository)FetchFollowingUserIds(userid uint64)([]response
 	query:=`SELECT following_id FROM relations WHERE follower_id=$1`
 	result:=ad.DB.Raw(query,userid).Scan(&resp)
 	if result.Error!=nil{
+		fmt.Println("is it reaching in error")
 		return nil,result.Error
 	}
 	if result.RowsAffected==0{
@@ -360,8 +365,8 @@ func (ad *PostRelationRepository) FetchNormalPostData(newsfeedReq requestmodels.
     // Subquery to get Followings who are NOT celebrities
     normalFollowingSubquery := ad.DB.Table("relations").
         Select("following_id").
-        Where("follower_id = ? AND following_id NOT IN (SELECT user_id FROM celebrities)", newsfeedReq.UserID)
-
+        Where("follower_id = ? AND following_id NOT IN (SELECT id FROM celebrities)", newsfeedReq.UserID)
+	fmt.Println("user id",newsfeedReq.UserID)
     query := ad.DB.Table("posts").
         Select(`posts.*, 
 		(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count,
@@ -443,4 +448,129 @@ func (ad *PostRelationRepository)DepromoteToNormalUser(userid uint64)error{
 		return result.Error
 	}
 	return nil
+}
+
+// func (ad *PostRelationRepository) FetchGlobalTrendingSQL(req requestmodels.GlobalNewsFeedRequest) ([]responsemodels.PostWithStatusWithTrendingScore, error) {
+//     var resp []responsemodels.PostWithStatusWithTrendingScore
+
+//     // The formula: (Likes + Comments) / (HoursOld + 2)^1.8
+//     scoreFormula := `(
+//         (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) + 
+//         (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id)
+//     ) / POWER(TIMESTAMPDIFF(HOUR, posts.created_at, NOW()) + 2, 1.8)`
+
+//     // In GORM, we can pass multiple arguments to Select or use comma-separated strings
+//     query := ad.DB.Table("posts").
+//         Select("posts.*", 
+//             scoreFormula + " AS trending_score",
+//             "(SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as likes_count",
+//             "(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count",
+//             "EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked", req.UserID).
+//         Where("posts.post_status = ?", "normal").
+//         Where("posts.created_at > NOW() - INTERVAL '7 DAY'")
+
+//     // Use Having for the calculated column 'trending_score'
+//     if req.LastScore > 0 {
+//         query = query.Having("trending_score < ?", req.LastScore)
+//     }
+
+//     err := query.Order("trending_score DESC, posts.id DESC").
+//         Limit(req.Limit+1).
+//         Preload("Media").
+//         Find(&resp).Error
+
+//     return resp, err
+// }
+
+// func (ad *PostRelationRepository) FetchGlobalTrendingSQL(req requestmodels.GlobalNewsFeedRequest) ([]responsemodels.PostWithStatusWithTrendingScore, error) {
+//     var resp []responsemodels.PostWithStatusWithTrendingScore
+
+//     // 1. Define the formula (Postgres compatible: EXTRACT EPOCH for hours)
+//     scoreFormula := `(
+//         (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) + 
+//         (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id)
+//     ) / POWER(EXTRACT(EPOCH FROM (NOW() - posts.created_at))/3600 + 2, 1.8)`
+
+//     // 2. Build the Inner Query (The "Virtual" Table)
+//     subQuery := ad.DB.Table("posts").
+//         Select("posts.*", 
+//             scoreFormula+" AS trending_score",
+//             "(SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as likes_count",
+//             "(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count",
+//             "EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked", req.UserID).
+//         Where("posts.post_status = ?", "normal").
+//         Where("posts.created_at > NOW() - INTERVAL '7 days'")
+
+//     // 3. Main Query using the subquery
+//     query := ad.DB.Table("(?) AS trending_posts", subQuery)
+
+//     // Now 'trending_score' exists as a real column in the 'trending_posts' context
+//     if req.LastScore > 0 {
+//         query = query.Where("trending_score < ?", req.LastScore)
+//     }
+
+//     err := query.Order("trending_score DESC, id DESC").
+//         Limit(req.Limit + 1).
+//         Preload("Media"). // Note: Preload might need manual mapping if IDs get lost, but usually works
+//         Find(&resp).Error
+
+//     return resp, err
+// }
+func (ad *PostRelationRepository) FetchGlobalTrendingSQL(req requestmodels.GlobalNewsFeedRequest) ([]responsemodels.PostWithStatusWithTrendingScore, error) {
+    var resp []responsemodels.PostWithStatusWithTrendingScore
+
+    // 1. Define formula (Postgres uses EXTRACT EPOCH)
+    scoreFormula := `(
+        (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) + 
+        (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id)
+    ) / POWER(EXTRACT(EPOCH FROM (NOW() - posts.created_at))/3600 + 2, 1.8)`
+
+    // 2. Build the full query string
+    // We wrap it in a CTE (Common Table Expression) or Subquery so trending_score is accessible
+    rawSQL := fmt.Sprintf(`
+        SELECT * FROM (
+            SELECT 
+                posts.*, 
+                (%s) AS trending_score,
+                (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as likes_count,
+                (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+                EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked
+            FROM posts
+            WHERE posts.post_status = 'normal' 
+            AND posts.created_at > NOW() - INTERVAL '7 days'
+        ) AS result
+        WHERE 1=1
+    `, scoreFormula)
+
+    // 3. Add pagination filter
+    args := []interface{}{req.UserID}
+    if req.LastScore > 0 {
+        rawSQL += " AND trending_score < ?"
+        args = append(args, req.LastScore)
+    }
+
+    // 4. Add Ordering and Limit
+    rawSQL += " ORDER BY trending_score DESC, id DESC LIMIT ?"
+    args = append(args, req.Limit+1)
+
+    // 5. Execute
+    err := ad.DB.Raw(rawSQL, args...).Scan(&resp).Error
+    if err != nil {
+        return nil, err
+    }
+
+    // 6. Manual Preload (Since Raw doesn't support .Preload automatically)
+    if len(resp) > 0 {
+        var postIDs []uint
+        for _, p := range resp {
+            postIDs = append(postIDs, p.ID)
+        }
+        // Assuming your Post struct has a Media field
+        var allMedia []domain.PostMedia
+        ad.DB.Where("post_id IN ?", postIDs).Find(&allMedia)
+        
+        // Map media back to posts (or use GORM's Preload on a separate query if preferred)
+    }
+
+    return resp, nil
 }

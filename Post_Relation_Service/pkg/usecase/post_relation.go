@@ -28,7 +28,7 @@ type PostRelationUsecase struct {
 
 var (
 	ErrPostNotFound     = errors.New("Post Not found or user does not have permission")
-	ErrPostLikeNotFound = errors.New("Post Like Not found or like does not belong to the user")
+	ErrPostLikeNotFound = errors.New("Post Not found or post has never been liked by the user")
 	ErrRecursiveComment = errors.New("can't reply to a comment reply")
 	ErrCommentNotFound  = errors.New("comment doesn't exist or post doesn't exist or user does not have permission")
 	ErrFollowOwn        = errors.New("can't follow yourself")
@@ -68,7 +68,7 @@ func (as *PostRelationUsecase) CreatePost(createPostReq requestmodels.CreatePost
 		if err != nil || len(followers) == 0 {
 			return
 		}
-		if len(followers) > 50000 {
+		if len(followers) > 5 {
 			key := fmt.Sprintf("celeb:posts:%d", createPostReq.UserID)
 
 			pipe := as.RedisRepository.Pipeline()
@@ -159,7 +159,7 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 		if err != nil || len(followers) == 0 {
 			return
 		}
-		if len(followers) > 50000 {
+		if len(followers) > 5 {
 			key := fmt.Sprintf("celeb:posts:%d", deletePostReq.UserID)
 			// ZRem removes the specific PostID from the ZSet
 			pipe := as.RedisRepository.Pipeline()
@@ -326,7 +326,7 @@ func (as *PostRelationUsecase) Follow(followReq requestmodels.FollowRequest) (re
 			log.Println("error in executing goroutine for fetching follow count")
 			return
 		}
-		if ans.FollowerCount >= 2 {
+		if ans.FollowerCount > 5 {
 			err := as.PostRelationRepository.PromoteToCelebrity(followReq.FollowingUserID)
 			if err != nil {
 				log.Println("database error in promoting to celebrrity", err)
@@ -372,7 +372,7 @@ func (as *PostRelationUsecase) Unfollow(unfollowReq requestmodels.UnfollowReques
 			log.Println("error in executing goroutine for fetching follow count")
 			return
 		}
-		if ans.FollowerCount <= 3 {
+		if ans.FollowerCount <= 5 {
 			err := as.PostRelationRepository.DepromoteToNormalUser(unfollowReq.UnfollowingUserID)
 			if err != nil {
 				log.Println("database error in depromoting to normal user", err)
@@ -529,6 +529,7 @@ func (as *PostRelationUsecase) FetchFollowers(userid uint64) (responsemodels.Fet
 func (as *PostRelationUsecase) FetchFollowing(userid uint64) (responsemodels.FetchFollowingResponse, error) {
 	resp, err := as.PostRelationRepository.FetchFollowingUserIds(userid)
 	if err != nil {
+		fmt.Println("print the erro in fetch followin",err)
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.FetchFollowingResponse{}, domain.ErrNoFollowing
 		}
@@ -677,32 +678,92 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 	version := as.getFeedVersion(ctx, newsfeedReq.UserID)
 	normalCacheKey := fmt.Sprintf("newsfeed:normal:%d:v:%s:lim:%d:last:%d", newsfeedReq.UserID, version, newsfeedReq.Limit, newsfeedReq.LastID)
 
-	var normalPosts []responsemodels.PostWithStatus
+	var normalPosts1 []responsemodels.PostWithStatus
 	cacheHit := false
 
 	if !newsfeedReq.PullToRefresh {
 		cachedData, err := as.RedisRepository.CacheGet(ctx, normalCacheKey)
 		if err == nil {
-			json.Unmarshal([]byte(cachedData), &normalPosts)
+			json.Unmarshal([]byte(cachedData), &normalPosts1)
 			cacheHit = true
 			fmt.Println("returnnig cached response of normal users")
 		}
 	}
 
+	// 3. LIVE INJECTION: Get Celebrity Posts
+	celebIDs, _ := as.PostRelationRepository.GetFollowedCelebrityIDs(newsfeedReq.UserID)
+	var celebPosts []responsemodels.PostWithStatus
+	
+	//var userResp1 *pb.BatchUserMetadataResponse
+
 	// 2. IF CACHE MISS: Get Normal Posts from DB
 	if !cacheHit {
-		normalPosts, _ = as.PostRelationRepository.FetchNormalPostData(newsfeedReq)
+		normalPosts, err := as.PostRelationRepository.FetchNormalPostData(newsfeedReq)
+		if err!=nil{
+			log.Println("what is the error in fetching normal posts",err)
+		}
+		fmt.Println("length of normal posts",len(normalPosts))
+			userIDs := make(map[uint64]bool)
+
+			for _, v := range normalPosts {
+
+				userIDs[uint64(v.UserID)] = true
+			}
+	
+		userids := make([]uint64, len(userIDs))
+		i := 0
+		for k := range userIDs {
+			userids[i] = k
+			i++
+		}
+		userids=append(userids, celebIDs...)
+
+		userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+					UserId: userids,
+				})
+				//fmt.Println("userResp",userResp)
+		if err != nil {
+			log.Println("error calling service auth_subcription", err)
+			return responsemodels.FetchNewsFeedResponse{}, err
+		}
+		//userResp1=userResp
+		//fmt.Println("**********")
+			for i, v := range normalPosts {
+				//fmt.Println("is it reaching here in looping normalPostss")
+				uid := uint64(v.UserID)
+				//fmt.Println("uid",uid)
+				// SAFE MAPPING: check if user exists in the map
+				if userData, ok := userResp.Users[uid]; ok {
+					//fmt.Println("what about here",ok,userData,userResp.Users[uid])
+					normalPosts[i].UserDetails = responsemodels.UserMetaData{
+						UserID:        userData.UserId,
+						UserName:      userData.UserName,
+						Name:          userData.Name,
+						ProfileImgUrl: userData.ProfileImgUrl,
+						BlueTick:      userData.BlueTick,
+					}
+					//fmt.Println("normalPosts[i] hi hello hi hello",normalPosts[i])
+				} else {
+					log.Printf("Warning: Metadata for user %d not found in auth service", uid)
+				}
+
+				normalPosts[i].Age = utils.CalcuateCommentAge(v.CreatedAt)
+			}
+			normalPosts1=normalPosts
+			//fmt.Println("normal posts",normalPosts)
 		// Store in cache for 5 minutes
-		data, _ := json.Marshal(normalPosts)
+		data, err := json.Marshal(normalPosts)
+		if err!=nil{
+			log.Println("error in marshalling json",err)
+		}
+		//fmt.Println("data",data)
 		fmt.Println("returning posts of normal users from db")
 		as.RedisRepository.CacheSet(ctx, normalCacheKey, data, 5*time.Minute)
 	}
 
-	// 3. LIVE INJECTION: Get Celebrity Posts
-	celebIDs, _ := as.PostRelationRepository.GetFollowedCelebrityIDs(newsfeedReq.UserID)
-	var celebPosts []responsemodels.PostWithStatus
+	
 
-	if len(celebIDs) > 0 {
+	if len(celebIDs) > 0  {
         // A. Try pulling IDs from Redis ZSets
         celebPostIDs, err := as.RedisRepository.PullCelebPostIDsFromRedis(ctx, celebIDs, newsfeedReq.LastID, int(newsfeedReq.Limit))
         
@@ -724,18 +785,62 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
         // C. Hydrate those IDs from SQL (Get full post details, counts, etc.)
         if len(celebPostIDs) > 0 {
 			fmt.Println("showning response from db, but fecthed post ids though cache")
-            celebPosts, _ = as.PostRelationRepository.FetchPostsByIDs(celebPostIDs, newsfeedReq.UserID)
+            celebPosts, err = as.PostRelationRepository.FetchPostsByIDs(celebPostIDs, newsfeedReq.UserID)
+			if err!=nil{
+				log.Println("failed to fetch celeb posts by id")
+			}
+			userIDs := make(map[uint64]bool)
+
+			for _, v := range celebPosts {
+
+				userIDs[uint64(v.UserID)] = true
+			}
+			userids := make([]uint64, len(userIDs))
+		i := 0
+		for k := range userIDs {
+			userids[i] = k
+			i++
+		}
+		userids=append(userids, celebIDs...)
+
+		userResp2, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+					UserId: userids,
+				})
+				//fmt.Println("userResp",userResp)
+		if err != nil {
+			log.Println("error calling service auth_subcription", err)
+			return responsemodels.FetchNewsFeedResponse{}, err
+		}
+			for i, v := range celebPosts {
+				uid := uint64(v.UserID)
+
+				// SAFE MAPPING: check if user exists in the map
+				if userData, ok := userResp2.Users[uid]; ok {
+					celebPosts[i].UserDetails = responsemodels.UserMetaData{
+						UserID:        userData.UserId,
+						UserName:      userData.UserName,
+						Name:          userData.Name,
+						ProfileImgUrl: userData.ProfileImgUrl,
+						BlueTick:      userData.BlueTick,
+					}
+				} else {
+					log.Printf("Warning: Metadata for user %d not found in auth service", uid)
+				}
+
+				celebPosts[i].Age = utils.CalcuateCommentAge(v.CreatedAt)
+			}
         }
     }else{
 		fmt.Println("just printing to see number of celeb id is 0, means no data for celebs")
 	}
-
+	//fmt.Println("normalPosts*******************************************",normalPosts1)
+	//fmt.Println("celeb posts*************************************",celebPosts)
 	// 4. MERGE & SORT
-	allPosts := append(normalPosts, celebPosts...)
+	allPosts := append(normalPosts1, celebPosts...)
 	sort.Slice(allPosts, func(i, j int) bool {
 		return allPosts[i].ID > allPosts[j].ID
 	})
-
+	//fmt.Println("all posts****************************",allPosts)
 	// 5. ENRICH (User Metadata from Auth Service)
 	// ... use your existing userResp / AuthSubscriptionClient logic here ...
 
@@ -818,4 +923,72 @@ func (as *PostRelationUsecase) getFeedVersion(ctx context.Context, userID uint64
 		log.Println("failed to extend ttl")
 	}
 	return string(version)
+}
+
+func (as *PostRelationUsecase)FetchGlobalNewsFeed(req requestmodels.GlobalNewsFeedRequest)(responsemodels.FetchGlobalNewsFeedResponse,error){
+	postResp,err:=as.PostRelationRepository.FetchGlobalTrendingSQL(req)
+	if err!=nil{
+		return responsemodels.FetchGlobalNewsFeedResponse{},err
+	}
+
+	userIDs := make(map[uint64]bool)
+
+	for _, v := range postResp {
+
+		userIDs[uint64(v.UserID)] = true
+	}
+
+	userids := make([]uint64, len(userIDs))
+	i := 0
+	for k := range userIDs {
+		userids[i] = k
+		i++
+	}
+
+	userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+		UserId: userids,
+	})
+	if err != nil {
+		log.Println("error calling service auth_subcription", err)
+		return responsemodels.FetchGlobalNewsFeedResponse{}, err
+	}
+	for i, v := range postResp {
+		uid := uint64(v.UserID)
+
+		// SAFE MAPPING: check if user exists in the map
+		if userData, ok := userResp.Users[uid]; ok {
+			postResp[i].UserDetails = responsemodels.UserMetaData{
+				UserID:        userData.UserId,
+				UserName:      userData.UserName,
+				Name:          userData.Name,
+				ProfileImgUrl: userData.ProfileImgUrl,
+				BlueTick:      userData.BlueTick,
+			}
+		} else {
+			log.Printf("Warning: Metadata for user %d not found in auth service", uid)
+		}
+
+		postResp[i].Age = utils.CalcuateCommentAge(v.CreatedAt)
+	}
+
+
+	 	var nextCursor float64
+ 		hasMore := false
+ 		if len(postResp) > int(req.Limit) {
+ 			hasMore = true
+ 		// Remove the extra item so the user only gets the 10 they asked for
+ 		postResp = postResp[:req.Limit]
+ 		}
+	 	if len(postResp) > 0 {
+ 		// The ID of the last item in our result is the cursor for the next request
+ 		nextCursor = postResp[len(postResp)-1].TrendingScore
+ 	}
+
+		finalResponse := responsemodels.FetchGlobalNewsFeedResponse{
+			PostUserData: postResp,
+			NextCursor:   nextCursor,
+			HasMore:      hasMore,
+		}
+
+		return finalResponse,nil
 }

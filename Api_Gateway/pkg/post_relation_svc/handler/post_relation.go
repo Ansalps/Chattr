@@ -161,7 +161,9 @@ func (as *PostRelationHandler) EditPost(c *gin.Context) {
 	editPostRequest.UserID = jwtClaims.ID
 	editPostResponse, err := as.GPPC_Client.EditPost(editPostRequest)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.ClientResponse(http.StatusInternalServerError, "error from grpc", err))
+		fmt.Println("will it reach inside")
+		code, msg := utils.GRPCtoHTTP(err)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "Post edited Successfully", editPostResponse))
@@ -583,7 +585,7 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 		return
 	}
 	
-	c.JSON(http.StatusOK, finalResp)
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK,"all posts of user fectched successfully",finalResp))
 }
 
 func (as *PostRelationHandler)FetchFollowers(c *gin.Context){
@@ -725,4 +727,79 @@ func (as *PostRelationHandler)FetchNewsFeed(c *gin.Context){
         HasMore:    resp.HasMore,
 	}
 	c.JSON(http.StatusOK,finallyResp)
+}
+
+func (as *PostRelationHandler)FetchGlobalNewseed(c *gin.Context){
+	var req requestmodels.GlobalNewsFeedRequest
+	//lastIdStr:=c.Query("last_id")
+	lastScoreStr:=c.Query("last_score")
+	
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
+		return
+	}
+	req.UserID=jwtClaims.ID
+	// 1. Parse LastID (The Cursor)
+    //lastID, _ := strconv.ParseUint(lastIdStr, 10, 64)
+	lastScore,_:=strconv.ParseFloat(lastScoreStr,64)
+	
+    req.LastScore = lastScore
+	limitStr := c.Query("limit")
+
+	
+
+	limit, err := strconv.Atoi(limitStr)
+
+	if err != nil || limit < 1 || limit > 100 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(limit), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+		return
+	}
+
+	
+	req.Limit = limit
+	resp,err:=as.DirectPostClient.Client.FetchGlobalNewsFeed(context.Background(),&post_relation.FetchGlobalNewsFeedRequest{
+		Limit: int64(req.Limit),
+		LastScore: float32(req.LastScore),
+		UserId: req.UserID,
+	})
+	if err!=nil{
+
+	}
+	var finalResp []responsemodels.PostDataWithTrendingScore
+	for _, v := range resp.PostUserData {
+		var s1 []string
+		for _, v1 := range v.MediaUrls {
+			s1 = append(s1, v1)
+		}
+		finalResp = append(finalResp, responsemodels.PostDataWithTrendingScore{
+			PostID:        v.PostId,
+			CreatedAt:     v.CreatedAt.AsTime().Local(),
+			UpdatedAt:     v.UpdatedAt.AsTime().Local(),
+			UserID:        v.UserId,
+			Caption:       v.Caption,
+			MediaUrls:     s1,
+			LikeCount:     v.LikesCount,
+			CommentsCount: v.CommentsCount,
+			PostAge:       v.PostAge,
+			IsLiked: v.IsLiked,
+			TrendingScore: float64(v.TrendingScore),
+			UserData: responsemodels.UserMetaData{
+				UserID: v.UserMetaData.UserId,
+				UserName: v.UserMetaData.UserName,
+				Name: v.UserMetaData.Name,
+				ProfileImgUrl: v.UserMetaData.ProfileImgUrl,
+				BlueTick: v.UserMetaData.BlueTick,
+			},
+		})
+	}
+	c.JSON(http.StatusOK,finalResp)
 }

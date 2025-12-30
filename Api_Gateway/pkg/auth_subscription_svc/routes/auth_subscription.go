@@ -18,8 +18,8 @@ func AuthSubscriptionRoutes(router *gin.Engine, authSubscriptionHandler *handler
 	router.GET("/admin/get-all-users",authMiddleware.VerifyJwt([]string{"admin"},"access",tokenSecurityKey.AdminSecurityKey),authSubscriptionHandler.GetAllUsers)
 	router.POST("/admin/subscription-plan",authMiddleware.VerifyJwt([]string{"admin"},"access",tokenSecurityKey.AdminSecurityKey),authSubscriptionHandler.CreateSubscriptionPlan)
 
-	router.PATCH("/admin/subscription-plan/activate/:id",authMiddleware.VerifyJwt([]string{"admin"},"access",tokenSecurityKey.AdminSecurityKey),authSubscriptionHandler.ActivateSubscriptionPlan)
-	router.PATCH("/admin/subscription-plan/deactivate/:id",authMiddleware.VerifyJwt([]string{"admin"},"access",tokenSecurityKey.AdminSecurityKey),authSubscriptionHandler.DeactivateSubscriptionPlan)
+	router.PATCH("/admin/subscription-plan/:id/activate",authMiddleware.VerifyJwt([]string{"admin"},"access",tokenSecurityKey.AdminSecurityKey),authSubscriptionHandler.ActivateSubscriptionPlan)
+	router.PATCH("/admin/subscription-plan/:id/deactivate",authMiddleware.VerifyJwt([]string{"admin"},"access",tokenSecurityKey.AdminSecurityKey),authSubscriptionHandler.DeactivateSubscriptionPlan)
 	router.GET("/admin/subscription-plan/get-all-subscription-plans",authMiddleware.VerifyJwt([]string{"admin"},"access",tokenSecurityKey.AdminSecurityKey),authSubscriptionHandler.GetAllSubscriptionPlans)
 
 	router.POST("/user/signup",authSubscriptionHandler.UserSignUp)

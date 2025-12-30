@@ -25,6 +25,32 @@ service PostRelationService{
     rpc PostFollowCount(PostFollowCountRequest) returns (PostFollowCountResponse);
 
     rpc FetchNewsFeed(FetchNewsFeedRequest) returns (FetchNewsFeedResponse);
+    rpc FetchGlobalNewsFeed(FetchGlobalNewsFeedRequest) returns (FetchGlobalNewsFeedResponse);
+}
+message FetchGlobalNewsFeedRequest{
+    uint64 UserId=1;
+    int64 Limit=2;
+    float LastScore=3;
+}
+message PostUserDataWithTrendingScore{
+    uint64 PostId=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    uint64 UserId=4;
+    string Caption=5;
+    string PostStatus=6;
+    repeated string MediaUrls=7;
+    uint64 LikesCount=8;
+    uint64 CommentsCount=9;
+    string PostAge=10;
+    bool IsLiked=11;
+    float TrendingScore=12;
+    UserMetaData userMetaData=13;
+}
+message FetchGlobalNewsFeedResponse{
+    repeated PostUserDataWithTrendingScore postUserData=1;
+    float NextCursor=2;
+    bool HasMore=3;
 }
 message FetchNewsFeedRequest{
     uint64 UserId=1;

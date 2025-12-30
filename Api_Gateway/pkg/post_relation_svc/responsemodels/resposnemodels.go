@@ -100,8 +100,28 @@ type PostData struct{
 	UserData UserMetaData
 }
 
+
 type FetchNewsFeedResponse struct{
 	PostUserData []PostData
+	NextCursor uint64
+	HasMore bool
+}
+type PostDataWithTrendingScore struct{
+	PostID uint64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID uint64
+	Caption string
+	MediaUrls []string
+	LikeCount     uint64
+	CommentsCount uint64
+	PostAge       string
+	IsLiked bool
+	TrendingScore float64
+	UserData UserMetaData
+}
+type FetchGlobalNewsFeedResponse struct{
+	PostUserData []PostDataWithTrendingScore
 	NextCursor uint64
 	HasMore bool
 }

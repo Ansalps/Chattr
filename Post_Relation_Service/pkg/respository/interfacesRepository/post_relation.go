@@ -37,4 +37,6 @@ type PostRelationRepository interface {
 
 	PromoteToCelebrity(userid uint64)error
 	DepromoteToNormalUser(userid uint64)error
+
+	FetchGlobalTrendingSQL(requestmodels.GlobalNewsFeedRequest)([]responsemodels.PostWithStatusWithTrendingScore,error)
 }
