@@ -22,8 +22,8 @@ type Token struct{
 	UserRefreshKey string `mapstructure:"USER_REFRESH_KEY"`
 }
 type Razorpay struct{
-	KeyId string	`mapstructure:"KEY_ID"`
-	KeySecret string	`mapstructure:"KEY_SECRET"`
+	KeyId string	`mapstructure:"RAZORPAY_KEY_ID"`
+	KeySecret string	`mapstructure:"RAZORPAY_KEY_SECRET"`
 }
 type Smtp struct {
 	SmtpSender   string `mapstructure:"SMTP_SENDER"`

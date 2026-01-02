@@ -528,7 +528,7 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 	//razorpayClient:=utils.NewRazorpayClient(as.RazorpayCredentials.KeyId,as.RazorpayCredentials.KeySecret)
 	subscriptionData := map[string]interface{}{
 		"plan_id":         RazorpayPlanId,
-		"total_count":     120,
+		"total_count":     12,
 		"quantity":        1,
 		"customer_notify": 1,
 	}

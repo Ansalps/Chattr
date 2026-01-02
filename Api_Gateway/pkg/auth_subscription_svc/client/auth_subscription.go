@@ -476,20 +476,20 @@ func (as *AuthSubscriptionClient)GetProfileInformation(req requestmodels.GetProf
 	},nil
 }
 
-// func (as *AuthSubscriptionClient)Webhook(webhookReq requestmodels.WebhookRequest)(responsemodels.WebhookResponse,error){
-// 	resp,err:=as.Client.Webhook(context.Background(),&auth_subscription.WebhookRequest{
-// 		Event: webhookReq.Event,
-// 		Payload: &auth_subscription.Payload{
-// 			Subscription: &auth_subscription.Subscription{
-// 				Id: webhookReq.Payload.Subscription.ID,
-// 			},
-// 		},
-// 	})
-// 	if err!=nil{
-// 		return responsemodels.WebhookResponse{},nil
-// 	}
-// 	return responsemodels.WebhookResponse{
-// 		RazropaySubscriptinId:resp.RazorpaySubscriptionId,
-// 		Event: resp.Event,
-// 	},nil
-// }
+func (as *AuthSubscriptionClient)Webhook(webhookReq requestmodels.WebhookRequest)(responsemodels.WebhookResponse,error){
+	resp,err:=as.Client.Webhook(context.Background(),&auth_subscription.WebhookRequest{
+		Event: webhookReq.Event,
+		Payload: &auth_subscription.Payload{
+			Subscription: &auth_subscription.Subscription{
+				Id: webhookReq.Payload.Subscription.ID,
+			},
+		},
+	})
+	if err!=nil{
+		return responsemodels.WebhookResponse{},nil
+	}
+	return responsemodels.WebhookResponse{
+		RazropaySubscriptinId:resp.RazorpaySubscriptionId,
+		Event: resp.Event,
+	},nil
+}

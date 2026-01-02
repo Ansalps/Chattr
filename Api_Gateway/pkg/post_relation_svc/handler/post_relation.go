@@ -789,7 +789,7 @@ func (as *PostRelationHandler)FetchGlobalNewseed(c *gin.Context){
 			MediaUrls:     s1,
 			LikeCount:     v.LikesCount,
 			CommentsCount: v.CommentsCount,
-			PostAge:       v.PostAge,
+			PostAge:       v.PostAge,	
 			IsLiked: v.IsLiked,
 			TrendingScore: float64(v.TrendingScore),
 			UserData: responsemodels.UserMetaData{

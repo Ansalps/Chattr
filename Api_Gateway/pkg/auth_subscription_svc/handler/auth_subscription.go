@@ -1099,44 +1099,44 @@ func (as *AuthSubscriptionHandler) Logout(c *gin.Context) {
 	})
 }
 
-// func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
-// 	fmt.Println("is it reaching in webhook")
-// 	body, err := io.ReadAll(c.Request.Body)
-// 	if err != nil {
-// 		c.JSON(http.StatusBadRequest, response.ClientResponse(400, "Invalid body", nil))
-// 		return
-// 	}
-// 	signature := c.GetHeader("X-Razorpay-Signature")
-// 	fmt.Println("is it getting signature", signature)
-// 	if !utils.VerifyRazorpayWebhookSignature(body, as.config.Razorpay.WebhookSecret, signature) {
-// 		fmt.Println("invalid signature is the problem")
-// 		c.JSON(http.StatusForbidden, response.ClientResponse(http.StatusForbidden, "invalid signature", nil))
-// 	}
-// 	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
-// 	fmt.Println("signature is verfied")
-// 	var webhookReq requestmodels.WebhookRequest
-// 	fmt.Println("after signature verifcation")
-// 	if err := c.ShouldBindJSON(&webhookReq); err != nil {
-// 		fmt.Println("understand")
-// 		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-// 			fmt.Println("What woul be", validationErrors)
-// 			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-// 			return
-// 		}
-// 		log.Printf("Bind error: %v", err)
-// 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
-// 		return
-// 	}
-// 	fmt.Println("hello hi verification")
-// 	fmt.Println("print the webhook event", webhookReq.Event)
-// 	if webhookReq.Event != "subscription.completed" {
-// 		c.JSON(http.StatusPreconditionFailed, response.ClientResponse(http.StatusPreconditionFailed, "Not the expected event", nil))
-// 		return
-// 	}
-// 	WebhookResponse, err := as.GPPC_Client.Webhook(webhookReq)
-// 	if err != nil {
-
-// 	}
-// 	fmt.Println(WebhookResponse)
-// 	c.JSON(http.StatusOK, WebhookResponse)
-// }
+func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
+	fmt.Println("is it reaching in webhook")
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(400, "Invalid body", nil))
+		return
+	}
+	signature := c.GetHeader("X-Razorpay-Signature")
+	fmt.Println("is it getting signature", signature)
+	if !utils.VerifyRazorpayWebhookSignature(body, as.config.Razorpay.WebhookSecret, signature) {
+		fmt.Println("invalid signature is the problem")
+		c.JSON(http.StatusForbidden, response.ClientResponse(http.StatusForbidden, "invalid signature", nil))
+	}
+	//c.Request.Body = io.NopCloser(body)
+	fmt.Println("signature is verfied")
+	var webhookReq requestmodels.WebhookRequest
+	fmt.Println("after signature verifcation")
+	if err := c.ShouldBindJSON(&webhookReq); err != nil {
+		fmt.Println("understand")
+		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
+			fmt.Println("What woul be", validationErrors)
+			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
+			return
+		}
+		log.Printf("Bind error: %v", err)
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+		return
+	}
+	fmt.Println("hello hi verification")
+	fmt.Println("print the webhook event", webhookReq.Event)
+	if webhookReq.Event != "subscription.completed" {
+		c.JSON(http.StatusPreconditionFailed, response.ClientResponse(http.StatusPreconditionFailed, "Not the expected event", nil))
+		return
+	}
+	WebhookResponse, err := as.GPPC_Client.Webhook(webhookReq)
+	if err != nil {
+		
+	}
+	fmt.Println(WebhookResponse)
+	c.JSON(http.StatusOK, WebhookResponse)
+}
