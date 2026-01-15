@@ -1,0 +1,22 @@
+package interfacesrepository
+
+import (
+	"github.com/Ansalps/Chattr_Chat_Service/pkg/domain"
+	"github.com/Ansalps/Chattr_Chat_Service/pkg/requestmodels"
+	"github.com/Ansalps/Chattr_Chat_Service/pkg/responsemodels"
+)
+
+type ChatRepository interface {
+	CreateGroup(requestmodels.CreateGroupRequest) (responsemodels.CreateGroupResponse, error)
+	ExistingMembers(string) ([]uint64, error)
+	AddMembers(requestmodels.AddMembersRequest) (responsemodels.AddMembersResponse, error)
+	CreatorID(string) (uint64, error)
+	RemoveMember(requestmodels.RemoveMemberRequest) (responsemodels.RemoveMemberResponse, error)
+	FetchMembersOfGroup(groupId string) ([]uint64, error)
+
+	StoreIndividualChatInMessages(domain.Message) error
+	StoreOrUpdateIndividualChatInConversation(conversation domain.Conversation)(error)
+
+	StoreGroupChatInMessages(domain.Message)error
+	StoreOrUpdateGroupChatInConversation(domain.Conversation)(error)
+}

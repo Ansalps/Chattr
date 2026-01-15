@@ -12,6 +12,9 @@ import (
 	postClient "github.com/Ansalps/Chattr_Api_Gateway/pkg/post_relation_svc/client"
 	postRelationHandler "github.com/Ansalps/Chattr_Api_Gateway/pkg/post_relation_svc/handler"
 	postRelationRoutes "github.com/Ansalps/Chattr_Api_Gateway/pkg/post_relation_svc/routes"
+
+	chatServiceHandler "github.com/Ansalps/Chattr_Api_Gateway/pkg/chat_svc/handler"
+	chatServiceRoutes "github.com/Ansalps/Chattr_Api_Gateway/pkg/chat_svc/routes"
 	"github.com/gin-gonic/gin"
 )
 
@@ -30,10 +33,12 @@ func DependencyInjection(router *gin.Engine, cfg *config.Config) error {
 	authSubscriptionHandler := authHandler.NewAuthSubscriptionHandler(authSubscriptionClient, cfg, authSubClient,postDirectClient,RedisRepository)
 	authRoutes.AuthSubscriptionRoutes(router, authSubscriptionHandler, &cfg.Token,AuthMiddleware)
 
-	
-
-
 	postRelationHandler := postRelationHandler.NewPostRelationHandler(postRelationClient, cfg,authSubClient,postDirectClient)
 	postRelationRoutes.PostRelationRoutes(router, postRelationHandler, cfg,AuthMiddleware)
+
+	chatHandler:=chatServiceHandler.NewChatHandler(cfg)
+	chatServiceRoutes.ChatRoutes(router,chatHandler,cfg,AuthMiddleware)
+
+
 	return nil
 }
