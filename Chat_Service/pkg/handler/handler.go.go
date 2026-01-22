@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
 	"strconv"
 	"time"
 
@@ -239,6 +240,10 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 				log.Println("can't send message to group failed to fetch user ids",err)
 				break
 			}
+			if !slices.Contains(userIds,dm.SenderID){
+				log.Println("can't send message because sender is not a group member")
+				break
+			}
 			syncTime:=time.Now()
 			msgStruct:=domain.Message{
 				MessageID: uuid.NewString(),
@@ -304,26 +309,40 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 func (as *ChatHandler) AddMembers(c *gin.Context) {
+	fmt.Println("why is it not reaching in AddMembers Handler?")
 	var req requestmodels.AddMembersRequest
 
-	userIdStr := c.GetHeader("X-User_Id")
-	userID, _ := strconv.ParseUint(userIdStr, 10, 64)
+	userIdStr := c.GetHeader("X-User-Id")
+	if userIdStr==""{
+		c.JSON(http.StatusUnauthorized,gin.H{
+			"error":"no access",
+		})
+		return
+	}
+	userID, err := strconv.ParseUint(userIdStr, 10, 64)
+	if err!=nil{
+		c.JSON(http.StatusInternalServerError,gin.H{
+			"error":"error in parsing",
+		})
+	}
+	
 	req.UserID = userID
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Println("error binding request in chat service", err)
 		return
 	}
-
+	fmt.Println("req in handler",req)
 	resp, err := as.ChatUsecase.AddMembers(req)
 	if err != nil {
 		log.Println(err)
-		if err == domain.ErrNotCreatorId {
+		if err == domain.ErrNotGroupMember {
 
 			c.JSON(403, gin.H{"error": err.Error()})
 			return
 		}
 		return
 	}
+	fmt.Println("resp",resp)
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -346,6 +365,41 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 			c.JSON(403, gin.H{"error": err.Error()})
 			return
 		}
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func(as *ChatHandler)GetRecentChatProfiles (c *gin.Context){
+	// 1. Parse Pagination
+    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+    limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	if page < 1 || limit < 1 || limit > 100 {
+        c.JSON(http.StatusBadRequest,gin.H{
+			"error":"invalid page or limit",
+		})
+		c.JSON(500,gin.H{"error":"internal server error"})
+        return
+    }
+
+	offset := (page - 1) * limit
+	var req requestmodels.RecentChatProfilesRequest
+	userIdStr := c.GetHeader("X-User-Id")
+	if userIdStr==""{
+		log.Println("error fetching userid from header")
+	}
+	userID, err := strconv.ParseUint(userIdStr, 10, 64)
+	if err!=nil{
+		log.Println("error parsing userid to uint64")
+	}
+	req.UserID = userID
+	req.Limit=limit
+	req.Offset=offset
+	resp, err := as.ChatUsecase.GetRecentChatProfiles(req)
+	if err != nil {
+		log.Println(err)
+		c.JSON(500,gin.H{"error":"internal server error"})
 		return
 	}
 	c.JSON(http.StatusOK, resp)

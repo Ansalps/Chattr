@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -65,6 +66,7 @@ var (
 	ErrPendingLogin                    = errors.New("Otp Verfication Pending, verfiy otp to login")
 	ErrSubscriptionPlanAlreadyActive   = errors.New("Cannot the activate the subscription plan, subscription plan is already active")
 	ErrSubscriptionPlanAlreadyDeactive = errors.New("Cannot the deactivate the subscription plan, subscription plan is already deactive")
+	ErrNoUsersFound                    = errors.New("No such users exist")
 	//ErrRazropayApi=errors.New("error calling razorpay api")
 )
 
@@ -87,8 +89,8 @@ func (as *AuthSubscriptionUsecase) AdminLogin(admin requestmodels.AdminLoginRequ
 	if err != nil {
 		return responsemodels.AdminLoginResponse{}, fmt.Errorf("Failed to generarate refresh token for admin: %w", err)
 	}
-	fmt.Println("sdflksljflsj")
-	fmt.Println("hi hello", as.TokenSecurityKey.AdminSecurityKey, as.TokenSecurityKey.AdminRefreshKey)
+	//fmt.Println("sdflksljflsj")
+	//fmt.Println("hi hello", as.TokenSecurityKey.AdminSecurityKey, as.TokenSecurityKey.AdminRefreshKey)
 	return responsemodels.AdminLoginResponse{
 		Admin: responsemodels.AdminDetails{
 			ID:    admins.ID,
@@ -192,7 +194,7 @@ func (as *AuthSubscriptionUsecase) UserSignUp(userReq requestmodels.UserSignUpRe
 	expiration := time.Now().Add(5 * time.Minute)
 	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(otp, userReq.Email, expiration)
 	if err != nil {
-		fmt.Println("cannont save otp in db")
+		log.Println("cannont save otp in db")
 		return responsemodels.UserSignupResponse{}, fmt.Errorf("database error: %w", err)
 	}
 	err = as.SmtpUtil.SendVerifcationEmailWithOtp(otp, userReq.Email, userReq.Name)
@@ -206,7 +208,7 @@ func (as *AuthSubscriptionUsecase) UserSignUp(userReq requestmodels.UserSignUpRe
 	if err != nil {
 		return responsemodels.UserSignupResponse{}, fmt.Errorf("database error: %w", err)
 	}
-	fmt.Println("userRes.ID is ", userRes.ID)
+	//fmt.Println("userRes.ID is ", userRes.ID)
 	otpVerificationToken, err := as.JwtUtil.GenerateToken(as.TokenSecurityKey.OtpVerificationSecurityKey, uint64(userRes.ID), userRes.Email, "otpverification", "access", 5*time.Minute)
 	if err != nil {
 		return responsemodels.UserSignupResponse{}, fmt.Errorf("Failed to generarate token for otp verfication: %w", err)
@@ -253,7 +255,7 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(otpReq requestmodels.OtpRequest) (r
 			TempToken: resetPasswordToken,
 		}, nil
 	}
-	fmt.Println("in verify otp usercase --", otpReq.UserId)
+	//fmt.Println("in verify otp usercase --", otpReq.UserId)
 	userAccessTokenString, err := as.JwtUtil.GenerateToken(as.TokenSecurityKey.UserSecurityKey, uint64(otpReq.UserId), otp.Email, "user", "access", 15*time.Minute)
 	if err != nil {
 		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("Failed to generarate access token for user: %w", err)
@@ -335,7 +337,7 @@ func (as *AuthSubscriptionUsecase) ForgotPassword(forgotPasswordReq requestmodel
 	expiration := time.Now().Add(5 * time.Minute)
 	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(otp, user.Email, expiration)
 	if err != nil {
-		fmt.Println("cannont save otp in db")
+		log.Println("cannont save otp in db")
 		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("database error: %w", err)
 	}
 	err = as.SmtpUtil.SendResetPasswordEmailOtp(otp, user.Email)
@@ -425,7 +427,7 @@ func (as *AuthSubscriptionUsecase) CreateSubscriptionPlan(createSubscriptionPlan
 	}
 	plan, err := utils.RazorpayCreatePlan(as.RazorpayClient, planData)
 	if err != nil {
-		fmt.Println("i think here is the error", err)
+		//fmt.Println("i think here is the error", err)
 		return responsemodels.CreateSubscriptionPlanResponse{}, err
 	}
 	subscriptionPlanRes, err := as.AuthSubscriptionRepository.CreateSubscriptionPlan(plan)
@@ -583,7 +585,7 @@ func (as *AuthSubscriptionUsecase) pollRazorpayAndSync(subid string) {
 			continue // Retry on sync error
 		}
 		// Successfully synced, print success and return
-		fmt.Println("Successfully synced subscription data for:", subid)
+		//fmt.Println("Successfully synced subscription data for:", subid)
 		return // Stop polling after a successful update
 	}
 }
@@ -625,7 +627,7 @@ func (as *AuthSubscriptionUsecase) VerifySubscriptionPayment(verifySubscriptionP
 	var subscriptionRes responsemodels.VerifySubscriptionPaymentResponse
 	//razorpayClient:=utils.NewRazorpayClient(as.RazorpayCredentials.KeyId,as.RazorpayCredentials.KeySecret)
 	subscription, err := as.RazorpayClient.Subscription.Fetch(verifySubscriptionPaymentReq.RazorpaySubscriptionId, nil, nil)
-	fmt.Println("------------------------")
+	//fmt.Println("------------------------")
 	//fmt.Println("subscription",subscription)
 	if err != nil {
 		return responsemodels.VerifySubscriptionPaymentResponse{}, err
@@ -633,7 +635,7 @@ func (as *AuthSubscriptionUsecase) VerifySubscriptionPayment(verifySubscriptionP
 	startAt, ok := subscription["start_at"].(float64)
 	fmt.Println("print value start at", startAt)
 	if !ok {
-		fmt.Println("what if its coming here *******")
+		//fmt.Println("what if its coming here *******")
 		planId, err := as.AuthSubscriptionRepository.FetchRazorpayPlanIdFromRazrorpaySubscriptionId(verifySubscriptionPaymentReq.RazorpaySubscriptionId)
 		if err != nil {
 			return responsemodels.VerifySubscriptionPaymentResponse{}, fmt.Errorf("database error :%w", err)
@@ -656,7 +658,7 @@ func (as *AuthSubscriptionUsecase) VerifySubscriptionPayment(verifySubscriptionP
 		}
 		go as.pollRazorpayAndSync(verifySubscriptionPaymentReq.RazorpaySubscriptionId)
 	} else {
-		fmt.Println("hi i hope its here------")
+		//fmt.Println("hi i hope its here------")
 		subscriptionRes, err = as.AuthSubscriptionRepository.UpdateUserSubscripion(verifySubscriptionPaymentReq.RazorpaySubscriptionId, subscription)
 		if err != nil {
 			return responsemodels.VerifySubscriptionPaymentResponse{}, err
@@ -695,10 +697,10 @@ func (as *AuthSubscriptionUsecase) Unsubscribe(unsubscribeReq requestmodels.Unsu
 	}
 	resp, err := as.RazorpayClient.Subscription.Cancel(razorpaySubscritpionId, data, nil)
 	if err != nil {
-		fmt.Println("print the error on cancellation razorpay api call", err)
+		log.Println("print the error on cancellation razorpay api call", err)
 		return responsemodels.UnsubscribeResponse{}, err
 	}
-	fmt.Println("is it actually nil,???", unsubscribeReq.SubId)
+	//fmt.Println("is it actually nil,???", unsubscribeReq.SubId)
 	unsubscibeRes, err := as.AuthSubscriptionRepository.ChangeUserSubscriptionStatusToCancelled(unsubscribeReq.SubId, resp)
 	if err != nil {
 		return responsemodels.UnsubscribeResponse{}, err
@@ -730,7 +732,7 @@ func (as *AuthSubscriptionUsecase) SetProfileImage(setProfileImageReq requestmod
 	filename := fmt.Sprintf("%d_%d.%s", setProfileImageReq.UserId, time.Now().Unix(), ct)
 	fmt.Println("file name", filename)
 	key := "profiles/" + filename
-	fmt.Println("inside usecase type", setProfileImageReq.ContentType)
+	//fmt.Println("inside usecase type", setProfileImageReq.ContentType)
 	if setProfileImageReq.ContentType == "" {
 		return responsemodels.SetProfileImageResponse{}, fmt.Errorf("content type is nil")
 	}
@@ -773,7 +775,7 @@ func (as *AuthSubscriptionUsecase) GetProfileInformation(req requestmodels.GetPr
 	if err != nil {
 		return responsemodels.GetProfileInformationResponse{}, err
 	}
-	fmt.Println("resp in usecase", resp)
+	//fmt.Println("resp in usecase", resp)
 	return resp, nil
 }
 func (as *AuthSubscriptionUsecase) EditProfileInformation(userId uint64, updateData map[string]interface{}) (responsemodels.EditProfile, error) {
@@ -810,23 +812,35 @@ func (as *AuthSubscriptionUsecase) SearchUser(req requestmodels.SearchUser) (res
 	return resp, nil
 }
 
-func (as *AuthSubscriptionUsecase)FetchUserPublicData(userid uint64)(responsemodels.UserPublicDataResponse,error){
-	resp,err:=as.AuthSubscriptionRepository.FetchUserPublicData(userid)
-	if err!=nil{
-		return responsemodels.UserPublicDataResponse{},err
+func (as *AuthSubscriptionUsecase) FetchUserPublicData(userid uint64) (responsemodels.UserPublicDataResponse, error) {
+	resp, err := as.AuthSubscriptionRepository.FetchUserPublicData(userid)
+	if err != nil {
+		return responsemodels.UserPublicDataResponse{}, err
 	}
-	return resp,nil
+	return resp, nil
 }
-func (as *AuthSubscriptionUsecase)FetchUserMetaData(userids []uint64)(map[uint64]responsemodels.UserMetaData,error){
-	resp,err:=as.AuthSubscriptionRepository.FetchUserMetaData(userids)
-	if err!=nil{
-		if err==gorm.ErrRecordNotFound{
-			return nil,ErrUserNotFound
+func (as *AuthSubscriptionUsecase) FetchUserMetaData(userids []uint64) (map[uint64]responsemodels.UserMetaData, error) {
+	resp, err := as.AuthSubscriptionRepository.FetchUserMetaData(userids)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, ErrUserNotFound
 		}
-		return nil,err
+		return nil, err
 	}
-	return resp,nil
+	return resp, nil
 }
+
+func (as *AuthSubscriptionUsecase) CheckUserListExists(userids []uint64) ([]uint64, error) {
+	resp, err := as.AuthSubscriptionRepository.CheckUserListExists(userids)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, ErrNoUsersFound
+		}
+		return nil, err
+	}
+	return resp, nil
+}
+
 // func (as *AuthSubscriptionUsecase) Webhook(webhookReq requestmodels.WebhookRequest) (responsemodels.WebhookResponse, error) {
 // 	data := map[string]interface{}{
 // 		"remaining_count": 12,

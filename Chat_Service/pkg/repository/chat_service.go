@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/domain"
@@ -51,6 +52,7 @@ func (ad *ChatRepository) CreateGroup(req requestmodels.CreateGroupRequest) (res
 	}, nil
 }
 func (ad *ChatRepository) CreatorID(groupId string) (uint64, error) {
+	fmt.Println("goupId", groupId)
 	var result struct {
 		CreatorID uint64 `bson:"creatorid"`
 	}
@@ -87,6 +89,7 @@ func (ad *ChatRepository) ExistingMembers(groupId string) ([]uint64, error) {
 }
 
 func (ad *ChatRepository) AddMembers(req requestmodels.AddMembersRequest) (responsemodels.AddMembersResponse, error) {
+	fmt.Println("request in group rep", req)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -104,11 +107,13 @@ func (ad *ChatRepository) AddMembers(req requestmodels.AddMembersRequest) (respo
 	}
 
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	fmt.Println("hi hello")
 	err := ad.groupColl().FindOneAndUpdate(ctx, groupFilter, groupUpdate, opts).Decode(&updatedDoc)
 	if err != nil {
+		log.Println(err)
 		return responsemodels.AddMembersResponse{}, err
 	}
-
+	fmt.Println("hello hi")
 	// 2. IMMEDIATE VISIBILITY: Sync to Conversations Collection
 	// We use Upsert so the group appears in the inbox immediately.
 	convFilter := bson.M{"group_id": req.GroupID, "type": "group"}
@@ -128,54 +133,54 @@ func (ad *ChatRepository) AddMembers(req requestmodels.AddMembersRequest) (respo
 	if err != nil {
 		log.Printf("Warning: Failed to sync conversation for group %s: %v", req.GroupID, err)
 	}
-
+	fmt.Println("hello hello")
 	return responsemodels.AddMembersResponse{
 		GroupID:      updatedDoc.GroupID,
 		GroupMembers: updatedDoc.GroupMembers,
-		CreatorID:    updatedDoc.CreatorID,
+		//CreatorID:    updatedDoc.CreatorID,
 	}, nil
 }
 
 func (ad *ChatRepository) RemoveMember(req requestmodels.RemoveMemberRequest) (responsemodels.RemoveMemberResponse, error) {
-    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-    defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-    // 1. Update the Group Collection
-    groupFilter := bson.M{"groupid": req.GroupID}
-    groupUpdate := bson.M{
-        "$pull": bson.M{"groupmembers": req.MemberID},
-        "$set":  bson.M{"updatedat": time.Now()},
-    }
+	// 1. Update the Group Collection
+	groupFilter := bson.M{"groupid": req.GroupID}
+	groupUpdate := bson.M{
+		"$pull": bson.M{"groupmembers": req.MemberID},
+		"$set":  bson.M{"updatedat": time.Now()},
+	}
 
-    var updatedDoc struct {
-        GroupID      string   `bson:"groupid"`
-        CreatorID    uint64   `bson:"creatorid"`
-        GroupMembers []uint64 `bson:"groupmembers"`
-    }
+	var updatedDoc struct {
+		GroupID      string   `bson:"groupid"`
+		CreatorID    uint64   `bson:"creatorid"`
+		GroupMembers []uint64 `bson:"groupmembers"`
+	}
 
-    opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
-    err := ad.groupColl().FindOneAndUpdate(ctx, groupFilter, groupUpdate, opts).Decode(&updatedDoc)
-    if err != nil {
-        return responsemodels.RemoveMemberResponse{}, err
-    }
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	err := ad.groupColl().FindOneAndUpdate(ctx, groupFilter, groupUpdate, opts).Decode(&updatedDoc)
+	if err != nil {
+		return responsemodels.RemoveMemberResponse{}, err
+	}
 
-    // 2. SYNC: Remove from the Conversation Participants
-    // No Upsert here: if the chat doesn't exist, we don't create it just to remove someone.
-    convFilter := bson.M{"group_id": req.GroupID, "type": "group"}
-    convUpdate := bson.M{
-        "$pull": bson.M{"participants": req.MemberID},
-    }
-    
-    _, err = ad.convColl().UpdateOne(ctx, convFilter, convUpdate)
-    if err != nil {
-        log.Printf("Warning: Failed to remove participant from conversation %s: %v", req.GroupID, err)
-    }
+	// 2. SYNC: Remove from the Conversation Participants
+	// No Upsert here: if the chat doesn't exist, we don't create it just to remove someone.
+	convFilter := bson.M{"group_id": req.GroupID, "type": "group"}
+	convUpdate := bson.M{
+		"$pull": bson.M{"participants": req.MemberID},
+	}
 
-    return responsemodels.RemoveMemberResponse{
-        GroupID:   updatedDoc.GroupID,
-        MemberID:  req.MemberID,
-        CreatorID: updatedDoc.CreatorID,
-    }, nil
+	_, err = ad.convColl().UpdateOne(ctx, convFilter, convUpdate)
+	if err != nil {
+		log.Printf("Warning: Failed to remove participant from conversation %s: %v", req.GroupID, err)
+	}
+
+	return responsemodels.RemoveMemberResponse{
+		GroupID:   updatedDoc.GroupID,
+		MemberID:  req.MemberID,
+		CreatorID: updatedDoc.CreatorID,
+	}, nil
 }
 
 func (ad *ChatRepository) FetchMembersOfGroup(groupId string) ([]uint64, error) {
@@ -242,32 +247,37 @@ func (ad *ChatRepository) StoreIndividualChatInMessages(dm domain.Message) error
 
 func (ad *ChatRepository) StoreOrUpdateIndividualChatInConversation(conv domain.Conversation) error {
 	collection := ad.MongoClient.Database("chat").Collection("conversations")
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// 1. FILTER: Look for a conversation containing BOTH users.
-	// $all ensures that the order [A, B] or [B, A] doesn't create two different chats.
+	// 1. Sort the participants to ensure [1, 2] and [2, 1] always match the same doc
+	sortedParticipants := make([]uint64, len(conv.Participants))
+	copy(sortedParticipants, conv.Participants)
+	sort.Slice(sortedParticipants, func(i, j int) bool {
+		return sortedParticipants[i] < sortedParticipants[j]
+	})
+
+	// 2. FILTER: Use exact match.
+	// This allows MongoDB to "infer" the field for the upsert correctly.
 	filter := bson.M{
-		"participants": bson.M{"$all": conv.Participants},
+		"participants": sortedParticipants,
+		"type":         "individual",
 	}
 
-	// 2. UPDATE:
-	// $set: Always update these (the latest message info)
-	// $setOnInsert: ONLY set these if we are creating a NEW document
+	// 3. UPDATE:
 	update := bson.M{
 		"$set": bson.M{
 			"last_message":      conv.LastMessage,
 			"last_message_time": conv.LastMessageTime,
 		},
 		"$setOnInsert": bson.M{
-			"conversation_id": conv.ConversationID, // Only saved once
-			"participants":    conv.Participants,   // Only saved once
+			"conversation_id": conv.ConversationID,
+			// We include type here for the insert, though filter handles it too
+			"type": "individual",
 		},
 	}
 
 	opts := options.Update().SetUpsert(true)
-
 	_, err := collection.UpdateOne(ctx, filter, update, opts)
 	return err
 }
@@ -336,4 +346,62 @@ func (ad *ChatRepository) StoreOrUpdateGroupChatInConversation(conv domain.Conve
 	}
 
 	return nil
+}
+
+func (ad *ChatRepository) GetUserConversation(req requestmodels.RecentChatProfilesRequest) ([]domain.Conversation, error) {
+	collection := ad.MongoClient.Database("chat").Collection("conversations")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// 1. Filter: Find all conversations where the UserID is in the participants array
+	filter := bson.M{"participants": req.UserID}
+
+	// 2. Options: Handle Pagination and Sorting
+	findOptions := options.Find()
+	findOptions.SetLimit(int64(req.Limit))
+	findOptions.SetSkip(int64(req.Offset))
+
+	// Always sort by latest message first for a "Recent Chats" view
+	findOptions.SetSort(bson.D{{Key: "last_message_time", Value: -1}})
+
+	// 3. Execution
+	cursor, err := collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch conversations: %v", err)
+	}
+	defer cursor.Close(ctx)
+
+	var conversations []domain.Conversation
+	if err := cursor.All(ctx, &conversations); err != nil {
+		return nil, fmt.Errorf("failed to decode conversations: %v", err)
+	}
+
+	return conversations, nil
+}
+
+func (ad *ChatRepository) GetGroupNamesBatch(groupIDs []string) (map[string]string, error) {
+    collection := ad.MongoClient.Database("chat").Collection("group")
+    
+    // Query: { groupid: { $in: ["id1", "id2"...] } }
+    filter := bson.M{"groupid": bson.M{"$in": groupIDs}}
+    projection := bson.M{"groupid": 1, "groupname": 1, "_id": 0}
+    
+    cursor, err := collection.Find(context.Background(), filter, options.Find().SetProjection(projection))
+    if err != nil {
+        return nil, err
+    }
+    defer cursor.Close(context.Background())
+
+    results := make(map[string]string)
+    for cursor.Next(context.Background()) {
+        var temp struct {
+            ID   string `bson:"groupid"`
+            Name string `bson:"groupname"`
+        }
+        if err := cursor.Decode(&temp); err == nil {
+            results[temp.ID] = temp.Name
+        }
+    }
+    return results, nil
 }

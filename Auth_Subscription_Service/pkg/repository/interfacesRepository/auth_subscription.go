@@ -63,4 +63,5 @@ type AuthSubscriptionRepository interface {
 	FetchUserPublicData(uint64)(responsemodels.UserPublicDataResponse,error)
 
 	FetchUserMetaData([]uint64)(map[uint64]responsemodels.UserMetaData,error)
+	CheckUserListExists(userids []uint64)([]uint64,error)
 }

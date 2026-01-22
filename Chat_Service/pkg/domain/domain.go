@@ -15,10 +15,10 @@ type Message struct {
 }
 
 type Conversation struct{
-	ConversationID string
-	Participants []uint64
-	GroupID string
-	LastMessage string
-	LastMessageTime time.Time
-	Type string
+	ConversationID string `bson:"conversation_id"`
+	Participants []uint64 `bson:"participants"`
+	GroupID string `bson:"group_id,omitempty"`
+	LastMessage string `bson:"last_message"`
+	LastMessageTime time.Time `bson:"last_message_time"`
+	Type string `bson:"type"`
 }

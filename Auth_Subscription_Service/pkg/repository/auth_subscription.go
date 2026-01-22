@@ -788,7 +788,7 @@ func (ad *AuthSubscriptionRepository) FetchUserMetaData(userids []uint64) (map[u
 	var resp []responsemodels.UserMetaData
 	query := `SELECT id as user_id,user_name,name,profile_img_url,blue_tick FROM users WHERE id IN ?`
 
-	result := ad.DB.Raw(query,userids).Scan(&resp)
+	result := ad.DB.Raw(query, userids).Scan(&resp)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -801,5 +801,17 @@ func (ad *AuthSubscriptionRepository) FetchUserMetaData(userids []uint64) (map[u
 		m[r.UserID] = r
 	}
 	return m, nil
+}
 
+func (ad *AuthSubscriptionRepository) CheckUserListExists(userids []uint64) ([]uint64, error) {
+	var UserId []uint64
+	query := `SELECT id as user_id FROM users WHERE id IN ?`
+	result := ad.DB.Raw(query, userids).Scan(&UserId)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected==0{
+		return nil,gorm.ErrRecordNotFound
+	}
+	return UserId, nil
 }

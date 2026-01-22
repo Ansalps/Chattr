@@ -3,7 +3,9 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -14,6 +16,7 @@ import (
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/responsemodels"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/chat_svc/requestmodels"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/config"
+	"github.com/Ansalps/Chattr_Api_Gateway/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
@@ -153,21 +156,21 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 func (as *ChatHandler) AddMembers(c *gin.Context) {
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
-	groupIdStr:=c.Param("group_id")
+	groupIdStr := c.Param("group_id")
 
 	var req requestmodels.AddMembersRequest
 
-	req.GroupID=groupIdStr
+	req.GroupID = groupIdStr
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": "invalid request body"})
 		return
 	}
 
-
 	req.GroupMembers = slices.DeleteFunc(req.GroupMembers, func(id uint64) bool {
 		return id == claims.ID
 	})
-
+	fmt.Println("in api gateway", req)
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to encode request"})
@@ -202,20 +205,31 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 	c.Data(resp.StatusCode, "application/json", body)
 }
 
-func (as *ChatHandler)RemoveMember(c *gin.Context){
+func (as *ChatHandler) RemoveMember(c *gin.Context) {
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
-	groupIdStr:=c.Param("group_id")
-
-	var req requestmodels.RemoveMembersRequest
-
-	req.GroupID=groupIdStr
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "invalid request body"})
+	groupIdStr := c.Param("group_id")
+	if groupIdStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "group id missing"})
 		return
 	}
-	if req.MemberID==claims.ID{
-		c.JSON(412,gin.H{"error":"cannot remove yourself from the group"})
+	memberIdStr := c.Param("member_id")
+	if memberIdStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "member id missing"})
+		return
+	}
+	memberId, err := strconv.ParseUint(memberIdStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "member is parsing error"})
+	}
+	var req requestmodels.RemoveMembersRequest
+
+	req.GroupID = groupIdStr
+	req.MemberID = memberId
+	req.UserID = claims.ID
+
+	if memberId == claims.ID {
+		c.JSON(412, gin.H{"error": "cannot remove yourself from the group"})
 		return
 	}
 
@@ -250,6 +264,53 @@ func (as *ChatHandler)RemoveMember(c *gin.Context){
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
+
+	c.Data(resp.StatusCode, "application/json", body)
+}
+
+func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
+	// 1. Parse Pagination
+    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+    limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	if page < 1 || limit < 1 || limit > 100 {
+        c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page or limit", nil))
+        return
+    }
+
+	offset := (page - 1) * limit
 	
+
+
+	claims := c.MustGet("claims").(responsemodels.JwtClaims)
+
+	fullURL := fmt.Sprintf("http://localhost:50053/user/get-recent-chat-profiles?limit=%d&offset=%d", limit, offset)
+	httpReq, err := http.NewRequest("GET", fullURL, nil)
+	//url := "http://localhost:50053/user/get-recent-chat-profiles"
+
+	//httpReq, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Printf("Failed to create request: %v", err)
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	// Identity headers
+	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
+	//httpReq.Header.Set("X-User-Role", claims.Role)
+	//httpReq.Header.Set("X-User-Email", claims.Email)
+	httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		c.JSON(502, gin.H{"error": "chat service unavailable"})
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
 	c.Data(resp.StatusCode, "application/json", body)
 }

@@ -36,12 +36,16 @@ service AuthSubscriptionService{
     rpc UserPublicData(UserPublicDataRequest) returns (UserPublicDataResponse);
 
     rpc FetchUserMetaData(UserDataReq) returns (BatchUserMetadataResponse);
+    rpc CheckUserListExists(UserDataReq) returns (BatchUserExistResponse);
 }
 message UserDataReq{
     repeated uint64 UserId=1;
 }
 message BatchUserMetadataResponse {
     map<uint64, UserMetaData> users = 1;
+}
+message BatchUserExistResponse {
+    repeated uint64 UserId=1;
 }
 message SearchUserRequest{
     string SearchText=1;

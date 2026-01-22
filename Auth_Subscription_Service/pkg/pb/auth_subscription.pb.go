@@ -110,6 +110,50 @@ func (x *BatchUserMetadataResponse) GetUsers() map[uint64]*UserMetaData {
 	return nil
 }
 
+type BatchUserExistResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        []uint64               `protobuf:"varint,1,rep,packed,name=UserId,proto3" json:"UserId,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchUserExistResponse) Reset() {
+	*x = BatchUserExistResponse{}
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchUserExistResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchUserExistResponse) ProtoMessage() {}
+
+func (x *BatchUserExistResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchUserExistResponse.ProtoReflect.Descriptor instead.
+func (*BatchUserExistResponse) Descriptor() ([]byte, []int) {
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *BatchUserExistResponse) GetUserId() []uint64 {
+	if x != nil {
+		return x.UserId
+	}
+	return nil
+}
+
 type SearchUserRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SearchText    string                 `protobuf:"bytes,1,opt,name=SearchText,proto3" json:"SearchText,omitempty"`
@@ -121,7 +165,7 @@ type SearchUserRequest struct {
 
 func (x *SearchUserRequest) Reset() {
 	*x = SearchUserRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[2]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -133,7 +177,7 @@ func (x *SearchUserRequest) String() string {
 func (*SearchUserRequest) ProtoMessage() {}
 
 func (x *SearchUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[2]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -146,7 +190,7 @@ func (x *SearchUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchUserRequest.ProtoReflect.Descriptor instead.
 func (*SearchUserRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{2}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *SearchUserRequest) GetSearchText() string {
@@ -183,7 +227,7 @@ type UserMetaData struct {
 
 func (x *UserMetaData) Reset() {
 	*x = UserMetaData{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[3]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -195,7 +239,7 @@ func (x *UserMetaData) String() string {
 func (*UserMetaData) ProtoMessage() {}
 
 func (x *UserMetaData) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[3]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -208,7 +252,7 @@ func (x *UserMetaData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserMetaData.ProtoReflect.Descriptor instead.
 func (*UserMetaData) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{3}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *UserMetaData) GetUserId() uint64 {
@@ -255,7 +299,7 @@ type SearchUserResponse struct {
 
 func (x *SearchUserResponse) Reset() {
 	*x = SearchUserResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[4]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -267,7 +311,7 @@ func (x *SearchUserResponse) String() string {
 func (*SearchUserResponse) ProtoMessage() {}
 
 func (x *SearchUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[4]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -280,7 +324,7 @@ func (x *SearchUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchUserResponse.ProtoReflect.Descriptor instead.
 func (*SearchUserResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{4}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *SearchUserResponse) GetUserMetaData() []*UserMetaData {
@@ -299,7 +343,7 @@ type UserPublicDataRequest struct {
 
 func (x *UserPublicDataRequest) Reset() {
 	*x = UserPublicDataRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[5]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -311,7 +355,7 @@ func (x *UserPublicDataRequest) String() string {
 func (*UserPublicDataRequest) ProtoMessage() {}
 
 func (x *UserPublicDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[5]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -324,7 +368,7 @@ func (x *UserPublicDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserPublicDataRequest.ProtoReflect.Descriptor instead.
 func (*UserPublicDataRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{5}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UserPublicDataRequest) GetUserId() uint64 {
@@ -349,7 +393,7 @@ type UserPublicDataResponse struct {
 
 func (x *UserPublicDataResponse) Reset() {
 	*x = UserPublicDataResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[6]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -361,7 +405,7 @@ func (x *UserPublicDataResponse) String() string {
 func (*UserPublicDataResponse) ProtoMessage() {}
 
 func (x *UserPublicDataResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[6]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -374,7 +418,7 @@ func (x *UserPublicDataResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserPublicDataResponse.ProtoReflect.Descriptor instead.
 func (*UserPublicDataResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{6}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UserPublicDataResponse) GetUserId() uint64 {
@@ -438,7 +482,7 @@ type ChangePasswordRequest struct {
 
 func (x *ChangePasswordRequest) Reset() {
 	*x = ChangePasswordRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[7]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -450,7 +494,7 @@ func (x *ChangePasswordRequest) String() string {
 func (*ChangePasswordRequest) ProtoMessage() {}
 
 func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[7]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -463,7 +507,7 @@ func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangePasswordRequest.ProtoReflect.Descriptor instead.
 func (*ChangePasswordRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{7}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ChangePasswordRequest) GetUserId() uint64 {
@@ -503,7 +547,7 @@ type ChangePasswordResponse struct {
 
 func (x *ChangePasswordResponse) Reset() {
 	*x = ChangePasswordResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[8]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -515,7 +559,7 @@ func (x *ChangePasswordResponse) String() string {
 func (*ChangePasswordResponse) ProtoMessage() {}
 
 func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[8]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -528,7 +572,7 @@ func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangePasswordResponse.ProtoReflect.Descriptor instead.
 func (*ChangePasswordResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{8}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ChangePasswordResponse) GetUserId() uint64 {
@@ -550,7 +594,7 @@ type EditProfileReq struct {
 
 func (x *EditProfileReq) Reset() {
 	*x = EditProfileReq{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[9]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -562,7 +606,7 @@ func (x *EditProfileReq) String() string {
 func (*EditProfileReq) ProtoMessage() {}
 
 func (x *EditProfileReq) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[9]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -575,7 +619,7 @@ func (x *EditProfileReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EditProfileReq.ProtoReflect.Descriptor instead.
 func (*EditProfileReq) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{9}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *EditProfileReq) GetUserId() uint64 {
@@ -618,7 +662,7 @@ type EditProfileRes struct {
 
 func (x *EditProfileRes) Reset() {
 	*x = EditProfileRes{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[10]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -630,7 +674,7 @@ func (x *EditProfileRes) String() string {
 func (*EditProfileRes) ProtoMessage() {}
 
 func (x *EditProfileRes) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[10]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -643,7 +687,7 @@ func (x *EditProfileRes) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EditProfileRes.ProtoReflect.Descriptor instead.
 func (*EditProfileRes) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{10}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *EditProfileRes) GetUserId() uint64 {
@@ -683,7 +727,7 @@ type ProfileInfoReq struct {
 
 func (x *ProfileInfoReq) Reset() {
 	*x = ProfileInfoReq{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[11]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -695,7 +739,7 @@ func (x *ProfileInfoReq) String() string {
 func (*ProfileInfoReq) ProtoMessage() {}
 
 func (x *ProfileInfoReq) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[11]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -708,7 +752,7 @@ func (x *ProfileInfoReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProfileInfoReq.ProtoReflect.Descriptor instead.
 func (*ProfileInfoReq) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{11}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ProfileInfoReq) GetUserId() uint64 {
@@ -734,7 +778,7 @@ type ProfileInfoRes struct {
 
 func (x *ProfileInfoRes) Reset() {
 	*x = ProfileInfoRes{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[12]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -746,7 +790,7 @@ func (x *ProfileInfoRes) String() string {
 func (*ProfileInfoRes) ProtoMessage() {}
 
 func (x *ProfileInfoRes) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[12]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -759,7 +803,7 @@ func (x *ProfileInfoRes) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProfileInfoRes.ProtoReflect.Descriptor instead.
 func (*ProfileInfoRes) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{12}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ProfileInfoRes) GetUserId() uint64 {
@@ -827,7 +871,7 @@ type CheckUserExistsRequest struct {
 
 func (x *CheckUserExistsRequest) Reset() {
 	*x = CheckUserExistsRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[13]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -839,7 +883,7 @@ func (x *CheckUserExistsRequest) String() string {
 func (*CheckUserExistsRequest) ProtoMessage() {}
 
 func (x *CheckUserExistsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[13]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -852,7 +896,7 @@ func (x *CheckUserExistsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckUserExistsRequest.ProtoReflect.Descriptor instead.
 func (*CheckUserExistsRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{13}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *CheckUserExistsRequest) GetUserId() uint64 {
@@ -871,7 +915,7 @@ type CheckUserExistsResponse struct {
 
 func (x *CheckUserExistsResponse) Reset() {
 	*x = CheckUserExistsResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[14]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -883,7 +927,7 @@ func (x *CheckUserExistsResponse) String() string {
 func (*CheckUserExistsResponse) ProtoMessage() {}
 
 func (x *CheckUserExistsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[14]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -896,7 +940,7 @@ func (x *CheckUserExistsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckUserExistsResponse.ProtoReflect.Descriptor instead.
 func (*CheckUserExistsResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{14}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CheckUserExistsResponse) GetUserId() uint64 {
@@ -916,7 +960,7 @@ type WebhookRequest struct {
 
 func (x *WebhookRequest) Reset() {
 	*x = WebhookRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[15]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -928,7 +972,7 @@ func (x *WebhookRequest) String() string {
 func (*WebhookRequest) ProtoMessage() {}
 
 func (x *WebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[15]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -941,7 +985,7 @@ func (x *WebhookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebhookRequest.ProtoReflect.Descriptor instead.
 func (*WebhookRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{15}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *WebhookRequest) GetEvent() string {
@@ -967,7 +1011,7 @@ type Payload struct {
 
 func (x *Payload) Reset() {
 	*x = Payload{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[16]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -979,7 +1023,7 @@ func (x *Payload) String() string {
 func (*Payload) ProtoMessage() {}
 
 func (x *Payload) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[16]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -992,7 +1036,7 @@ func (x *Payload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Payload.ProtoReflect.Descriptor instead.
 func (*Payload) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{16}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Payload) GetSubscription() *Subscription {
@@ -1011,7 +1055,7 @@ type Subscription struct {
 
 func (x *Subscription) Reset() {
 	*x = Subscription{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[17]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1023,7 +1067,7 @@ func (x *Subscription) String() string {
 func (*Subscription) ProtoMessage() {}
 
 func (x *Subscription) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[17]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1036,7 +1080,7 @@ func (x *Subscription) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Subscription.ProtoReflect.Descriptor instead.
 func (*Subscription) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{17}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *Subscription) GetId() string {
@@ -1056,7 +1100,7 @@ type WebhookResponse struct {
 
 func (x *WebhookResponse) Reset() {
 	*x = WebhookResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[18]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1068,7 +1112,7 @@ func (x *WebhookResponse) String() string {
 func (*WebhookResponse) ProtoMessage() {}
 
 func (x *WebhookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[18]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1081,7 +1125,7 @@ func (x *WebhookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebhookResponse.ProtoReflect.Descriptor instead.
 func (*WebhookResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{18}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *WebhookResponse) GetEvent() string {
@@ -1109,7 +1153,7 @@ type SetProfileImageRequest struct {
 
 func (x *SetProfileImageRequest) Reset() {
 	*x = SetProfileImageRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[19]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1121,7 +1165,7 @@ func (x *SetProfileImageRequest) String() string {
 func (*SetProfileImageRequest) ProtoMessage() {}
 
 func (x *SetProfileImageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[19]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1134,7 +1178,7 @@ func (x *SetProfileImageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetProfileImageRequest.ProtoReflect.Descriptor instead.
 func (*SetProfileImageRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{19}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *SetProfileImageRequest) GetUserId() uint64 {
@@ -1167,7 +1211,7 @@ type SetProfileImageResponse struct {
 
 func (x *SetProfileImageResponse) Reset() {
 	*x = SetProfileImageResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[20]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1179,7 +1223,7 @@ func (x *SetProfileImageResponse) String() string {
 func (*SetProfileImageResponse) ProtoMessage() {}
 
 func (x *SetProfileImageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[20]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1192,7 +1236,7 @@ func (x *SetProfileImageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetProfileImageResponse.ProtoReflect.Descriptor instead.
 func (*SetProfileImageResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{20}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *SetProfileImageResponse) GetImageUrl() string {
@@ -1212,7 +1256,7 @@ type UnsubscribeRequest struct {
 
 func (x *UnsubscribeRequest) Reset() {
 	*x = UnsubscribeRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[21]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1224,7 +1268,7 @@ func (x *UnsubscribeRequest) String() string {
 func (*UnsubscribeRequest) ProtoMessage() {}
 
 func (x *UnsubscribeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[21]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1237,7 +1281,7 @@ func (x *UnsubscribeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsubscribeRequest.ProtoReflect.Descriptor instead.
 func (*UnsubscribeRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{21}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *UnsubscribeRequest) GetSubId() uint64 {
@@ -1276,7 +1320,7 @@ type UnsubscribeResponse struct {
 
 func (x *UnsubscribeResponse) Reset() {
 	*x = UnsubscribeResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[22]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1288,7 +1332,7 @@ func (x *UnsubscribeResponse) String() string {
 func (*UnsubscribeResponse) ProtoMessage() {}
 
 func (x *UnsubscribeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[22]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1301,7 +1345,7 @@ func (x *UnsubscribeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnsubscribeResponse.ProtoReflect.Descriptor instead.
 func (*UnsubscribeResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{22}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *UnsubscribeResponse) GetId() uint64 {
@@ -1413,7 +1457,7 @@ type VerifySubscriptionPaymentRequest struct {
 
 func (x *VerifySubscriptionPaymentRequest) Reset() {
 	*x = VerifySubscriptionPaymentRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[23]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1425,7 +1469,7 @@ func (x *VerifySubscriptionPaymentRequest) String() string {
 func (*VerifySubscriptionPaymentRequest) ProtoMessage() {}
 
 func (x *VerifySubscriptionPaymentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[23]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1438,7 +1482,7 @@ func (x *VerifySubscriptionPaymentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VerifySubscriptionPaymentRequest.ProtoReflect.Descriptor instead.
 func (*VerifySubscriptionPaymentRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{23}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *VerifySubscriptionPaymentRequest) GetRazorpaySubscriptionId() string {
@@ -1482,7 +1526,7 @@ type VerifySubscriptionPaymentResponse struct {
 
 func (x *VerifySubscriptionPaymentResponse) Reset() {
 	*x = VerifySubscriptionPaymentResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[24]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1494,7 +1538,7 @@ func (x *VerifySubscriptionPaymentResponse) String() string {
 func (*VerifySubscriptionPaymentResponse) ProtoMessage() {}
 
 func (x *VerifySubscriptionPaymentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[24]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1507,7 +1551,7 @@ func (x *VerifySubscriptionPaymentResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use VerifySubscriptionPaymentResponse.ProtoReflect.Descriptor instead.
 func (*VerifySubscriptionPaymentResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{24}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *VerifySubscriptionPaymentResponse) GetId() uint64 {
@@ -1604,7 +1648,7 @@ type SubscribeReqeust struct {
 
 func (x *SubscribeReqeust) Reset() {
 	*x = SubscribeReqeust{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[25]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1616,7 +1660,7 @@ func (x *SubscribeReqeust) String() string {
 func (*SubscribeReqeust) ProtoMessage() {}
 
 func (x *SubscribeReqeust) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[25]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1629,7 +1673,7 @@ func (x *SubscribeReqeust) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeReqeust.ProtoReflect.Descriptor instead.
 func (*SubscribeReqeust) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{25}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *SubscribeReqeust) GetUserId() uint64 {
@@ -1666,7 +1710,7 @@ type SubscribeResponse struct {
 
 func (x *SubscribeResponse) Reset() {
 	*x = SubscribeResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[26]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1678,7 +1722,7 @@ func (x *SubscribeResponse) String() string {
 func (*SubscribeResponse) ProtoMessage() {}
 
 func (x *SubscribeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[26]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1691,7 +1735,7 @@ func (x *SubscribeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscribeResponse.ProtoReflect.Descriptor instead.
 func (*SubscribeResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{26}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *SubscribeResponse) GetId() uint64 {
@@ -1766,7 +1810,7 @@ type ForgotPasswordReqeust struct {
 
 func (x *ForgotPasswordReqeust) Reset() {
 	*x = ForgotPasswordReqeust{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[27]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1778,7 +1822,7 @@ func (x *ForgotPasswordReqeust) String() string {
 func (*ForgotPasswordReqeust) ProtoMessage() {}
 
 func (x *ForgotPasswordReqeust) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[27]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1791,7 +1835,7 @@ func (x *ForgotPasswordReqeust) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForgotPasswordReqeust.ProtoReflect.Descriptor instead.
 func (*ForgotPasswordReqeust) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{27}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ForgotPasswordReqeust) GetEmail() string {
@@ -1811,7 +1855,7 @@ type ForgotPasswordResponse struct {
 
 func (x *ForgotPasswordResponse) Reset() {
 	*x = ForgotPasswordResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[28]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1823,7 +1867,7 @@ func (x *ForgotPasswordResponse) String() string {
 func (*ForgotPasswordResponse) ProtoMessage() {}
 
 func (x *ForgotPasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[28]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1836,7 +1880,7 @@ func (x *ForgotPasswordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForgotPasswordResponse.ProtoReflect.Descriptor instead.
 func (*ForgotPasswordResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{28}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ForgotPasswordResponse) GetEmail() string {
@@ -1863,7 +1907,7 @@ type GetAllSubscriptionPlansRequest struct {
 
 func (x *GetAllSubscriptionPlansRequest) Reset() {
 	*x = GetAllSubscriptionPlansRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[29]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1875,7 +1919,7 @@ func (x *GetAllSubscriptionPlansRequest) String() string {
 func (*GetAllSubscriptionPlansRequest) ProtoMessage() {}
 
 func (x *GetAllSubscriptionPlansRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[29]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1888,7 +1932,7 @@ func (x *GetAllSubscriptionPlansRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllSubscriptionPlansRequest.ProtoReflect.Descriptor instead.
 func (*GetAllSubscriptionPlansRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{29}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetAllSubscriptionPlansRequest) GetLimit() uint64 {
@@ -1924,7 +1968,7 @@ type SubscriptioPlan struct {
 
 func (x *SubscriptioPlan) Reset() {
 	*x = SubscriptioPlan{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[30]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1936,7 +1980,7 @@ func (x *SubscriptioPlan) String() string {
 func (*SubscriptioPlan) ProtoMessage() {}
 
 func (x *SubscriptioPlan) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[30]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1949,7 +1993,7 @@ func (x *SubscriptioPlan) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscriptioPlan.ProtoReflect.Descriptor instead.
 func (*SubscriptioPlan) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{30}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *SubscriptioPlan) GetId() uint64 {
@@ -2039,7 +2083,7 @@ type GetAllActiveSubscriptionPlansRequest struct {
 
 func (x *GetAllActiveSubscriptionPlansRequest) Reset() {
 	*x = GetAllActiveSubscriptionPlansRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[31]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2051,7 +2095,7 @@ func (x *GetAllActiveSubscriptionPlansRequest) String() string {
 func (*GetAllActiveSubscriptionPlansRequest) ProtoMessage() {}
 
 func (x *GetAllActiveSubscriptionPlansRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[31]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2064,7 +2108,7 @@ func (x *GetAllActiveSubscriptionPlansRequest) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use GetAllActiveSubscriptionPlansRequest.ProtoReflect.Descriptor instead.
 func (*GetAllActiveSubscriptionPlansRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{31}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *GetAllActiveSubscriptionPlansRequest) GetLimit() uint64 {
@@ -2090,7 +2134,7 @@ type GetAllActiveSubscriptionPlansResponse struct {
 
 func (x *GetAllActiveSubscriptionPlansResponse) Reset() {
 	*x = GetAllActiveSubscriptionPlansResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[32]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2102,7 +2146,7 @@ func (x *GetAllActiveSubscriptionPlansResponse) String() string {
 func (*GetAllActiveSubscriptionPlansResponse) ProtoMessage() {}
 
 func (x *GetAllActiveSubscriptionPlansResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[32]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2115,7 +2159,7 @@ func (x *GetAllActiveSubscriptionPlansResponse) ProtoReflect() protoreflect.Mess
 
 // Deprecated: Use GetAllActiveSubscriptionPlansResponse.ProtoReflect.Descriptor instead.
 func (*GetAllActiveSubscriptionPlansResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{32}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *GetAllActiveSubscriptionPlansResponse) GetSubscriptioPlans() []*SubscriptioPlan {
@@ -2134,7 +2178,7 @@ type GetAllSubscriptionPlansResponse struct {
 
 func (x *GetAllSubscriptionPlansResponse) Reset() {
 	*x = GetAllSubscriptionPlansResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[33]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2146,7 +2190,7 @@ func (x *GetAllSubscriptionPlansResponse) String() string {
 func (*GetAllSubscriptionPlansResponse) ProtoMessage() {}
 
 func (x *GetAllSubscriptionPlansResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[33]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2159,7 +2203,7 @@ func (x *GetAllSubscriptionPlansResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllSubscriptionPlansResponse.ProtoReflect.Descriptor instead.
 func (*GetAllSubscriptionPlansResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{33}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *GetAllSubscriptionPlansResponse) GetSubscriptioPlans() []*SubscriptioPlan {
@@ -2178,7 +2222,7 @@ type DeactivateSubscriptionPlanRequest struct {
 
 func (x *DeactivateSubscriptionPlanRequest) Reset() {
 	*x = DeactivateSubscriptionPlanRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[34]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2190,7 +2234,7 @@ func (x *DeactivateSubscriptionPlanRequest) String() string {
 func (*DeactivateSubscriptionPlanRequest) ProtoMessage() {}
 
 func (x *DeactivateSubscriptionPlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[34]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2203,7 +2247,7 @@ func (x *DeactivateSubscriptionPlanRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use DeactivateSubscriptionPlanRequest.ProtoReflect.Descriptor instead.
 func (*DeactivateSubscriptionPlanRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{34}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *DeactivateSubscriptionPlanRequest) GetId() uint64 {
@@ -2232,7 +2276,7 @@ type DeactivateSubscriptionPlanResponse struct {
 
 func (x *DeactivateSubscriptionPlanResponse) Reset() {
 	*x = DeactivateSubscriptionPlanResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[35]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2244,7 +2288,7 @@ func (x *DeactivateSubscriptionPlanResponse) String() string {
 func (*DeactivateSubscriptionPlanResponse) ProtoMessage() {}
 
 func (x *DeactivateSubscriptionPlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[35]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2257,7 +2301,7 @@ func (x *DeactivateSubscriptionPlanResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use DeactivateSubscriptionPlanResponse.ProtoReflect.Descriptor instead.
 func (*DeactivateSubscriptionPlanResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{35}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *DeactivateSubscriptionPlanResponse) GetId() uint64 {
@@ -2346,7 +2390,7 @@ type ActivateSubscriptionPlanRequest struct {
 
 func (x *ActivateSubscriptionPlanRequest) Reset() {
 	*x = ActivateSubscriptionPlanRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[36]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2358,7 +2402,7 @@ func (x *ActivateSubscriptionPlanRequest) String() string {
 func (*ActivateSubscriptionPlanRequest) ProtoMessage() {}
 
 func (x *ActivateSubscriptionPlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[36]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2371,7 +2415,7 @@ func (x *ActivateSubscriptionPlanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ActivateSubscriptionPlanRequest.ProtoReflect.Descriptor instead.
 func (*ActivateSubscriptionPlanRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{36}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ActivateSubscriptionPlanRequest) GetId() uint64 {
@@ -2400,7 +2444,7 @@ type ActivateSubscriptionPlanResponse struct {
 
 func (x *ActivateSubscriptionPlanResponse) Reset() {
 	*x = ActivateSubscriptionPlanResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[37]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2412,7 +2456,7 @@ func (x *ActivateSubscriptionPlanResponse) String() string {
 func (*ActivateSubscriptionPlanResponse) ProtoMessage() {}
 
 func (x *ActivateSubscriptionPlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[37]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2425,7 +2469,7 @@ func (x *ActivateSubscriptionPlanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ActivateSubscriptionPlanResponse.ProtoReflect.Descriptor instead.
 func (*ActivateSubscriptionPlanResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{37}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ActivateSubscriptionPlanResponse) GetId() uint64 {
@@ -2515,7 +2559,7 @@ type AdminLoginRequest struct {
 
 func (x *AdminLoginRequest) Reset() {
 	*x = AdminLoginRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[38]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2527,7 +2571,7 @@ func (x *AdminLoginRequest) String() string {
 func (*AdminLoginRequest) ProtoMessage() {}
 
 func (x *AdminLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[38]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2540,7 +2584,7 @@ func (x *AdminLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminLoginRequest.ProtoReflect.Descriptor instead.
 func (*AdminLoginRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{38}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *AdminLoginRequest) GetEmail() string {
@@ -2568,7 +2612,7 @@ type AdminLoginResponse struct {
 
 func (x *AdminLoginResponse) Reset() {
 	*x = AdminLoginResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[39]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2580,7 +2624,7 @@ func (x *AdminLoginResponse) String() string {
 func (*AdminLoginResponse) ProtoMessage() {}
 
 func (x *AdminLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[39]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2593,7 +2637,7 @@ func (x *AdminLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminLoginResponse.ProtoReflect.Descriptor instead.
 func (*AdminLoginResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{39}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *AdminLoginResponse) GetAdminDetails() *AdminDetails {
@@ -2627,7 +2671,7 @@ type AdminDetails struct {
 
 func (x *AdminDetails) Reset() {
 	*x = AdminDetails{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[40]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2639,7 +2683,7 @@ func (x *AdminDetails) String() string {
 func (*AdminDetails) ProtoMessage() {}
 
 func (x *AdminDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[40]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2652,7 +2696,7 @@ func (x *AdminDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminDetails.ProtoReflect.Descriptor instead.
 func (*AdminDetails) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{40}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *AdminDetails) GetId() uint64 {
@@ -2679,7 +2723,7 @@ type UserLoginRequest struct {
 
 func (x *UserLoginRequest) Reset() {
 	*x = UserLoginRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[41]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2691,7 +2735,7 @@ func (x *UserLoginRequest) String() string {
 func (*UserLoginRequest) ProtoMessage() {}
 
 func (x *UserLoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[41]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2704,7 +2748,7 @@ func (x *UserLoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserLoginRequest.ProtoReflect.Descriptor instead.
 func (*UserLoginRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{41}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *UserLoginRequest) GetEmail() string {
@@ -2732,7 +2776,7 @@ type UserLoginResponse struct {
 
 func (x *UserLoginResponse) Reset() {
 	*x = UserLoginResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[42]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2744,7 +2788,7 @@ func (x *UserLoginResponse) String() string {
 func (*UserLoginResponse) ProtoMessage() {}
 
 func (x *UserLoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[42]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2757,7 +2801,7 @@ func (x *UserLoginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserLoginResponse.ProtoReflect.Descriptor instead.
 func (*UserLoginResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{42}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *UserLoginResponse) GetUserDetails() *UserDetails {
@@ -2795,7 +2839,7 @@ type UserDetails struct {
 
 func (x *UserDetails) Reset() {
 	*x = UserDetails{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[43]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2807,7 +2851,7 @@ func (x *UserDetails) String() string {
 func (*UserDetails) ProtoMessage() {}
 
 func (x *UserDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[43]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2820,7 +2864,7 @@ func (x *UserDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserDetails.ProtoReflect.Descriptor instead.
 func (*UserDetails) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{43}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *UserDetails) GetId() uint64 {
@@ -2874,7 +2918,7 @@ type BlockUserRequest struct {
 
 func (x *BlockUserRequest) Reset() {
 	*x = BlockUserRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[44]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2886,7 +2930,7 @@ func (x *BlockUserRequest) String() string {
 func (*BlockUserRequest) ProtoMessage() {}
 
 func (x *BlockUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[44]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2899,7 +2943,7 @@ func (x *BlockUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockUserRequest.ProtoReflect.Descriptor instead.
 func (*BlockUserRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{44}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *BlockUserRequest) GetUserId() uint64 {
@@ -2918,7 +2962,7 @@ type BlockUserResponse struct {
 
 func (x *BlockUserResponse) Reset() {
 	*x = BlockUserResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[45]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2930,7 +2974,7 @@ func (x *BlockUserResponse) String() string {
 func (*BlockUserResponse) ProtoMessage() {}
 
 func (x *BlockUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[45]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2943,7 +2987,7 @@ func (x *BlockUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockUserResponse.ProtoReflect.Descriptor instead.
 func (*BlockUserResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{45}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *BlockUserResponse) GetUserId() uint64 {
@@ -2962,7 +3006,7 @@ type UnblockUserRequest struct {
 
 func (x *UnblockUserRequest) Reset() {
 	*x = UnblockUserRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[46]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2974,7 +3018,7 @@ func (x *UnblockUserRequest) String() string {
 func (*UnblockUserRequest) ProtoMessage() {}
 
 func (x *UnblockUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[46]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2987,7 +3031,7 @@ func (x *UnblockUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnblockUserRequest.ProtoReflect.Descriptor instead.
 func (*UnblockUserRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{46}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *UnblockUserRequest) GetUserId() uint64 {
@@ -3006,7 +3050,7 @@ type UnblockUserResponse struct {
 
 func (x *UnblockUserResponse) Reset() {
 	*x = UnblockUserResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[47]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3018,7 +3062,7 @@ func (x *UnblockUserResponse) String() string {
 func (*UnblockUserResponse) ProtoMessage() {}
 
 func (x *UnblockUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[47]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3031,7 +3075,7 @@ func (x *UnblockUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnblockUserResponse.ProtoReflect.Descriptor instead.
 func (*UnblockUserResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{47}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *UnblockUserResponse) GetUserId() uint64 {
@@ -3051,7 +3095,7 @@ type GetAllUsersRequest struct {
 
 func (x *GetAllUsersRequest) Reset() {
 	*x = GetAllUsersRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[48]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3063,7 +3107,7 @@ func (x *GetAllUsersRequest) String() string {
 func (*GetAllUsersRequest) ProtoMessage() {}
 
 func (x *GetAllUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[48]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3076,7 +3120,7 @@ func (x *GetAllUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllUsersRequest.ProtoReflect.Descriptor instead.
 func (*GetAllUsersRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{48}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *GetAllUsersRequest) GetLimit() uint64 {
@@ -3102,7 +3146,7 @@ type GetAllUsersResponse struct {
 
 func (x *GetAllUsersResponse) Reset() {
 	*x = GetAllUsersResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[49]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3114,7 +3158,7 @@ func (x *GetAllUsersResponse) String() string {
 func (*GetAllUsersResponse) ProtoMessage() {}
 
 func (x *GetAllUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[49]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3127,7 +3171,7 @@ func (x *GetAllUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAllUsersResponse.ProtoReflect.Descriptor instead.
 func (*GetAllUsersResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{49}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *GetAllUsersResponse) GetUsers() []*User {
@@ -3151,7 +3195,7 @@ type CreateSubscriptionPlanRequest struct {
 
 func (x *CreateSubscriptionPlanRequest) Reset() {
 	*x = CreateSubscriptionPlanRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[50]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3163,7 +3207,7 @@ func (x *CreateSubscriptionPlanRequest) String() string {
 func (*CreateSubscriptionPlanRequest) ProtoMessage() {}
 
 func (x *CreateSubscriptionPlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[50]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3176,7 +3220,7 @@ func (x *CreateSubscriptionPlanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSubscriptionPlanRequest.ProtoReflect.Descriptor instead.
 func (*CreateSubscriptionPlanRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{50}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *CreateSubscriptionPlanRequest) GetName() string {
@@ -3239,7 +3283,7 @@ type CreateSubscriptionPlanResponse struct {
 
 func (x *CreateSubscriptionPlanResponse) Reset() {
 	*x = CreateSubscriptionPlanResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[51]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3251,7 +3295,7 @@ func (x *CreateSubscriptionPlanResponse) String() string {
 func (*CreateSubscriptionPlanResponse) ProtoMessage() {}
 
 func (x *CreateSubscriptionPlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[51]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3264,7 +3308,7 @@ func (x *CreateSubscriptionPlanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSubscriptionPlanResponse.ProtoReflect.Descriptor instead.
 func (*CreateSubscriptionPlanResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{51}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *CreateSubscriptionPlanResponse) GetId() uint64 {
@@ -3353,7 +3397,7 @@ type User struct {
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[52]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3365,7 +3409,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[52]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3378,7 +3422,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{52}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *User) GetId() uint64 {
@@ -3450,7 +3494,7 @@ type UserSignUpRequest struct {
 
 func (x *UserSignUpRequest) Reset() {
 	*x = UserSignUpRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[53]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3462,7 +3506,7 @@ func (x *UserSignUpRequest) String() string {
 func (*UserSignUpRequest) ProtoMessage() {}
 
 func (x *UserSignUpRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[53]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3475,7 +3519,7 @@ func (x *UserSignUpRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserSignUpRequest.ProtoReflect.Descriptor instead.
 func (*UserSignUpRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{53}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *UserSignUpRequest) GetUserName() string {
@@ -3526,7 +3570,7 @@ type UserSignUpResponse struct {
 
 func (x *UserSignUpResponse) Reset() {
 	*x = UserSignUpResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[54]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3538,7 +3582,7 @@ func (x *UserSignUpResponse) String() string {
 func (*UserSignUpResponse) ProtoMessage() {}
 
 func (x *UserSignUpResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[54]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3551,7 +3595,7 @@ func (x *UserSignUpResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserSignUpResponse.ProtoReflect.Descriptor instead.
 func (*UserSignUpResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{54}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *UserSignUpResponse) GetId() uint64 {
@@ -3601,7 +3645,7 @@ type OtpRequest struct {
 
 func (x *OtpRequest) Reset() {
 	*x = OtpRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[55]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3613,7 +3657,7 @@ func (x *OtpRequest) String() string {
 func (*OtpRequest) ProtoMessage() {}
 
 func (x *OtpRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[55]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3626,7 +3670,7 @@ func (x *OtpRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OtpRequest.ProtoReflect.Descriptor instead.
 func (*OtpRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{55}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *OtpRequest) GetUserId() uint64 {
@@ -3670,7 +3714,7 @@ type OtpVerificationResponse struct {
 
 func (x *OtpVerificationResponse) Reset() {
 	*x = OtpVerificationResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[56]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3682,7 +3726,7 @@ func (x *OtpVerificationResponse) String() string {
 func (*OtpVerificationResponse) ProtoMessage() {}
 
 func (x *OtpVerificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[56]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3695,7 +3739,7 @@ func (x *OtpVerificationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OtpVerificationResponse.ProtoReflect.Descriptor instead.
 func (*OtpVerificationResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{56}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *OtpVerificationResponse) GetEmail() string {
@@ -3743,7 +3787,7 @@ type ResendOtpRequest struct {
 
 func (x *ResendOtpRequest) Reset() {
 	*x = ResendOtpRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[57]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3755,7 +3799,7 @@ func (x *ResendOtpRequest) String() string {
 func (*ResendOtpRequest) ProtoMessage() {}
 
 func (x *ResendOtpRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[57]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3768,7 +3812,7 @@ func (x *ResendOtpRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResendOtpRequest.ProtoReflect.Descriptor instead.
 func (*ResendOtpRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{57}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *ResendOtpRequest) GetName() string {
@@ -3794,7 +3838,7 @@ type ResendOtpResponse struct {
 
 func (x *ResendOtpResponse) Reset() {
 	*x = ResendOtpResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[58]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3806,7 +3850,7 @@ func (x *ResendOtpResponse) String() string {
 func (*ResendOtpResponse) ProtoMessage() {}
 
 func (x *ResendOtpResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[58]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3819,7 +3863,7 @@ func (x *ResendOtpResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResendOtpResponse.ProtoReflect.Descriptor instead.
 func (*ResendOtpResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{58}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *ResendOtpResponse) GetEmail() string {
@@ -3840,7 +3884,7 @@ type AccessRegeneratorRequest struct {
 
 func (x *AccessRegeneratorRequest) Reset() {
 	*x = AccessRegeneratorRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[59]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3852,7 +3896,7 @@ func (x *AccessRegeneratorRequest) String() string {
 func (*AccessRegeneratorRequest) ProtoMessage() {}
 
 func (x *AccessRegeneratorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[59]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3865,7 +3909,7 @@ func (x *AccessRegeneratorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccessRegeneratorRequest.ProtoReflect.Descriptor instead.
 func (*AccessRegeneratorRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{59}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *AccessRegeneratorRequest) GetId() uint64 {
@@ -3901,7 +3945,7 @@ type AccessRegeneratorResponse struct {
 
 func (x *AccessRegeneratorResponse) Reset() {
 	*x = AccessRegeneratorResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[60]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3913,7 +3957,7 @@ func (x *AccessRegeneratorResponse) String() string {
 func (*AccessRegeneratorResponse) ProtoMessage() {}
 
 func (x *AccessRegeneratorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[60]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3926,7 +3970,7 @@ func (x *AccessRegeneratorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AccessRegeneratorResponse.ProtoReflect.Descriptor instead.
 func (*AccessRegeneratorResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{60}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *AccessRegeneratorResponse) GetId() uint64 {
@@ -3967,7 +4011,7 @@ type ResetPasswordRequest struct {
 
 func (x *ResetPasswordRequest) Reset() {
 	*x = ResetPasswordRequest{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[61]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3979,7 +4023,7 @@ func (x *ResetPasswordRequest) String() string {
 func (*ResetPasswordRequest) ProtoMessage() {}
 
 func (x *ResetPasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[61]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3992,7 +4036,7 @@ func (x *ResetPasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetPasswordRequest.ProtoReflect.Descriptor instead.
 func (*ResetPasswordRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{61}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *ResetPasswordRequest) GetEmail() string {
@@ -4018,7 +4062,7 @@ type ResetPasswordResponse struct {
 
 func (x *ResetPasswordResponse) Reset() {
 	*x = ResetPasswordResponse{}
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[62]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4030,7 +4074,7 @@ func (x *ResetPasswordResponse) String() string {
 func (*ResetPasswordResponse) ProtoMessage() {}
 
 func (x *ResetPasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[62]
+	mi := &file_pkg_pb_auth_subscription_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4043,7 +4087,7 @@ func (x *ResetPasswordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetPasswordResponse.ProtoReflect.Descriptor instead.
 func (*ResetPasswordResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{62}
+	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *ResetPasswordResponse) GetEmail() string {
@@ -4065,7 +4109,9 @@ const file_pkg_pb_auth_subscription_proto_rawDesc = "" +
 	"\n" +
 	"UsersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\x04R\x03key\x125\n" +
-	"\x05value\x18\x02 \x01(\v2\x1f.auth_subscription.UserMetaDataR\x05value:\x028\x01\"a\n" +
+	"\x05value\x18\x02 \x01(\v2\x1f.auth_subscription.UserMetaDataR\x05value:\x028\x01\"0\n" +
+	"\x16BatchUserExistResponse\x12\x16\n" +
+	"\x06UserId\x18\x01 \x03(\x04R\x06UserId\"a\n" +
 	"\x11SearchUserRequest\x12\x1e\n" +
 	"\n" +
 	"SearchText\x18\x01 \x01(\tR\n" +
@@ -4365,7 +4411,7 @@ const file_pkg_pb_auth_subscription_proto_rawDesc = "" +
 	"\x05Email\x18\x01 \x01(\tR\x05Email\x12\x1a\n" +
 	"\bPassword\x18\x02 \x01(\tR\bPassword\"-\n" +
 	"\x15ResetPasswordResponse\x12\x14\n" +
-	"\x05Email\x18\x01 \x01(\tR\x05Email2\xff\x16\n" +
+	"\x05Email\x18\x01 \x01(\tR\x05Email2\xe1\x17\n" +
 	"\x17AuthSubscriptionService\x12Y\n" +
 	"\n" +
 	"AdminLogin\x12$.auth_subscription.AdminLoginRequest\x1a%.auth_subscription.AdminLoginResponse\x12V\n" +
@@ -4397,7 +4443,8 @@ const file_pkg_pb_auth_subscription_proto_rawDesc = "" +
 	"\n" +
 	"SearchUser\x12$.auth_subscription.SearchUserRequest\x1a%.auth_subscription.SearchUserResponse\x12e\n" +
 	"\x0eUserPublicData\x12(.auth_subscription.UserPublicDataRequest\x1a).auth_subscription.UserPublicDataResponse\x12a\n" +
-	"\x11FetchUserMetaData\x12\x1e.auth_subscription.UserDataReq\x1a,.auth_subscription.BatchUserMetadataResponseB\n" +
+	"\x11FetchUserMetaData\x12\x1e.auth_subscription.UserDataReq\x1a,.auth_subscription.BatchUserMetadataResponse\x12`\n" +
+	"\x13CheckUserListExists\x12\x1e.auth_subscription.UserDataReq\x1a).auth_subscription.BatchUserExistResponseB\n" +
 	"Z\b./pkg/pbb\x06proto3"
 
 var (
@@ -4412,164 +4459,167 @@ func file_pkg_pb_auth_subscription_proto_rawDescGZIP() []byte {
 	return file_pkg_pb_auth_subscription_proto_rawDescData
 }
 
-var file_pkg_pb_auth_subscription_proto_msgTypes = make([]protoimpl.MessageInfo, 64)
+var file_pkg_pb_auth_subscription_proto_msgTypes = make([]protoimpl.MessageInfo, 65)
 var file_pkg_pb_auth_subscription_proto_goTypes = []any{
 	(*UserDataReq)(nil),                           // 0: auth_subscription.UserDataReq
 	(*BatchUserMetadataResponse)(nil),             // 1: auth_subscription.BatchUserMetadataResponse
-	(*SearchUserRequest)(nil),                     // 2: auth_subscription.SearchUserRequest
-	(*UserMetaData)(nil),                          // 3: auth_subscription.UserMetaData
-	(*SearchUserResponse)(nil),                    // 4: auth_subscription.SearchUserResponse
-	(*UserPublicDataRequest)(nil),                 // 5: auth_subscription.UserPublicDataRequest
-	(*UserPublicDataResponse)(nil),                // 6: auth_subscription.UserPublicDataResponse
-	(*ChangePasswordRequest)(nil),                 // 7: auth_subscription.ChangePasswordRequest
-	(*ChangePasswordResponse)(nil),                // 8: auth_subscription.ChangePasswordResponse
-	(*EditProfileReq)(nil),                        // 9: auth_subscription.EditProfileReq
-	(*EditProfileRes)(nil),                        // 10: auth_subscription.EditProfileRes
-	(*ProfileInfoReq)(nil),                        // 11: auth_subscription.ProfileInfoReq
-	(*ProfileInfoRes)(nil),                        // 12: auth_subscription.ProfileInfoRes
-	(*CheckUserExistsRequest)(nil),                // 13: auth_subscription.CheckUserExistsRequest
-	(*CheckUserExistsResponse)(nil),               // 14: auth_subscription.CheckUserExistsResponse
-	(*WebhookRequest)(nil),                        // 15: auth_subscription.WebhookRequest
-	(*Payload)(nil),                               // 16: auth_subscription.Payload
-	(*Subscription)(nil),                          // 17: auth_subscription.Subscription
-	(*WebhookResponse)(nil),                       // 18: auth_subscription.WebhookResponse
-	(*SetProfileImageRequest)(nil),                // 19: auth_subscription.SetProfileImageRequest
-	(*SetProfileImageResponse)(nil),               // 20: auth_subscription.SetProfileImageResponse
-	(*UnsubscribeRequest)(nil),                    // 21: auth_subscription.UnsubscribeRequest
-	(*UnsubscribeResponse)(nil),                   // 22: auth_subscription.UnsubscribeResponse
-	(*VerifySubscriptionPaymentRequest)(nil),      // 23: auth_subscription.VerifySubscriptionPaymentRequest
-	(*VerifySubscriptionPaymentResponse)(nil),     // 24: auth_subscription.VerifySubscriptionPaymentResponse
-	(*SubscribeReqeust)(nil),                      // 25: auth_subscription.SubscribeReqeust
-	(*SubscribeResponse)(nil),                     // 26: auth_subscription.SubscribeResponse
-	(*ForgotPasswordReqeust)(nil),                 // 27: auth_subscription.ForgotPasswordReqeust
-	(*ForgotPasswordResponse)(nil),                // 28: auth_subscription.ForgotPasswordResponse
-	(*GetAllSubscriptionPlansRequest)(nil),        // 29: auth_subscription.GetAllSubscriptionPlansRequest
-	(*SubscriptioPlan)(nil),                       // 30: auth_subscription.SubscriptioPlan
-	(*GetAllActiveSubscriptionPlansRequest)(nil),  // 31: auth_subscription.GetAllActiveSubscriptionPlansRequest
-	(*GetAllActiveSubscriptionPlansResponse)(nil), // 32: auth_subscription.GetAllActiveSubscriptionPlansResponse
-	(*GetAllSubscriptionPlansResponse)(nil),       // 33: auth_subscription.GetAllSubscriptionPlansResponse
-	(*DeactivateSubscriptionPlanRequest)(nil),     // 34: auth_subscription.DeactivateSubscriptionPlanRequest
-	(*DeactivateSubscriptionPlanResponse)(nil),    // 35: auth_subscription.DeactivateSubscriptionPlanResponse
-	(*ActivateSubscriptionPlanRequest)(nil),       // 36: auth_subscription.ActivateSubscriptionPlanRequest
-	(*ActivateSubscriptionPlanResponse)(nil),      // 37: auth_subscription.ActivateSubscriptionPlanResponse
-	(*AdminLoginRequest)(nil),                     // 38: auth_subscription.AdminLoginRequest
-	(*AdminLoginResponse)(nil),                    // 39: auth_subscription.AdminLoginResponse
-	(*AdminDetails)(nil),                          // 40: auth_subscription.AdminDetails
-	(*UserLoginRequest)(nil),                      // 41: auth_subscription.UserLoginRequest
-	(*UserLoginResponse)(nil),                     // 42: auth_subscription.UserLoginResponse
-	(*UserDetails)(nil),                           // 43: auth_subscription.UserDetails
-	(*BlockUserRequest)(nil),                      // 44: auth_subscription.BlockUserRequest
-	(*BlockUserResponse)(nil),                     // 45: auth_subscription.BlockUserResponse
-	(*UnblockUserRequest)(nil),                    // 46: auth_subscription.UnblockUserRequest
-	(*UnblockUserResponse)(nil),                   // 47: auth_subscription.UnblockUserResponse
-	(*GetAllUsersRequest)(nil),                    // 48: auth_subscription.GetAllUsersRequest
-	(*GetAllUsersResponse)(nil),                   // 49: auth_subscription.GetAllUsersResponse
-	(*CreateSubscriptionPlanRequest)(nil),         // 50: auth_subscription.CreateSubscriptionPlanRequest
-	(*CreateSubscriptionPlanResponse)(nil),        // 51: auth_subscription.CreateSubscriptionPlanResponse
-	(*User)(nil),                                  // 52: auth_subscription.User
-	(*UserSignUpRequest)(nil),                     // 53: auth_subscription.UserSignUpRequest
-	(*UserSignUpResponse)(nil),                    // 54: auth_subscription.UserSignUpResponse
-	(*OtpRequest)(nil),                            // 55: auth_subscription.OtpRequest
-	(*OtpVerificationResponse)(nil),               // 56: auth_subscription.OtpVerificationResponse
-	(*ResendOtpRequest)(nil),                      // 57: auth_subscription.ResendOtpRequest
-	(*ResendOtpResponse)(nil),                     // 58: auth_subscription.ResendOtpResponse
-	(*AccessRegeneratorRequest)(nil),              // 59: auth_subscription.AccessRegeneratorRequest
-	(*AccessRegeneratorResponse)(nil),             // 60: auth_subscription.AccessRegeneratorResponse
-	(*ResetPasswordRequest)(nil),                  // 61: auth_subscription.ResetPasswordRequest
-	(*ResetPasswordResponse)(nil),                 // 62: auth_subscription.ResetPasswordResponse
-	nil,                                           // 63: auth_subscription.BatchUserMetadataResponse.UsersEntry
-	(*timestamppb.Timestamp)(nil),                 // 64: google.protobuf.Timestamp
+	(*BatchUserExistResponse)(nil),                // 2: auth_subscription.BatchUserExistResponse
+	(*SearchUserRequest)(nil),                     // 3: auth_subscription.SearchUserRequest
+	(*UserMetaData)(nil),                          // 4: auth_subscription.UserMetaData
+	(*SearchUserResponse)(nil),                    // 5: auth_subscription.SearchUserResponse
+	(*UserPublicDataRequest)(nil),                 // 6: auth_subscription.UserPublicDataRequest
+	(*UserPublicDataResponse)(nil),                // 7: auth_subscription.UserPublicDataResponse
+	(*ChangePasswordRequest)(nil),                 // 8: auth_subscription.ChangePasswordRequest
+	(*ChangePasswordResponse)(nil),                // 9: auth_subscription.ChangePasswordResponse
+	(*EditProfileReq)(nil),                        // 10: auth_subscription.EditProfileReq
+	(*EditProfileRes)(nil),                        // 11: auth_subscription.EditProfileRes
+	(*ProfileInfoReq)(nil),                        // 12: auth_subscription.ProfileInfoReq
+	(*ProfileInfoRes)(nil),                        // 13: auth_subscription.ProfileInfoRes
+	(*CheckUserExistsRequest)(nil),                // 14: auth_subscription.CheckUserExistsRequest
+	(*CheckUserExistsResponse)(nil),               // 15: auth_subscription.CheckUserExistsResponse
+	(*WebhookRequest)(nil),                        // 16: auth_subscription.WebhookRequest
+	(*Payload)(nil),                               // 17: auth_subscription.Payload
+	(*Subscription)(nil),                          // 18: auth_subscription.Subscription
+	(*WebhookResponse)(nil),                       // 19: auth_subscription.WebhookResponse
+	(*SetProfileImageRequest)(nil),                // 20: auth_subscription.SetProfileImageRequest
+	(*SetProfileImageResponse)(nil),               // 21: auth_subscription.SetProfileImageResponse
+	(*UnsubscribeRequest)(nil),                    // 22: auth_subscription.UnsubscribeRequest
+	(*UnsubscribeResponse)(nil),                   // 23: auth_subscription.UnsubscribeResponse
+	(*VerifySubscriptionPaymentRequest)(nil),      // 24: auth_subscription.VerifySubscriptionPaymentRequest
+	(*VerifySubscriptionPaymentResponse)(nil),     // 25: auth_subscription.VerifySubscriptionPaymentResponse
+	(*SubscribeReqeust)(nil),                      // 26: auth_subscription.SubscribeReqeust
+	(*SubscribeResponse)(nil),                     // 27: auth_subscription.SubscribeResponse
+	(*ForgotPasswordReqeust)(nil),                 // 28: auth_subscription.ForgotPasswordReqeust
+	(*ForgotPasswordResponse)(nil),                // 29: auth_subscription.ForgotPasswordResponse
+	(*GetAllSubscriptionPlansRequest)(nil),        // 30: auth_subscription.GetAllSubscriptionPlansRequest
+	(*SubscriptioPlan)(nil),                       // 31: auth_subscription.SubscriptioPlan
+	(*GetAllActiveSubscriptionPlansRequest)(nil),  // 32: auth_subscription.GetAllActiveSubscriptionPlansRequest
+	(*GetAllActiveSubscriptionPlansResponse)(nil), // 33: auth_subscription.GetAllActiveSubscriptionPlansResponse
+	(*GetAllSubscriptionPlansResponse)(nil),       // 34: auth_subscription.GetAllSubscriptionPlansResponse
+	(*DeactivateSubscriptionPlanRequest)(nil),     // 35: auth_subscription.DeactivateSubscriptionPlanRequest
+	(*DeactivateSubscriptionPlanResponse)(nil),    // 36: auth_subscription.DeactivateSubscriptionPlanResponse
+	(*ActivateSubscriptionPlanRequest)(nil),       // 37: auth_subscription.ActivateSubscriptionPlanRequest
+	(*ActivateSubscriptionPlanResponse)(nil),      // 38: auth_subscription.ActivateSubscriptionPlanResponse
+	(*AdminLoginRequest)(nil),                     // 39: auth_subscription.AdminLoginRequest
+	(*AdminLoginResponse)(nil),                    // 40: auth_subscription.AdminLoginResponse
+	(*AdminDetails)(nil),                          // 41: auth_subscription.AdminDetails
+	(*UserLoginRequest)(nil),                      // 42: auth_subscription.UserLoginRequest
+	(*UserLoginResponse)(nil),                     // 43: auth_subscription.UserLoginResponse
+	(*UserDetails)(nil),                           // 44: auth_subscription.UserDetails
+	(*BlockUserRequest)(nil),                      // 45: auth_subscription.BlockUserRequest
+	(*BlockUserResponse)(nil),                     // 46: auth_subscription.BlockUserResponse
+	(*UnblockUserRequest)(nil),                    // 47: auth_subscription.UnblockUserRequest
+	(*UnblockUserResponse)(nil),                   // 48: auth_subscription.UnblockUserResponse
+	(*GetAllUsersRequest)(nil),                    // 49: auth_subscription.GetAllUsersRequest
+	(*GetAllUsersResponse)(nil),                   // 50: auth_subscription.GetAllUsersResponse
+	(*CreateSubscriptionPlanRequest)(nil),         // 51: auth_subscription.CreateSubscriptionPlanRequest
+	(*CreateSubscriptionPlanResponse)(nil),        // 52: auth_subscription.CreateSubscriptionPlanResponse
+	(*User)(nil),                                  // 53: auth_subscription.User
+	(*UserSignUpRequest)(nil),                     // 54: auth_subscription.UserSignUpRequest
+	(*UserSignUpResponse)(nil),                    // 55: auth_subscription.UserSignUpResponse
+	(*OtpRequest)(nil),                            // 56: auth_subscription.OtpRequest
+	(*OtpVerificationResponse)(nil),               // 57: auth_subscription.OtpVerificationResponse
+	(*ResendOtpRequest)(nil),                      // 58: auth_subscription.ResendOtpRequest
+	(*ResendOtpResponse)(nil),                     // 59: auth_subscription.ResendOtpResponse
+	(*AccessRegeneratorRequest)(nil),              // 60: auth_subscription.AccessRegeneratorRequest
+	(*AccessRegeneratorResponse)(nil),             // 61: auth_subscription.AccessRegeneratorResponse
+	(*ResetPasswordRequest)(nil),                  // 62: auth_subscription.ResetPasswordRequest
+	(*ResetPasswordResponse)(nil),                 // 63: auth_subscription.ResetPasswordResponse
+	nil,                                           // 64: auth_subscription.BatchUserMetadataResponse.UsersEntry
+	(*timestamppb.Timestamp)(nil),                 // 65: google.protobuf.Timestamp
 }
 var file_pkg_pb_auth_subscription_proto_depIdxs = []int32{
-	63, // 0: auth_subscription.BatchUserMetadataResponse.users:type_name -> auth_subscription.BatchUserMetadataResponse.UsersEntry
-	3,  // 1: auth_subscription.SearchUserResponse.userMetaData:type_name -> auth_subscription.UserMetaData
-	16, // 2: auth_subscription.WebhookRequest.payload:type_name -> auth_subscription.Payload
-	17, // 3: auth_subscription.Payload.subscription:type_name -> auth_subscription.Subscription
-	64, // 4: auth_subscription.UnsubscribeResponse.CreatedAt:type_name -> google.protobuf.Timestamp
-	64, // 5: auth_subscription.UnsubscribeResponse.UpdatedAt:type_name -> google.protobuf.Timestamp
-	64, // 6: auth_subscription.UnsubscribeResponse.StartAt:type_name -> google.protobuf.Timestamp
-	64, // 7: auth_subscription.UnsubscribeResponse.EndAt:type_name -> google.protobuf.Timestamp
-	64, // 8: auth_subscription.UnsubscribeResponse.NextChargeAt:type_name -> google.protobuf.Timestamp
-	64, // 9: auth_subscription.UnsubscribeResponse.CancelledAt:type_name -> google.protobuf.Timestamp
-	64, // 10: auth_subscription.VerifySubscriptionPaymentResponse.CreatedAt:type_name -> google.protobuf.Timestamp
-	64, // 11: auth_subscription.VerifySubscriptionPaymentResponse.UpdatedAt:type_name -> google.protobuf.Timestamp
-	64, // 12: auth_subscription.VerifySubscriptionPaymentResponse.StartAt:type_name -> google.protobuf.Timestamp
-	64, // 13: auth_subscription.VerifySubscriptionPaymentResponse.EndAt:type_name -> google.protobuf.Timestamp
-	64, // 14: auth_subscription.VerifySubscriptionPaymentResponse.NextChargeAt:type_name -> google.protobuf.Timestamp
-	64, // 15: auth_subscription.SubscribeResponse.CreatedAt:type_name -> google.protobuf.Timestamp
-	64, // 16: auth_subscription.SubscribeResponse.UpdatedAt:type_name -> google.protobuf.Timestamp
-	64, // 17: auth_subscription.SubscriptioPlan.CreatedAt:type_name -> google.protobuf.Timestamp
-	64, // 18: auth_subscription.SubscriptioPlan.UpdatedAt:type_name -> google.protobuf.Timestamp
-	30, // 19: auth_subscription.GetAllActiveSubscriptionPlansResponse.SubscriptioPlans:type_name -> auth_subscription.SubscriptioPlan
-	30, // 20: auth_subscription.GetAllSubscriptionPlansResponse.SubscriptioPlans:type_name -> auth_subscription.SubscriptioPlan
-	64, // 21: auth_subscription.DeactivateSubscriptionPlanResponse.CreatedAt:type_name -> google.protobuf.Timestamp
-	64, // 22: auth_subscription.DeactivateSubscriptionPlanResponse.UpdatedAt:type_name -> google.protobuf.Timestamp
-	64, // 23: auth_subscription.ActivateSubscriptionPlanResponse.CreatedAt:type_name -> google.protobuf.Timestamp
-	64, // 24: auth_subscription.ActivateSubscriptionPlanResponse.UpdatedAt:type_name -> google.protobuf.Timestamp
-	40, // 25: auth_subscription.AdminLoginResponse.adminDetails:type_name -> auth_subscription.AdminDetails
-	43, // 26: auth_subscription.UserLoginResponse.userDetails:type_name -> auth_subscription.UserDetails
-	52, // 27: auth_subscription.GetAllUsersResponse.Users:type_name -> auth_subscription.User
-	64, // 28: auth_subscription.CreateSubscriptionPlanResponse.CreatedAt:type_name -> google.protobuf.Timestamp
-	64, // 29: auth_subscription.CreateSubscriptionPlanResponse.UpdatedAt:type_name -> google.protobuf.Timestamp
-	3,  // 30: auth_subscription.BatchUserMetadataResponse.UsersEntry.value:type_name -> auth_subscription.UserMetaData
-	38, // 31: auth_subscription.AuthSubscriptionService.AdminLogin:input_type -> auth_subscription.AdminLoginRequest
-	44, // 32: auth_subscription.AuthSubscriptionService.BlockUser:input_type -> auth_subscription.BlockUserRequest
-	46, // 33: auth_subscription.AuthSubscriptionService.UnblockUser:input_type -> auth_subscription.UnblockUserRequest
-	48, // 34: auth_subscription.AuthSubscriptionService.GetAllUsers:input_type -> auth_subscription.GetAllUsersRequest
-	50, // 35: auth_subscription.AuthSubscriptionService.CreateSubscriptionPlan:input_type -> auth_subscription.CreateSubscriptionPlanRequest
-	36, // 36: auth_subscription.AuthSubscriptionService.ActivateSubscriptionPlan:input_type -> auth_subscription.ActivateSubscriptionPlanRequest
-	34, // 37: auth_subscription.AuthSubscriptionService.DeactivateSubscriptionPlan:input_type -> auth_subscription.DeactivateSubscriptionPlanRequest
-	29, // 38: auth_subscription.AuthSubscriptionService.GetAllSubscriptionPlans:input_type -> auth_subscription.GetAllSubscriptionPlansRequest
-	53, // 39: auth_subscription.AuthSubscriptionService.UserSignUp:input_type -> auth_subscription.UserSignUpRequest
-	55, // 40: auth_subscription.AuthSubscriptionService.VerifyOtp:input_type -> auth_subscription.OtpRequest
-	57, // 41: auth_subscription.AuthSubscriptionService.ResendOtp:input_type -> auth_subscription.ResendOtpRequest
-	59, // 42: auth_subscription.AuthSubscriptionService.AccessRegenerator:input_type -> auth_subscription.AccessRegeneratorRequest
-	27, // 43: auth_subscription.AuthSubscriptionService.ForgetPassword:input_type -> auth_subscription.ForgotPasswordReqeust
-	61, // 44: auth_subscription.AuthSubscriptionService.ResetPassword:input_type -> auth_subscription.ResetPasswordRequest
-	41, // 45: auth_subscription.AuthSubscriptionService.UserLogin:input_type -> auth_subscription.UserLoginRequest
-	31, // 46: auth_subscription.AuthSubscriptionService.GetAllActiveSubscriptionPlans:input_type -> auth_subscription.GetAllActiveSubscriptionPlansRequest
-	25, // 47: auth_subscription.AuthSubscriptionService.Subscribe:input_type -> auth_subscription.SubscribeReqeust
-	23, // 48: auth_subscription.AuthSubscriptionService.VerifySubscriptionPayment:input_type -> auth_subscription.VerifySubscriptionPaymentRequest
-	21, // 49: auth_subscription.AuthSubscriptionService.Unsubscribe:input_type -> auth_subscription.UnsubscribeRequest
-	19, // 50: auth_subscription.AuthSubscriptionService.SetProfileImage:input_type -> auth_subscription.SetProfileImageRequest
-	15, // 51: auth_subscription.AuthSubscriptionService.Webhook:input_type -> auth_subscription.WebhookRequest
-	13, // 52: auth_subscription.AuthSubscriptionService.CheckUserExists:input_type -> auth_subscription.CheckUserExistsRequest
-	7,  // 53: auth_subscription.AuthSubscriptionService.ChangePassword:input_type -> auth_subscription.ChangePasswordRequest
-	11, // 54: auth_subscription.AuthSubscriptionService.GetProfileInformation:input_type -> auth_subscription.ProfileInfoReq
-	9,  // 55: auth_subscription.AuthSubscriptionService.EditProfileInfromation:input_type -> auth_subscription.EditProfileReq
-	2,  // 56: auth_subscription.AuthSubscriptionService.SearchUser:input_type -> auth_subscription.SearchUserRequest
-	5,  // 57: auth_subscription.AuthSubscriptionService.UserPublicData:input_type -> auth_subscription.UserPublicDataRequest
+	64, // 0: auth_subscription.BatchUserMetadataResponse.users:type_name -> auth_subscription.BatchUserMetadataResponse.UsersEntry
+	4,  // 1: auth_subscription.SearchUserResponse.userMetaData:type_name -> auth_subscription.UserMetaData
+	17, // 2: auth_subscription.WebhookRequest.payload:type_name -> auth_subscription.Payload
+	18, // 3: auth_subscription.Payload.subscription:type_name -> auth_subscription.Subscription
+	65, // 4: auth_subscription.UnsubscribeResponse.CreatedAt:type_name -> google.protobuf.Timestamp
+	65, // 5: auth_subscription.UnsubscribeResponse.UpdatedAt:type_name -> google.protobuf.Timestamp
+	65, // 6: auth_subscription.UnsubscribeResponse.StartAt:type_name -> google.protobuf.Timestamp
+	65, // 7: auth_subscription.UnsubscribeResponse.EndAt:type_name -> google.protobuf.Timestamp
+	65, // 8: auth_subscription.UnsubscribeResponse.NextChargeAt:type_name -> google.protobuf.Timestamp
+	65, // 9: auth_subscription.UnsubscribeResponse.CancelledAt:type_name -> google.protobuf.Timestamp
+	65, // 10: auth_subscription.VerifySubscriptionPaymentResponse.CreatedAt:type_name -> google.protobuf.Timestamp
+	65, // 11: auth_subscription.VerifySubscriptionPaymentResponse.UpdatedAt:type_name -> google.protobuf.Timestamp
+	65, // 12: auth_subscription.VerifySubscriptionPaymentResponse.StartAt:type_name -> google.protobuf.Timestamp
+	65, // 13: auth_subscription.VerifySubscriptionPaymentResponse.EndAt:type_name -> google.protobuf.Timestamp
+	65, // 14: auth_subscription.VerifySubscriptionPaymentResponse.NextChargeAt:type_name -> google.protobuf.Timestamp
+	65, // 15: auth_subscription.SubscribeResponse.CreatedAt:type_name -> google.protobuf.Timestamp
+	65, // 16: auth_subscription.SubscribeResponse.UpdatedAt:type_name -> google.protobuf.Timestamp
+	65, // 17: auth_subscription.SubscriptioPlan.CreatedAt:type_name -> google.protobuf.Timestamp
+	65, // 18: auth_subscription.SubscriptioPlan.UpdatedAt:type_name -> google.protobuf.Timestamp
+	31, // 19: auth_subscription.GetAllActiveSubscriptionPlansResponse.SubscriptioPlans:type_name -> auth_subscription.SubscriptioPlan
+	31, // 20: auth_subscription.GetAllSubscriptionPlansResponse.SubscriptioPlans:type_name -> auth_subscription.SubscriptioPlan
+	65, // 21: auth_subscription.DeactivateSubscriptionPlanResponse.CreatedAt:type_name -> google.protobuf.Timestamp
+	65, // 22: auth_subscription.DeactivateSubscriptionPlanResponse.UpdatedAt:type_name -> google.protobuf.Timestamp
+	65, // 23: auth_subscription.ActivateSubscriptionPlanResponse.CreatedAt:type_name -> google.protobuf.Timestamp
+	65, // 24: auth_subscription.ActivateSubscriptionPlanResponse.UpdatedAt:type_name -> google.protobuf.Timestamp
+	41, // 25: auth_subscription.AdminLoginResponse.adminDetails:type_name -> auth_subscription.AdminDetails
+	44, // 26: auth_subscription.UserLoginResponse.userDetails:type_name -> auth_subscription.UserDetails
+	53, // 27: auth_subscription.GetAllUsersResponse.Users:type_name -> auth_subscription.User
+	65, // 28: auth_subscription.CreateSubscriptionPlanResponse.CreatedAt:type_name -> google.protobuf.Timestamp
+	65, // 29: auth_subscription.CreateSubscriptionPlanResponse.UpdatedAt:type_name -> google.protobuf.Timestamp
+	4,  // 30: auth_subscription.BatchUserMetadataResponse.UsersEntry.value:type_name -> auth_subscription.UserMetaData
+	39, // 31: auth_subscription.AuthSubscriptionService.AdminLogin:input_type -> auth_subscription.AdminLoginRequest
+	45, // 32: auth_subscription.AuthSubscriptionService.BlockUser:input_type -> auth_subscription.BlockUserRequest
+	47, // 33: auth_subscription.AuthSubscriptionService.UnblockUser:input_type -> auth_subscription.UnblockUserRequest
+	49, // 34: auth_subscription.AuthSubscriptionService.GetAllUsers:input_type -> auth_subscription.GetAllUsersRequest
+	51, // 35: auth_subscription.AuthSubscriptionService.CreateSubscriptionPlan:input_type -> auth_subscription.CreateSubscriptionPlanRequest
+	37, // 36: auth_subscription.AuthSubscriptionService.ActivateSubscriptionPlan:input_type -> auth_subscription.ActivateSubscriptionPlanRequest
+	35, // 37: auth_subscription.AuthSubscriptionService.DeactivateSubscriptionPlan:input_type -> auth_subscription.DeactivateSubscriptionPlanRequest
+	30, // 38: auth_subscription.AuthSubscriptionService.GetAllSubscriptionPlans:input_type -> auth_subscription.GetAllSubscriptionPlansRequest
+	54, // 39: auth_subscription.AuthSubscriptionService.UserSignUp:input_type -> auth_subscription.UserSignUpRequest
+	56, // 40: auth_subscription.AuthSubscriptionService.VerifyOtp:input_type -> auth_subscription.OtpRequest
+	58, // 41: auth_subscription.AuthSubscriptionService.ResendOtp:input_type -> auth_subscription.ResendOtpRequest
+	60, // 42: auth_subscription.AuthSubscriptionService.AccessRegenerator:input_type -> auth_subscription.AccessRegeneratorRequest
+	28, // 43: auth_subscription.AuthSubscriptionService.ForgetPassword:input_type -> auth_subscription.ForgotPasswordReqeust
+	62, // 44: auth_subscription.AuthSubscriptionService.ResetPassword:input_type -> auth_subscription.ResetPasswordRequest
+	42, // 45: auth_subscription.AuthSubscriptionService.UserLogin:input_type -> auth_subscription.UserLoginRequest
+	32, // 46: auth_subscription.AuthSubscriptionService.GetAllActiveSubscriptionPlans:input_type -> auth_subscription.GetAllActiveSubscriptionPlansRequest
+	26, // 47: auth_subscription.AuthSubscriptionService.Subscribe:input_type -> auth_subscription.SubscribeReqeust
+	24, // 48: auth_subscription.AuthSubscriptionService.VerifySubscriptionPayment:input_type -> auth_subscription.VerifySubscriptionPaymentRequest
+	22, // 49: auth_subscription.AuthSubscriptionService.Unsubscribe:input_type -> auth_subscription.UnsubscribeRequest
+	20, // 50: auth_subscription.AuthSubscriptionService.SetProfileImage:input_type -> auth_subscription.SetProfileImageRequest
+	16, // 51: auth_subscription.AuthSubscriptionService.Webhook:input_type -> auth_subscription.WebhookRequest
+	14, // 52: auth_subscription.AuthSubscriptionService.CheckUserExists:input_type -> auth_subscription.CheckUserExistsRequest
+	8,  // 53: auth_subscription.AuthSubscriptionService.ChangePassword:input_type -> auth_subscription.ChangePasswordRequest
+	12, // 54: auth_subscription.AuthSubscriptionService.GetProfileInformation:input_type -> auth_subscription.ProfileInfoReq
+	10, // 55: auth_subscription.AuthSubscriptionService.EditProfileInfromation:input_type -> auth_subscription.EditProfileReq
+	3,  // 56: auth_subscription.AuthSubscriptionService.SearchUser:input_type -> auth_subscription.SearchUserRequest
+	6,  // 57: auth_subscription.AuthSubscriptionService.UserPublicData:input_type -> auth_subscription.UserPublicDataRequest
 	0,  // 58: auth_subscription.AuthSubscriptionService.FetchUserMetaData:input_type -> auth_subscription.UserDataReq
-	39, // 59: auth_subscription.AuthSubscriptionService.AdminLogin:output_type -> auth_subscription.AdminLoginResponse
-	45, // 60: auth_subscription.AuthSubscriptionService.BlockUser:output_type -> auth_subscription.BlockUserResponse
-	47, // 61: auth_subscription.AuthSubscriptionService.UnblockUser:output_type -> auth_subscription.UnblockUserResponse
-	49, // 62: auth_subscription.AuthSubscriptionService.GetAllUsers:output_type -> auth_subscription.GetAllUsersResponse
-	51, // 63: auth_subscription.AuthSubscriptionService.CreateSubscriptionPlan:output_type -> auth_subscription.CreateSubscriptionPlanResponse
-	37, // 64: auth_subscription.AuthSubscriptionService.ActivateSubscriptionPlan:output_type -> auth_subscription.ActivateSubscriptionPlanResponse
-	35, // 65: auth_subscription.AuthSubscriptionService.DeactivateSubscriptionPlan:output_type -> auth_subscription.DeactivateSubscriptionPlanResponse
-	33, // 66: auth_subscription.AuthSubscriptionService.GetAllSubscriptionPlans:output_type -> auth_subscription.GetAllSubscriptionPlansResponse
-	54, // 67: auth_subscription.AuthSubscriptionService.UserSignUp:output_type -> auth_subscription.UserSignUpResponse
-	56, // 68: auth_subscription.AuthSubscriptionService.VerifyOtp:output_type -> auth_subscription.OtpVerificationResponse
-	58, // 69: auth_subscription.AuthSubscriptionService.ResendOtp:output_type -> auth_subscription.ResendOtpResponse
-	60, // 70: auth_subscription.AuthSubscriptionService.AccessRegenerator:output_type -> auth_subscription.AccessRegeneratorResponse
-	28, // 71: auth_subscription.AuthSubscriptionService.ForgetPassword:output_type -> auth_subscription.ForgotPasswordResponse
-	62, // 72: auth_subscription.AuthSubscriptionService.ResetPassword:output_type -> auth_subscription.ResetPasswordResponse
-	42, // 73: auth_subscription.AuthSubscriptionService.UserLogin:output_type -> auth_subscription.UserLoginResponse
-	32, // 74: auth_subscription.AuthSubscriptionService.GetAllActiveSubscriptionPlans:output_type -> auth_subscription.GetAllActiveSubscriptionPlansResponse
-	26, // 75: auth_subscription.AuthSubscriptionService.Subscribe:output_type -> auth_subscription.SubscribeResponse
-	24, // 76: auth_subscription.AuthSubscriptionService.VerifySubscriptionPayment:output_type -> auth_subscription.VerifySubscriptionPaymentResponse
-	22, // 77: auth_subscription.AuthSubscriptionService.Unsubscribe:output_type -> auth_subscription.UnsubscribeResponse
-	20, // 78: auth_subscription.AuthSubscriptionService.SetProfileImage:output_type -> auth_subscription.SetProfileImageResponse
-	18, // 79: auth_subscription.AuthSubscriptionService.Webhook:output_type -> auth_subscription.WebhookResponse
-	14, // 80: auth_subscription.AuthSubscriptionService.CheckUserExists:output_type -> auth_subscription.CheckUserExistsResponse
-	8,  // 81: auth_subscription.AuthSubscriptionService.ChangePassword:output_type -> auth_subscription.ChangePasswordResponse
-	12, // 82: auth_subscription.AuthSubscriptionService.GetProfileInformation:output_type -> auth_subscription.ProfileInfoRes
-	10, // 83: auth_subscription.AuthSubscriptionService.EditProfileInfromation:output_type -> auth_subscription.EditProfileRes
-	4,  // 84: auth_subscription.AuthSubscriptionService.SearchUser:output_type -> auth_subscription.SearchUserResponse
-	6,  // 85: auth_subscription.AuthSubscriptionService.UserPublicData:output_type -> auth_subscription.UserPublicDataResponse
-	1,  // 86: auth_subscription.AuthSubscriptionService.FetchUserMetaData:output_type -> auth_subscription.BatchUserMetadataResponse
-	59, // [59:87] is the sub-list for method output_type
-	31, // [31:59] is the sub-list for method input_type
+	0,  // 59: auth_subscription.AuthSubscriptionService.CheckUserListExists:input_type -> auth_subscription.UserDataReq
+	40, // 60: auth_subscription.AuthSubscriptionService.AdminLogin:output_type -> auth_subscription.AdminLoginResponse
+	46, // 61: auth_subscription.AuthSubscriptionService.BlockUser:output_type -> auth_subscription.BlockUserResponse
+	48, // 62: auth_subscription.AuthSubscriptionService.UnblockUser:output_type -> auth_subscription.UnblockUserResponse
+	50, // 63: auth_subscription.AuthSubscriptionService.GetAllUsers:output_type -> auth_subscription.GetAllUsersResponse
+	52, // 64: auth_subscription.AuthSubscriptionService.CreateSubscriptionPlan:output_type -> auth_subscription.CreateSubscriptionPlanResponse
+	38, // 65: auth_subscription.AuthSubscriptionService.ActivateSubscriptionPlan:output_type -> auth_subscription.ActivateSubscriptionPlanResponse
+	36, // 66: auth_subscription.AuthSubscriptionService.DeactivateSubscriptionPlan:output_type -> auth_subscription.DeactivateSubscriptionPlanResponse
+	34, // 67: auth_subscription.AuthSubscriptionService.GetAllSubscriptionPlans:output_type -> auth_subscription.GetAllSubscriptionPlansResponse
+	55, // 68: auth_subscription.AuthSubscriptionService.UserSignUp:output_type -> auth_subscription.UserSignUpResponse
+	57, // 69: auth_subscription.AuthSubscriptionService.VerifyOtp:output_type -> auth_subscription.OtpVerificationResponse
+	59, // 70: auth_subscription.AuthSubscriptionService.ResendOtp:output_type -> auth_subscription.ResendOtpResponse
+	61, // 71: auth_subscription.AuthSubscriptionService.AccessRegenerator:output_type -> auth_subscription.AccessRegeneratorResponse
+	29, // 72: auth_subscription.AuthSubscriptionService.ForgetPassword:output_type -> auth_subscription.ForgotPasswordResponse
+	63, // 73: auth_subscription.AuthSubscriptionService.ResetPassword:output_type -> auth_subscription.ResetPasswordResponse
+	43, // 74: auth_subscription.AuthSubscriptionService.UserLogin:output_type -> auth_subscription.UserLoginResponse
+	33, // 75: auth_subscription.AuthSubscriptionService.GetAllActiveSubscriptionPlans:output_type -> auth_subscription.GetAllActiveSubscriptionPlansResponse
+	27, // 76: auth_subscription.AuthSubscriptionService.Subscribe:output_type -> auth_subscription.SubscribeResponse
+	25, // 77: auth_subscription.AuthSubscriptionService.VerifySubscriptionPayment:output_type -> auth_subscription.VerifySubscriptionPaymentResponse
+	23, // 78: auth_subscription.AuthSubscriptionService.Unsubscribe:output_type -> auth_subscription.UnsubscribeResponse
+	21, // 79: auth_subscription.AuthSubscriptionService.SetProfileImage:output_type -> auth_subscription.SetProfileImageResponse
+	19, // 80: auth_subscription.AuthSubscriptionService.Webhook:output_type -> auth_subscription.WebhookResponse
+	15, // 81: auth_subscription.AuthSubscriptionService.CheckUserExists:output_type -> auth_subscription.CheckUserExistsResponse
+	9,  // 82: auth_subscription.AuthSubscriptionService.ChangePassword:output_type -> auth_subscription.ChangePasswordResponse
+	13, // 83: auth_subscription.AuthSubscriptionService.GetProfileInformation:output_type -> auth_subscription.ProfileInfoRes
+	11, // 84: auth_subscription.AuthSubscriptionService.EditProfileInfromation:output_type -> auth_subscription.EditProfileRes
+	5,  // 85: auth_subscription.AuthSubscriptionService.SearchUser:output_type -> auth_subscription.SearchUserResponse
+	7,  // 86: auth_subscription.AuthSubscriptionService.UserPublicData:output_type -> auth_subscription.UserPublicDataResponse
+	1,  // 87: auth_subscription.AuthSubscriptionService.FetchUserMetaData:output_type -> auth_subscription.BatchUserMetadataResponse
+	2,  // 88: auth_subscription.AuthSubscriptionService.CheckUserListExists:output_type -> auth_subscription.BatchUserExistResponse
+	60, // [60:89] is the sub-list for method output_type
+	31, // [31:60] is the sub-list for method input_type
 	31, // [31:31] is the sub-list for extension type_name
 	31, // [31:31] is the sub-list for extension extendee
 	0,  // [0:31] is the sub-list for field type_name
@@ -4580,15 +4630,15 @@ func file_pkg_pb_auth_subscription_proto_init() {
 	if File_pkg_pb_auth_subscription_proto != nil {
 		return
 	}
-	file_pkg_pb_auth_subscription_proto_msgTypes[9].OneofWrappers = []any{}
 	file_pkg_pb_auth_subscription_proto_msgTypes[10].OneofWrappers = []any{}
+	file_pkg_pb_auth_subscription_proto_msgTypes[11].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_pb_auth_subscription_proto_rawDesc), len(file_pkg_pb_auth_subscription_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   64,
+			NumMessages:   65,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

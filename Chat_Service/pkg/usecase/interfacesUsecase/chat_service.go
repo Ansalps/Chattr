@@ -17,4 +17,7 @@ type ChatUsecase interface {
 
 	StoreGroupChatInMessages(domain.Message)error
 	StoreOrUpdateGroupChatInConversation(domain.Conversation)(error)
+
+	GetRecentChatProfiles(requestmodels.RecentChatProfilesRequest)([]responsemodels.ChatProfileResponse,error)
+
 }

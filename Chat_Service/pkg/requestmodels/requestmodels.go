@@ -50,3 +50,9 @@ type MessageRequest struct {
 	GroupID string `json:"group_id"`
 	//TypingStat  bool
 }
+
+type RecentChatProfilesRequest struct{
+	UserID uint64
+	Limit int
+	Offset int
+}

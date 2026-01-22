@@ -700,6 +700,18 @@ func (as *AuthSubscriptionServer) FetchUserMetaData(ctx context.Context,req *pb.
 		Users: pbMap,
 	},nil
 }
+
+func (as *AuthSubscriptionServer)CheckUserListExists(ctx context.Context,req *pb.UserDataReq)(*pb.BatchUserExistResponse,error){
+	var userids []uint64
+	userids=req.UserId
+	resp,err:=as.AuthSubscriptionUsecase.CheckUserListExists(userids)
+	if err!=nil{
+		return nil,usecase.ErrNoUsersFound
+	}
+	return &pb.BatchUserExistResponse{
+		UserId: resp,
+	},nil
+}
 // func (as *AuthSubscriptionServer)Webhook(ctx context.Context,req *pb.WebhookRequest)(*pb.WebhookResponse,error){
 // 	webhookRequest:=requestmodels.WebhookRequest{
 // 		Event: req.Event,

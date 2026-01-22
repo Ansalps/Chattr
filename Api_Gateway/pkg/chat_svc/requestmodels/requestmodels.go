@@ -10,11 +10,12 @@ type CreateGroupRequest struct {
 }
 
 type AddMembersRequest struct {
-	GroupID      string   
+	GroupID      string   `json:"group_id"`
 	GroupMembers []uint64 `json:"group_members" validate:"required"`
 }
 
 type RemoveMembersRequest struct {
-	GroupID      string   
+	GroupID      string `json:"group_id"`
+	UserID uint64 `json:"user_id"`  
 	MemberID uint64 `json:"member_id" validate:"required"`
 }

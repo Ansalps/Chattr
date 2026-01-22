@@ -19,4 +19,8 @@ type ChatRepository interface {
 
 	StoreGroupChatInMessages(domain.Message)error
 	StoreOrUpdateGroupChatInConversation(domain.Conversation)(error)
+
+	GetUserConversation(req requestmodels.RecentChatProfilesRequest)([]domain.Conversation,error)
+
+	GetGroupNamesBatch(groupIDs []string) (map[string]string, error)
 }
