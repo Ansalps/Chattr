@@ -13,11 +13,11 @@ type ChatUsecase interface {
 	FetchMembersOfGroup(groupId string)([]uint64,error)
 
 	StoreIndividualChatInMessages(domain.Message)(error)
-	StoreOrUpdateIndividualChatInConversation(domain.Conversation)(error)
+	StoreOrUpdateIndividualChatInConversation(domain.Conversation)(string,error)
 
 	StoreGroupChatInMessages(domain.Message)error
-	StoreOrUpdateGroupChatInConversation(domain.Conversation)(error)
+	StoreOrUpdateGroupChatInConversation(domain.Conversation)(string,error)
 
 	GetRecentChatProfiles(requestmodels.RecentChatProfilesRequest)([]responsemodels.ChatProfileResponse,error)
-
+	GetChat(requestmodels.GetChatRequest)(responsemodels.GetChatResponse,error)
 }

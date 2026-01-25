@@ -56,3 +56,10 @@ type RecentChatProfilesRequest struct{
 	Limit int
 	Offset int
 }
+
+type GetChatRequest struct{
+	ConvID string
+	UserID uint64
+	Limit int
+	Offset int
+}

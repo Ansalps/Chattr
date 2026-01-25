@@ -476,20 +476,28 @@ func (as *AuthSubscriptionClient)GetProfileInformation(req requestmodels.GetProf
 	},nil
 }
 
-func (as *AuthSubscriptionClient)Webhook(webhookReq requestmodels.WebhookRequest)(responsemodels.WebhookResponse,error){
-	resp,err:=as.Client.Webhook(context.Background(),&auth_subscription.WebhookRequest{
-		Event: webhookReq.Event,
-		Payload: &auth_subscription.Payload{
-			Subscription: &auth_subscription.Subscription{
-				Id: webhookReq.Payload.Subscription.ID,
-			},
-		},
-	})
-	if err!=nil{
-		return responsemodels.WebhookResponse{},nil
-	}
-	return responsemodels.WebhookResponse{
-		RazropaySubscriptinId:resp.RazorpaySubscriptionId,
-		Event: resp.Event,
-	},nil
+func (as *AuthSubscriptionClient) WebhookSubsciptionCompleted(req requestmodels.RazorpayEvent) (responsemodels.WebhookResponse, error) {
+    // 1. Correctly drill down into the nested payload
+    subscriptionID := req.Payload.Subscription.Entity.ID
+    userEmail := req.Payload.Subscription.Entity.Notes["email"]
+
+    resp, err := as.Client.Webhook(context.Background(), &auth_subscription.WebhookRequest{
+        Event: req.Event,
+        Payload: &auth_subscription.Payload{
+            Subscription: &auth_subscription.Subscription{
+                Id:    subscriptionID,
+                Email: userEmail, // Assuming you updated your proto
+            },
+        },
+    })
+    
+    if err != nil {
+        log.Printf("gRPC Call Failed: %v", err)
+        return responsemodels.WebhookResponse{}, err // Return the error so the handler knows it failed
+    }
+
+    return responsemodels.WebhookResponse{
+        RazropaySubscriptinId: resp.RazorpaySubscriptionId,
+        Event:                 resp.Event,
+    }, nil
 }

@@ -736,6 +736,7 @@ func (as *AuthSubscriptionUsecase) SetProfileImage(setProfileImageReq requestmod
 	if setProfileImageReq.ContentType == "" {
 		return responsemodels.SetProfileImageResponse{}, fmt.Errorf("content type is nil")
 	}
+	//fmt.Println("hi hello",aws.String(as.AwsBucket),aws.String(key),as.AwsBucket,key)
 	uploader := manager.NewUploader(as.AwsS3Client)
 	_, err := uploader.Upload(context.Background(), &s3.PutObjectInput{
 		Bucket:      aws.String(as.AwsBucket),
@@ -744,6 +745,7 @@ func (as *AuthSubscriptionUsecase) SetProfileImage(setProfileImageReq requestmod
 		ContentType: aws.String(setProfileImageReq.ContentType),
 	})
 	if err != nil {
+		fmt.Println("is it here")
 		return responsemodels.SetProfileImageResponse{}, status.Errorf(codes.Internal, "upload failed: %v", err)
 	}
 	// Construct URL

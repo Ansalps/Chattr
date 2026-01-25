@@ -15,12 +15,16 @@ type ChatRepository interface {
 	FetchMembersOfGroup(groupId string) ([]uint64, error)
 
 	StoreIndividualChatInMessages(domain.Message) error
-	StoreOrUpdateIndividualChatInConversation(conversation domain.Conversation)(error)
+	StoreOrUpdateIndividualChatInConversation(conversation domain.Conversation)(string,error)
 
-	StoreGroupChatInMessages(domain.Message)error
-	StoreOrUpdateGroupChatInConversation(domain.Conversation)(error)
+	StoreGroupChatInMessages(domain.Message)(error)
+	StoreOrUpdateGroupChatInConversation(domain.Conversation)(string,error)
 
 	GetUserConversation(req requestmodels.RecentChatProfilesRequest)([]domain.Conversation,error)
 
 	GetGroupNamesBatch(groupIDs []string) (map[string]string, error)
+
+	GetUserMessagesByConversationId(req requestmodels.GetChatRequest) ([]domain.Message, error)
+
+	IsUserInConversation(convID string, userID uint64) (bool, error)
 }

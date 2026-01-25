@@ -13,4 +13,5 @@ func ChatRoutes(router *gin.Engine, chatHandler *chatServiceHandler.ChatHandler,
 	router.POST("/user/group/:group_id/add-members",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.AddMembers)
 	router.DELETE("/user/group/:group_id/remove-member/:member_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.RemoveMember)
 	router.GET("/user/get-recent-chat-profiles",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.RecentChatProfiles)
+	router.GET("/user/chat/:conv_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.GetChat)
 }

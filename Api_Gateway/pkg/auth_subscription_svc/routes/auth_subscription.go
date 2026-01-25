@@ -38,10 +38,11 @@ func AuthSubscriptionRoutes(router *gin.Engine, authSubscriptionHandler *handler
 	router.GET("/user/:user_id/get-public-profile",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.GetPublicProfile)
 	router.POST("/user/set-profile-image",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.SetProfileImage)
 	router.PATCH("/user/change-password",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.ChangePassword)
-	//router.POST("/webhook",authSubscriptionHandler.Webhook)
 	
 	router.GET("/user/search",authSubscriptionHandler.SearchUser)
 	fmt.Println("is it reaching in registering routes")
 
 	router.POST("/user/logout",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.Logout)
+
+	router.POST("/webhook/subscription-completed",authSubscriptionHandler.WebhookSubsciptionCompleted)
 }

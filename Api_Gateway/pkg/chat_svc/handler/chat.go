@@ -314,3 +314,55 @@ func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
 
 	c.Data(resp.StatusCode, "application/json", body)
 }
+
+func (as *ChatHandler)GetChat(c *gin.Context){
+	convIdStr := c.Param("conv_id")
+	if convIdStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "group id missing"})
+		return
+	}
+	// 1. Parse Pagination
+    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+    limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	if page < 1 || limit < 1 || limit > 100 {
+        c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page or limit", nil))
+        return
+    }
+
+	offset := (page - 1) * limit
+	
+
+
+	claims := c.MustGet("claims").(responsemodels.JwtClaims)
+
+	fullURL := fmt.Sprintf("http://localhost:50053/user/chat/%s?limit=%d&offset=%d",convIdStr, limit, offset)
+	httpReq, err := http.NewRequest("GET", fullURL, nil)
+	//url := "http://localhost:50053/user/get-recent-chat-profiles"
+
+	//httpReq, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Printf("Failed to create request: %v", err)
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	// Identity headers
+	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
+	//httpReq.Header.Set("X-User-Role", claims.Role)
+	//httpReq.Header.Set("X-User-Email", claims.Email)
+	httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		c.JSON(502, gin.H{"error": "chat service unavailable"})
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	c.Data(resp.StatusCode, "application/json", body)
+}

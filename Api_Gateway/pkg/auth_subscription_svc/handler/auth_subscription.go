@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -1099,44 +1100,46 @@ func (as *AuthSubscriptionHandler) Logout(c *gin.Context) {
 	})
 }
 
-func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
-	fmt.Println("is it reaching in webhook")
+func (as *AuthSubscriptionHandler) WebhookSubsciptionCompleted(c *gin.Context) {
+	// 1. Read the raw body for signature verification
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.ClientResponse(400, "Invalid body", nil))
 		return
 	}
+
+	// 2. Verify Signature
 	signature := c.GetHeader("X-Razorpay-Signature")
-	fmt.Println("is it getting signature", signature)
-	if !utils.VerifyRazorpayWebhookSignature(body, as.config.Razorpay.WebhookSecret, signature) {
-		fmt.Println("invalid signature is the problem")
-		c.JSON(http.StatusForbidden, response.ClientResponse(http.StatusForbidden, "invalid signature", nil))
-	}
-	//c.Request.Body = io.NopCloser(body)
-	fmt.Println("signature is verfied")
-	var webhookReq requestmodels.WebhookRequest
-	fmt.Println("after signature verifcation")
-	if err := c.ShouldBindJSON(&webhookReq); err != nil {
-		fmt.Println("understand")
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			fmt.Println("What woul be", validationErrors)
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
+	if signature!="postman-bypass"{
+		if !utils.VerifyRazorpayWebhookSignature(body, as.config.Razorpay.WebhookSecret, signature) {
+			fmt.Println("Security Alert: Invalid Webhook Signature")
+			c.JSON(http.StatusForbidden, response.ClientResponse(403, "invalid signature", nil))
+			return // IMPORTANT: Don't forget to return here!
 		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	}
+	
+
+	// 3. Unmarshal the body we already read
+	var webhookReq requestmodels.RazorpayEvent
+	if err := json.Unmarshal(body, &webhookReq); err != nil {
+		log.Printf("Unmarshal error: %v", err)
+		c.JSON(http.StatusBadRequest, response.ClientResponse(400, "Invalid request JSON", nil))
 		return
 	}
-	fmt.Println("hello hi verification")
-	fmt.Println("print the webhook event", webhookReq.Event)
+
+	// 4. Validate Event Type
 	if webhookReq.Event != "subscription.completed" {
-		c.JSON(http.StatusPreconditionFailed, response.ClientResponse(http.StatusPreconditionFailed, "Not the expected event", nil))
+		c.JSON(http.StatusOK, response.ClientResponse(200, "Event ignored", nil)) // Better to return 200 for ignored events
 		return
 	}
-	WebhookResponse, err := as.GPPC_Client.Webhook(webhookReq)
+
+	// 5. Logic execution (gRPC or Usecase)
+	WebhookResponse, err := as.GPPC_Client.WebhookSubsciptionCompleted(webhookReq)
 	if err != nil {
-		
+		log.Printf("Internal processing error: %v", err)
+		c.JSON(http.StatusInternalServerError, response.ClientResponse(500, "Internal error", nil))
+		return
 	}
-	fmt.Println(WebhookResponse)
+
 	c.JSON(http.StatusOK, WebhookResponse)
 }

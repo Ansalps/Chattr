@@ -25,3 +25,19 @@ type ChatProfileResponse struct {
 	LastMessageTime time.Time `json:"last_message_time"`
 	IsGroup         bool      `json:"is_group"`
 }
+
+type MessageResponse struct {
+    MessageID      string    `json:"message_id"`
+    SenderID       uint64    `json:"sender_id"`
+    SenderName     string    `json:"sender_name"`
+    SenderProfileImgUrl  string    `json:"sender_profile"`
+    Content        string    `json:"content"`
+    CreatedAt      time.Time `json:"created_at"`
+    Status         string    `json:"status"`
+}
+
+type GetChatResponse struct {
+    ConversationID string            `json:"conversation_id"`
+    Messages       []MessageResponse `json:"messages"`
+    HasMore        bool              `json:"has_more"`
+}

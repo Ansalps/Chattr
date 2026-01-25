@@ -6,9 +6,10 @@ import (
 )
 
 func ChatServiceRoutes(router *gin.Engine, chatHandler *handler.ChatHandler) {
-	router.GET("/user/wsg", chatHandler.WebSocketConnection)
+	router.GET("/user/ws", chatHandler.WebSocketConnection)
 	router.POST("/user/group",chatHandler.CreateGroup)
 	router.POST("/user/group/add-members",chatHandler.AddMembers)
 	router.DELETE("/user/group/remove-member",chatHandler.RemoveMember)
 	router.GET("/user/get-recent-chat-profiles",chatHandler.GetRecentChatProfiles)
+	router.GET("/user/chat/:conv_id",chatHandler.GetChat)
 }

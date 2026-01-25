@@ -103,6 +103,7 @@ message Payload {
 }
 message Subscription {
     string id = 1;
+    string email = 2; // Add this to identify the user
 }
 
 message WebhookResponse{

@@ -5,13 +5,15 @@ import (
 )
 
 type Message struct {
-	MessageID   string
-	SenderID    uint64    `json:"sender_id" validate:"required"`
-	RecipientID uint64    `json:"recipient_id"`
-	GroupID string `json:"group_id"`
-	Content     string    `json:"content" `
-	CreatedAt   time.Time `json:"created_at"`
-	Type        string    `json:"type" validate:"required"`
+	MessageID   string	`json:"message_id" bson:"message_id"`
+	ConversationID string	`json:"conversation_id" bson:"conversation_id"`
+	SenderID    uint64    `json:"sender_id" bson:"sender_id" validate:"required"`
+	RecipientID uint64    `json:"recipient_id" bson:"recipient_id,omitempty"`
+	GroupID string `json:"group_id" bson:"group_id,omit_empty"`
+	Content     string    `json:"content" bson:"content"`
+	CreatedAt   time.Time `json:"created_at" bson:"created_at"`
+	Type        string    `json:"type" bson:"type" validate:"required"`
+	Status         string    `json:"status" bson:"status"`
 }
 
 type Conversation struct{

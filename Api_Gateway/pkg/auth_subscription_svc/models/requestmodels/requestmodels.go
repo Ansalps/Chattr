@@ -111,36 +111,6 @@ type UnsubscribeRequest struct{
 	CancelReason string	`json:"cancel_reason" binding:"required"`
 }
 
-type WebhookRequest struct {
-    Event string `json:"event"`
-    Payload struct {
-        Subscription struct {
-            ID string `json:"id"`
-        } `json:"subscription"`
-    } `json:"payload"`
-}
-type RazorpaySubscriptionCompleted struct {
-	Event   string `json:"event"`
-	Payload struct {
-		Subscription struct {
-			Entity struct {
-				ID         string `json:"id"`
-				PlanID     string `json:"plan_id"`
-				Status     string `json:"status"`
-				// Razorpay uses Unix timestamps (integers)
-				EndAt      int64  `json:"end_at"` 
-				EndedAt    int64  `json:"ended_at"`
-			} `json:"entity"`
-		} `json:"subscription"`
-		Payment struct {
-			Entity struct {
-				Email   string `json:"email"`
-				Contact string `json:"contact"`
-			} `json:"entity"`
-		} `json:"payment"`
-	} `json:"payload"`
-}
-
 type SetProfileImageRequest struct{
 	UserId uint64
 	ContentType string
@@ -168,4 +138,32 @@ type SearchUser struct{
 }
 type GetPublicProfile struct{
 	UserID uint64
+}
+
+type RazorpayEvent struct {
+	Entity    string   `json:"entity"`
+	AccountID string   `json:"account_id"`
+	Event     string   `json:"event"` // e.g., "subscription.completed"
+	Contains  []string `json:"contains"`
+	Payload   Payload  `json:"payload"`
+	CreatedAt int64    `json:"created_at"`
+}
+type Payload struct {
+	Subscription SubscriptionWrapper `json:"subscription"`
+}
+
+type SubscriptionWrapper struct {
+	Entity SubscriptionEntity `json:"entity"`
+}
+
+type SubscriptionEntity struct {
+	ID           string            `json:"id"`
+	Entity       string            `json:"entity"`
+	PlanID       string            `json:"plan_id"`
+	CustomerID   string            `json:"customer_id"`
+	Status       string            `json:"status"` // "completed", "active", etc.
+	CurrentStart int64             `json:"current_start"`
+	CurrentEnd   int64             `json:"current_end"`
+	EndedAt      int64             `json:"ended_at"`
+	Notes        map[string]string `json:"notes"` // Useful for passing Email/UserID
 }

@@ -28,7 +28,8 @@ type AuthSubscriptionClientInterface interface{
 	VerifySubscriptionPayment(requestmodels.VerifySubscriptionPaymentRequest)(responsemodels.VerifySubscriptionPaymentResponse,error)
 	Unsubscribe(requestmodels.UnsubscribeRequest)(responsemodels.UnsubscribeResponse,error)
 	SetProfileImage(requestmodels.SetProfileImageRequest)(responsemodels.SetProfileImageResponse,error)
-	Webhook(requestmodels.WebhookRequest)(responsemodels.WebhookResponse,error)
 
 	GetProfileInformation(requestmodels.GetProfileInformationRequest)(responsemodels.GetProfileInformationResponse,error)
+
+	WebhookSubsciptionCompleted(requestmodels.RazorpayEvent)(responsemodels.WebhookResponse,error)
 }
