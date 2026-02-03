@@ -76,6 +76,26 @@ func StartNotificationConsumer(brokerStr string, topic string, hub *websockethub
 				log.Printf("New Comment detected for User %d",event.PostOwnerID)
 				notificationUsecase.ProcessCommentEvent(event)
 			}
+		case "DIRECT_MESSAGE":
+			var event requestmodels.DirectMessageEvent
+			if err := json.Unmarshal(m.Value, &event); err != nil {
+				log.Printf("Failed to parse PostEvent: %v", err)
+				continue
+			}
+			if event.Type=="DIRECT_MESSAGE"{
+				log.Printf("New Message detected for user %d",event.RecipientID)
+				notificationUsecase.ProcessDirectMessageEvent(event)
+			}
+		case "GROUP_MESSAGE":
+			var event requestmodels.GroupMessageEvent
+			if err := json.Unmarshal(m.Value, &event); err != nil {
+				log.Printf("Failed to parse PostEvent: %v", err)
+				continue
+			}
+			if event.Type=="GROUP_MESSAGE"{
+				log.Print("Group Message detectd for users",event.RecipientID)
+				notificationUsecase.ProcessGroupMessageEvent(event)
+			}
 		default:
 			log.Printf("Unknown event type: %s", base.Type)
 		}

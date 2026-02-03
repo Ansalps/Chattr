@@ -1,6 +1,8 @@
 package di
 
 import (
+	"fmt"
+
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/client"
 	authClient "github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/client"
 	authHandler "github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/handler"
@@ -38,11 +40,12 @@ func DependencyInjection(router *gin.Engine, cfg *config.Config) error {
 
 	postRelationHandler := postRelationHandler.NewPostRelationHandler(postRelationClient, cfg,authSubClient,postDirectClient)
 	postRelationRoutes.PostRelationRoutes(router, postRelationHandler, cfg,AuthMiddleware)
-
+	fmt.Println("what happens here")
 	chatHandler:=chatServiceHandler.NewChatHandler(cfg)
 	chatServiceRoutes.ChatRoutes(router,chatHandler,cfg,AuthMiddleware)
-
+	fmt.Println("what happens here 2")
 	notificationHandler:=notificationServiceHandler.NewNotificationHandler(cfg)
+	fmt.Println("is there any ",notificationHandler)
 	notificationServiceRoutes.NotificationRoutes(router,notificationHandler,cfg,AuthMiddleware)
 	return nil
 }

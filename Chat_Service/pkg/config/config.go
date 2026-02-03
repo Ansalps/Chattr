@@ -9,15 +9,20 @@ type PortManager struct {
 type Database struct {
 	MongoDbURI string	`mapstructure:"MONGODB_URI"`
 }
+type KafkaConfig struct {
+	Brokers string `mapstructure:"KAFKA_BROKERS"`
+}
 
 type Config struct {
 	PortMngr PortManager
 	DB       Database
+	Kafka        KafkaConfig
 }
 
 func LoadConfig() (*Config, error) {
 	var portmngr PortManager
 	var db Database
+	var kafka KafkaConfig
 
 	viper.AddConfigPath("./pkg/config")
 	viper.SetConfigName("dev")
@@ -35,8 +40,12 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = viper.Unmarshal(&kafka)
+	if err != nil {
+		return nil, err
+	}
 
 	
-	config := Config{PortMngr: portmngr, DB: db}
+	config := Config{PortMngr: portmngr, DB: db,Kafka: kafka}
 	return &config, nil
 }

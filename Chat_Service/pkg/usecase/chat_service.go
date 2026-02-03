@@ -28,6 +28,15 @@ func NewChatUsecase(repository interfacesrepository.ChatRepository, authClient p
 	}
 }
 
+
+func (as *ChatUsecase) GetGroupName(groupID string) (string, error) {
+	if groupID == "" {
+		return "", fmt.Errorf("groupID cannot be empty")
+	}
+
+	return as.ChatRepository.GetGroupNameByGroupID(groupID)
+}
+
 func (as *ChatUsecase) CreateGroup(req requestmodels.CreateGroupRequest) (responsemodels.CreateGroupResponse, error) {
 	// 1. Create the Group entry in the 'groups' collection
 	resp, err := as.ChatRepository.CreateGroup(req)

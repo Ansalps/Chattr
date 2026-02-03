@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/domain"
+	"github.com/Ansalps/Chattr_Chat_Service/pkg/handler/interfacesHandler"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/requestmodels"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/usecase/interfacesUsecase"
 	"github.com/gin-gonic/gin"
@@ -19,11 +20,13 @@ import (
 
 type ChatHandler struct {
 	ChatUsecase interfacesUsecase.ChatUsecase
+	KafkaProducer         interfacesHandler.KafkaProducer
 }
 
-func NewChatHandler(usecase interfacesUsecase.ChatUsecase) *ChatHandler {
+func NewChatHandler(usecase interfacesUsecase.ChatUsecase,	kafkaProducer interfacesHandler.KafkaProducer) *ChatHandler {
 	return &ChatHandler{
 		ChatUsecase: usecase,
+		KafkaProducer: kafkaProducer,
 	}
 }
 
@@ -131,7 +134,7 @@ func (h *Hub) SendToGroup(dm requestmodels.MessageRequest, userIds []uint64) {
 		}
 		client, ok := h.clients[v]
 		if !ok {
-			log.Println("User offline:", dm.RecipientID)
+			log.Println("User offline:",v)
 			return
 		}
 		data, _ := json.Marshal(dm)
@@ -225,6 +228,20 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 			}
 
 			hub.SendToUser(dm)
+			event := map[string]interface{}{
+				"type":          "DIRECT_MESSAGE",
+				"actorId":       dm.SenderID,     // Person who clicked 'like'
+				"recipientId":   dm.RecipientID,    // Person receiving the notification
+				"conversationId": actualConvID,     // The content being liked
+				"timestamp":     time.Now().Unix(),
+			}
+			// Convert to JSON and publish to topic "post-events"
+			err = as.KafkaProducer.PublishEvent("chat-events", event)
+			if err != nil {
+				// Log the error but don't necessarily fail the request 
+				// unless real-time notification is critical.
+				log.Printf("Failed to emit Kafka event: %v", err)
+			}
 		case "group":
 			if dm.GroupID == "" {
 				log.Println("invalid group id")
@@ -271,9 +288,28 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 			if err != nil {
 				log.Println("store group chat in messages failed", err)
 			}
-
 			
 			hub.SendToGroup(dm, userIds)
+
+			groupName,err:=as.ChatUsecase.GetGroupName(dm.GroupID)
+			if err!=nil{
+				log.Println("failed to get group name by grouop id")
+			}
+			event := map[string]interface{}{
+				"type":          "GROUP_MESSAGE",
+				"actorId":       dm.SenderID,     // Person who clicked 'like'
+				"recipientId":   userIds,    // Person receiving the notification
+				"groupName":groupName,
+				"conversationId": actualConvID,     // The content being liked
+				"timestamp":     time.Now().Unix(),
+			}
+			// Convert to JSON and publish to topic "post-events"
+			err = as.KafkaProducer.PublishEvent("chat-events", event)
+			if err != nil {
+				// Log the error but don't necessarily fail the request 
+				// unless real-time notification is critical.
+				log.Printf("Failed to emit Kafka event: %v", err)
+			}
 		default:
 			log.Println("invalid message type")
 		}

@@ -1,13 +1,18 @@
 package handler
 
 import (
+	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/responsemodels"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/config"
+	"github.com/Ansalps/Chattr_Api_Gateway/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
@@ -38,4 +43,43 @@ func (as *NotificationHandler) WebSocketConnection(c *gin.Context) {
 	}
 
 	proxy.ServeHTTP(c.Writer, c.Request)
+}
+
+func (as *NotificationHandler) GetAllNotifications(c *gin.Context) {
+
+	// 1. Parse Pagination
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	if page < 1 || limit < 1 || limit > 100 {
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page or limit", nil))
+		return
+	}
+
+	offset := (page - 1) * limit
+
+	claims := c.MustGet("claims").(responsemodels.JwtClaims)
+
+	fullURL := fmt.Sprintf("http://localhost:50054/user/notifications?limit=%d&offset=%d", limit, offset)
+	httpReq, err := http.NewRequest("GET", fullURL, nil)
+	if err != nil {
+		log.Printf("Failed to create request: %v", err)
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
+	httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		c.JSON(502, gin.H{"error": "notification service unavailable"})
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	c.Data(resp.StatusCode, "application/json", body)
 }

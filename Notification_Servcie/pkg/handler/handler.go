@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/infrastructure/websockethub"
+	"github.com/Ansalps/Chattr_Notification_Service/pkg/requestmodels"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/usecase/interfacesUsecase"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -88,6 +89,44 @@ func (as *NotificationHandler) ConsumeWebsocket(client *websockethub.Client) {
             break 
         }
     }
+}
+
+func (as *NotificationHandler)GetAllNotifications(c *gin.Context){
+
+	// 1. Parse Pagination
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	if page < 1 || limit < 1 || limit > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid page or limit",
+		})
+		c.JSON(500, gin.H{"error": "internal server error"})
+		return
+	}
+
+	offset := (page - 1) * limit
+
+	var req requestmodels.GetNotificationsequest
+	userIdStr := c.GetHeader("X-User-Id")
+	if userIdStr == "" {
+		log.Println("error fetching userid from header")
+	}
+	userID, err := strconv.ParseUint(userIdStr, 10, 64)
+	if err != nil {
+		log.Println("error parsing userid to uint64")
+	}
+	req.UserID = userID
+	req.Limit = limit
+	req.Offset = offset
+	resp,err:=as.NotificationUsecase.GetAllNotifications(req)
+	if err!=nil{
+
+		log.Println(err)
+		c.JSON(500, gin.H{"error": "internal server error"})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // func (as *NotificationHandler) reader(c *websockethub.Client) {

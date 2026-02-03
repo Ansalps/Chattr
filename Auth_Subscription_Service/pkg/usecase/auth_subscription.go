@@ -527,10 +527,15 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 	if err != nil {
 		return responsemodels.SubscribeResponse{}, fmt.Errorf("database error: %w", err)
 	}
+	fmt.Println("RazorpayPlanId",RazorpayPlanId)
+	
 	userDetail,err:=as.AuthSubscriptionRepository.FetchUserPublicData(subscribeReq.UserId)
 	if err!=nil{
 		return responsemodels.SubscribeResponse{}, fmt.Errorf("database error: %w", err)
 	}
+	fmt.Println("userDetail",userDetail)
+	//return responsemodels.SubscribeResponse{},nil
+
 	//razorpayClient:=utils.NewRazorpayClient(as.RazorpayCredentials.KeyId,as.RazorpayCredentials.KeySecret)
 	subscriptionData := map[string]interface{}{
 		"plan_id":         RazorpayPlanId,
@@ -548,7 +553,7 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 		fmt.Println("error on subscribing", err)
 		return responsemodels.SubscribeResponse{}, fmt.Errorf("database error: %w", err)
 	}
-	//fmt.Println(subscription)
+	fmt.Println(subscription)
 	subcribeRes, err := as.AuthSubscriptionRepository.CreateSubscription(subscribeReq, subscription)
 	if err != nil {
 		fmt.Printf("is there any error returning after createSubscripion %v", err)

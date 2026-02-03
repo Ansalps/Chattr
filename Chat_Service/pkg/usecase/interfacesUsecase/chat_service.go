@@ -20,4 +20,7 @@ type ChatUsecase interface {
 
 	GetRecentChatProfiles(requestmodels.RecentChatProfilesRequest)([]responsemodels.ChatProfileResponse,error)
 	GetChat(requestmodels.GetChatRequest)(responsemodels.GetChatResponse,error)
+
+	//PublishEvent(topic string, message interface{}) error
+	GetGroupName(groupID string) (string, error)
 }

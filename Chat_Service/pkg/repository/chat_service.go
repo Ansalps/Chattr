@@ -36,6 +36,7 @@ func (ad *ChatRepository) groupColl() *mongo.Collection {
 func (ad *ChatRepository) convColl() *mongo.Collection {
 	return ad.MongoClient.Database("message").Collection("conversations")
 }
+
 // func (ad *ChatRepository) CreateGroup(req requestmodels.CreateGroupRequest) (responsemodels.CreateGroupResponse, error) {
 // 	groupCollection := ad.MongoClient.Database("chat").Collection("group")
 
@@ -47,25 +48,25 @@ func (ad *ChatRepository) convColl() *mongo.Collection {
 // 		return responsemodels.CreateGroupResponse{}, err
 // 	}
 
-// 	return responsemodels.CreateGroupResponse{
-// 		GroupID: req.GroupID,
-// 	}, nil
-// }
+//		return responsemodels.CreateGroupResponse{
+//			GroupID: req.GroupID,
+//		}, nil
+//	}
 func (ad *ChatRepository) CreateGroup(req requestmodels.CreateGroupRequest) (responsemodels.CreateGroupResponse, error) {
-    groupCollection := ad.MongoClient.Database("chat").Collection("group")
-    
-    // Use a background context with a specific timeout
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+	groupCollection := ad.MongoClient.Database("chat").Collection("group")
 
-    _, err := groupCollection.InsertOne(ctx, req)
-    if err != nil {
-        return responsemodels.CreateGroupResponse{}, err
-    }
+	// Use a background context with a specific timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-    return responsemodels.CreateGroupResponse{
-        GroupID: req.GroupID,
-    }, nil
+	_, err := groupCollection.InsertOne(ctx, req)
+	if err != nil {
+		return responsemodels.CreateGroupResponse{}, err
+	}
+
+	return responsemodels.CreateGroupResponse{
+		GroupID: req.GroupID,
+	}, nil
 }
 
 func (ad *ChatRepository) CreatorID(groupId string) (uint64, error) {
@@ -235,129 +236,129 @@ func (ad *ChatRepository) FetchMembersOfGroup(groupId string) ([]uint64, error) 
 }
 
 func (ad *ChatRepository) StoreIndividualChatInMessages(dm domain.Message) error {
-    collection := ad.MongoClient.Database("chat").Collection("messages")
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+	collection := ad.MongoClient.Database("chat").Collection("messages")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-    messageDoc := bson.M{
-        "message_id":      dm.MessageID,
-        "conversation_id": dm.ConversationID, // New Field
-        "sender_id":       dm.SenderID,
-        "recipient_id":    dm.RecipientID,
-        "content":         dm.Content,
-        "created_at":      dm.CreatedAt,
-        "type":            dm.Type,
-        "status":          "sent",
-    }
+	messageDoc := bson.M{
+		"message_id":      dm.MessageID,
+		"conversation_id": dm.ConversationID, // New Field
+		"sender_id":       dm.SenderID,
+		"recipient_id":    dm.RecipientID,
+		"content":         dm.Content,
+		"created_at":      dm.CreatedAt,
+		"type":            dm.Type,
+		"status":          "sent",
+	}
 
-    _, err := collection.InsertOne(ctx, messageDoc)
-    return err
+	_, err := collection.InsertOne(ctx, messageDoc)
+	return err
 }
 
 func (ad *ChatRepository) StoreOrUpdateIndividualChatInConversation(conv domain.Conversation) (string, error) {
-    collection := ad.MongoClient.Database("chat").Collection("conversations")
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+	collection := ad.MongoClient.Database("chat").Collection("conversations")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-    // 1. Sort participants (Crucial for deterministic matching)
-    sortedParticipants := make([]uint64, len(conv.Participants))
-    copy(sortedParticipants, conv.Participants)
-    sort.Slice(sortedParticipants, func(i, j int) bool {
-        return sortedParticipants[i] < sortedParticipants[j]
-    })
+	// 1. Sort participants (Crucial for deterministic matching)
+	sortedParticipants := make([]uint64, len(conv.Participants))
+	copy(sortedParticipants, conv.Participants)
+	sort.Slice(sortedParticipants, func(i, j int) bool {
+		return sortedParticipants[i] < sortedParticipants[j]
+	})
 
-    // 2. Filter
-    filter := bson.M{
-        "participants": sortedParticipants,
-        "type":         "individual",
-    }
+	// 2. Filter
+	filter := bson.M{
+		"participants": sortedParticipants,
+		"type":         "individual",
+	}
 
-    // 3. Update logic
-    update := bson.M{
-        "$set": bson.M{
-            "last_message":      conv.LastMessage,
-            "last_message_time": conv.LastMessageTime,
-        },
-        "$setOnInsert": bson.M{
-            "conversation_id": conv.ConversationID,
-            "participants":    sortedParticipants, // Include here for the new document
-            "type":            "individual",
-        },
-    }
+	// 3. Update logic
+	update := bson.M{
+		"$set": bson.M{
+			"last_message":      conv.LastMessage,
+			"last_message_time": conv.LastMessageTime,
+		},
+		"$setOnInsert": bson.M{
+			"conversation_id": conv.ConversationID,
+			"participants":    sortedParticipants, // Include here for the new document
+			"type":            "individual",
+		},
+	}
 
-    // 4. Options: ReturnDocument(After) gives us the doc AFTER the upsert
-    opts := options.FindOneAndUpdate().
-        SetUpsert(true).
-        SetReturnDocument(options.After)
+	// 4. Options: ReturnDocument(After) gives us the doc AFTER the upsert
+	opts := options.FindOneAndUpdate().
+		SetUpsert(true).
+		SetReturnDocument(options.After)
 
-    var result struct {
-        ConversationID string `bson:"conversation_id"`
-    }
+	var result struct {
+		ConversationID string `bson:"conversation_id"`
+	}
 
-    // FindOneAndUpdate executes the update and decodes the result into our struct
-    err := collection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&result)
-    if err != nil {
-        return "", err
-    }
+	// FindOneAndUpdate executes the update and decodes the result into our struct
+	err := collection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&result)
+	if err != nil {
+		return "", err
+	}
 
-    return result.ConversationID, nil
+	return result.ConversationID, nil
 }
 
 func (ad *ChatRepository) StoreGroupChatInMessages(gm domain.Message) error {
-    collection := ad.MongoClient.Database("chat").Collection("messages")
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+	collection := ad.MongoClient.Database("chat").Collection("messages")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-    messageDoc := bson.M{
-        "message_id":      gm.MessageID,
-        "conversation_id": gm.ConversationID, // Added this
-        "sender_id":       gm.SenderID,
-        "group_id":        gm.GroupID,
-        "content":         gm.Content,
-        "created_at":      gm.CreatedAt,
-        "type":            gm.Type,
-        "status":          "sent",
-    }
+	messageDoc := bson.M{
+		"message_id":      gm.MessageID,
+		"conversation_id": gm.ConversationID, // Added this
+		"sender_id":       gm.SenderID,
+		"group_id":        gm.GroupID,
+		"content":         gm.Content,
+		"created_at":      gm.CreatedAt,
+		"type":            gm.Type,
+		"status":          "sent",
+	}
 
-    _, err := collection.InsertOne(ctx, messageDoc)
-    return err
+	_, err := collection.InsertOne(ctx, messageDoc)
+	return err
 }
 
 func (ad *ChatRepository) StoreOrUpdateGroupChatInConversation(conv domain.Conversation) (string, error) {
-    collection := ad.MongoClient.Database("chat").Collection("conversations")
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+	collection := ad.MongoClient.Database("chat").Collection("conversations")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-    filter := bson.M{
-        "group_id": conv.GroupID,
-        "type":     "group",
-    }
+	filter := bson.M{
+		"group_id": conv.GroupID,
+		"type":     "group",
+	}
 
-    update := bson.M{
-        "$set": bson.M{
-            "last_message":      conv.LastMessage,
-            "last_message_time": conv.LastMessageTime,
-            "participants":    conv.Participants, // Important: update members in case someone joined/left
-        },
-        "$setOnInsert": bson.M{
-            "conversation_id": conv.ConversationID,
-            "group_id":        conv.GroupID,
-            "type":            "group",
-        },
-    }
+	update := bson.M{
+		"$set": bson.M{
+			"last_message":      conv.LastMessage,
+			"last_message_time": conv.LastMessageTime,
+			"participants":      conv.Participants, // Important: update members in case someone joined/left
+		},
+		"$setOnInsert": bson.M{
+			"conversation_id": conv.ConversationID,
+			"group_id":        conv.GroupID,
+			"type":            "group",
+		},
+	}
 
-    opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
+	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
 
-    var result struct {
-        ConversationID string `bson:"conversation_id"`
-    }
+	var result struct {
+		ConversationID string `bson:"conversation_id"`
+	}
 
-    err := collection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&result)
-    if err != nil {
-        return "", err
-    }
+	err := collection.FindOneAndUpdate(ctx, filter, update, opts).Decode(&result)
+	if err != nil {
+		return "", err
+	}
 
-    return result.ConversationID, nil
+	return result.ConversationID, nil
 }
 
 func (ad *ChatRepository) GetUserConversation(req requestmodels.RecentChatProfilesRequest) ([]domain.Conversation, error) {
@@ -393,75 +394,96 @@ func (ad *ChatRepository) GetUserConversation(req requestmodels.RecentChatProfil
 }
 
 func (ad *ChatRepository) GetGroupNamesBatch(groupIDs []string) (map[string]string, error) {
-    collection := ad.MongoClient.Database("chat").Collection("group")
-    
-    // Query: { groupid: { $in: ["id1", "id2"...] } }
-    filter := bson.M{"groupid": bson.M{"$in": groupIDs}}
-    projection := bson.M{"groupid": 1, "groupname": 1, "_id": 0}
-    
-    cursor, err := collection.Find(context.Background(), filter, options.Find().SetProjection(projection))
-    if err != nil {
-        return nil, err
-    }
-    defer cursor.Close(context.Background())
+	collection := ad.MongoClient.Database("chat").Collection("group")
 
-    results := make(map[string]string)
-    for cursor.Next(context.Background()) {
-        var temp struct {
-            ID   string `bson:"groupid"`
-            Name string `bson:"groupname"`
-        }
-        if err := cursor.Decode(&temp); err == nil {
-            results[temp.ID] = temp.Name
-        }
-    }
-    return results, nil
+	// Query: { groupid: { $in: ["id1", "id2"...] } }
+	filter := bson.M{"groupid": bson.M{"$in": groupIDs}}
+	projection := bson.M{"groupid": 1, "groupname": 1, "_id": 0}
+
+	cursor, err := collection.Find(context.Background(), filter, options.Find().SetProjection(projection))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	results := make(map[string]string)
+	for cursor.Next(context.Background()) {
+		var temp struct {
+			ID   string `bson:"groupid"`
+			Name string `bson:"groupname"`
+		}
+		if err := cursor.Decode(&temp); err == nil {
+			results[temp.ID] = temp.Name
+		}
+	}
+	return results, nil
 }
 
 func (ad *ChatRepository) GetUserMessagesByConversationId(req requestmodels.GetChatRequest) ([]domain.Message, error) {
-    collection := ad.MongoClient.Database("chat").Collection("messages")
-    
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+	collection := ad.MongoClient.Database("chat").Collection("messages")
 
-    // Query messages belonging to this specific conversation
-    filter := bson.M{"conversation_id": req.ConvID}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-    findOptions := options.Find()
-    findOptions.SetLimit(int64(req.Limit))
-    findOptions.SetSkip(int64(req.Offset))
-    // Sort by newest first so pagination works correctly (scrolling up for older messages)
-    findOptions.SetSort(bson.D{{Key: "created_at", Value: -1}})
+	// Query messages belonging to this specific conversation
+	filter := bson.M{"conversation_id": req.ConvID}
 
-    cursor, err := collection.Find(ctx, filter, findOptions)
-    if err != nil {
-        return nil, err
-    }
-    defer cursor.Close(ctx)
+	findOptions := options.Find()
+	findOptions.SetLimit(int64(req.Limit))
+	findOptions.SetSkip(int64(req.Offset))
+	// Sort by newest first so pagination works correctly (scrolling up for older messages)
+	findOptions.SetSort(bson.D{{Key: "created_at", Value: -1}})
 
-    var messages []domain.Message
-    if err := cursor.All(ctx, &messages); err != nil {
-        return nil, err
-    }
+	cursor, err := collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
 
-    return messages, nil
+	var messages []domain.Message
+	if err := cursor.All(ctx, &messages); err != nil {
+		return nil, err
+	}
+
+	return messages, nil
 }
 
 func (ad *ChatRepository) IsUserInConversation(convID string, userID uint64) (bool, error) {
-    collection := ad.MongoClient.Database("chat").Collection("conversations")
-    ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-    defer cancel()
+	collection := ad.MongoClient.Database("chat").Collection("conversations")
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 
-    filter := bson.M{
-        "conversation_id": convID,
-        // Convert uint64 to int64 to ensure it matches the Long type in MongoDB
-        "participants":    int64(userID), 
-    }
+	filter := bson.M{
+		"conversation_id": convID,
+		// Convert uint64 to int64 to ensure it matches the Long type in MongoDB
+		"participants": int64(userID),
+	}
 
-    count, err := collection.CountDocuments(ctx, filter)
-    if err != nil {
-        return false, err
-    }
-    
-    return count > 0, nil
+	count, err := collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
+func (ad *ChatRepository) GetGroupNameByGroupID(groupID string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	filter := bson.M{"groupid": groupID}
+
+	var result struct {
+		GroupName string `bson:"groupname"`
+	}
+
+	err := ad.groupColl().FindOne(ctx, filter).Decode(&result)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return "", fmt.Errorf("group not found")
+		}
+		return "", err
+	}
+
+	return result.GroupName, nil
 }

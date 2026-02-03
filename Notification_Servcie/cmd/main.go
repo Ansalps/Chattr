@@ -26,6 +26,7 @@ func main() {
 	// Use the field from your config (e.g., config.Kafka.Brokers)
 	go kafka.StartNotificationConsumer(config.Kafka.Brokers, "post-events", hub,notificationUsecase)
 	go kafka.StartNotificationConsumer(config.Kafka.Brokers,"user-events",hub,notificationUsecase)
+	go kafka.StartNotificationConsumer(config.Kafka.Brokers,"chat-events",hub,notificationUsecase)
 
 	
 

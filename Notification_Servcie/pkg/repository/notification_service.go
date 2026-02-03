@@ -3,6 +3,7 @@ package repository
 import (
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/domain"
 	interfacesrepository "github.com/Ansalps/Chattr_Notification_Service/pkg/repository/interfacesRepository"
+	"github.com/Ansalps/Chattr_Notification_Service/pkg/requestmodels"
 	"gorm.io/gorm"
 )
 
@@ -20,4 +21,24 @@ func (ad *NotificationRepository) SaveNotification(notification domain.Notificat
 		return err
 	}
 	return nil
+}
+
+func (ad *NotificationRepository) GetAllNotifications(req requestmodels.GetNotificationsequest) ([]domain.Notification, error) {
+	var resp []domain.Notification
+	query := `
+		SELECT id, user_id, actor_id, target_id, type, message, created_at
+		FROM notifications
+		WHERE user_id = $1
+		ORDER BY created_at DESC LIMIT $2 OFFSET $3
+	`
+
+	result:= ad.DB.Raw(query,req.UserID,req.Limit,req.Offset).Scan(&resp)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	// if result.RowsAffected==0{
+	// 	return nil,gorm.ErrRecordNotFound
+	// }
+
+	return resp, nil
 }

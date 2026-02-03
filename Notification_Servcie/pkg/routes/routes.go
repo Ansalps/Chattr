@@ -11,5 +11,5 @@ func NotificationServiceRoutes(router *gin.Engine, notificationHandler *handler.
 	// router.POST("/user/group/add-members", chatHandler.AddMembers)
 	// router.DELETE("/user/group/remove-member", chatHandler.RemoveMember)
 	// router.GET("/user/get-recent-chat-profiles", chatHandler.GetRecentChatProfiles)
-	// router.GET("/user/chat/:conv_id", chatHandler.GetChat)
+	 router.GET("/user/notifications", notificationHandler.GetAllNotifications)
 }

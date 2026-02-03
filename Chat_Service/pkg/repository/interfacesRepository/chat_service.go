@@ -27,4 +27,6 @@ type ChatRepository interface {
 	GetUserMessagesByConversationId(req requestmodels.GetChatRequest) ([]domain.Message, error)
 
 	IsUserInConversation(convID string, userID uint64) (bool, error)
+
+	GetGroupNameByGroupID(groupID string) (string, error)
 }

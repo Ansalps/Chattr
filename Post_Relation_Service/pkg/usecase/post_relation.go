@@ -267,20 +267,20 @@ func (as *PostRelationUsecase) UnlikePost(unlikePostReq requestmodels.UnlikePost
 
 func (as *PostRelationUsecase) AddComment(addCommentReq requestmodels.AddCommentRequest) (responsemodels.AddCommentResponse, error) {
 	if addCommentReq.ParentCommentId != nil {
-		fmt.Println("is reaching in here in add comment where parent comment Id not nil")
+		//fmt.Println("is reaching in here in add comment where parent comment Id not nil")
 		isReplytoReply, err := as.PostRelationRepository.CheckCommentHieracrchy(addCommentReq.ParentCommentId)
 		if err != nil {
 			return responsemodels.AddCommentResponse{}, err
 		}
-		fmt.Println("print the truth :", isReplytoReply)
+		//fmt.Println("print the truth :", isReplytoReply)
 		if isReplytoReply {
-			fmt.Println("it is true")
+			//fmt.Println("it is true")
 			return responsemodels.AddCommentResponse{}, ErrRecursiveComment
 			//fmt.Println("here 1")
 		}
-		fmt.Println("here 2")
+		//fmt.Println("here 2")
 	}
-	fmt.Println("here 3")
+	//fmt.Println("here 3")
 	addCommentRes, err := as.PostRelationRepository.AddComment(addCommentReq)
 	if err != nil {
 		return responsemodels.AddCommentResponse{}, err
@@ -364,7 +364,7 @@ func (as *PostRelationUsecase) Follow(followReq requestmodels.FollowRequest) (re
 	if err != nil {
 
 		if err == gorm.ErrRecordNotFound {
-			fmt.Println("is it actually")
+			//fmt.Println("is it actually")
 			return responsemodels.FollowResponse{}, domain.ErrAlreadyFollowing
 		}
 		return responsemodels.FollowResponse{}, err
