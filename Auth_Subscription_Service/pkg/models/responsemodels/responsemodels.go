@@ -247,10 +247,7 @@ type UserMetaData struct {
 type SearchUserResponse struct{
 	Usermetadata []UserMetaData
 }
-type WebhookResponse struct{
-	Event string
-	RazropaySubscriptinId string
-}
+
 type UserPublicDataResponse struct{
 	UserID uint64
 	UserName string
@@ -259,5 +256,41 @@ type UserPublicDataResponse struct{
 	Bio string
 	Links string
 	BlueTick bool
+}
+type FetchSubscriptionPlan struct{
+	ID uint64 `gorm:"column:plan_id"`
+	CreatedAt time.Time `gorm:"column:plan_created_at"`
+	UpdatedAt time.Time `gorm:"column:plan_updated_at"`
+	RazorpayPlanId string
+	Name string
+	Price int64
+	Currency string
+	Period string
+	Interval uint64
+	Description string
+	IsActive bool
+}
+type GetSubscriptionDetails struct{
+	FetchSubscriptionPlan FetchSubscriptionPlan `gorm:"embedded"`
+	ID uint64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID uint64
+	RazorpaySubscriptionId string
+	Status string
+	StartAt time.Time
+	EndAt	time.Time
+	NextChargeAt time.Time
+	TotalCount int
+	RemainingCount int
+	PaidCount int
+	CancelledAt time.Time
+	CancelReason string
+}
+
+type WebhookResponse struct {
+    Event                  string `json:"event"`
+    RazorpaySubscriptionId string `json:"razorpay_subscription_id"`
+    Message                string `json:"message,omitempty"` // Added for better feedback
 }
 

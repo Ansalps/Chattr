@@ -45,6 +45,7 @@ const (
 	AuthSubscriptionService_EditProfileInfromation_FullMethodName        = "/auth_subscription.AuthSubscriptionService/EditProfileInfromation"
 	AuthSubscriptionService_SearchUser_FullMethodName                    = "/auth_subscription.AuthSubscriptionService/SearchUser"
 	AuthSubscriptionService_UserPublicData_FullMethodName                = "/auth_subscription.AuthSubscriptionService/UserPublicData"
+	AuthSubscriptionService_GetSubscriptionDetails_FullMethodName        = "/auth_subscription.AuthSubscriptionService/GetSubscriptionDetails"
 )
 
 // AuthSubscriptionServiceClient is the client API for AuthSubscriptionService service.
@@ -77,6 +78,7 @@ type AuthSubscriptionServiceClient interface {
 	EditProfileInfromation(ctx context.Context, in *EditProfileReq, opts ...grpc.CallOption) (*EditProfileRes, error)
 	SearchUser(ctx context.Context, in *SearchUserRequest, opts ...grpc.CallOption) (*SearchUserResponse, error)
 	UserPublicData(ctx context.Context, in *UserPublicDataRequest, opts ...grpc.CallOption) (*UserPublicDataResponse, error)
+	GetSubscriptionDetails(ctx context.Context, in *GetSubscriptionDetailsRequest, opts ...grpc.CallOption) (*GetSubscriptionDetailsResponse, error)
 }
 
 type authSubscriptionServiceClient struct {
@@ -347,6 +349,16 @@ func (c *authSubscriptionServiceClient) UserPublicData(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *authSubscriptionServiceClient) GetSubscriptionDetails(ctx context.Context, in *GetSubscriptionDetailsRequest, opts ...grpc.CallOption) (*GetSubscriptionDetailsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSubscriptionDetailsResponse)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_GetSubscriptionDetails_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthSubscriptionServiceServer is the server API for AuthSubscriptionService service.
 // All implementations must embed UnimplementedAuthSubscriptionServiceServer
 // for forward compatibility.
@@ -377,6 +389,7 @@ type AuthSubscriptionServiceServer interface {
 	EditProfileInfromation(context.Context, *EditProfileReq) (*EditProfileRes, error)
 	SearchUser(context.Context, *SearchUserRequest) (*SearchUserResponse, error)
 	UserPublicData(context.Context, *UserPublicDataRequest) (*UserPublicDataResponse, error)
+	GetSubscriptionDetails(context.Context, *GetSubscriptionDetailsRequest) (*GetSubscriptionDetailsResponse, error)
 	mustEmbedUnimplementedAuthSubscriptionServiceServer()
 }
 
@@ -464,6 +477,9 @@ func (UnimplementedAuthSubscriptionServiceServer) SearchUser(context.Context, *S
 }
 func (UnimplementedAuthSubscriptionServiceServer) UserPublicData(context.Context, *UserPublicDataRequest) (*UserPublicDataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UserPublicData not implemented")
+}
+func (UnimplementedAuthSubscriptionServiceServer) GetSubscriptionDetails(context.Context, *GetSubscriptionDetailsRequest) (*GetSubscriptionDetailsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSubscriptionDetails not implemented")
 }
 func (UnimplementedAuthSubscriptionServiceServer) mustEmbedUnimplementedAuthSubscriptionServiceServer() {
 }
@@ -955,6 +971,24 @@ func _AuthSubscriptionService_UserPublicData_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthSubscriptionService_GetSubscriptionDetails_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSubscriptionDetailsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthSubscriptionServiceServer).GetSubscriptionDetails(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthSubscriptionService_GetSubscriptionDetails_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthSubscriptionServiceServer).GetSubscriptionDetails(ctx, req.(*GetSubscriptionDetailsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthSubscriptionService_ServiceDesc is the grpc.ServiceDesc for AuthSubscriptionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1065,6 +1099,10 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UserPublicData",
 			Handler:    _AuthSubscriptionService_UserPublicData_Handler,
+		},
+		{
+			MethodName: "GetSubscriptionDetails",
+			Handler:    _AuthSubscriptionService_GetSubscriptionDetails_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

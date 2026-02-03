@@ -32,6 +32,7 @@ func AuthSubscriptionRoutes(router *gin.Engine, authSubscriptionHandler *handler
 	router.POST("/user/subscribe/:plan_id",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.Subscribe)
 	router.POST("/user/verify-subscription-payment",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.VerifySubscriptionPayment)
 	router.POST("/user/unsubscribe/:sub_id",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.Unsubscribe)
+	router.GET("/user/subscription",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.GetSubscriptionDetails)
 
 	router.GET("/user/get-profile-information",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.GetProfileInformation)
 	router.PATCH("/user/edit-profile-information",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.EditProfileInformation)

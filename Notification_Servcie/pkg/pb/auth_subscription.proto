@@ -1,0 +1,34 @@
+syntax="proto3";
+package auth_subscription;
+option go_package="./pkg/pb";
+
+service AuthSubscriptionService{
+    //rpc CheckUserExists(CheckUserExistsRequest) returns (CheckUserExistsResponse);
+    rpc FetchUserMetaData(UserDataReq) returns (BatchUserMetadataResponse);
+    rpc UserPublicData(UserPublicDataRequest) returns (UserPublicDataResponse);
+}
+message UserPublicDataRequest{
+    uint64 UserId=1;
+}
+message UserPublicDataResponse{
+    uint64 UserId=1;
+    string UserName=2;
+    string Name=3;
+    string ProfileImgUrl=4;
+    string Bio=5;
+    string Links=6;
+    bool BlueTick=7;
+}  
+message UserDataReq{
+    repeated uint64 UserId=1;
+}
+message BatchUserMetadataResponse {
+    map<uint64, UserMetadata> users = 1;
+}
+message UserMetadata{
+    uint64 UserId=1;
+    string UserName=2;
+    string Name=3;
+    string ProfileImgUrl=4;
+    bool BlueTick=5;
+}

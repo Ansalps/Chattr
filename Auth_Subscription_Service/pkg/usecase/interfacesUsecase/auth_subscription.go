@@ -27,8 +27,7 @@ type AuthSubscriptionUsecase interface{
 	VerifySubscriptionPayment(requestmodels.VerifySubscriptionPaymentRequest)(responsemodels.VerifySubscriptionPaymentResponse,error)
 	Unsubscribe(requestmodels.UnsubscribeRequest)(responsemodels.UnsubscribeResponse,error)
 	SetProfileImage(requestmodels.SetProfileImageRequest)(responsemodels.SetProfileImageResponse,error)
-	//Webhook(requestmodels.WebhookRequest)(responsemodels.WebhookResponse,error)
-
+	
 	ChangePassword(requestmodels.ChangePassword)(responsemodels.ChangePasswordResponse,error)
 
 	SearchUser(requestmodels.SearchUser)(responsemodels.SearchUserResponse,error)
@@ -42,4 +41,9 @@ type AuthSubscriptionUsecase interface{
 
 	FetchUserMetaData([]uint64)(map[uint64]responsemodels.UserMetaData,error)
 	CheckUserListExists(userids []uint64)([]uint64,error)
+
+	GetSubscriptionDetails(uint64)(responsemodels.GetSubscriptionDetails,error)
+
+	Webhook(requestmodels.RazorpayEvent)(responsemodels.WebhookResponse,error)
+
 }

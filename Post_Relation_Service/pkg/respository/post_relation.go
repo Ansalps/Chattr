@@ -94,6 +94,19 @@ func (ad *PostRelationRepository) LikePostById(likePostReq requestmodels.LikePos
 	}, nil
 }
 
+func (ad *PostRelationRepository)FetchPostOwnerIdByPostId(postId uint64)(uint64,error){
+	var postOwnerId uint64
+	query:=`select user_id from posts where id=?`
+	result:=ad.DB.Raw(query,postId).Scan(&postOwnerId)
+	if result.Error!=nil{
+		return 0,result.Error
+	}
+	if result.RowsAffected==0{
+		return 0,gorm.ErrRecordNotFound
+	}
+	return postOwnerId,nil
+}
+
 func (ad *PostRelationRepository) UnlikePostById(unlikePostReq requestmodels.UnlikePostRequest) (responsemodels.UnlikePostResponse, error) {
 	query := `DELETE FROM post_likes WHERE user_id=? AND post_id=?`
 	result := ad.DB.Exec(query, unlikePostReq.UserID, unlikePostReq.PostID)

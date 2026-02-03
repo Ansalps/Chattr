@@ -386,7 +386,7 @@ func (as *AuthSubscriptionUsecase) UserLogin(userLoginReq requestmodels.UserLogi
 	if user.Status == "pending" {
 		return responsemodels.UserLoginResponse{}, ErrPendingLogin
 	}
-	fmt.Println("inside user login ", user.ID)
+	//fmt.Println("inside user login ", user.ID)
 	userAccessTokenString, err := as.JwtUtil.GenerateToken(as.TokenSecurityKey.UserSecurityKey, uint64(user.ID), user.Email, "user", "access", 24*time.Hour)
 	if err != nil {
 		return responsemodels.UserLoginResponse{}, fmt.Errorf("Failed to generarate access token for user: %w", err)
@@ -527,12 +527,21 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 	if err != nil {
 		return responsemodels.SubscribeResponse{}, fmt.Errorf("database error: %w", err)
 	}
+	userDetail,err:=as.AuthSubscriptionRepository.FetchUserPublicData(subscribeReq.UserId)
+	if err!=nil{
+		return responsemodels.SubscribeResponse{}, fmt.Errorf("database error: %w", err)
+	}
 	//razorpayClient:=utils.NewRazorpayClient(as.RazorpayCredentials.KeyId,as.RazorpayCredentials.KeySecret)
 	subscriptionData := map[string]interface{}{
 		"plan_id":         RazorpayPlanId,
 		"total_count":     12,
 		"quantity":        1,
 		"customer_notify": 1,
+		"notes": map[string]interface{}{
+            "email": subscribeReq.UserEmail, // Storing the email in Razorpay metadata
+            "user_id": subscribeReq.UserId, // Good practice to store UserID too
+			"user_name":userDetail.UserName,
+        },
 	}
 	subscription, err := utils.RazorpayCreateSubscription(as.RazorpayClient, subscriptionData)
 	if err != nil {
@@ -651,7 +660,7 @@ func (as *AuthSubscriptionUsecase) VerifySubscriptionPayment(verifySubscriptionP
 		startAt := time.Now()
 		// Calculate the end_at and NextChargeAt times
 		endAt, nextChargeAt := calculateEndAndNextChargeTime(startAt, period, interval, totalCount)
-		fmt.Println("print inside", startAt, endAt, nextChargeAt)
+		//fmt.Println("print inside", startAt, endAt, nextChargeAt)
 		subscriptionRes, err = as.AuthSubscriptionRepository.UpdateTimeUserSubscription(startAt, endAt, nextChargeAt, verifySubscriptionPaymentReq.RazorpaySubscriptionId)
 		if err != nil {
 			return responsemodels.VerifySubscriptionPaymentResponse{}, fmt.Errorf("database error: %w", err)
@@ -843,19 +852,30 @@ func (as *AuthSubscriptionUsecase) CheckUserListExists(userids []uint64) ([]uint
 	return resp, nil
 }
 
-// func (as *AuthSubscriptionUsecase) Webhook(webhookReq requestmodels.WebhookRequest) (responsemodels.WebhookResponse, error) {
-// 	data := map[string]interface{}{
-// 		"remaining_count": 12,
-// 		"customer_notify": 1,
-// 	}
-// 	updatedSubscriptionData, err := as.RazorpayClient.Subscription.Update(webhookReq.Payload.Subscription.ID, data, nil)
-// 	if err != nil {
-// 		fmt.Println("calling update subscripton failed", err)
-// 		return responsemodels.WebhookResponse{}, err
-// 	}
-// 	fmt.Println("updated Subscription Data is ", updatedSubscriptionData)
-// 	return responsemodels.WebhookResponse{
-// 		Event:                 webhookReq.Event,
-// 		RazropaySubscriptinId: webhookReq.Payload.Subscription.ID,
-// 	}, nil
-// }
+func (as *AuthSubscriptionUsecase)GetSubscriptionDetails(userid uint64)(responsemodels.GetSubscriptionDetails,error){
+	resp,err:=as.AuthSubscriptionRepository.GetSubscriptionDetails(userid)
+	if err!=nil{
+		log.Println(err)
+		return responsemodels.GetSubscriptionDetails{},err
+	}
+	return resp,nil
+}
+
+func (as *AuthSubscriptionUsecase) Webhook(webhookReq requestmodels.RazorpayEvent) (responsemodels.WebhookResponse, error) {
+	// data := map[string]interface{}{
+	// 	"remaining_count": 12,
+	// 	"customer_notify": 1,
+	// }
+	// updatedSubscriptionData, err := as.RazorpayClient.Subscription.Update(webhookReq.AccountID, data, nil)
+	// if err != nil {
+	// 	fmt.Println("calling update subscripton failed", err)
+	// 	return responsemodels.WebhookResponse{}, err
+	// }
+	//fmt.Println("updated Subscription Data is ", updatedSubscriptionData)
+	
+	resp,err:=as.SmtpUtil.SendNotificationEmailForResubscribing(webhookReq)
+	if err!=nil{
+		return responsemodels.WebhookResponse{},err
+	}
+	return resp, nil
+}

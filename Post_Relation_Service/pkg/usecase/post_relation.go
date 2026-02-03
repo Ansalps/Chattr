@@ -24,6 +24,7 @@ type PostRelationUsecase struct {
 	PostRelationRepository interfacesRepository.PostRelationRepository
 	AuthSubscriptionClient pb.AuthSubscriptionServiceClient
 	RedisRepository        interfacesRepository.RedisRepository
+	KafkaProducer         interfacesUsecase.KafkaProducer // <--- Add this
 }
 
 var (
@@ -38,11 +39,12 @@ var (
 	ErrNoPosts          = errors.New("No Posts to Fetch")
 )
 
-func NewPostRelationUsecase(repository interfacesRepository.PostRelationRepository, authSubClient pb.AuthSubscriptionServiceClient, redisRepository interfacesRepository.RedisRepository) interfacesUsecase.PostRelationUsecase {
+func NewPostRelationUsecase(repository interfacesRepository.PostRelationRepository, authSubClient pb.AuthSubscriptionServiceClient, redisRepository interfacesRepository.RedisRepository,kafkaProducer interfacesUsecase.KafkaProducer) interfacesUsecase.PostRelationUsecase {
 	return &PostRelationUsecase{
 		PostRelationRepository: repository,
 		AuthSubscriptionClient: authSubClient,
 		RedisRepository:        redisRepository,
+		KafkaProducer:         kafkaProducer,
 	}
 }
 
@@ -215,6 +217,32 @@ func (as *PostRelationUsecase) LikePost(likePostReq requestmodels.LikePostReques
 	versionKey := fmt.Sprintf("user:%d:feed_version", likePostReq.UserID)
 	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
 
+	postOwnerId,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(likePostReq.PostID)
+	if err!=nil{
+		if err==gorm.ErrRecordNotFound{
+			log.Println("Post Id not found")
+		}else{
+			log.Println("some database error occured while fetching post owner id by post id")
+		}
+	}
+	fmt.Println("post Owner",postOwnerId)
+
+	event := map[string]interface{}{
+		"type":          "POST_LIKE",
+		"actorId":       likePostReq.UserID,     // Person who clicked 'like'
+		"postOwnerId":   postOwnerId,    // Person receiving the notification
+		"postId":        likePostRes.PostID,     // The content being liked
+		"timestamp":     time.Now().Unix(),
+	}
+
+	 // Convert to JSON and publish to topic "post-events"
+	 err = as.KafkaProducer.PublishEvent("post-events", event)
+	 if err != nil {
+		 // Log the error but don't necessarily fail the request 
+		 // unless real-time notification is critical.
+		 log.Printf("Failed to emit Kafka event: %v", err)
+	 }
+	 
 	return responsemodels.LikePostResponse{
 		PostID: likePostRes.PostID,
 	}, nil
@@ -261,6 +289,32 @@ func (as *PostRelationUsecase) AddComment(addCommentReq requestmodels.AddComment
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", addCommentReq.UserID)
 	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
+
+	postOwnerId,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(addCommentReq.PostID)
+	if err!=nil{
+		if err==gorm.ErrRecordNotFound{
+			log.Println("Post Id not found")
+		}else{
+			log.Println("some database error occured while fetching post owner id by post id")
+		}
+	}
+	fmt.Println("post Owner",postOwnerId)
+
+	event := map[string]interface{}{
+		"type":          "POST_COMMENT",
+		"actorId":       addCommentReq.UserID,     // Person who clicked 'like'
+		"postOwnerId":   postOwnerId,    // Person receiving the notification
+		"postId":        addCommentReq.PostID,     // The content being liked
+		"timestamp":     time.Now().Unix(),
+	}
+
+	 // Convert to JSON and publish to topic "post-events"
+	 err = as.KafkaProducer.PublishEvent("post-events", event)
+	 if err != nil {
+		 // Log the error but don't necessarily fail the request 
+		 // unless real-time notification is critical.
+		 log.Printf("Failed to emit Kafka event: %v", err)
+	 }
 
 	return addCommentRes, nil
 }
@@ -333,6 +387,23 @@ func (as *PostRelationUsecase) Follow(followReq requestmodels.FollowRequest) (re
 			}
 		}
 	}()
+	
+	
+	event := map[string]interface{}{
+		"type":          "USER_FOLLOW",
+		"actorId":       followReq.UserID,     // Person who clicked 'like'
+		"followingId":   followReq.FollowingUserID,    // Person receiving the notification
+		//"postId":        addCommentReq.PostID,     // The content being liked
+		"timestamp":     time.Now().Unix(),
+	}
+
+	 // Convert to JSON and publish to topic "post-events"
+	 err = as.KafkaProducer.PublishEvent("user-events", event)
+	 if err != nil {
+		 // Log the error but don't necessarily fail the request 
+		 // unless real-time notification is critical.
+		 log.Printf("Failed to emit Kafka event: %v", err)
+	 }
 
 	return responsemodels.FollowResponse{
 		FollowingUserID: followRes.FollowingUserID,

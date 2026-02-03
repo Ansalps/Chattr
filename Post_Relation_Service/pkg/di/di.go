@@ -1,6 +1,7 @@
 package di
 
 import (
+	"github.com/Ansalps/Chattr_Post_Relation_Service/infrastructure/kafka"
 	services "github.com/Ansalps/Chattr_Post_Relation_Service/pkg/api"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/client"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/config"
@@ -14,15 +15,18 @@ func DependencyIndjection(cfg *config.Config) (*services.PostRelationServer, err
 	if err != nil {
 		return nil, err
 	}
-	authSubscriptionClient,err:=client.InitAuthSubscriptionServiceClient(cfg)
-	if err!=nil{
-		return nil,err
+	authSubscriptionClient, err := client.InitAuthSubscriptionServiceClient(cfg)
+	if err != nil {
+		return nil, err
 	}
-	redisClient:=client.NewRedisClient(cfg)
-	RedisRepository:=repository.NewRedisRepository(redisClient)
+	redisClient := client.NewRedisClient(cfg)
+	RedisRepository := repository.NewRedisRepository(redisClient)
+
+	// This reads much better: Config -> Kafka -> Brokers
+	kafkaProducer := kafka.NewKafkaProducer([]string{cfg.Kafka.Brokers})
 
 	PostRelationRepository := repository.NewPostRelationRepository(gormDB)
-	PostRelationUsecase := usecase.NewPostRelationUsecase(PostRelationRepository,authSubscriptionClient,RedisRepository)
+	PostRelationUsecase := usecase.NewPostRelationUsecase(PostRelationRepository, authSubscriptionClient, RedisRepository,kafkaProducer)
 	PostRelationServiceServer := services.NewPostRelationSever(PostRelationUsecase)
 
 	return PostRelationServiceServer, nil

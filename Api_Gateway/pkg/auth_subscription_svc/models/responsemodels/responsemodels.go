@@ -218,11 +218,6 @@ type UnsubscribeResponse struct{
 	CancelReason string
 }
 
-type WebhookResponse struct{
-	Event string
-	RazropaySubscriptinId string
-}
-
 type SetProfileImageResponse struct{
 	ImageUrl string
 }
@@ -242,4 +237,30 @@ type EditProfile struct{
 	Name *string	`json:"name,omitempty"`
 	Bio *string	`json:"bio,omitempty"`
 	Links *string `json:"links,omitempty"`
+}
+// type SubscriptionPlan struct{
+
+// }
+type GetSubscriptionDetails struct{
+	SubscriptionPlan1 SubscriptionPlan
+	ID uint64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID uint64
+	RazorpaySubscriptionId string
+	Status string
+	StartAt time.Time
+	EndAt	time.Time
+	NextChargeAt time.Time
+	TotalCount int
+	RemainingCount int
+	PaidCount int
+	CancelledAt time.Time
+	CancelReason string
+}
+
+type WebhookResponse struct {
+    Event                  string `json:"event"`
+    RazorpaySubscriptionId string `json:"razorpay_subscription_id"`
+    Message                string `json:"message,omitempty"` // Added for better feedback
 }

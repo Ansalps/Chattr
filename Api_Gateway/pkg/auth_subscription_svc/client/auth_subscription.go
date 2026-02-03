@@ -368,6 +368,7 @@ func (as *AuthSubscriptionClient) Subscribe(subscribeReq requestmodels.Subscribe
 	resp, err := as.Client.Subscribe(context.Background(), &auth_subscription.SubscribeReqeust{
 		UserId: subscribeReq.UserId,
 		PlanId: subscribeReq.PlanId,
+		UserEmail: subscribeReq.UserEmail,
 	})
 	if err != nil {
 		log.Printf("grpc subscribe call failed: %v", err)
@@ -497,7 +498,8 @@ func (as *AuthSubscriptionClient) WebhookSubsciptionCompleted(req requestmodels.
     }
 
     return responsemodels.WebhookResponse{
-        RazropaySubscriptinId: resp.RazorpaySubscriptionId,
-        Event:                 resp.Event,
-    }, nil
+		Event:                  resp.Event,
+		RazorpaySubscriptionId: resp.RazorpaySubscriptionId,
+		Message:                "Webhook processed successfully",
+	}, nil
 }

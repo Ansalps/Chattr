@@ -39,7 +39,6 @@ const (
 	AuthSubscriptionService_VerifySubscriptionPayment_FullMethodName     = "/auth_subscription.AuthSubscriptionService/VerifySubscriptionPayment"
 	AuthSubscriptionService_Unsubscribe_FullMethodName                   = "/auth_subscription.AuthSubscriptionService/Unsubscribe"
 	AuthSubscriptionService_SetProfileImage_FullMethodName               = "/auth_subscription.AuthSubscriptionService/SetProfileImage"
-	AuthSubscriptionService_Webhook_FullMethodName                       = "/auth_subscription.AuthSubscriptionService/Webhook"
 	AuthSubscriptionService_CheckUserExists_FullMethodName               = "/auth_subscription.AuthSubscriptionService/CheckUserExists"
 	AuthSubscriptionService_ChangePassword_FullMethodName                = "/auth_subscription.AuthSubscriptionService/ChangePassword"
 	AuthSubscriptionService_GetProfileInformation_FullMethodName         = "/auth_subscription.AuthSubscriptionService/GetProfileInformation"
@@ -48,6 +47,8 @@ const (
 	AuthSubscriptionService_UserPublicData_FullMethodName                = "/auth_subscription.AuthSubscriptionService/UserPublicData"
 	AuthSubscriptionService_FetchUserMetaData_FullMethodName             = "/auth_subscription.AuthSubscriptionService/FetchUserMetaData"
 	AuthSubscriptionService_CheckUserListExists_FullMethodName           = "/auth_subscription.AuthSubscriptionService/CheckUserListExists"
+	AuthSubscriptionService_Webhook_FullMethodName                       = "/auth_subscription.AuthSubscriptionService/Webhook"
+	AuthSubscriptionService_GetSubscriptionDetails_FullMethodName        = "/auth_subscription.AuthSubscriptionService/GetSubscriptionDetails"
 )
 
 // AuthSubscriptionServiceClient is the client API for AuthSubscriptionService service.
@@ -74,7 +75,6 @@ type AuthSubscriptionServiceClient interface {
 	VerifySubscriptionPayment(ctx context.Context, in *VerifySubscriptionPaymentRequest, opts ...grpc.CallOption) (*VerifySubscriptionPaymentResponse, error)
 	Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error)
 	SetProfileImage(ctx context.Context, in *SetProfileImageRequest, opts ...grpc.CallOption) (*SetProfileImageResponse, error)
-	Webhook(ctx context.Context, in *WebhookRequest, opts ...grpc.CallOption) (*WebhookResponse, error)
 	CheckUserExists(ctx context.Context, in *CheckUserExistsRequest, opts ...grpc.CallOption) (*CheckUserExistsResponse, error)
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
 	GetProfileInformation(ctx context.Context, in *ProfileInfoReq, opts ...grpc.CallOption) (*ProfileInfoRes, error)
@@ -83,6 +83,8 @@ type AuthSubscriptionServiceClient interface {
 	UserPublicData(ctx context.Context, in *UserPublicDataRequest, opts ...grpc.CallOption) (*UserPublicDataResponse, error)
 	FetchUserMetaData(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*BatchUserMetadataResponse, error)
 	CheckUserListExists(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*BatchUserExistResponse, error)
+	Webhook(ctx context.Context, in *WebhookRequest, opts ...grpc.CallOption) (*WebhookResponse, error)
+	GetSubscriptionDetails(ctx context.Context, in *GetSubscriptionDetailsRequest, opts ...grpc.CallOption) (*GetSubscriptionDetailsResponse, error)
 }
 
 type authSubscriptionServiceClient struct {
@@ -293,16 +295,6 @@ func (c *authSubscriptionServiceClient) SetProfileImage(ctx context.Context, in 
 	return out, nil
 }
 
-func (c *authSubscriptionServiceClient) Webhook(ctx context.Context, in *WebhookRequest, opts ...grpc.CallOption) (*WebhookResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(WebhookResponse)
-	err := c.cc.Invoke(ctx, AuthSubscriptionService_Webhook_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *authSubscriptionServiceClient) CheckUserExists(ctx context.Context, in *CheckUserExistsRequest, opts ...grpc.CallOption) (*CheckUserExistsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CheckUserExistsResponse)
@@ -383,6 +375,26 @@ func (c *authSubscriptionServiceClient) CheckUserListExists(ctx context.Context,
 	return out, nil
 }
 
+func (c *authSubscriptionServiceClient) Webhook(ctx context.Context, in *WebhookRequest, opts ...grpc.CallOption) (*WebhookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WebhookResponse)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_Webhook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authSubscriptionServiceClient) GetSubscriptionDetails(ctx context.Context, in *GetSubscriptionDetailsRequest, opts ...grpc.CallOption) (*GetSubscriptionDetailsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSubscriptionDetailsResponse)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_GetSubscriptionDetails_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthSubscriptionServiceServer is the server API for AuthSubscriptionService service.
 // All implementations must embed UnimplementedAuthSubscriptionServiceServer
 // for forward compatibility.
@@ -407,7 +419,6 @@ type AuthSubscriptionServiceServer interface {
 	VerifySubscriptionPayment(context.Context, *VerifySubscriptionPaymentRequest) (*VerifySubscriptionPaymentResponse, error)
 	Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error)
 	SetProfileImage(context.Context, *SetProfileImageRequest) (*SetProfileImageResponse, error)
-	Webhook(context.Context, *WebhookRequest) (*WebhookResponse, error)
 	CheckUserExists(context.Context, *CheckUserExistsRequest) (*CheckUserExistsResponse, error)
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
 	GetProfileInformation(context.Context, *ProfileInfoReq) (*ProfileInfoRes, error)
@@ -416,6 +427,8 @@ type AuthSubscriptionServiceServer interface {
 	UserPublicData(context.Context, *UserPublicDataRequest) (*UserPublicDataResponse, error)
 	FetchUserMetaData(context.Context, *UserDataReq) (*BatchUserMetadataResponse, error)
 	CheckUserListExists(context.Context, *UserDataReq) (*BatchUserExistResponse, error)
+	Webhook(context.Context, *WebhookRequest) (*WebhookResponse, error)
+	GetSubscriptionDetails(context.Context, *GetSubscriptionDetailsRequest) (*GetSubscriptionDetailsResponse, error)
 	mustEmbedUnimplementedAuthSubscriptionServiceServer()
 }
 
@@ -486,9 +499,6 @@ func (UnimplementedAuthSubscriptionServiceServer) Unsubscribe(context.Context, *
 func (UnimplementedAuthSubscriptionServiceServer) SetProfileImage(context.Context, *SetProfileImageRequest) (*SetProfileImageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetProfileImage not implemented")
 }
-func (UnimplementedAuthSubscriptionServiceServer) Webhook(context.Context, *WebhookRequest) (*WebhookResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Webhook not implemented")
-}
 func (UnimplementedAuthSubscriptionServiceServer) CheckUserExists(context.Context, *CheckUserExistsRequest) (*CheckUserExistsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckUserExists not implemented")
 }
@@ -512,6 +522,12 @@ func (UnimplementedAuthSubscriptionServiceServer) FetchUserMetaData(context.Cont
 }
 func (UnimplementedAuthSubscriptionServiceServer) CheckUserListExists(context.Context, *UserDataReq) (*BatchUserExistResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckUserListExists not implemented")
+}
+func (UnimplementedAuthSubscriptionServiceServer) Webhook(context.Context, *WebhookRequest) (*WebhookResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Webhook not implemented")
+}
+func (UnimplementedAuthSubscriptionServiceServer) GetSubscriptionDetails(context.Context, *GetSubscriptionDetailsRequest) (*GetSubscriptionDetailsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSubscriptionDetails not implemented")
 }
 func (UnimplementedAuthSubscriptionServiceServer) mustEmbedUnimplementedAuthSubscriptionServiceServer() {
 }
@@ -895,24 +911,6 @@ func _AuthSubscriptionService_SetProfileImage_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthSubscriptionService_Webhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(WebhookRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthSubscriptionServiceServer).Webhook(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthSubscriptionService_Webhook_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthSubscriptionServiceServer).Webhook(ctx, req.(*WebhookRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _AuthSubscriptionService_CheckUserExists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CheckUserExistsRequest)
 	if err := dec(in); err != nil {
@@ -1057,6 +1055,42 @@ func _AuthSubscriptionService_CheckUserListExists_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthSubscriptionService_Webhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebhookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthSubscriptionServiceServer).Webhook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthSubscriptionService_Webhook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthSubscriptionServiceServer).Webhook(ctx, req.(*WebhookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthSubscriptionService_GetSubscriptionDetails_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSubscriptionDetailsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthSubscriptionServiceServer).GetSubscriptionDetails(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthSubscriptionService_GetSubscriptionDetails_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthSubscriptionServiceServer).GetSubscriptionDetails(ctx, req.(*GetSubscriptionDetailsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthSubscriptionService_ServiceDesc is the grpc.ServiceDesc for AuthSubscriptionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1145,10 +1179,6 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AuthSubscriptionService_SetProfileImage_Handler,
 		},
 		{
-			MethodName: "Webhook",
-			Handler:    _AuthSubscriptionService_Webhook_Handler,
-		},
-		{
 			MethodName: "CheckUserExists",
 			Handler:    _AuthSubscriptionService_CheckUserExists_Handler,
 		},
@@ -1179,6 +1209,14 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckUserListExists",
 			Handler:    _AuthSubscriptionService_CheckUserListExists_Handler,
+		},
+		{
+			MethodName: "Webhook",
+			Handler:    _AuthSubscriptionService_Webhook_Handler,
+		},
+		{
+			MethodName: "GetSubscriptionDetails",
+			Handler:    _AuthSubscriptionService_GetSubscriptionDetails_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

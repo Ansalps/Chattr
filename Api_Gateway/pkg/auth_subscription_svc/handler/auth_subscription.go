@@ -680,6 +680,7 @@ func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
 	}
 	fmt.Println("jwt claims", jwtClaims)
 	subscribeReq.UserId = jwtClaims.ID
+	subscribeReq.UserEmail=jwtClaims.Email
 	fmt.Println("user id", subscribeReq.UserId)
 	subscribeResponse, err := as.GPPC_Client.Subscribe(subscribeReq)
 	if err != nil {
@@ -700,7 +701,7 @@ func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("razorpay subscription it", subscribeResponse.RazorpaySubscriptionId)
+	fmt.Println("razorpay subscription id", subscribeResponse.RazorpaySubscriptionId)
 	data := gin.H{
 		"SubscriptionID": subscribeResponse.RazorpaySubscriptionId,
 		"KeyID":          as.config.Razorpay.KeyId,
@@ -1142,4 +1143,27 @@ func (as *AuthSubscriptionHandler) WebhookSubsciptionCompleted(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, WebhookResponse)
+}
+
+func (as *AuthSubscriptionHandler)GetSubscriptionDetails(c *gin.Context){
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
+		return
+	}
+	var req requestmodels.GetSubscriptionDetails
+	req.UserID=jwtClaims.ID
+	resp,err:=as.DirectClient.Client.GetSubscriptionDetails(context.Background(),&auth_subscription.GetSubscriptionDetailsRequest{
+		UserId: req.UserID,
+	})
+	if err!=nil{
+		log.Println(err)
+		return
+	}
+	c.JSON(http.StatusOK,resp)
 }

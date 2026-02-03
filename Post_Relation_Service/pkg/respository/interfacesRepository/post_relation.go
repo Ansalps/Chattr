@@ -12,6 +12,7 @@ type PostRelationRepository interface {
 	DeletePostById(requestmodels.DeletePostRequest) (responsemodels.DeletePostResponse, error)
 
 	LikePostById(requestmodels.LikePostRequest) (responsemodels.LikePostResponse, error)
+	FetchPostOwnerIdByPostId(uint64)(uint64,error)
 	UnlikePostById(requestmodels.UnlikePostRequest) (responsemodels.UnlikePostResponse, error)
 	CheckCommentHieracrchy(*uint64) (bool, error)
 	AddComment(requestmodels.AddCommentRequest) (responsemodels.AddCommentResponse, error)

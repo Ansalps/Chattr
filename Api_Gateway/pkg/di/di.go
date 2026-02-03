@@ -15,6 +15,9 @@ import (
 
 	chatServiceHandler "github.com/Ansalps/Chattr_Api_Gateway/pkg/chat_svc/handler"
 	chatServiceRoutes "github.com/Ansalps/Chattr_Api_Gateway/pkg/chat_svc/routes"
+
+	notificationServiceHandler "github.com/Ansalps/Chattr_Api_Gateway/pkg/notification_svc/handler"
+	notificationServiceRoutes "github.com/Ansalps/Chattr_Api_Gateway/pkg/notification_svc/routes"
 	"github.com/gin-gonic/gin"
 )
 
@@ -39,6 +42,7 @@ func DependencyInjection(router *gin.Engine, cfg *config.Config) error {
 	chatHandler:=chatServiceHandler.NewChatHandler(cfg)
 	chatServiceRoutes.ChatRoutes(router,chatHandler,cfg,AuthMiddleware)
 
-
+	notificationHandler:=notificationServiceHandler.NewNotificationHandler(cfg)
+	notificationServiceRoutes.NotificationRoutes(router,notificationHandler,cfg,AuthMiddleware)
 	return nil
 }

@@ -70,7 +70,7 @@ func (h *Hub) run() {
 	}
 }
 func StartHub() {
-	fmt.Println("please do tell me if hub is starting")
+	//fmt.Println("please do tell me if hub is starting")
 	go hub.run()
 }
 
@@ -174,26 +174,14 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 			log.Println("error while reading", err)
 			return // triggers unregister via defer
 		}
-		fmt.Println("is it reaching here after reading")
+		
 		var dm requestmodels.MessageRequest
 		if err := json.Unmarshal(p, &dm); err != nil {
 			log.Println("Invalid JSON")
 			c.Conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 			continue
 		}
-		fmt.Println("dm", dm)
-
-		//collection := mongoClient.Client().Database("chatdb").Collection("messages")
-
-		// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		// _, dbErr := mongo.Client().
-		// 	Database("chat").
-		// 	Collection("messages").
-		// 	InsertOne(ctx, msgStruct)
-
-		// if dbErr != nil {
-		// 	log.Println("Error inserting message:", dbErr)
-		// }
+		
 
 		// cancel()
 		switch dm.Type {

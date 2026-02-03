@@ -38,7 +38,7 @@ func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tok
 			c.Abort()
 			return
 		}
-		fmt.Println("token security key", tokenSecurityKey)
+		//fmt.Println("token security key", tokenSecurityKey)
 		var jwtClaims responsemodels.JwtClaims
 		token, err := jwt.ParseWithClaims(tokenString, &jwtClaims, func(token *jwt.Token) (interface{}, error) {
 			return []byte(tokenSecurityKey), nil
@@ -146,11 +146,11 @@ func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tok
 		}
 
 		
-		fmt.Println("please print role", jwtClaims.Role)
+		//fmt.Println("please print role", jwtClaims.Role)
 		// Role check
 		authorized := false
 		for _, r := range requiredRoles {
-			fmt.Println("please print roles inside", r)
+			//fmt.Println("please print roles inside", r)
 			if jwtClaims.Role == r {
 				authorized = true
 				break
@@ -164,7 +164,7 @@ func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tok
 		}
 		
 
-		fmt.Println("jwt claims", jwtClaims)
+		//fmt.Println("jwt claims", jwtClaims)
 		c.Set("claims", jwtClaims)
 		c.Next()
 	}

@@ -5,20 +5,27 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         var options = {
-          "key": "rzp_test_RjwgibEA2qNM9N",
-          "subscription_id": "sub_S47z5oBMYpfGc3",
+          "key": "rzp_test_S8uRIsu5MQkpdK",
+          "subscription_id": "sub_SA1qDWcDLg2iwc",
           "name": "Chattr",
           "description": "blue tick monthly subscription",
           "handler": function (response){
             
-            var paymentId = response.razorpay_payment_id;
-            var subscriptionId = response.razorpay_subscription_id; 
-            var signature = response.razorpay_signature; 
+            console.log("--- RAZORPAY FULL RESPONSE ---");
+            console.log(response);
             
-            console.log("paymentId: ",paymentId)
-            console.log("subscriptionId :",subscriptionId)
-            console.log("signature: ",signature)
-            alert("Payment ID: " + paymentId + "\nSubscription ID: " + subscriptionId + "\nSignature: " + signature);
+            
+            console.table(response);
+
+            
+            let msg = "Fields received:\n";
+            for (let key in response) {
+                msg += key + ": " + response[key] + "\n";
+            }
+            alert(msg);
+
+            
+            console.log("Check if 'razorpay_order_id' or 'razorpay_subscription_id' is present.");
           }
         };
         var rzp1 = new Razorpay(options);

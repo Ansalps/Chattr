@@ -298,6 +298,7 @@ func (ad *AuthSubscriptionRepository) CreateSubscription(subscribeReq requestmod
 	// Step 3 — Create the UserSubscription struct
 	userSubscription := &domain.UserSubscription{
 		UserID:                 subscribeReq.UserId,
+		SubscriptionPlanID: subscribeReq.PlanId,
 		RazorpaySubscriptionId: razorpaySubscriptionId,
 		RazorpayPlanId:         razorpayPlanId,
 		Status:                 status,
@@ -616,7 +617,7 @@ func (ad *AuthSubscriptionRepository) PopulatePayment(payment map[string]interfa
 
 func (ad *AuthSubscriptionRepository) FetchRazorpayPlanIdFromRazrorpaySubscriptionId(subId string) (string, error) {
 	var palnId string
-	query := `SELECT razrorpay_plan_id FROM user_subscriptions where razrorpay_subscription_id=?`
+	query := `SELECT razorpay_plan_id FROM user_subscriptions where razorpay_subscription_id=?`
 	if err := ad.DB.Raw(query, subId).Scan(&palnId).Error; err != nil {
 		return "", err
 	}
@@ -630,7 +631,7 @@ type periodInterval struct {
 
 func (ad *AuthSubscriptionRepository) FetchIntervalPeriodFromSubscriptionPlan(planId string) (string, uint64, error) {
 	var p periodInterval
-	query := `SELECT period,interval FROM subscription_plans where razrorpay_plan_id=?`
+	query := `SELECT period,interval FROM subscription_plans where razorpay_plan_id=?`
 	if err := ad.DB.Raw(query, planId).Scan(&p).Error; err != nil {
 		return "", 0, err
 	}
@@ -653,7 +654,7 @@ func (ad *AuthSubscriptionRepository) UpdateTimeUserSubscription(startAt, endAt,
 	if err := ad.DB.Exec(query, updated_at, startAt, endAt, nextChargeAt, subid).Error; err != nil {
 		return responsemodels.VerifySubscriptionPaymentResponse{}, err
 	}
-	query1 := `SELECT * FROM user_subscriptions WHERE razropay_subscription_id=?`
+	query1 := `SELECT * FROM user_subscriptions WHERE razorpay_subscription_id=?`
 	if err := ad.DB.Raw(query1, subid).Scan(&subscribe).Error; err != nil {
 		return responsemodels.VerifySubscriptionPaymentResponse{}, err
 	}
@@ -814,4 +815,35 @@ func (ad *AuthSubscriptionRepository) CheckUserListExists(userids []uint64) ([]u
 		return nil,gorm.ErrRecordNotFound
 	}
 	return UserId, nil
+}
+
+func (ad *AuthSubscriptionRepository)GetSubscriptionDetails(userid uint64)(responsemodels.GetSubscriptionDetails,error){
+	var resp responsemodels.GetSubscriptionDetails
+	query := `
+    SELECT 
+        us.*, 
+        sp.id AS plan_id, 
+        sp.created_at AS plan_created_at, 
+        sp.updated_at AS plan_updated_at,
+        sp.name, 
+        sp.price, 
+        sp.currency,
+        sp.period,
+        sp.interval,
+        sp.description,
+        sp.is_active,
+        sp.razorpay_plan_id
+    FROM user_subscriptions us 
+    JOIN subscription_plans sp ON us.razorpay_plan_id = sp.razorpay_plan_id 
+    WHERE us.user_id = ? 
+    LIMIT 1`
+	result:=ad.DB.Raw(query,userid).Scan(&resp)
+	if result.Error != nil {
+		return responsemodels.GetSubscriptionDetails{}, result.Error
+	}
+	if result.RowsAffected==0{
+		return responsemodels.GetSubscriptionDetails{},gorm.ErrRecordNotFound
+	}
+	return resp, nil
+
 }

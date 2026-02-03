@@ -98,6 +98,7 @@ type GetAllActiveSubscriptionPlansRequest struct {
 type SubscribeRequest struct{
     UserId uint64
     PlanId uint64
+	UserEmail string
 }
 
 type VerifySubscriptionPaymentRequest struct{
@@ -166,4 +167,8 @@ type SubscriptionEntity struct {
 	CurrentEnd   int64             `json:"current_end"`
 	EndedAt      int64             `json:"ended_at"`
 	Notes        map[string]string `json:"notes"` // Useful for passing Email/UserID
+}
+
+type GetSubscriptionDetails struct{
+	UserID uint64
 }
