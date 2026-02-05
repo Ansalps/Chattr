@@ -518,6 +518,29 @@ func (as *PostRelationHandler) FetchComments(c *gin.Context) {
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comments fetched successfully", finalComments))
 }
 func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
+	pageStr := c.Query("page")
+	limitStr := c.Query("limit")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(page), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+		return
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+
+	if err != nil || limit < 1 || limit > 100 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(limit), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+		return
+	}
+
+	offset := (page - 1) * limit
 	claims, exists := c.Get("claims")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
@@ -536,6 +559,8 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 		c.JSON(http.StatusBadRequest,response.ClientResponse(http.StatusBadRequest,"invalid user id",nil))
 	}
 	req.TargetUserID=targetUserId
+	req.Limit=limit
+	req.Offset=offset
 	authResp, err := as.DirectAuthClient.Client.GetProfileInformation(context.Background(), &auth_subscription.ProfileInfoReq{
 		UserId: req.TargetUserID,
 	})
@@ -554,6 +579,8 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 	postResp, err := as.DirectPostClient.Client.FetchAllPosts(context.Background(), &post_relation.FetchAllPostsRequest{
 		CurrentUserId: req.CurrentUserID,
 		TargetUserId: req.TargetUserID,
+		Limit: int64(req.Limit),
+		Offset: int64(req.Offset),
 	})
 	if err != nil {
 		log.Println("error from grpc", err)

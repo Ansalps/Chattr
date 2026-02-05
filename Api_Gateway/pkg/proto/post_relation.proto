@@ -92,6 +92,8 @@ message FetchFollowersResponse{
 message FetchAllPostsRequest{
     uint64 CurrentUserId=1;
     uint64 TargetUserId=2;
+    int64 Limit=3;
+    int64 Offset=4;
 }
 message FetchAllPostsResponse{
     repeated Post posts=1;
