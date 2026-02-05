@@ -52,6 +52,20 @@ This ensures **low latency**, **high throughput**, and **eventual consistency**.
 
 ---
 
+### 🖼 Media Storage Strategy
+
+Chattr uses specialized cloud storage solutions for handling media content:
+
+- **Profile Pictures**  
+  Stored and served via **Cloudinary** for optimized image delivery, automatic resizing, and CDN support.
+
+- **Post Media (Images/Videos)**  
+  Uploaded to **AWS S3**, enabling scalable, durable object storage for user-generated content.
+
+Media URLs are stored in service databases, keeping services stateless and databases lightweight.
+
+---
+
 ### 🛡 Fault Tolerance & Resilience
 - Kafka ensures no event loss during service downtime
 - Redis reduces database load for hot data
