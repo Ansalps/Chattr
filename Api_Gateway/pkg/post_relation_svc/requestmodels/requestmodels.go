@@ -62,8 +62,6 @@ type FetchCommentsOfCommentReqeust struct{
 type FetchAllPostsReq struct{
 	CurrentUserID uint64
 	TargetUserID uint64
-	Limit int
-	Offset int
 }
 type FetchNewsFeedRequest struct{
 	UserID uint64

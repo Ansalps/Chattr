@@ -223,12 +223,12 @@ func (x *PostUserDataWithTrendingScore) GetUserMetaData() *UserMetaData {
 }
 
 type FetchGlobalNewsFeedResponse struct {
-	state                         protoimpl.MessageState           `protogen:"open.v1"`
-	PostUserDataWithTrendingScore []*PostUserDataWithTrendingScore `protobuf:"bytes,1,rep,name=PostUserDataWithTrendingScore,proto3" json:"PostUserDataWithTrendingScore,omitempty"`
-	NextCursor                    float32                          `protobuf:"fixed32,2,opt,name=NextCursor,proto3" json:"NextCursor,omitempty"`
-	HasMore                       bool                             `protobuf:"varint,3,opt,name=HasMore,proto3" json:"HasMore,omitempty"`
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
+	state         protoimpl.MessageState           `protogen:"open.v1"`
+	PostUserData  []*PostUserDataWithTrendingScore `protobuf:"bytes,1,rep,name=postUserData,proto3" json:"postUserData,omitempty"`
+	NextCursor    float32                          `protobuf:"fixed32,2,opt,name=NextCursor,proto3" json:"NextCursor,omitempty"`
+	HasMore       bool                             `protobuf:"varint,3,opt,name=HasMore,proto3" json:"HasMore,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *FetchGlobalNewsFeedResponse) Reset() {
@@ -261,9 +261,9 @@ func (*FetchGlobalNewsFeedResponse) Descriptor() ([]byte, []int) {
 	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *FetchGlobalNewsFeedResponse) GetPostUserDataWithTrendingScore() []*PostUserDataWithTrendingScore {
+func (x *FetchGlobalNewsFeedResponse) GetPostUserData() []*PostUserDataWithTrendingScore {
 	if x != nil {
-		return x.PostUserDataWithTrendingScore
+		return x.PostUserData
 	}
 	return nil
 }
@@ -722,8 +722,6 @@ type FetchAllPostsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	CurrentUserId uint64                 `protobuf:"varint,1,opt,name=CurrentUserId,proto3" json:"CurrentUserId,omitempty"`
 	TargetUserId  uint64                 `protobuf:"varint,2,opt,name=TargetUserId,proto3" json:"TargetUserId,omitempty"`
-	Limit         int64                  `protobuf:"varint,3,opt,name=Limit,proto3" json:"Limit,omitempty"`
-	Offset        int64                  `protobuf:"varint,4,opt,name=Offset,proto3" json:"Offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -768,20 +766,6 @@ func (x *FetchAllPostsRequest) GetCurrentUserId() uint64 {
 func (x *FetchAllPostsRequest) GetTargetUserId() uint64 {
 	if x != nil {
 		return x.TargetUserId
-	}
-	return 0
-}
-
-func (x *FetchAllPostsRequest) GetLimit() int64 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
-}
-
-func (x *FetchAllPostsRequest) GetOffset() int64 {
-	if x != nil {
-		return x.Offset
 	}
 	return 0
 }
@@ -2405,9 +2389,9 @@ const file_pkg_proto_post_relation_proto_rawDesc = "" +
 	" \x01(\tR\aPostAge\x12\x18\n" +
 	"\aIsLiked\x18\v \x01(\bR\aIsLiked\x12$\n" +
 	"\rTrendingScore\x18\f \x01(\x02R\rTrendingScore\x12?\n" +
-	"\fuserMetaData\x18\r \x01(\v2\x1b.post_relation.UserMetaDataR\fuserMetaData\"\xcb\x01\n" +
-	"\x1bFetchGlobalNewsFeedResponse\x12r\n" +
-	"\x1dPostUserDataWithTrendingScore\x18\x01 \x03(\v2,.post_relation.PostUserDataWithTrendingScoreR\x1dPostUserDataWithTrendingScore\x12\x1e\n" +
+	"\fuserMetaData\x18\r \x01(\v2\x1b.post_relation.UserMetaDataR\fuserMetaData\"\xa9\x01\n" +
+	"\x1bFetchGlobalNewsFeedResponse\x12P\n" +
+	"\fpostUserData\x18\x01 \x03(\v2,.post_relation.PostUserDataWithTrendingScoreR\fpostUserData\x12\x1e\n" +
 	"\n" +
 	"NextCursor\x18\x02 \x01(\x02R\n" +
 	"NextCursor\x12\x18\n" +
@@ -2448,12 +2432,10 @@ const file_pkg_proto_post_relation_proto_rawDesc = "" +
 	"\x15FetchFollowersRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"Y\n" +
 	"\x16FetchFollowersResponse\x12?\n" +
-	"\fuserMetaData\x18\x01 \x03(\v2\x1b.post_relation.UserMetaDataR\fuserMetaData\"\x8e\x01\n" +
+	"\fuserMetaData\x18\x01 \x03(\v2\x1b.post_relation.UserMetaDataR\fuserMetaData\"`\n" +
 	"\x14FetchAllPostsRequest\x12$\n" +
 	"\rCurrentUserId\x18\x01 \x01(\x04R\rCurrentUserId\x12\"\n" +
-	"\fTargetUserId\x18\x02 \x01(\x04R\fTargetUserId\x12\x14\n" +
-	"\x05Limit\x18\x03 \x01(\x03R\x05Limit\x12\x16\n" +
-	"\x06Offset\x18\x04 \x01(\x03R\x06Offset\"B\n" +
+	"\fTargetUserId\x18\x02 \x01(\x04R\fTargetUserId\"B\n" +
 	"\x15FetchAllPostsResponse\x12)\n" +
 	"\x05posts\x18\x01 \x03(\v2\x13.post_relation.PostR\x05posts\"\xdc\x02\n" +
 	"\x04Post\x12\x16\n" +
@@ -2646,7 +2628,7 @@ var file_pkg_proto_post_relation_proto_depIdxs = []int32{
 	39, // 0: post_relation.PostUserDataWithTrendingScore.CreatedAt:type_name -> google.protobuf.Timestamp
 	39, // 1: post_relation.PostUserDataWithTrendingScore.UpdatedAt:type_name -> google.protobuf.Timestamp
 	16, // 2: post_relation.PostUserDataWithTrendingScore.userMetaData:type_name -> post_relation.UserMetaData
-	1,  // 3: post_relation.FetchGlobalNewsFeedResponse.PostUserDataWithTrendingScore:type_name -> post_relation.PostUserDataWithTrendingScore
+	1,  // 3: post_relation.FetchGlobalNewsFeedResponse.postUserData:type_name -> post_relation.PostUserDataWithTrendingScore
 	39, // 4: post_relation.PostUserData.CreatedAt:type_name -> google.protobuf.Timestamp
 	39, // 5: post_relation.PostUserData.UpdatedAt:type_name -> google.protobuf.Timestamp
 	16, // 6: post_relation.PostUserData.userMetaData:type_name -> post_relation.UserMetaData
