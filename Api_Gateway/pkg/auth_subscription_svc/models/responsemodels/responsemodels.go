@@ -178,12 +178,20 @@ type SubscribeResponse struct{
 	ID uint64
 	CreatedAt time.Time
 	UpdatedAt time.Time
+
 	UserID uint64
+
 	RazorpaySubscriptionId string
+	SubscriptionPlanID uint64
+	RazorpayPlanId string
+
 	Status string
+	ShortUrl string
+
 	TotalCount int
 	RemainingCount int
 	PaidCount int
+	
 }
 
 type VerifySubscriptionPaymentResponse struct{
@@ -200,23 +208,25 @@ type VerifySubscriptionPaymentResponse struct{
 	RemainingCount int
 	PaidCount int
 }
-
 type UnsubscribeResponse struct{
-	ID uint64
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	UserID uint64
-	RazorpaySubscriptionId string
-	Status string
-	StartAt time.Time
-	EndAt	time.Time
-	NextChargeAt time.Time
-	TotalCount int
-	RemainingCount int
-	PaidCount int
-	CancelledAt time.Time
-	CancelReason string
+	SubId uint64
 }
+// type UnsubscribeResponse struct{
+// 	ID uint64
+// 	CreatedAt time.Time
+// 	UpdatedAt time.Time
+// 	UserID uint64
+// 	RazorpaySubscriptionId string
+// 	Status string
+// 	StartAt time.Time
+// 	EndAt	time.Time
+// 	NextChargeAt time.Time
+// 	TotalCount int
+// 	RemainingCount int
+// 	PaidCount int
+// 	CancelledAt time.Time
+// 	CancelReason string
+// }
 
 type SetProfileImageResponse struct{
 	ImageUrl string
@@ -242,7 +252,7 @@ type EditProfile struct{
 
 // }
 type GetSubscriptionDetails struct{
-	SubscriptionPlan1 SubscriptionPlan
+	SubscriptionPlan SubscriptionPlan
 	ID uint64
 	CreatedAt time.Time
 	UpdatedAt time.Time

@@ -1,6 +1,10 @@
 package requestmodels
 
-import "github.com/golang-jwt/jwt/v5"
+import (
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+)
 
 type AdminLoginRequest struct {
 	Email    string `json:"email" binding:"required" validat:"required"`
@@ -119,6 +123,7 @@ type VerifySubscriptionPaymentRequest struct{
 type UnsubscribeRequest struct{
 	SubId uint64
 	CancelReason string	`json:"cancel_reason" binding:"required"`
+	CancelAtCycleEnd bool
 }
 type SetProfileImageRequest struct{
 	UserId uint64
@@ -178,6 +183,46 @@ type SubscriptionEntity struct {
 	Notes        map[string]string `json:"notes"` // Useful for passing Email/UserID
 }
 
-type GetSubscriptionDetails struct{
+type WebhookSubscriptionActivatedRequest struct{
+	RazorpaySubscriptionId string
+	Status string
+	PaidCount int
+	RemainingCount int
+	StartAt        time.Time             `json:"start_at"`         // Use int64 for Unix timestamps
+    EndAt          time.Time             `json:"end_at"`
 	UserID uint64
 }
+type WebhookSubscriptionChargedRequest struct{
+	RazorpaySubscriptionId string
+	RazorpayPlanId string
+	NextChargeAt time.Time `json:"current_end"`
+	InvoiceID      string `json:"invoice_id"`
+	Amount         int64  `json:"amount"` // Amount in paise (e.g., 50000 for ₹500)
+    Currency       string `json:"currency"`
+	Method         string `json:"method"` // card, upi, etc.
+    Status         string `json:"status"`
+    TransactionDate time.Time    `json:"transaction_date"`
+	PaymentID  string `json:"id"`
+	UserID uint64
+}
+type WebhookSubscriptionHaltedRequest struct{
+	RazorpaySubscriptionId string
+	Status string
+	UserId uint64
+}
+type WebhookSubscriptionCancelledRequest struct{
+	RazorpaySubscriptionId string
+	Status string
+	CancelledAt time.Time
+	UserId uint64
+}
+type WebhookSubscriptionCompletedRequest struct{
+	RazorpaySubscriptionId string
+	Status string
+	UserId uint64
+}
+type GetSubscriptionDetails struct{
+	UserID uint64
+	//SubID uint64
+}
+

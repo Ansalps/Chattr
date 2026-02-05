@@ -6,9 +6,9 @@ import (
 	services "github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/api"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/db"
+	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/infrastructure/razorpaygateway"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/repository"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/usecase"
-	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils/AwsS3"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils/jwt"
 	randomnumber "github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils/randomNumber"
@@ -28,9 +28,10 @@ func DependencyIndjection(cfg *config.Config) (*services.AuthSubscriptionServer,
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize s3 client: %w", err)
 	}
-	razorpayClient := utils.NewRazorpayClient(cfg.Razorpay.KeyId, cfg.Razorpay.KeySecret)
+	//razorpayClient := utils.NewRazorpayClient(cfg.Razorpay.KeyId, cfg.Razorpay.KeySecret)
+	razorpayGateway := razorpaygateway.NewRazorpayGateway(cfg.Razorpay.KeyId, cfg.Razorpay.KeySecret)
 	AuthSubscriptionUsecase := usecase.NewAuthSubscriptionUsecase(AuthSubscriptionRepository,
-		RandomUtil, SmtpUtil, &cfg.Token, JwtUtil, razorpayClient, AwsS3Client,cfg.Aws.AwsBucket)
+		RandomUtil, SmtpUtil, &cfg.Token, JwtUtil, razorpayGateway, AwsS3Client, cfg.Aws.AwsBucket)
 	AuthSubscriptionServiceServer := services.NewAuthSubscriptionServer(AuthSubscriptionUsecase)
 
 	return AuthSubscriptionServiceServer, nil

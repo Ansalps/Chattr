@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/pb"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/usecase"
@@ -467,81 +469,80 @@ func (as *AuthSubscriptionServer) GetAllActiveSubscriptionPlans(ctx context.Cont
 
 func (as *AuthSubscriptionServer) Subscribe(ctx context.Context, req *pb.SubscribeReqeust) (*pb.SubscribeResponse, error) {
 	subscribeReq := requestmodels.SubscribeRequest{
-		UserId: req.UserId,
-		PlanId: req.PlanId,
+		UserId:    req.UserId,
+		PlanId:    req.PlanId,
 		UserEmail: req.UserEmail,
 	}
 	subscribeRes, err := as.AuthSubscriptionUsecase.Subscribe(subscribeReq)
 	if err != nil {
-
+		if err==domain.ErrNotEligible{
+			return nil,status.Error(codes.AlreadyExists,err.Error())
+		}
+		return nil, status.Error(codes.Internal, "interanal server error")
 	}
 	return &pb.SubscribeResponse{
-		Id:                    subscribeRes.ID,
-		CreatedAt:             utils.ToProtoTimestamp(subscribeRes.CreatedAt),
-		UpdatedAt:             utils.ToProtoTimestamp(subscribeRes.UpdatedAt),
-		UserId:                subscribeRes.ID,
+		Id:        subscribeRes.ID,
+		CreatedAt: utils.ToProtoTimestamp(subscribeRes.CreatedAt),
+		UpdatedAt: utils.ToProtoTimestamp(subscribeRes.UpdatedAt),
+
+		UserId: subscribeRes.ID,
+
 		RazorpaySubcriptionId: subscribeRes.RazorpaySubscriptionId,
-		Status:                subscribeRes.Status,
-		TotalCount:            int64(subscribeRes.TotalCount),
-		RemainingCount:        int64(subscribeRes.RemainingCount),
-		PaidCount:             int64(subscribeRes.PaidCount),
+		SubscriptionPlanId:    subscribeRes.SubscriptionPlanID,
+		RazorpayPlanId:        subscribeRes.RazorpayPlanId,
+
+		Status:   subscribeRes.Status,
+		ShortUrl: subscribeRes.ShortUrl,
+
+		TotalCount:     int64(subscribeRes.TotalCount),
+		RemainingCount: int64(subscribeRes.RemainingCount),
+		PaidCount:      int64(subscribeRes.PaidCount),
 	}, nil
 }
 
-func (as *AuthSubscriptionServer) VerifySubscriptionPayment(ctx context.Context, req *pb.VerifySubscriptionPaymentRequest) (*pb.VerifySubscriptionPaymentResponse, error) {
-	verifySubscriptionPaymentReq := requestmodels.VerifySubscriptionPaymentRequest{
-		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
-		RazorpayPaymentId:      req.RazorpayPaymentId,
-	}
-	verifySubscriptionPaymentRes, err := as.AuthSubscriptionUsecase.VerifySubscriptionPayment(verifySubscriptionPaymentReq)
-	if err != nil {
-		log.Printf("Get All Subscription Plans failed : %v", err)
-		switch {
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
-	}
-	fmt.Println("print start at", verifySubscriptionPaymentRes.StartAt, utils.ToProtoTimestamp(verifySubscriptionPaymentRes.StartAt))
-	return &pb.VerifySubscriptionPaymentResponse{
-		Id:                    verifySubscriptionPaymentRes.ID,
-		CreatedAt:             utils.ToProtoTimestamp(verifySubscriptionPaymentRes.CreatedAt),
-		UpdatedAt:             utils.ToProtoTimestamp(verifySubscriptionPaymentRes.UpdatedAt),
-		UserId:                verifySubscriptionPaymentRes.UserID,
-		RazorpaySubcriptionId: verifySubscriptionPaymentReq.RazorpaySubscriptionId,
-		Status:                verifySubscriptionPaymentRes.Status,
-		StartAt:               utils.ToProtoTimestamp(verifySubscriptionPaymentRes.StartAt),
-		EndAt:                 utils.ToProtoTimestamp(verifySubscriptionPaymentRes.EndAt),
-		NextChargeAt:          utils.ToProtoTimestamp(verifySubscriptionPaymentRes.NextChargeAt),
-		TotalCount:            int64(verifySubscriptionPaymentRes.TotalCount),
-		RemainingCount:        int64(verifySubscriptionPaymentRes.RemainingCount),
-		PaidCount:             int64(verifySubscriptionPaymentRes.PaidCount),
-	}, nil
-}
+// func (as *AuthSubscriptionServer) VerifySubscriptionPayment(ctx context.Context, req *pb.VerifySubscriptionPaymentRequest) (*pb.VerifySubscriptionPaymentResponse, error) {
+// 	verifySubscriptionPaymentReq := requestmodels.VerifySubscriptionPaymentRequest{
+// 		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
+// 		RazorpayPaymentId:      req.RazorpayPaymentId,
+// 	}
+// 	verifySubscriptionPaymentRes, err := as.AuthSubscriptionUsecase.VerifySubscriptionPayment(verifySubscriptionPaymentReq)
+// 	if err != nil {
+// 		log.Printf("Get All Subscription Plans failed : %v", err)
+// 		switch {
+// 		default:
+// 			return nil, status.Error(codes.Internal, "interanal server error")
+// 		}
+// 	}
+// 	fmt.Println("print start at", verifySubscriptionPaymentRes.StartAt, utils.ToProtoTimestamp(verifySubscriptionPaymentRes.StartAt))
+// 	return &pb.VerifySubscriptionPaymentResponse{
+// 		Id:                    verifySubscriptionPaymentRes.ID,
+// 		CreatedAt:             utils.ToProtoTimestamp(verifySubscriptionPaymentRes.CreatedAt),
+// 		UpdatedAt:             utils.ToProtoTimestamp(verifySubscriptionPaymentRes.UpdatedAt),
+// 		UserId:                verifySubscriptionPaymentRes.UserID,
+// 		RazorpaySubcriptionId: verifySubscriptionPaymentReq.RazorpaySubscriptionId,
+// 		Status:                verifySubscriptionPaymentRes.Status,
+// 		StartAt:               utils.ToProtoTimestamp(verifySubscriptionPaymentRes.StartAt),
+// 		EndAt:                 utils.ToProtoTimestamp(verifySubscriptionPaymentRes.EndAt),
+// 		NextChargeAt:          utils.ToProtoTimestamp(verifySubscriptionPaymentRes.NextChargeAt),
+// 		TotalCount:            int64(verifySubscriptionPaymentRes.TotalCount),
+// 		RemainingCount:        int64(verifySubscriptionPaymentRes.RemainingCount),
+// 		PaidCount:             int64(verifySubscriptionPaymentRes.PaidCount),
+// 	}, nil
+// }
 
 func (as *AuthSubscriptionServer) Unsubscribe(ctx context.Context, req *pb.UnsubscribeRequest) (*pb.UnsubscribeResponse, error) {
 	unsubscribeReq := requestmodels.UnsubscribeRequest{
 		SubId:        req.SubId,
 		CancelReason: req.CancelReason,
+		CancelAtCycleEnd: req.CancelAtCycleEnd,
 	}
 	unsubscribeRes, err := as.AuthSubscriptionUsecase.Unsubscribe(unsubscribeReq)
 	if err != nil {
-
+		log.Println(err)
+		return nil,err
 	}
 	return &pb.UnsubscribeResponse{
-		Id:                    unsubscribeRes.ID,
-		CreatedAt:             utils.ToProtoTimestamp(unsubscribeRes.CreatedAt),
-		UpdatedAt:             utils.ToProtoTimestamp(unsubscribeRes.UpdatedAt),
-		UserId:                unsubscribeRes.UserID,
-		RazorpaySubcriptionId: unsubscribeRes.RazorpaySubscriptionId,
-		Status:                unsubscribeRes.Status,
-		StartAt:               utils.ToProtoTimestamp(unsubscribeRes.StartAt),
-		EndAt:                 utils.ToProtoTimestamp(unsubscribeRes.EndAt),
-		NextChargeAt:          utils.ToProtoTimestamp(unsubscribeRes.NextChargeAt),
-		TotalCount:            int64(unsubscribeRes.TotalCount),
-		RemainingCount:        int64(unsubscribeRes.RemainingCount),
-		PaidCount:             int64(unsubscribeRes.PaidCount),
-		CancelledAt:           utils.ToProtoTimestamp(unsubscribeRes.CancelledAt),
-		CancelReason:          unsubscribeReq.CancelReason,
+		SubId: unsubscribeRes.SubId,
 	}, nil
 }
 
@@ -641,8 +642,8 @@ func (as *AuthSubscriptionServer) ChangePassword(ctx context.Context, req *pb.Ch
 func (as *AuthSubscriptionServer) SearchUser(ctx context.Context, req *pb.SearchUserRequest) (*pb.SearchUserResponse, error) {
 	searchUserReq := requestmodels.SearchUser{
 		SearchText: req.SearchText,
-		Limit: req.Limit,
-		Offset: req.Offset,
+		Limit:      req.Limit,
+		Offset:     req.Offset,
 	}
 	resp, err := as.AuthSubscriptionUsecase.SearchUser(searchUserReq)
 	if err != nil {
@@ -650,10 +651,10 @@ func (as *AuthSubscriptionServer) SearchUser(ctx context.Context, req *pb.Search
 	}
 	c := make([]*pb.UserMetaData, len(resp.Usermetadata))
 	for i, v := range resp.Usermetadata {
-		c[i]=&pb.UserMetaData{
-			UserId: v.UserID,
-			UserName: v.UserName,
-			Name: v.Name,
+		c[i] = &pb.UserMetaData{
+			UserId:        v.UserID,
+			UserName:      v.UserName,
+			Name:          v.Name,
 			ProfileImgUrl: v.ProfileImgUrl,
 		}
 	}
@@ -661,118 +662,226 @@ func (as *AuthSubscriptionServer) SearchUser(ctx context.Context, req *pb.Search
 		UserMetaData: c,
 	}, nil
 }
-func (as *AuthSubscriptionServer)UserPublicData(ctx context.Context,req *pb.UserPublicDataRequest)(*pb.UserPublicDataResponse,error){
-	resp,err:=as.AuthSubscriptionUsecase.FetchUserPublicData(req.UserId)
-	if err!=nil{
-		return &pb.UserPublicDataResponse{},err
+func (as *AuthSubscriptionServer) UserPublicData(ctx context.Context, req *pb.UserPublicDataRequest) (*pb.UserPublicDataResponse, error) {
+	resp, err := as.AuthSubscriptionUsecase.FetchUserPublicData(req.UserId)
+	if err != nil {
+		return &pb.UserPublicDataResponse{}, err
 	}
 	return &pb.UserPublicDataResponse{
-		UserId: resp.UserID,
-		UserName: resp.UserName,
-		Name: resp.Name,
+		UserId:        resp.UserID,
+		UserName:      resp.UserName,
+		Name:          resp.Name,
 		ProfileImgUrl: resp.ProfileImgUrl,
-		Bio: resp.Bio,
-		Links: resp.Links,
-		BlueTick: resp.BlueTick,
-	},nil
+		Bio:           resp.Bio,
+		Links:         resp.Links,
+		BlueTick:      resp.BlueTick,
+	}, nil
 }
 
-func (as *AuthSubscriptionServer) FetchUserMetaData(ctx context.Context,req *pb.UserDataReq)(*pb.BatchUserMetadataResponse,error){
+func (as *AuthSubscriptionServer) FetchUserMetaData(ctx context.Context, req *pb.UserDataReq) (*pb.BatchUserMetadataResponse, error) {
 	var userids []uint64
-	userids=req.UserId
-	resp,err:=as.AuthSubscriptionUsecase.FetchUserMetaData(userids)
-	if err!=nil{
-		if err==usecase.ErrUserNotFound{
-			return nil,status.Error(codes.NotFound,err.Error())
+	userids = req.UserId
+	resp, err := as.AuthSubscriptionUsecase.FetchUserMetaData(userids)
+	if err != nil {
+		if err == usecase.ErrUserNotFound {
+			return nil, status.Error(codes.NotFound, err.Error())
 		}
-		return nil,err
+		return nil, err
 	}
-	pbMap:=make(map[uint64]*pb.UserMetaData)
-	for id,r:=range resp{
-		pbMap[id]=&pb.UserMetaData{
-			UserId: r.UserID,
-			UserName: r.UserName,
-			Name: r.Name,
+	pbMap := make(map[uint64]*pb.UserMetaData)
+	for id, r := range resp {
+		pbMap[id] = &pb.UserMetaData{
+			UserId:        r.UserID,
+			UserName:      r.UserName,
+			Name:          r.Name,
 			ProfileImgUrl: r.ProfileImgUrl,
-			BlueTick: r.BlueTick,
+			BlueTick:      r.BlueTick,
 		}
 	}
 	return &pb.BatchUserMetadataResponse{
 		Users: pbMap,
-	},nil
+	}, nil
 }
 
-func (as *AuthSubscriptionServer)CheckUserListExists(ctx context.Context,req *pb.UserDataReq)(*pb.BatchUserExistResponse,error){
+func (as *AuthSubscriptionServer) CheckUserListExists(ctx context.Context, req *pb.UserDataReq) (*pb.BatchUserExistResponse, error) {
 	var userids []uint64
-	userids=req.UserId
-	resp,err:=as.AuthSubscriptionUsecase.CheckUserListExists(userids)
-	if err!=nil{
-		return nil,usecase.ErrNoUsersFound
+	userids = req.UserId
+	resp, err := as.AuthSubscriptionUsecase.CheckUserListExists(userids)
+	if err != nil {
+		return nil, usecase.ErrNoUsersFound
 	}
 	return &pb.BatchUserExistResponse{
 		UserId: resp,
-	},nil
+	}, nil
 }
-func (as *AuthSubscriptionServer)GetSubscriptionDetails(ctx context.Context,req *pb.GetSubscriptionDetailsRequest)(*pb.GetSubscriptionDetailsResponse,error){
+func (as *AuthSubscriptionServer) GetSubscriptionDetails(ctx context.Context, req *pb.GetSubscriptionDetailsRequest) (*pb.GetSubscriptionDetailsResponse, error) {
 	// request:=requestmodels.GetSubscriptionDetails{
 	// 	UserID: req.UserId,
 	// }
-	resp,err:=as.AuthSubscriptionUsecase.GetSubscriptionDetails(req.UserId)
-	if err!=nil{
+	getSubcripitonReq:=requestmodels.GetSubscriptionDetails{
+		UserID: req.UserId,
+		//SubID: req.SubId,
+	}
+	resp, err := as.AuthSubscriptionUsecase.GetSubscriptionDetails(getSubcripitonReq)
+	if err != nil {
 		log.Println(err)
-		return nil,err
+		return nil, err
 	}
 
 	return &pb.GetSubscriptionDetailsResponse{
 		SubsciptionPlan: &pb.SubscriptioPlan{
-			Id: resp.FetchSubscriptionPlan.ID,
-			CreatedAt:utils.ToProtoTimestamp(resp.FetchSubscriptionPlan.CreatedAt),
-			UpdatedAt: utils.ToProtoTimestamp(resp.FetchSubscriptionPlan.UpdatedAt),
+			Id:             resp.FetchSubscriptionPlan.ID,
+			CreatedAt:      utils.ToProtoTimestamp(resp.FetchSubscriptionPlan.CreatedAt),
+			UpdatedAt:      utils.ToProtoTimestamp(resp.FetchSubscriptionPlan.UpdatedAt),
 			RazorpayPlanId: resp.FetchSubscriptionPlan.RazorpayPlanId,
-			Name: resp.FetchSubscriptionPlan.Name,
-			Price: resp.FetchSubscriptionPlan.Price,
-			Currency: resp.FetchSubscriptionPlan.Currency,
-			Period: resp.FetchSubscriptionPlan.Period,
-			Interval: resp.FetchSubscriptionPlan.Interval,
-			Description: resp.FetchSubscriptionPlan.Description,
-			IsActive: resp.FetchSubscriptionPlan.IsActive,
+			Name:           resp.FetchSubscriptionPlan.Name,
+			Price:          resp.FetchSubscriptionPlan.Price,
+			Currency:       resp.FetchSubscriptionPlan.Currency,
+			Period:         resp.FetchSubscriptionPlan.Period,
+			Interval:       resp.FetchSubscriptionPlan.Interval,
+			Description:    resp.FetchSubscriptionPlan.Description,
+			IsActive:       resp.FetchSubscriptionPlan.IsActive,
 		},
-		UserId: resp.UserID,
-		SubscriptionId: resp.ID,
-		CreatedAt: utils.ToProtoTimestamp(resp.CreatedAt),
-		UpdatedAt: utils.ToProtoTimestamp(resp.UpdatedAt),
+		UserId:                 resp.UserID,
+		SubscriptionId:         resp.ID,
+		CreatedAt:              utils.ToProtoTimestamp(resp.CreatedAt),
+		UpdatedAt:              utils.ToProtoTimestamp(resp.UpdatedAt),
 		RazorpaySubscriptionId: resp.RazorpaySubscriptionId,
-		Status: resp.Status,
-		StartAt: utils.ToProtoTimestamp(resp.StartAt),
-		EndAt: utils.ToProtoTimestamp(resp.EndAt),
-		NextChargeAt: utils.ToProtoTimestamp(resp.NextChargeAt),
-		TotalCount: int64(resp.TotalCount),
-		RemainingCount: int64(resp.RemainingCount),
-		PaidCount: int64(resp.PaidCount),
-		CancelledAt: utils.ToProtoTimestamp(resp.CancelledAt),
-		CancelReason: resp.CancelReason,
+		Status:                 resp.Status,
+		StartAt:                utils.ToProtoTimestamp(resp.StartAt),
+		EndAt:                  utils.ToProtoTimestamp(resp.EndAt),
+		NextChargeAt:           utils.ToProtoTimestamp(resp.NextChargeAt),
+		TotalCount:             int64(resp.TotalCount),
+		RemainingCount:         int64(resp.RemainingCount),
+		PaidCount:              int64(resp.PaidCount),
+		CancelledAt:            utils.ToProtoTimestamp(resp.CancelledAt),
+		CancelReason:           resp.CancelReason,
+	}, nil
+}
+
+func (as *AuthSubscriptionServer) WebhookSubscriptionActivated(ctx context.Context, req *pb.WebhookSubscriptionActivatedRequest) (*pb.WebhookSubscriptionActivatedResponse, error) {
+
+	if req.StartAt == nil {
+		fmt.Println("10000")
+	}
+	if req.EndAt == nil {
+		fmt.Println("20000")
+	}
+
+	loc, _ := time.LoadLocation("Asia/Kolkata")
+	webhookReq := requestmodels.WebhookSubscriptionActivatedRequest{
+		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
+		Status:                 req.Status,
+		PaidCount:              int(req.PaidCount),
+		RemainingCount:         int(req.RemainingCount),
+		StartAt:                req.StartAt.AsTime().In(loc),
+		EndAt:                  req.EndAt.AsTime().In(loc),
+		UserID:                 req.UserId,
+	}
+	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionActivated(webhookReq)
+	if err != nil {
+		if err == domain.RazorpaySubscriptionIdNotFound {
+			return nil, err
+		}
+		return nil, err
+	}
+	return &pb.WebhookSubscriptionActivatedResponse{
+		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
+	}, nil
+}
+
+func(as *AuthSubscriptionServer)WebhookSubscriptionCharged(ctx context.Context,req *pb.WebhookSubscriptionChargedRequest)(*pb.WebhookSubscriptionChargedResponse,error){
+	loc, _ := time.LoadLocation("Asia/Kolkata")
+	webhookReq:=requestmodels.WebhookSubscriptionChargedRequest{
+		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
+		RazorpayPlanId: req.RazorpayPlanId,
+		NextChargeAt: req.NextChargeAt.AsTime().In(loc),
+		InvoiceID: req.InvoiceId,
+		Amount: req.Amount,
+		Currency: req.Currency,
+		Method: req.Method,
+		Status: req.Status,
+		TransactionDate: req.TransactionDate.AsTime().In(loc),
+		PaymentID: req.PaymentId,
+		UserID: req.UserId,
+	}
+	resp,err:=as.AuthSubscriptionUsecase.WebhookSubscriptionCharged(webhookReq)
+	if err!=nil{
+		log.Println(err)
+		return nil,err
+	}
+	return &pb.WebhookSubscriptionChargedResponse{
+		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
 	},nil
 }
 
-func (as *AuthSubscriptionServer)Webhook(ctx context.Context,req *pb.WebhookRequest)(*pb.WebhookResponse,error){
-	webhookRequest:=requestmodels.RazorpayEvent{
+func (as *AuthSubscriptionServer)WebhookSubscriptionHalted(ctx context.Context,req *pb.WebhookSubscriptionHaltedRequest)(*pb.WebhookSubscriptionHaltedResponse,error){
+	webhookreq:=requestmodels.WebhookSubscriptionHaltedRequest{
+		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
+		Status: req.Status,
+		UserId: req.UserId,
+	}
+	resp,err:=as.AuthSubscriptionUsecase.WebhookSubscriptionHalted(webhookreq)
+	if err!=nil{
+		log.Println(err)
+		return nil,err
+	}
+	return &pb.WebhookSubscriptionHaltedResponse{
+		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
+	},nil
+}
+
+func(as *AuthSubscriptionServer)WebhookSubscriptionCancelled(ctx context.Context,req *pb.WebhookSubscriptionCancelledRequest)(*pb.WebhookSubscriptionCancelledResponse,error){
+	loc, _ := time.LoadLocation("Asia/Kolkata")
+	webhookreq:=requestmodels.WebhookSubscriptionCancelledRequest{
+		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
+		Status: req.Status,
+		CancelledAt: req.CancelledAt.AsTime().In(loc),
+		UserId: req.UserId,
+	}
+	resp,err:=as.AuthSubscriptionUsecase.WebhookSubscriptionCancelled(webhookreq)
+	if err!=nil{
+		log.Println(err)
+		return nil,err
+	}
+	return &pb.WebhookSubscriptionCancelledResponse{
+		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
+	},nil
+}
+func (as *AuthSubscriptionServer)WebhookSubscriptionCompleted(ctx context.Context,req *pb.WebhookSubscriptionCompletedRequest)(*pb.WebhookSubscriptionCompletedResponse,error){
+	webhookReq:=requestmodels.WebhookSubscriptionCompletedRequest{
+		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
+		Status: req.Status,
+		UserId: req.UserId,
+	}
+	resp,err:=as.AuthSubscriptionUsecase.WebhookSubscriptionCompleted(webhookReq)
+	if err!=nil{
+		log.Println(err)
+		return nil,err
+	}
+	return &pb.WebhookSubscriptionCompletedResponse{
+		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
+	},nil
+}
+func (as *AuthSubscriptionServer) Webhook(ctx context.Context, req *pb.WebhookRequest) (*pb.WebhookResponse, error) {
+	webhookRequest := requestmodels.RazorpayEvent{
 		Event: req.Event,
 	}
-	if webhookRequest.Event!="subscription.completed"{
+	if webhookRequest.Event != "subscription.completed" {
 		fmt.Println("please return")
-		return &pb.WebhookResponse{},nil
+		return &pb.WebhookResponse{}, nil
 	}
 	//  Prevent nil pointer panic
 	if req.Payload != nil && req.Payload.Subscription != nil {
 		webhookRequest.Payload.Subscription.Entity.ID = req.Payload.Subscription.Id
 	}
-	webhoodRes,err:=as.AuthSubscriptionUsecase.Webhook(webhookRequest)
-	if err!=nil{
-		fmt.Print("error in service",err)
-		return &pb.WebhookResponse{},nil
+	webhoodRes, err := as.AuthSubscriptionUsecase.Webhook(webhookRequest)
+	if err != nil {
+		fmt.Print("error in service", err)
+		return &pb.WebhookResponse{}, nil
 	}
 	return &pb.WebhookResponse{
-		Event: webhoodRes.Event,
+		Event:                  webhoodRes.Event,
 		RazorpaySubscriptionId: webhoodRes.RazorpaySubscriptionId,
-	},nil
+	}, nil
 }

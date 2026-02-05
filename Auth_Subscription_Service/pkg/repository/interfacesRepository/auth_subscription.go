@@ -26,8 +26,8 @@ type AuthSubscriptionRepository interface {
 	ChangeUserStatusToBlockedByUserId(requestmodels.BlockUserRequest)error
 	ChangeUserStatusToActiveByUserId(requestmodels.UnblockUserRequest)error
 	GetAllUsers(requestmodels.GetAllUsersRequest)(responsemodels.GetAllUsersResponse,error)
-	CreateSubscriptionPlan(map[string]interface{})(responsemodels.CreateSubscriptionPlanResponse,error)
-	CreateSubscription(requestmodels.SubscribeRequest,map[string]interface{})(responsemodels.SubscribeResponse,error)
+	CreateSubscriptionPlan(*domain.CreatedPlanDTO)(responsemodels.CreateSubscriptionPlanResponse,error)
+	CreateSubscription(requestmodels.SubscribeRequest,*domain.CreatedSubscriptionDTO)(responsemodels.SubscribeResponse,error)
 	
 	ActivateSubscriptionPlan(requestmodels.ActivateSubscriptionPlanRequest)(responsemodels.ActivateSubscriptionPlanResponse,error)
 	DeactivateSubscriptionPlan(requestmodels.DeactivateSubscriptionPlanRequest)(responsemodels.DeactivateSubscriptionPlanResponse,error)
@@ -38,10 +38,10 @@ type AuthSubscriptionRepository interface {
 	UpdateUserSubscripion(string,map[string]interface{})(responsemodels.VerifySubscriptionPaymentResponse,error)
 	FetchAmountCurrencyFromSubscriptionPlan(id uint64)(int64,string,error)
 	FetchRazorpaySubscriptionIdFromSubcriptionId(subid uint64)(string,error)
-	ChangeUserSubscriptionStatusToCancelled(uint64,map[string]interface{})(responsemodels.UnsubscribeResponse,error)
+	SetCancelReason(requestmodels.UnsubscribeRequest)(responsemodels.UnsubscribeResponse,error)
 	FetchUserIdFromSubscriptionId(string)(uint64,error)
 	TurnBlueTickTrueForUserId(uint64)error
-	PopulatePayment(map[string]interface{},requestmodels.VerifySubscriptionPaymentRequest)(domain.Payment,error)
+	//PopulatePayment(map[string]interface{},requestmodels.VerifySubscriptionPaymentRequest)(domain.Payment,error)
 	FetchRazorpayPlanIdFromRazrorpaySubscriptionId(string)(string,error)
 	FetchIntervalPeriodFromSubscriptionPlan(planid string)(string,uint64,error)
 	FetchTotalCountFromUserSubscription(subId string)(int,error)
@@ -65,5 +65,19 @@ type AuthSubscriptionRepository interface {
 	FetchUserMetaData([]uint64)(map[uint64]responsemodels.UserMetaData,error)
 	CheckUserListExists(userids []uint64)([]uint64,error)
 
-	GetSubscriptionDetails(userid uint64)(responsemodels.GetSubscriptionDetails,error)
+	GetSubscriptionDetails(requestmodels.GetSubscriptionDetails)(responsemodels.GetSubscriptionDetails,error)
+
+	UpddateActivatedSubscription(requestmodels.WebhookSubscriptionActivatedRequest)(responsemodels.WebhookSubscriptionActivatedResponse,error)
+
+	UpdateNextChargeAt(time.Time,string)error
+
+	UpdatePayment(requestmodels.WebhookSubscriptionChargedRequest)(responsemodels.WebhookSubscriptionChargedResponse,error)
+
+	UpdateStatusHalted(requestmodels.WebhookSubscriptionHaltedRequest)error
+
+	UpdateSubscriptionCancelled(requestmodels.WebhookSubscriptionCancelledRequest)(responsemodels.WebhookSubscriptionCancelledResponse,error)
+
+	UpdateSubscripionCompleted(requestmodels.WebhookSubscriptionCompletedRequest)(responsemodels.WebhookSubscriptionCompletedResponse,error)
+
+	IsEligibleForSubsciption(requestmodels.SubscribeRequest)(bool,error)
 }

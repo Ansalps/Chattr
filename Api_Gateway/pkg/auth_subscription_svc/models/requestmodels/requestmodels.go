@@ -110,6 +110,7 @@ type VerifySubscriptionPaymentRequest struct{
 type UnsubscribeRequest struct{
 	SubId uint64
 	CancelReason string	`json:"cancel_reason" binding:"required"`
+	CancelAtCycleEnd bool `json:"cancel_at_cycle_end" validate:"required"`
 }
 
 type SetProfileImageRequest struct{
@@ -151,24 +152,91 @@ type RazorpayEvent struct {
 }
 type Payload struct {
 	Subscription SubscriptionWrapper `json:"subscription"`
+	Payment      PaymentWrapper      `json:"payment"` // Add this!
 }
 
 type SubscriptionWrapper struct {
 	Entity SubscriptionEntity `json:"entity"`
+	
 }
-
+type PaymentWrapper struct {
+    Entity PaymentEntity `json:"entity"`
+}
+// type SubscriptionEntity struct {
+// 	ID           string            `json:"id"`
+// 	Entity       string            `json:"entity"`
+// 	PlanID       string            `json:"plan_id"`
+// 	CustomerID   string            `json:"customer_id"`
+// 	Status       string            `json:"status"` // "completed", "active", etc.
+// 	CurrentStart int64             `json:"current_start"`
+// 	CurrentEnd   int64             `json:"current_end"`
+// 	EndedAt      int64             `json:"ended_at"`
+// 	Notes        map[string]string `json:"notes"` // Useful for passing Email/UserID
+// }
 type SubscriptionEntity struct {
-	ID           string            `json:"id"`
-	Entity       string            `json:"entity"`
-	PlanID       string            `json:"plan_id"`
-	CustomerID   string            `json:"customer_id"`
-	Status       string            `json:"status"` // "completed", "active", etc.
-	CurrentStart int64             `json:"current_start"`
+    ID             string            `json:"id"`
+    Status         string            `json:"status"`
+    PlanID         string            `json:"plan_id"`
+    Notes          map[string]string `json:"notes"`
+    // Added fields
+    StartAt        int64             `json:"start_at"`         // Use int64 for Unix timestamps
+    EndAt          int64             `json:"end_at"`
+    //NextChargeAt   int64             `json:"next_charge_at"`
 	CurrentEnd   int64             `json:"current_end"`
-	EndedAt      int64             `json:"ended_at"`
-	Notes        map[string]string `json:"notes"` // Useful for passing Email/UserID
+	EndedAt          int64 `json:"ended_at"`
+    RemainingCount int               `json:"remaining_count"`
+    PaidCount      int               `json:"paid_count"`
+    TotalCount     int               `json:"total_count"`
+}
+type PaymentEntity struct {
+    ID             string `json:"id"`
+    Amount         int64  `json:"amount"` // Amount in paise (e.g., 50000 for ₹500)
+    Currency       string `json:"currency"`
+    Status         string `json:"status"`
+    Method         string `json:"method"` // card, upi, etc.
+    InvoiceID      string `json:"invoice_id"`
+    ExternalID     string `json:"external_id"`
 }
 
+type WebhookSubscriptionActivatedRequest struct{
+	RazorpaySubscriptionId string
+	Status string
+	PaidCount int
+	RemainingCount int
+	StartAt        int64             `json:"start_at"`         // Use int64 for Unix timestamps
+    EndAt          int64             `json:"end_at"`
+	UserID uint64
+}
+type WebhookSubscriptionChargedRequest struct{
+	RazorpaySubscriptionId string
+	RazorpayPlanId string
+	CurrentEnd int64 `json:"current_end"`
+	InvoiceID      string `json:"invoice_id"`
+	Amount         int64  `json:"amount"` // Amount in paise (e.g., 50000 for ₹500)
+    Currency       string `json:"currency"`
+	Method         string `json:"method"` // card, upi, etc.
+    Status         string `json:"status"`
+    CreatedAt int64    `json:"created_at"`
+	PaymentID  string `json:"id"`
+	UserID uint64
+}
+type WebhookSubscriptionHaltedRequest struct{
+	RazorpaySubscriptionId string
+	Status string
+	UserId uint64
+}
+type WebhookSubscriptionCancelledRequest struct{
+	RazorpaySubscriptionId string
+	Status string
+	CancelledAt int64
+	UserId uint64
+}
+type WebhookSubscriptionCompletedRequest struct{
+	RazorpaySubscriptionId string
+	Status string
+	UserId uint64
+}
 type GetSubscriptionDetails struct{
 	UserID uint64
+	//SubId uint64
 }

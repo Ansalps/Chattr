@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/domain"
@@ -181,65 +182,17 @@ func (ad *AuthSubscriptionRepository) GetAllUsers(getAllUsersReq requestmodels.G
 	}, nil
 }
 
-func (ad *AuthSubscriptionRepository) CreateSubscriptionPlan(plan map[string]interface{}) (responsemodels.CreateSubscriptionPlanResponse, error) {
-	// Extracting the root-level fields
-	razorpayPlanId, ok := plan["id"].(string)
-	if !ok {
-		return responsemodels.CreateSubscriptionPlanResponse{}, fmt.Errorf("id is missing or not a string")
-	}
+func (ad *AuthSubscriptionRepository) CreateSubscriptionPlan(dto *domain.CreatedPlanDTO) (responsemodels.CreateSubscriptionPlanResponse, error) {
 
-	period, ok := plan["period"].(string)
-	if !ok {
-		return responsemodels.CreateSubscriptionPlanResponse{}, fmt.Errorf("period is missing or not a string")
-	}
-
-	interval, ok := plan["interval"].(float64)
-	if !ok {
-		return responsemodels.CreateSubscriptionPlanResponse{}, fmt.Errorf("interval is missing or not a number")
-	}
-
-	// Extracting the nested item
-	itemData, ok := plan["item"].(map[string]interface{})
-	if !ok {
-		return responsemodels.CreateSubscriptionPlanResponse{}, fmt.Errorf("item is missing or not a map")
-	}
-
-	// Parse the nested fields inside `item`
-	name, ok := itemData["name"].(string)
-	if !ok {
-		return responsemodels.CreateSubscriptionPlanResponse{}, fmt.Errorf("item name is missing or not a string")
-	}
-
-	amount, ok := itemData["amount"].(float64)
-	if !ok {
-		return responsemodels.CreateSubscriptionPlanResponse{}, fmt.Errorf("item amount is missing or not a number")
-	}
-
-	currency, ok := itemData["currency"].(string)
-	if !ok {
-		return responsemodels.CreateSubscriptionPlanResponse{}, fmt.Errorf("item currency is missing or not a string")
-	}
-
-	description, ok := itemData["description"].(string)
-	if !ok {
-		return responsemodels.CreateSubscriptionPlanResponse{}, fmt.Errorf("item description is missing or not a string")
-	}
-
-	isActive, ok := itemData["active"].(bool)
-	if !ok {
-		return responsemodels.CreateSubscriptionPlanResponse{}, fmt.Errorf("item active status is missing or not a boolean")
-	}
-
-	// Step 3 — Create the SubscriptionPlan struct
 	subscriptionPlan := &domain.SubscriptionPlan{
-		RazorpayPlanId: razorpayPlanId,
-		Name:           name,
-		Price:          int64(amount) / 100, // Convert amount to int64
-		Currency:       currency,
-		Period:         period,
-		Interval:       uint64(interval), // Convert interval to uint64
-		Description:    description,
-		IsActive:       isActive,
+		RazorpayPlanId: dto.ID,
+		Name:           dto.Name,
+		Price:          dto.Amount, // Converting Paise to Rupees
+		Currency:       dto.Currency,
+		Period:         dto.Period,
+		Interval:       uint64(dto.Interval),
+		Description:    dto.Description,
+		IsActive:       dto.Active,
 	}
 
 	if err := ad.DB.Create(&subscriptionPlan).Error; err != nil {
@@ -260,51 +213,18 @@ func (ad *AuthSubscriptionRepository) CreateSubscriptionPlan(plan map[string]int
 	}, nil
 }
 
-func (ad *AuthSubscriptionRepository) CreateSubscription(subscribeReq requestmodels.SubscribeRequest, subscription map[string]interface{}) (responsemodels.SubscribeResponse, error) {
-	fmt.Println("hi, is it entering in create Subscription")
+func (ad *AuthSubscriptionRepository) CreateSubscription(req requestmodels.SubscribeRequest, dto *domain.CreatedSubscriptionDTO) (responsemodels.SubscribeResponse, error) {
 
-	// Extracting the root-level fields
-	razorpaySubscriptionId, ok := subscription["id"].(string)
-	if !ok {
-		return responsemodels.SubscribeResponse{}, fmt.Errorf("id is missing or not a string")
-	}
-
-	razorpayPlanId, ok := subscription["plan_id"].(string)
-	if !ok {
-		return responsemodels.SubscribeResponse{}, fmt.Errorf("plan_id is missing or not a string")
-	}
-
-	status := "pending"
-
-	// Numbers are float64 in the subscription map
-	totalCountF, ok := subscription["total_count"].(float64)
-	if !ok {
-		return responsemodels.SubscribeResponse{}, fmt.Errorf("total_count is missing or not a number")
-	}
-	totalCount := int(totalCountF)
-
-	remainingCountF, ok := subscription["remaining_count"].(float64)
-	if !ok {
-		return responsemodels.SubscribeResponse{}, fmt.Errorf("remaining_count is missing or not a number")
-	}
-	remainingCount := int(remainingCountF)
-
-	paidCountF, ok := subscription["paid_count"].(float64)
-	if !ok {
-		return responsemodels.SubscribeResponse{}, fmt.Errorf("paid_count is missing or not a number")
-	}
-	paidCount := int(paidCountF)
-
-	// Step 3 — Create the UserSubscription struct
 	userSubscription := &domain.UserSubscription{
-		UserID:                 subscribeReq.UserId,
-		SubscriptionPlanID: subscribeReq.PlanId,
-		RazorpaySubscriptionId: razorpaySubscriptionId,
-		RazorpayPlanId:         razorpayPlanId,
-		Status:                 status,
-		TotalCount:             totalCount,
-		PaidCount:              paidCount,
-		RemainingCount:         remainingCount,
+		UserID:                 req.UserId,
+		SubscriptionPlanID:     req.PlanId,
+		RazorpaySubscriptionId: dto.ID,
+		RazorpayPlanId:         dto.PlanID,
+		Status:                 dto.Status,   // Usually "created"
+		ShortUrl:               dto.ShortURL, // Save the URL to the DB!
+		TotalCount:             dto.TotalCount,
+		RemainingCount:         dto.RemainingCount,
+		PaidCount:              dto.PaidCount,
 	}
 
 	if err := ad.DB.Create(&userSubscription).Error; err != nil {
@@ -312,20 +232,22 @@ func (ad *AuthSubscriptionRepository) CreateSubscription(subscribeReq requestmod
 	}
 
 	return responsemodels.SubscribeResponse{
-		ID:                     uint64(userSubscription.ID),
-		CreatedAt:              userSubscription.CreatedAt,
-		UpdatedAt:              userSubscription.UpdatedAt,
-		UserID:                 userSubscription.UserID,
+		ID:        userSubscription.ID,
+		CreatedAt: userSubscription.CreatedAt,
+		UpdatedAt: userSubscription.UpdatedAt,
+
+		UserID: userSubscription.UserID,
+
 		RazorpaySubscriptionId: userSubscription.RazorpaySubscriptionId,
-		Status:                 userSubscription.Status,
-		StartAt:                userSubscription.StartAt,
-		EndAt:                  userSubscription.EndAt,
-		NextChargeAt:           userSubscription.NextChargeAt,
-		TotalCount:             userSubscription.TotalCount,
-		RemainingCount:         userSubscription.RemainingCount,
-		PaidCount:              userSubscription.PaidCount,
-		CancelledAt:            userSubscription.CancelledAt,
-		CancelReason:           userSubscription.CancelReason,
+		SubscriptionPlanID:     userSubscription.SubscriptionPlanID,
+		RazorpayPlanId:         userSubscription.RazorpayPlanId,
+
+		Status:   userSubscription.Status,
+		ShortUrl: userSubscription.ShortUrl,
+
+		TotalCount:     userSubscription.TotalCount,
+		RemainingCount: userSubscription.RemainingCount,
+		PaidCount:      userSubscription.PaidCount,
 	}, nil
 }
 
@@ -488,12 +410,12 @@ func (ad *AuthSubscriptionRepository) UpdateUserSubscripion(id string, subscript
 		UserID:                 userSubscription.UserID,
 		RazorpaySubscriptionId: userSubscription.RazorpaySubscriptionId,
 		Status:                 userSubscription.Status,
-		StartAt:                userSubscription.StartAt,
-		EndAt:                  userSubscription.EndAt,
-		NextChargeAt:           userSubscription.NextChargeAt,
-		TotalCount:             userSubscription.TotalCount,
-		RemainingCount:         userSubscription.RemainingCount,
-		PaidCount:              userSubscription.PaidCount,
+		// StartAt:                userSubscription.StartAt,
+		// EndAt:                  userSubscription.EndAt,
+		// NextChargeAt:           userSubscription.NextChargeAt,
+		TotalCount:     userSubscription.TotalCount,
+		RemainingCount: userSubscription.RemainingCount,
+		PaidCount:      userSubscription.PaidCount,
 	}, nil
 }
 
@@ -520,24 +442,16 @@ func (ad *AuthSubscriptionRepository) FetchRazorpaySubscriptionIdFromSubcription
 	return razorpaySubscriptionId, nil
 }
 
-func (ad *AuthSubscriptionRepository) ChangeUserSubscriptionStatusToCancelled(subid uint64, res map[string]interface{}) (responsemodels.UnsubscribeResponse, error) {
-	// Extracting the root-level fields
-	status, ok := res["status"].(string)
-	if !ok {
-		return responsemodels.UnsubscribeResponse{}, fmt.Errorf("status is missing or not a string")
-	}
-	cancelledAt := time.Now()
-	query := `UPDATE user_subscriptions SET status=?,cancelled_at=? WHERE id=?`
-	if err := ad.DB.Exec(query, status, cancelledAt, subid).Error; err != nil {
+func (ad *AuthSubscriptionRepository) SetCancelReason(req requestmodels.UnsubscribeRequest) (responsemodels.UnsubscribeResponse, error) {
+
+	query := `UPDATE user_subscriptions SET cancel_reason=$1 WHERE id=$2`
+	if err := ad.DB.Exec(query, req.CancelReason, req.SubId).Error; err != nil {
 		return responsemodels.UnsubscribeResponse{}, err
 	}
-	var userSubscription responsemodels.UnsubscribeResponse
-	query1 := `SELECT * FROM user_subscriptions WHERE id=?`
-	if err := ad.DB.Raw(query1, subid).Scan(&userSubscription).Error; err != nil {
-		return responsemodels.UnsubscribeResponse{}, err
-	}
-	fmt.Println("printing user id", userSubscription.UserID)
-	return userSubscription, nil
+	//fmt.Println("printing user id", userSubscription.UserID)
+	return responsemodels.UnsubscribeResponse{
+		SubId: req.SubId,
+	}, nil
 }
 
 func (ad *AuthSubscriptionRepository) FetchUserIdFromSubscriptionId(razorpaySubId string) (uint64, error) {
@@ -557,63 +471,63 @@ func (ad *AuthSubscriptionRepository) TurnBlueTickTrueForUserId(userid uint64) e
 	return nil
 }
 
-func (ad *AuthSubscriptionRepository) PopulatePayment(payment map[string]interface{}, verifySubscripitionPaymentReq requestmodels.VerifySubscriptionPaymentRequest) (domain.Payment, error) {
-	//var payment domain.Payment
-	razorpayPaymentId := verifySubscripitionPaymentReq.RazorpayPaymentId
-	razorpaySubscriptionId := verifySubscripitionPaymentReq.RazorpaySubscriptionId
-	// Extracting the root-level fields
-	razorpayInvoiceId, ok := payment["invoice_id"].(string)
-	if !ok {
-		return domain.Payment{}, fmt.Errorf("invoice id is missing or not a string")
-	}
+// func (ad *AuthSubscriptionRepository) PopulatePayment(payment map[string]interface{}, verifySubscripitionPaymentReq requestmodels.VerifySubscriptionPaymentRequest) (domain.Payment, error) {
+// 	//var payment domain.Payment
+// 	razorpayPaymentId := verifySubscripitionPaymentReq.RazorpayPaymentId
+// 	razorpaySubscriptionId := verifySubscripitionPaymentReq.RazorpaySubscriptionId
+// 	// Extracting the root-level fields
+// 	razorpayInvoiceId, ok := payment["invoice_id"].(string)
+// 	if !ok {
+// 		return domain.Payment{}, fmt.Errorf("invoice id is missing or not a string")
+// 	}
 
-	amount, ok := payment["amount"].(float64)
-	if !ok {
-		return domain.Payment{}, fmt.Errorf("amount is missing or not a float64")
-	}
+// 	amount, ok := payment["amount"].(float64)
+// 	if !ok {
+// 		return domain.Payment{}, fmt.Errorf("amount is missing or not a float64")
+// 	}
 
-	// Numbers are float64 in the subscription map
-	currency, ok := payment["currency"].(string)
-	if !ok {
-		return domain.Payment{}, fmt.Errorf("currency is missing or not a string")
-	}
+// 	// Numbers are float64 in the subscription map
+// 	currency, ok := payment["currency"].(string)
+// 	if !ok {
+// 		return domain.Payment{}, fmt.Errorf("currency is missing or not a string")
+// 	}
 
-	paymentStatus, ok := payment["status"].(string)
-	if !ok {
-		return domain.Payment{}, fmt.Errorf("status is missing or not a string")
-	}
+// 	paymentStatus, ok := payment["status"].(string)
+// 	if !ok {
+// 		return domain.Payment{}, fmt.Errorf("status is missing or not a string")
+// 	}
 
-	paymentMethod, ok := payment["method"].(string)
-	if !ok {
-		return domain.Payment{}, fmt.Errorf("method is missing or not a string")
-	}
+// 	paymentMethod, ok := payment["method"].(string)
+// 	if !ok {
+// 		return domain.Payment{}, fmt.Errorf("method is missing or not a string")
+// 	}
 
-	createdAtUnix, ok := payment["created_at"].(float64) // `created_at` is usually a float64 in JSON
-	if !ok {
-		return domain.Payment{}, fmt.Errorf("created_at is missing or not a number")
-	}
+// 	createdAtUnix, ok := payment["created_at"].(float64) // `created_at` is usually a float64 in JSON
+// 	if !ok {
+// 		return domain.Payment{}, fmt.Errorf("created_at is missing or not a number")
+// 	}
 
-	// Convert Unix timestamp to time.Time
-	createdAt := time.Unix(int64(createdAtUnix), 0) // Unix timestamp is in seconds, so we use 0 for nanoseconds
+// 	// Convert Unix timestamp to time.Time
+// 	createdAt := time.Unix(int64(createdAtUnix), 0) // Unix timestamp is in seconds, so we use 0 for nanoseconds
 
-	// Step 3 — Create the UserSubscription struct
-	paymentCreate := &domain.Payment{
-		RazorpaySubscriptionId: razorpaySubscriptionId,
-		RazorpayPaymentId:      razorpayPaymentId,
-		RazorpayInvoiceId:      razorpayInvoiceId,
-		Amount:                 amount / 100,
-		Currency:               currency,
-		PaymentStatus:          paymentStatus,
-		PaymentMethod:          paymentMethod,
-		TransactionDate:        createdAt,
-	}
+// 	// Step 3 — Create the UserSubscription struct
+// 	paymentCreate := &domain.Payment{
+// 		RazorpaySubscriptionId: razorpaySubscriptionId,
+// 		RazorpayPaymentId:      razorpayPaymentId,
+// 		RazorpayInvoiceId:      razorpayInvoiceId,
+// 		Amount:                 amount / 100,
+// 		Currency:               currency,
+// 		PaymentStatus:          paymentStatus,
+// 		PaymentMethod:          paymentMethod,
+// 		TransactionDate:        createdAt,
+// 	}
 
-	if err := ad.DB.Create(&paymentCreate).Error; err != nil {
-		return domain.Payment{}, err
-	}
+// 	if err := ad.DB.Create(&paymentCreate).Error; err != nil {
+// 		return domain.Payment{}, err
+// 	}
 
-	return *paymentCreate, nil
-}
+// 	return *paymentCreate, nil
+// }
 
 func (ad *AuthSubscriptionRepository) FetchRazorpayPlanIdFromRazrorpaySubscriptionId(subId string) (string, error) {
 	var palnId string
@@ -811,13 +725,13 @@ func (ad *AuthSubscriptionRepository) CheckUserListExists(userids []uint64) ([]u
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	if result.RowsAffected==0{
-		return nil,gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
 	}
 	return UserId, nil
 }
 
-func (ad *AuthSubscriptionRepository)GetSubscriptionDetails(userid uint64)(responsemodels.GetSubscriptionDetails,error){
+func (ad *AuthSubscriptionRepository) GetSubscriptionDetails(req requestmodels.GetSubscriptionDetails) (responsemodels.GetSubscriptionDetails, error) {
 	var resp responsemodels.GetSubscriptionDetails
 	query := `
     SELECT 
@@ -835,15 +749,123 @@ func (ad *AuthSubscriptionRepository)GetSubscriptionDetails(userid uint64)(respo
         sp.razorpay_plan_id
     FROM user_subscriptions us 
     JOIN subscription_plans sp ON us.razorpay_plan_id = sp.razorpay_plan_id 
-    WHERE us.user_id = ? 
+    WHERE us.user_id = $1 and (us.status='active' or us.status='halted')
     LIMIT 1`
-	result:=ad.DB.Raw(query,userid).Scan(&resp)
+	result := ad.DB.Raw(query, req.UserID).Scan(&resp)
 	if result.Error != nil {
 		return responsemodels.GetSubscriptionDetails{}, result.Error
 	}
-	if result.RowsAffected==0{
-		return responsemodels.GetSubscriptionDetails{},gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		return responsemodels.GetSubscriptionDetails{}, gorm.ErrRecordNotFound
 	}
 	return resp, nil
 
+}
+
+func (ad *AuthSubscriptionRepository) UpddateActivatedSubscription(req requestmodels.WebhookSubscriptionActivatedRequest) (responsemodels.WebhookSubscriptionActivatedResponse, error) {
+	query := `UPDATE user_subscriptionS SET status=$1,paid_count=$2,remaining_count=$3,start_at=$4,end_at=$5 WHERE razorpay_subscription_id=$6`
+	result := ad.DB.Exec(query, req.Status, req.PaidCount, req.RemainingCount, req.StartAt, req.EndAt, req.RazorpaySubscriptionId)
+	if result.Error != nil {
+		log.Println("database error", result.Error)
+		return responsemodels.WebhookSubscriptionActivatedResponse{}, result.Error
+	}
+	if result.RowsAffected == 0 {
+		log.Println("no rows affected")
+		return responsemodels.WebhookSubscriptionActivatedResponse{}, gorm.ErrRecordNotFound
+	}
+	return responsemodels.WebhookSubscriptionActivatedResponse{
+		RazorpaySubcriptionId: req.RazorpaySubscriptionId,
+	}, nil
+}
+
+func (ad *AuthSubscriptionRepository) UpdateNextChargeAt(nextChargeAt time.Time, razorpaySubId string) error {
+	query := `UPDATE user_subscriptions SET next_charge_at=$1 WHERE razorpay_subscription_id=$2`
+	result := ad.DB.Exec(query, nextChargeAt, razorpaySubId)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+func (ad *AuthSubscriptionRepository) UpdatePayment(req requestmodels.WebhookSubscriptionChargedRequest) (responsemodels.WebhookSubscriptionChargedResponse, error) {
+	payment := &domain.SubscriptionPayment{
+		UserID:                 req.UserID,
+		RazorpayPaymentID:      req.PaymentID,
+		RazorpaySubscriptionID: req.RazorpaySubscriptionId,
+		RazorpayInvoiceID:      req.InvoiceID,
+		Amount:                 req.Amount,
+		Currency:               req.Currency,
+		Method:                 req.Method,
+		Status:                 req.Status,
+		TransactionDate:        req.TransactionDate,
+	}
+	err := ad.DB.Create(&payment).Error
+	if err != nil {
+		return responsemodels.WebhookSubscriptionChargedResponse{}, err
+	}
+	return responsemodels.WebhookSubscriptionChargedResponse{
+		RazorpaySubcriptionId: req.RazorpaySubscriptionId,
+	}, nil
+}
+
+func (ad *AuthSubscriptionRepository) UpdateStatusHalted(req requestmodels.WebhookSubscriptionHaltedRequest) error {
+	query := `UPDATE user_subscriptions SET status=$1 WHERE razorpay_subscription_id=$2`
+	result := ad.DB.Exec(query, req.Status, req.RazorpaySubscriptionId)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+func (ad *AuthSubscriptionRepository) UpdateSubscriptionCancelled(req requestmodels.WebhookSubscriptionCancelledRequest) (responsemodels.WebhookSubscriptionCancelledResponse, error) {
+	query := `UPDATE user_subscriptions SET status=$1,cancelled_at=$2 WHERE razorpay_subscription_id=$3`
+	result := ad.DB.Exec(query, req.Status, req.CancelledAt, req.RazorpaySubscriptionId)
+	if result.Error != nil {
+		return responsemodels.WebhookSubscriptionCancelledResponse{}, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return responsemodels.WebhookSubscriptionCancelledResponse{}, gorm.ErrRecordNotFound
+	}
+	return responsemodels.WebhookSubscriptionCancelledResponse{
+		RazorpaySubcriptionId: req.RazorpaySubscriptionId,
+	}, nil
+}
+
+func (ad *AuthSubscriptionRepository) UpdateSubscripionCompleted(req requestmodels.WebhookSubscriptionCompletedRequest) (responsemodels.WebhookSubscriptionCompletedResponse, error) {
+	query := `UPDATE user_subscriptions SET status=$1 WHERE razorpay_subscription_id=$2`
+	result := ad.DB.Exec(query, req.Status, req.RazorpaySubscriptionId)
+	if result.Error != nil {
+		return responsemodels.WebhookSubscriptionCompletedResponse{}, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return responsemodels.WebhookSubscriptionCompletedResponse{}, gorm.ErrRecordNotFound
+	}
+	return responsemodels.WebhookSubscriptionCompletedResponse{
+		RazorpaySubcriptionId: req.RazorpaySubscriptionId,
+	}, nil
+}
+
+func (ad *AuthSubscriptionRepository) IsEligibleForSubsciption(req requestmodels.SubscribeRequest) (bool, error) {
+	var num int64 // Use int64 for GORM counts
+
+	// 1. Use parentheses to group the status logic
+	// 2. Use single quotes for string literals in SQL
+	query := `SELECT COUNT(*) FROM user_subscriptions 
+              WHERE user_id = ? 
+              AND (status = 'active' OR status = 'halted' OR status='created')`
+
+	// Use .Row() or .Count() for cleaner code, but Raw is fine if preferred
+	err := ad.DB.Raw(query, req.UserId).Scan(&num).Error
+	if err != nil {
+		return false, err
+	}
+
+	// If count is 0, they are eligible
+	return num == 0, nil
 }

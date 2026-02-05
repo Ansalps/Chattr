@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/config"
+	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/domain"
+	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/infrastructure/razorpaygateway"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/responsemodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/repository/interfacesRepository"
@@ -21,7 +23,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/razorpay/razorpay-go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -34,13 +35,13 @@ type AuthSubscriptionUsecase struct {
 	TokenSecurityKey           *config.Token
 	JwtUtil                    interfacesJwt.Jwt
 	//RazorpayCredentials	*config.Razorpay
-	RazorpayClient *razorpay.Client
-	AwsS3Client    *s3.Client
-	AwsBucket      string
+	RazorpayGateway *razorpaygateway.RazorpayGateway
+	AwsS3Client     *s3.Client
+	AwsBucket       string
 }
 
 func NewAuthSubscriptionUsecase(repository interfacesRepository.AuthSubscriptionRepository, randomUtil interfacesRandomNumber.RandomNumber,
-	smtpUtil interfacesSmtp.Smtp, tokenSecurityKey *config.Token, jwtUtil interfacesJwt.Jwt /*razorpayCredentials *config.Razorpay,*/, razorpayClient *razorpay.Client, awsS3Client *s3.Client, awsBucket string) interfacesUsecase.AuthSubscriptionUsecase {
+	smtpUtil interfacesSmtp.Smtp, tokenSecurityKey *config.Token, jwtUtil interfacesJwt.Jwt /*razorpayCredentials *config.Razorpay,*/, razorpayGateway *razorpaygateway.RazorpayGateway, awsS3Client *s3.Client, awsBucket string) interfacesUsecase.AuthSubscriptionUsecase {
 	return &AuthSubscriptionUsecase{
 		AuthSubscriptionRepository: repository,
 		SmtpUtil:                   smtpUtil,
@@ -48,7 +49,7 @@ func NewAuthSubscriptionUsecase(repository interfacesRepository.AuthSubscription
 		TokenSecurityKey:           tokenSecurityKey,
 		JwtUtil:                    jwtUtil,
 		//RazorpayCredentials: razorpayCredentials,
-		RazorpayClient: razorpayClient,
+		RazorpayGateway: razorpayGateway,
 		AwsS3Client:    awsS3Client,
 		AwsBucket:      awsBucket,
 	}
@@ -410,11 +411,7 @@ func (as *AuthSubscriptionUsecase) UserLogin(userLoginReq requestmodels.UserLogi
 }
 
 func (as *AuthSubscriptionUsecase) CreateSubscriptionPlan(createSubscriptionPlanReq requestmodels.CreateSubscriptionPlanRequest) (responsemodels.CreateSubscriptionPlanResponse, error) {
-	// subscriptionPlan,err:=as.AuthSubscriptionRepository.CreateSubscriptionPlan(createSubscriptionPlanReq)
-	// if err!=nil{
-	// 	return  responsemodels.CreateSubscriptionPlanResponse{},fmt.Errorf("database error: %w", err)
-	// }
-	//razorpayClient:=utils.NewRazorpayClient(as.RazorpayCredentials.KeyId,as.RazorpayCredentials.KeySecret)
+
 	planData := map[string]interface{}{
 		"period":   createSubscriptionPlanReq.Period,
 		"interval": createSubscriptionPlanReq.Interval,
@@ -425,7 +422,7 @@ func (as *AuthSubscriptionUsecase) CreateSubscriptionPlan(createSubscriptionPlan
 			"description": createSubscriptionPlanReq.Description,
 		},
 	}
-	plan, err := utils.RazorpayCreatePlan(as.RazorpayClient, planData)
+	plan, err := as.RazorpayGateway.CreatePlan(planData)
 	if err != nil {
 		//fmt.Println("i think here is the error", err)
 		return responsemodels.CreateSubscriptionPlanResponse{}, err
@@ -523,37 +520,45 @@ func (as *AuthSubscriptionUsecase) GetAllActiveSubscriptionPlans(getAllActiveSub
 }
 
 func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.SubscribeRequest) (responsemodels.SubscribeResponse, error) {
-	RazorpayPlanId, err := as.AuthSubscriptionRepository.FetchRazorpayPlanIdFromId(subscribeReq.PlanId)
+	eligible,err:=as.AuthSubscriptionRepository.IsEligibleForSubsciption(subscribeReq)
+	if err!=nil{
+		log.Println(err)
+		return responsemodels.SubscribeResponse{},err
+	}
+	if !eligible{
+		return responsemodels.SubscribeResponse{},domain.ErrNotEligible
+	}
+	razorpayPlanId, err := as.AuthSubscriptionRepository.FetchRazorpayPlanIdFromId(subscribeReq.PlanId)
+	if err != nil {
+		return responsemodels.SubscribeResponse{}, fmt.Errorf("plan lookup failed: %w", err)
+	}
+	//fmt.Println("RazorpayPlanId", razorpayPlanId)
+
+	userDetail, err := as.AuthSubscriptionRepository.FetchUserPublicData(subscribeReq.UserId)
 	if err != nil {
 		return responsemodels.SubscribeResponse{}, fmt.Errorf("database error: %w", err)
 	}
-	fmt.Println("RazorpayPlanId",RazorpayPlanId)
-	
-	userDetail,err:=as.AuthSubscriptionRepository.FetchUserPublicData(subscribeReq.UserId)
-	if err!=nil{
-		return responsemodels.SubscribeResponse{}, fmt.Errorf("database error: %w", err)
-	}
-	fmt.Println("userDetail",userDetail)
+	//fmt.Println("userDetail", userDetail)
 	//return responsemodels.SubscribeResponse{},nil
 
 	//razorpayClient:=utils.NewRazorpayClient(as.RazorpayCredentials.KeyId,as.RazorpayCredentials.KeySecret)
 	subscriptionData := map[string]interface{}{
-		"plan_id":         RazorpayPlanId,
+		"plan_id":         razorpayPlanId,
 		"total_count":     12,
 		"quantity":        1,
 		"customer_notify": 1,
 		"notes": map[string]interface{}{
-            "email": subscribeReq.UserEmail, // Storing the email in Razorpay metadata
-            "user_id": subscribeReq.UserId, // Good practice to store UserID too
-			"user_name":userDetail.UserName,
-        },
+			"email":     subscribeReq.UserEmail, // Storing the email in Razorpay metadata
+			"user_id":   subscribeReq.UserId,    // Good practice to store UserID too
+			"user_name": userDetail.UserName,
+		},
 	}
-	subscription, err := utils.RazorpayCreateSubscription(as.RazorpayClient, subscriptionData)
+	subscription, err :=as.RazorpayGateway.CreateSubscription(subscriptionData)
 	if err != nil {
 		fmt.Println("error on subscribing", err)
-		return responsemodels.SubscribeResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.SubscribeResponse{}, fmt.Errorf("provider error: %w", err)
 	}
-	fmt.Println(subscription)
+	//fmt.Println(subscription)
 	subcribeRes, err := as.AuthSubscriptionRepository.CreateSubscription(subscribeReq, subscription)
 	if err != nil {
 		fmt.Printf("is there any error returning after createSubscripion %v", err)
@@ -569,7 +574,7 @@ func (as *AuthSubscriptionUsecase) pollRazorpayAndSync(subid string) {
 	for range ticker.C {
 
 		// Call Razorpay API to get subscription data
-		razorpayData, err := as.RazorpayClient.Subscription.Fetch(subid, nil, nil)
+		razorpayData, err := as.RazorpayGateway.Client.Subscription.Fetch(subid, nil, nil)
 		if err != nil {
 			count++
 			if count == 20 {
@@ -637,104 +642,104 @@ func calculateEndAndNextChargeTime(startAt time.Time, period string, interval ui
 	return endAt, nextChargeAt
 }
 
-func (as *AuthSubscriptionUsecase) VerifySubscriptionPayment(verifySubscriptionPaymentReq requestmodels.VerifySubscriptionPaymentRequest) (responsemodels.VerifySubscriptionPaymentResponse, error) {
-	var subscriptionRes responsemodels.VerifySubscriptionPaymentResponse
-	//razorpayClient:=utils.NewRazorpayClient(as.RazorpayCredentials.KeyId,as.RazorpayCredentials.KeySecret)
-	subscription, err := as.RazorpayClient.Subscription.Fetch(verifySubscriptionPaymentReq.RazorpaySubscriptionId, nil, nil)
-	//fmt.Println("------------------------")
-	//fmt.Println("subscription",subscription)
-	if err != nil {
-		return responsemodels.VerifySubscriptionPaymentResponse{}, err
-	}
-	startAt, ok := subscription["start_at"].(float64)
-	fmt.Println("print value start at", startAt)
-	if !ok {
-		//fmt.Println("what if its coming here *******")
-		planId, err := as.AuthSubscriptionRepository.FetchRazorpayPlanIdFromRazrorpaySubscriptionId(verifySubscriptionPaymentReq.RazorpaySubscriptionId)
-		if err != nil {
-			return responsemodels.VerifySubscriptionPaymentResponse{}, fmt.Errorf("database error :%w", err)
-		}
-		period, interval, err := as.AuthSubscriptionRepository.FetchIntervalPeriodFromSubscriptionPlan(planId)
-		if err != nil {
-			return responsemodels.VerifySubscriptionPaymentResponse{}, fmt.Errorf("database error: %w", err)
-		}
-		totalCount, err := as.AuthSubscriptionRepository.FetchTotalCountFromUserSubscription(verifySubscriptionPaymentReq.RazorpaySubscriptionId)
-		if err != nil {
-			return responsemodels.VerifySubscriptionPaymentResponse{}, fmt.Errorf("database error: %w", err)
-		}
-		startAt := time.Now()
-		// Calculate the end_at and NextChargeAt times
-		endAt, nextChargeAt := calculateEndAndNextChargeTime(startAt, period, interval, totalCount)
-		//fmt.Println("print inside", startAt, endAt, nextChargeAt)
-		subscriptionRes, err = as.AuthSubscriptionRepository.UpdateTimeUserSubscription(startAt, endAt, nextChargeAt, verifySubscriptionPaymentReq.RazorpaySubscriptionId)
-		if err != nil {
-			return responsemodels.VerifySubscriptionPaymentResponse{}, fmt.Errorf("database error: %w", err)
-		}
-		go as.pollRazorpayAndSync(verifySubscriptionPaymentReq.RazorpaySubscriptionId)
-	} else {
-		//fmt.Println("hi i hope its here------")
-		subscriptionRes, err = as.AuthSubscriptionRepository.UpdateUserSubscripion(verifySubscriptionPaymentReq.RazorpaySubscriptionId, subscription)
-		if err != nil {
-			return responsemodels.VerifySubscriptionPaymentResponse{}, err
-		}
-	}
+// func (as *AuthSubscriptionUsecase) VerifySubscriptionPayment(verifySubscriptionPaymentReq requestmodels.VerifySubscriptionPaymentRequest) (responsemodels.VerifySubscriptionPaymentResponse, error) {
+// 	var subscriptionRes responsemodels.VerifySubscriptionPaymentResponse
+// 	//razorpayClient:=utils.NewRazorpayClient(as.RazorpayCredentials.KeyId,as.RazorpayCredentials.KeySecret)
+// 	subscription, err := as.RazorpayGateway.Client.Subscription.Fetch(verifySubscriptionPaymentReq.RazorpaySubscriptionId, nil, nil)
+// 	//fmt.Println("------------------------")
+// 	//fmt.Println("subscription",subscription)
+// 	if err != nil {
+// 		return responsemodels.VerifySubscriptionPaymentResponse{}, err
+// 	}
+// 	startAt, ok := subscription["start_at"].(float64)
+// 	fmt.Println("print value start at", startAt)
+// 	if !ok {
+// 		//fmt.Println("what if its coming here *******")
+// 		planId, err := as.AuthSubscriptionRepository.FetchRazorpayPlanIdFromRazrorpaySubscriptionId(verifySubscriptionPaymentReq.RazorpaySubscriptionId)
+// 		if err != nil {
+// 			return responsemodels.VerifySubscriptionPaymentResponse{}, fmt.Errorf("database error :%w", err)
+// 		}
+// 		period, interval, err := as.AuthSubscriptionRepository.FetchIntervalPeriodFromSubscriptionPlan(planId)
+// 		if err != nil {
+// 			return responsemodels.VerifySubscriptionPaymentResponse{}, fmt.Errorf("database error: %w", err)
+// 		}
+// 		totalCount, err := as.AuthSubscriptionRepository.FetchTotalCountFromUserSubscription(verifySubscriptionPaymentReq.RazorpaySubscriptionId)
+// 		if err != nil {
+// 			return responsemodels.VerifySubscriptionPaymentResponse{}, fmt.Errorf("database error: %w", err)
+// 		}
+// 		startAt := time.Now()
+// 		// Calculate the end_at and NextChargeAt times
+// 		endAt, nextChargeAt := calculateEndAndNextChargeTime(startAt, period, interval, totalCount)
+// 		//fmt.Println("print inside", startAt, endAt, nextChargeAt)
+// 		subscriptionRes, err = as.AuthSubscriptionRepository.UpdateTimeUserSubscription(startAt, endAt, nextChargeAt, verifySubscriptionPaymentReq.RazorpaySubscriptionId)
+// 		if err != nil {
+// 			return responsemodels.VerifySubscriptionPaymentResponse{}, fmt.Errorf("database error: %w", err)
+// 		}
+// 		go as.pollRazorpayAndSync(verifySubscriptionPaymentReq.RazorpaySubscriptionId)
+// 	} else {
+// 		//fmt.Println("hi i hope its here------")
+// 		subscriptionRes, err = as.AuthSubscriptionRepository.UpdateUserSubscripion(verifySubscriptionPaymentReq.RazorpaySubscriptionId, subscription)
+// 		if err != nil {
+// 			return responsemodels.VerifySubscriptionPaymentResponse{}, err
+// 		}
+// 	}
 
-	userid, err := as.AuthSubscriptionRepository.FetchUserIdFromSubscriptionId(verifySubscriptionPaymentReq.RazorpaySubscriptionId)
-	if err != nil {
-		return responsemodels.VerifySubscriptionPaymentResponse{}, err
-	}
-	err = as.AuthSubscriptionRepository.TurnBlueTickTrueForUserId(userid)
-	if err != nil {
-		return responsemodels.VerifySubscriptionPaymentResponse{}, err
-	}
-	payment, err := as.RazorpayClient.Payment.Fetch(verifySubscriptionPaymentReq.RazorpayPaymentId, nil, nil)
-	if err != nil {
-		return responsemodels.VerifySubscriptionPaymentResponse{}, err
-	}
-	//fmt.Println("payment : ",payment)
-	_, err = as.AuthSubscriptionRepository.PopulatePayment(payment, verifySubscriptionPaymentReq)
-	if err != nil {
-		return responsemodels.VerifySubscriptionPaymentResponse{}, nil
-	}
-	//fmt.Println("payment table",paymentRes)
-	fmt.Println("just before into service ", subscriptionRes.StartAt, subscriptionRes.NextChargeAt)
-	return subscriptionRes, nil
-}
+// 	userid, err := as.AuthSubscriptionRepository.FetchUserIdFromSubscriptionId(verifySubscriptionPaymentReq.RazorpaySubscriptionId)
+// 	if err != nil {
+// 		return responsemodels.VerifySubscriptionPaymentResponse{}, err
+// 	}
+// 	err = as.AuthSubscriptionRepository.TurnBlueTickTrueForUserId(userid)
+// 	if err != nil {
+// 		return responsemodels.VerifySubscriptionPaymentResponse{}, err
+// 	}
+// 	payment, err := as.RazorpayGateway.Client.Payment.Fetch(verifySubscriptionPaymentReq.RazorpayPaymentId, nil, nil)
+// 	if err != nil {
+// 		return responsemodels.VerifySubscriptionPaymentResponse{}, err
+// 	}
+// 	//fmt.Println("payment : ",payment)
+// 	_, err = as.AuthSubscriptionRepository.PopulatePayment(payment, verifySubscriptionPaymentReq)
+// 	if err != nil {
+// 		return responsemodels.VerifySubscriptionPaymentResponse{}, nil
+// 	}
+// 	//fmt.Println("payment table",paymentRes)
+// 	fmt.Println("just before into service ", subscriptionRes.StartAt, subscriptionRes.NextChargeAt)
+// 	return subscriptionRes, nil
+// }
 
 func (as *AuthSubscriptionUsecase) Unsubscribe(unsubscribeReq requestmodels.UnsubscribeRequest) (responsemodels.UnsubscribeResponse, error) {
 	data := map[string]interface{}{
-		"cancel_at_cycle_end": false,
+		"cancel_at_cycle_end": unsubscribeReq.CancelAtCycleEnd,
 	}
 	razorpaySubscritpionId, err := as.AuthSubscriptionRepository.FetchRazorpaySubscriptionIdFromSubcriptionId(unsubscribeReq.SubId)
 	if err != nil {
 		return responsemodels.UnsubscribeResponse{}, fmt.Errorf("database error: %w", err)
 	}
-	resp, err := as.RazorpayClient.Subscription.Cancel(razorpaySubscritpionId, data, nil)
+	_, err = as.RazorpayGateway.Client.Subscription.Cancel(razorpaySubscritpionId, data, nil)
 	if err != nil {
 		log.Println("print the error on cancellation razorpay api call", err)
 		return responsemodels.UnsubscribeResponse{}, err
 	}
-	//fmt.Println("is it actually nil,???", unsubscribeReq.SubId)
-	unsubscibeRes, err := as.AuthSubscriptionRepository.ChangeUserSubscriptionStatusToCancelled(unsubscribeReq.SubId, resp)
+	fmt.Println("is it actually nil,???", unsubscribeReq.SubId)
+	unsubscibeRes, err := as.AuthSubscriptionRepository.SetCancelReason(unsubscribeReq)
 	if err != nil {
 		return responsemodels.UnsubscribeResponse{}, err
 	}
-	userid, err := as.AuthSubscriptionRepository.FetchUserIdFromSubscriptionId(razorpaySubscritpionId)
-	if err != nil {
-		return responsemodels.UnsubscribeResponse{}, err
-	}
-	nextChargeAt, err := as.AuthSubscriptionRepository.FetchNextChargeAtFromUserSubcription(razorpaySubscritpionId)
-	if err != nil {
-		return responsemodels.UnsubscribeResponse{}, err
-	}
-	delay := time.Until(nextChargeAt)
-	go func() {
-		<-time.After(delay)
-		err := as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(userid)
-		if err != nil {
-			fmt.Println("error while turning off blue tick", err)
-		}
-	}()
+	// userid, err := as.AuthSubscriptionRepository.FetchUserIdFromSubscriptionId(razorpaySubscritpionId)
+	// if err != nil {
+	// 	return responsemodels.UnsubscribeResponse{}, err
+	// }
+	// nextChargeAt, err := as.AuthSubscriptionRepository.FetchNextChargeAtFromUserSubcription(razorpaySubscritpionId)
+	// if err != nil {
+	// 	return responsemodels.UnsubscribeResponse{}, err
+	// }
+	// delay := time.Until(nextChargeAt)
+	// go func() {
+	// 	<-time.After(delay)
+	// 	err := as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(userid)
+	// 	if err != nil {
+	// 		fmt.Println("error while turning off blue tick", err)
+	// 	}
+	// }()
 	return unsubscibeRes, nil
 }
 
@@ -857,11 +862,90 @@ func (as *AuthSubscriptionUsecase) CheckUserListExists(userids []uint64) ([]uint
 	return resp, nil
 }
 
-func (as *AuthSubscriptionUsecase)GetSubscriptionDetails(userid uint64)(responsemodels.GetSubscriptionDetails,error){
-	resp,err:=as.AuthSubscriptionRepository.GetSubscriptionDetails(userid)
-	if err!=nil{
+func (as *AuthSubscriptionUsecase) GetSubscriptionDetails(req requestmodels.GetSubscriptionDetails) (responsemodels.GetSubscriptionDetails, error) {
+	resp, err := as.AuthSubscriptionRepository.GetSubscriptionDetails(req)
+	if err != nil {
 		log.Println(err)
-		return responsemodels.GetSubscriptionDetails{},err
+		return responsemodels.GetSubscriptionDetails{}, err
+	}
+	return resp, nil
+}
+
+func (as *AuthSubscriptionUsecase)WebhookSubscriptionActivated(req requestmodels.WebhookSubscriptionActivatedRequest)(responsemodels.WebhookSubscriptionActivatedResponse,error){
+	if req.Status=="active"{
+		err:=as.AuthSubscriptionRepository.TurnBlueTickTrueForUserId(req.UserID)
+		if err!=nil{
+			log.Printf("failed to trun on blue tick for user id %d\n",req.UserID)
+		}
+	}
+	resp,err:=as.AuthSubscriptionRepository.UpddateActivatedSubscription(req)
+	if err!=nil{
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.WebhookSubscriptionActivatedResponse{},domain.RazorpaySubscriptionIdNotFound
+		}
+		return responsemodels.WebhookSubscriptionActivatedResponse{},err
+	}
+	return resp,nil
+}
+
+func (as *AuthSubscriptionUsecase)WebhookSubscriptionCharged(req requestmodels.WebhookSubscriptionChargedRequest)(responsemodels.WebhookSubscriptionChargedResponse,error){
+	err:=as.AuthSubscriptionRepository.UpdateNextChargeAt(req.NextChargeAt,req.RazorpaySubscriptionId)
+	if err!=nil{
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.WebhookSubscriptionChargedResponse{},domain.RazorpaySubscriptionIdNotFound
+		}
+	}
+	resp,err:=as.AuthSubscriptionRepository.UpdatePayment(req)
+	if err!=nil{
+		return responsemodels.WebhookSubscriptionChargedResponse{},err
+	}
+	return resp,nil
+}
+func (as *AuthSubscriptionUsecase)WebhookSubscriptionHalted(req requestmodels.WebhookSubscriptionHaltedRequest)(responsemodels.WebhookSubscriptionHaltedResponse,error){
+	err:=as.AuthSubscriptionRepository.UpdateStatusHalted(req)
+	if err!=nil{
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.WebhookSubscriptionHaltedResponse{},domain.RazorpaySubscriptionIdNotFound
+		}
+		return responsemodels.WebhookSubscriptionHaltedResponse{},err
+	}
+	err=as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(req.UserId)
+	if err!=nil{
+		return responsemodels.WebhookSubscriptionHaltedResponse{},err
+	}
+	return responsemodels.WebhookSubscriptionHaltedResponse{
+		RazorpaySubcriptionId: req.RazorpaySubscriptionId,
+	},nil
+}
+
+func (as *AuthSubscriptionUsecase)WebhookSubscriptionCancelled(req requestmodels.WebhookSubscriptionCancelledRequest)(responsemodels.WebhookSubscriptionCancelledResponse,error){
+	resp,err:=as.AuthSubscriptionRepository.UpdateSubscriptionCancelled(req)
+	if err!=nil{
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.WebhookSubscriptionCancelledResponse{},domain.RazorpaySubscriptionIdNotFound
+		}
+		return responsemodels.WebhookSubscriptionCancelledResponse{},err
+	}
+	err=as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(req.UserId)
+	if err!=nil{
+		log.Printf("failed to turn off blue tick for user id:%d\n",req.UserId)
+		return responsemodels.WebhookSubscriptionCancelledResponse{},err
+	}
+	return resp,nil
+}
+	
+func (as *AuthSubscriptionUsecase)WebhookSubscriptionCompleted(req requestmodels.WebhookSubscriptionCompletedRequest)(responsemodels.WebhookSubscriptionCompletedResponse,error){
+	resp,err:=as.AuthSubscriptionRepository.UpdateSubscripionCompleted(req)
+	if err!=nil{
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.WebhookSubscriptionCompletedResponse{},domain.RazorpaySubscriptionIdNotFound
+		}
+		return responsemodels.WebhookSubscriptionCompletedResponse{},err
+	}
+	err=as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(req.UserId)
+	if err!=nil{
+		log.Printf("failed to turn off blue tick for user id:%d\n",req.UserId)
+		return responsemodels.WebhookSubscriptionCompletedResponse{},err
 	}
 	return resp,nil
 }
@@ -877,10 +961,10 @@ func (as *AuthSubscriptionUsecase) Webhook(webhookReq requestmodels.RazorpayEven
 	// 	return responsemodels.WebhookResponse{}, err
 	// }
 	//fmt.Println("updated Subscription Data is ", updatedSubscriptionData)
-	
-	resp,err:=as.SmtpUtil.SendNotificationEmailForResubscribing(webhookReq)
-	if err!=nil{
-		return responsemodels.WebhookResponse{},err
+
+	resp, err := as.SmtpUtil.SendNotificationEmailForResubscribing(webhookReq)
+	if err != nil {
+		return responsemodels.WebhookResponse{}, err
 	}
 	return resp, nil
 }

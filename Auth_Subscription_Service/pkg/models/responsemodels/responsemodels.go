@@ -165,19 +165,20 @@ type SubscribeResponse struct{
 	ID uint64
 	CreatedAt time.Time
 	UpdatedAt time.Time
+
 	UserID uint64
+
 	RazorpaySubscriptionId string
-	Amount int64
-	Currency string
+	SubscriptionPlanID uint64
+	RazorpayPlanId string
+
 	Status string
-	StartAt time.Time
-	EndAt	time.Time
-	NextChargeAt time.Time
+	ShortUrl string
+
 	TotalCount int
 	RemainingCount int
 	PaidCount int
-	CancelledAt time.Time
-	CancelReason string
+	
 }
 
 type VerifySubscriptionPaymentResponse struct{
@@ -194,23 +195,25 @@ type VerifySubscriptionPaymentResponse struct{
 	RemainingCount int
 	PaidCount int
 }
-
 type UnsubscribeResponse struct{
-	ID uint64
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	UserID uint64
-	RazorpaySubscriptionId string
-	Status string
-	StartAt time.Time
-	EndAt	time.Time
-	NextChargeAt time.Time
-	TotalCount int
-	RemainingCount int
-	PaidCount int
-	CancelledAt time.Time
-	CancelReason string
+	SubId uint64
 }
+// type UnsubscribeResponse struct{
+// 	ID uint64
+// 	CreatedAt time.Time
+// 	UpdatedAt time.Time
+// 	UserID uint64
+// 	RazorpaySubscriptionId string
+// 	Status string
+// 	StartAt time.Time
+// 	EndAt	time.Time
+// 	NextChargeAt time.Time
+// 	TotalCount int
+// 	RemainingCount int
+// 	PaidCount int
+// 	CancelledAt time.Time
+// 	CancelReason string
+// }
 
 type SetProfileImageResponse struct{
 	ImageUrl string
@@ -287,7 +290,21 @@ type GetSubscriptionDetails struct{
 	CancelledAt time.Time
 	CancelReason string
 }
-
+type WebhookSubscriptionActivatedResponse struct{
+	RazorpaySubcriptionId string
+}
+type WebhookSubscriptionChargedResponse struct{
+	RazorpaySubcriptionId string
+}
+type WebhookSubscriptionHaltedResponse struct{
+	RazorpaySubcriptionId string
+}
+type WebhookSubscriptionCancelledResponse struct{
+	RazorpaySubcriptionId string
+}
+type WebhookSubscriptionCompletedResponse struct{
+	RazorpaySubcriptionId string
+}
 type WebhookResponse struct {
     Event                  string `json:"event"`
     RazorpaySubscriptionId string `json:"razorpay_subscription_id"`

@@ -40,7 +40,71 @@ service AuthSubscriptionService{
     rpc Webhook(WebhookRequest) returns (WebhookResponse);
 
     rpc GetSubscriptionDetails(GetSubscriptionDetailsRequest) returns (GetSubscriptionDetailsResponse);
+
+    rpc WebhookSubscriptionActivated(WebhookSubscriptionActivatedRequest) returns (WebhookSubscriptionActivatedResponse);
+
+    rpc WebhookSubscriptionCharged(WebhookSubscriptionChargedRequest) returns (WebhookSubscriptionChargedResponse);
+
+    rpc WebhookSubscriptionHalted(WebhookSubscriptionHaltedRequest) returns (WebhookSubscriptionHaltedResponse);
+
+    rpc WebhookSubscriptionCancelled(WebhookSubscriptionCancelledRequest) returns (WebhookSubscriptionCancelledResponse);
+
+    rpc WebhookSubscriptionCompleted(WebhookSubscriptionCompletedRequest) returns (WebhookSubscriptionCompletedResponse);
 }
+message WebhookSubscriptionCompletedRequest{
+    string RazorpaySubscriptionId=1;
+    string Status=2;
+    uint64 UserId=4;
+}
+message WebhookSubscriptionCompletedResponse{
+    string RazorpaySubscriptionId=1;
+}
+message WebhookSubscriptionCancelledRequest{
+    string RazorpaySubscriptionId=1;
+    string Status=2;
+    google.protobuf.Timestamp CancelledAt=3;
+    uint64 UserId=4;
+}
+message WebhookSubscriptionCancelledResponse{
+    string RazorpaySubscriptionId=1;
+}
+message WebhookSubscriptionHaltedRequest{
+    string RazorpaySubscriptionId=1;
+    string Status=2;
+    uint64 UserId=3;
+}
+message WebhookSubscriptionHaltedResponse{
+    string RazorpaySubscriptionId=1;
+}
+message WebhookSubscriptionChargedRequest{
+    string RazorpaySubscriptionId=1;
+    string RazorpayPlanId=2;
+    google.protobuf.Timestamp NextChargeAt=3;
+    string InvoiceId=4;
+    int64 Amount=5;
+    string Currency=6;
+    string Method=7;
+    string Status=8;
+    google.protobuf.Timestamp TransactionDate=9;
+    string PaymentId=10;
+    uint64 UserId=11;
+}
+message WebhookSubscriptionChargedResponse{
+    string RazorpaySubscriptionId=1;
+}
+message WebhookSubscriptionActivatedRequest{
+    string RazorpaySubscriptionId=1;
+    string Status=2;
+    int64 PaidCount=3;
+    int64 RemainingCount=4;
+    google.protobuf.Timestamp StartAt=5;
+    google.protobuf.Timestamp EndAt=6;
+    uint64 UserId=7;
+}
+message WebhookSubscriptionActivatedResponse{
+    string RazorpaySubscriptionId=1;
+}
+
 message SubscriptionPlan{
     uint64 Id=1;
     google.protobuf.Timestamp CreatedAt = 2;
@@ -56,6 +120,7 @@ message SubscriptionPlan{
 }
 message GetSubscriptionDetailsRequest{
     uint64 UserId=1;
+  //  uint64 SubId=2;
 }
 message GetSubscriptionDetailsResponse{
     SubscriptioPlan subsciptionPlan=1;
@@ -181,23 +246,27 @@ message SetProfileImageResponse{
 message UnsubscribeRequest{
     uint64 SubId=1;
     string CancelReason =2;
+    bool CancelAtCycleEnd=3;
 }
 message UnsubscribeResponse{
-    uint64 Id=1;
-    google.protobuf.Timestamp CreatedAt=2;
-    google.protobuf.Timestamp UpdatedAt=3;
-    uint64 UserId=4;
-    string RazorpaySubcriptionId=5;
-    string Status=6;
-    google.protobuf.Timestamp StartAt=7;
-    google.protobuf.Timestamp EndAt=8;
-    google.protobuf.Timestamp NextChargeAt=9;
-    int64 TotalCount=10;
-    int64 RemainingCount=11;
-    int64 PaidCount=12;
-    google.protobuf.Timestamp CancelledAt=13;
-    string CancelReason=14;
+    uint64 SubId=1;
 }
+// message UnsubscribeResponse{
+//     uint64 Id=1;
+//     google.protobuf.Timestamp CreatedAt=2;
+//     google.protobuf.Timestamp UpdatedAt=3;
+//     uint64 UserId=4;
+//     string RazorpaySubcriptionId=5;
+//     string Status=6;
+//     google.protobuf.Timestamp StartAt=7;
+//     google.protobuf.Timestamp EndAt=8;
+//     google.protobuf.Timestamp NextChargeAt=9;
+//     int64 TotalCount=10;
+//     int64 RemainingCount=11;
+//     int64 PaidCount=12;
+//     google.protobuf.Timestamp CancelledAt=13;
+//     string CancelReason=14;
+// }
 message VerifySubscriptionPaymentRequest{
     string RazorpaySubscriptionId=1;
     string RazorpayPaymentId=2;
@@ -229,12 +298,19 @@ message SubscribeResponse{
     uint64 Id=1;
     google.protobuf.Timestamp CreatedAt=2;
     google.protobuf.Timestamp UpdatedAt=3;
+
     uint64 UserId=4;
+
     string RazorpaySubcriptionId=5;
-    string Status=6;
-    int64 TotalCount=7;
-    int64 RemainingCount=8;
-    int64 PaidCount=9;
+    uint64 SubscriptionPlanId=6;
+    string RazorpayPlanId=7;
+
+    string Status=8;
+    string ShortUrl=9;
+
+    int64 TotalCount=10;
+    int64 RemainingCount=11;
+    int64 PaidCount=12;
 }
 message ForgotPasswordReqeust{
     string Email=1;

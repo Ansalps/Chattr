@@ -17,7 +17,7 @@ func ConnectDatabase(cfg *config.Config) (*gorm.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error connceting to auth_subscription database: %v", err)
 	}
-	err = db.AutoMigrate(&domain.Admin{},&domain.User{},&domain.Otp{},&domain.SubscriptionPlan{},&domain.UserSubscription{},&domain.Payment{})
+	err = db.AutoMigrate(&domain.Admin{}, &domain.User{}, &domain.Otp{}, &domain.SubscriptionPlan{}, &domain.UserSubscription{}, &domain.SubscriptionPayment{})
 	if err != nil {
 		return nil, fmt.Errorf("Error in automigrating the table: %v", err)
 	}

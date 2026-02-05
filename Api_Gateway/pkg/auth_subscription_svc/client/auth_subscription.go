@@ -321,7 +321,7 @@ func (as *AuthSubscriptionClient) GetAllSubscriptionPlans(getAllSubscritpionPlan
 			UpdatedAt:      subscriptionPlan.UpdatedAt.AsTime().UTC(),
 			RazorpayPlanId: subscriptionPlan.RazorpayPlanId,
 			Name:           subscriptionPlan.Name,
-			Price:          subscriptionPlan.Price,
+			Price:          subscriptionPlan.Price/100,
 			Currency:       subscriptionPlan.Currency,
 			Period:         subscriptionPlan.Period,
 			Interval:       subscriptionPlan.Interval,
@@ -378,9 +378,16 @@ func (as *AuthSubscriptionClient) Subscribe(subscribeReq requestmodels.Subscribe
 		ID:                     resp.Id,
 		CreatedAt:              resp.CreatedAt.AsTime(),
 		UpdatedAt:              resp.UpdatedAt.AsTime(),
+
 		UserID:                 resp.UserId,
+
 		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
+		SubscriptionPlanID: resp.SubscriptionPlanId,
+		RazorpayPlanId: resp.RazorpayPlanId,
+
 		Status:                 resp.Status,
+		ShortUrl: resp.ShortUrl,
+
 		TotalCount:             int(resp.TotalCount),
 		RemainingCount:         int(resp.RemainingCount),
 		PaidCount:              int(resp.PaidCount),
@@ -418,26 +425,14 @@ func (as *AuthSubscriptionClient) Unsubscribe(unsubscribeReq requestmodels.Unsub
 	resp, err := as.Client.Unsubscribe(context.Background(), &auth_subscription.UnsubscribeRequest{
 		SubId:        unsubscribeReq.SubId,
 		CancelReason: unsubscribeReq.CancelReason,
+		CancelAtCycleEnd: unsubscribeReq.CancelAtCycleEnd,
 	})
 	if err != nil {
 		return responsemodels.UnsubscribeResponse{}, err
 	}
-	loc, _ := time.LoadLocation("Asia/Kolkata")
+	//loc, _ := time.LoadLocation("Asia/Kolkata")
 	return responsemodels.UnsubscribeResponse{
-		ID:                     resp.Id,
-		CreatedAt:              resp.CreatedAt.AsTime().In(loc),
-		UpdatedAt:              resp.UpdatedAt.AsTime().In(loc),
-		UserID:                 resp.UserId,
-		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
-		Status:                 resp.Status,
-		StartAt:                resp.StartAt.AsTime().In(loc),
-		EndAt:                  resp.EndAt.AsTime().In(loc),
-		NextChargeAt:           resp.NextChargeAt.AsTime().In(loc),
-		TotalCount:             int(resp.TotalCount),
-		RemainingCount:         int(resp.RemainingCount),
-		PaidCount:              int(resp.PaidCount),
-		CancelledAt:            resp.CancelledAt.AsTime().In(loc),
-		CancelReason:           resp.CancelReason,
+		SubId: resp.SubId,
 	}, nil
 }
 

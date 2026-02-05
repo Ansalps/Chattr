@@ -45,5 +45,5 @@ func AuthSubscriptionRoutes(router *gin.Engine, authSubscriptionHandler *handler
 
 	router.POST("/user/logout",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.Logout)
 
-	router.POST("/webhook/subscription-completed",authSubscriptionHandler.WebhookSubsciptionCompleted)
+	router.POST("/",authSubscriptionHandler.Webhook)
 }

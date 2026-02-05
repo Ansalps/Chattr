@@ -24,7 +24,7 @@ type AuthSubscriptionUsecase interface{
 	UserLogin(requestmodels.UserLoginRequest)(responsemodels.UserLoginResponse,error)
 	GetAllActiveSubscriptionPlans(requestmodels.GetAllActiveSubscriptionPlansRequest)(responsemodels.GetAllActiveSubscriptionPlansResponse,error)
 	Subscribe(requestmodels.SubscribeRequest)(responsemodels.SubscribeResponse,error)
-	VerifySubscriptionPayment(requestmodels.VerifySubscriptionPaymentRequest)(responsemodels.VerifySubscriptionPaymentResponse,error)
+	//VerifySubscriptionPayment(requestmodels.VerifySubscriptionPaymentRequest)(responsemodels.VerifySubscriptionPaymentResponse,error)
 	Unsubscribe(requestmodels.UnsubscribeRequest)(responsemodels.UnsubscribeResponse,error)
 	SetProfileImage(requestmodels.SetProfileImageRequest)(responsemodels.SetProfileImageResponse,error)
 	
@@ -42,8 +42,17 @@ type AuthSubscriptionUsecase interface{
 	FetchUserMetaData([]uint64)(map[uint64]responsemodels.UserMetaData,error)
 	CheckUserListExists(userids []uint64)([]uint64,error)
 
-	GetSubscriptionDetails(uint64)(responsemodels.GetSubscriptionDetails,error)
+	GetSubscriptionDetails(requestmodels.GetSubscriptionDetails)(responsemodels.GetSubscriptionDetails,error)
 
+	WebhookSubscriptionActivated(requestmodels.WebhookSubscriptionActivatedRequest)(responsemodels.WebhookSubscriptionActivatedResponse,error)
+
+	WebhookSubscriptionCharged(requestmodels.WebhookSubscriptionChargedRequest)(responsemodels.WebhookSubscriptionChargedResponse,error)
+
+	WebhookSubscriptionHalted(requestmodels.WebhookSubscriptionHaltedRequest)(responsemodels.WebhookSubscriptionHaltedResponse,error)
+
+	WebhookSubscriptionCancelled(requestmodels.WebhookSubscriptionCancelledRequest)(responsemodels.WebhookSubscriptionCancelledResponse,error)
+
+	WebhookSubscriptionCompleted(requestmodels.WebhookSubscriptionCompletedRequest)(responsemodels.WebhookSubscriptionCompletedResponse,error)
 	Webhook(requestmodels.RazorpayEvent)(responsemodels.WebhookResponse,error)
 
 }

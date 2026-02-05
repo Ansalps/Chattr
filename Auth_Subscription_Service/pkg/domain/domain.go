@@ -33,48 +33,82 @@ type Otp struct {
 	Status string `gorom:"type:text;default:'not verified';check:status IN ('not verified','verified')"`
 }
 
-type SubscriptionPlan struct{
-	gorm.Model
-	RazorpayPlanId string
-	Name string
-	Price int64
-	Currency string
-	Period string
-	Interval uint64
-	Description string
-	IsActive bool	`gorm:"default:true"`
+// type SubscriptionPlan struct{
+// 	gorm.Model
+// 	RazorpayPlanId string
+// 	Name string
+// 	Price int64
+// 	Currency string
+// 	Period string
+// 	Interval uint64
+// 	Description string
+// 	IsActive bool	`gorm:"default:true"`
+// }
+type SubscriptionPlan struct {
+    ID             uint64    `gorm:"primaryKey;autoIncrement"`
+    CreatedAt      time.Time 
+    UpdatedAt      time.Time
+    
+    RazorpayPlanId string    `gorm:"uniqueIndex;not null"`
+    Name           string    `gorm:"not null"`
+    Price          int64     `gorm:"not null"` // Stored in sub-units (e.g., Paise)
+    Currency       string    `gorm:"size:10;not null"`
+    Period         string    `gorm:"size:20;not null"` 
+    Interval       uint64    `gorm:"not null"` // Aligned with your requirement
+    Description    string    `gorm:"type:text"`
+    IsActive       bool      `gorm:"default:true;index"`
 }
+
 type UserSubscription struct {
-    gorm.Model
+    ID             uint64    `gorm:"primaryKey;autoIncrement"`
+    CreatedAt      time.Time 
+    UpdatedAt      time.Time
+    
+    // Use foreignKey tags to tell GORM exactly how these relate
+    UserID             uint64 `gorm:"index;not null"`
+    SubscriptionPlanID uint64 `gorm:"index;not null"`
 
-    UserID uint64 `gorm:"index"`
-    SubscriptionPlanID uint64 `gorm:"index"`
+    RazorpaySubscriptionId string `gorm:"uniqueIndex;not null;size:255"` // size helps with certain DB indexes
+    RazorpayPlanId         string `gorm:"index;not null"`
 
-    RazorpaySubscriptionId string `gorm:"unique;not null"`
-	RazorpayPlanId string
 
-    Status string  // pending, active, cancelled, expired
+    Status   string `gorm:"index;default:'created'"` // Index this as you will query active subs often
+    ShortUrl string `gorm:"type:text"` // URLs can sometimes be long
 
-    StartAt      time.Time
-    EndAt        time.Time
-    NextChargeAt time.Time
+    StartAt      *time.Time
+    EndAt        *time.Time
+    NextChargeAt *time.Time
 
-    TotalCount     int
-    RemainingCount int
-    PaidCount      int
+    TotalCount     int `gorm:"not null;default:0"`
+    RemainingCount int `gorm:"not null;default:0"`
+    PaidCount      int `gorm:"not null;default:0"`
 
-    CancelledAt  time.Time
-    CancelReason string
+    CancelledAt  *time.Time
+    CancelReason string `gorm:"type:text"`
 }
 
-type Payment struct{
-	gorm.Model
-	RazorpaySubscriptionId string
-	RazorpayPaymentId string
-	RazorpayInvoiceId string
-	Amount float64
-	Currency string
-	PaymentStatus string 
-	PaymentMethod string
-	TransactionDate time.Time
+// type Payment struct{
+// 	gorm.Model
+// 	RazorpaySubscriptionId string
+// 	RazorpayPaymentId string
+// 	RazorpayInvoiceId string
+// 	Amount float64
+// 	Currency string
+// 	PaymentStatus string 
+// 	PaymentMethod string
+// 	TransactionDate time.Time
+// }
+type SubscriptionPayment struct {
+    ID                     uint64      `gorm:"primaryKey"`
+    CreatedAt              time.Time
+    UserID                 uint64      `gorm:"not null;index"`
+    //UserSubscriptionID     uint      `gorm:"not null;index"` // Foreign key to your user_subscriptions table
+    RazorpayPaymentID      string    `gorm:"unique;not null"`
+    RazorpaySubscriptionID string    `gorm:"index"`
+    RazorpayInvoiceID      string    `gorm:"index"`
+    Amount                 int64     `gorm:"not null"` // Store in Paise (integer) to avoid floating point issues
+    Currency               string    `gorm:"size:10;default:'INR'"`
+    Method                 string    `gorm:"size:20"`  // card, upi, netbanking
+    Status                 string    `gorm:"size:20"`  // captured, failed, refunded
+    TransactionDate        time.Time `gorm:"not null"`
 }
