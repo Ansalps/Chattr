@@ -6,9 +6,57 @@ The project demonstrates a production-grade **microservices architecture**, leve
 
 ---
 
-## 🏗 System Architecture
+## 🧠 System Architecture Overview
 
-The system is divided into **five core components**, each responsible for a specific domain:
+Chattr follows a **domain-driven microservices architecture**, where each service owns its data and business logic.
+
+### 🔗 Communication Model
+- **Client → API Gateway**: REST
+- **Inter-service communication**: gRPC
+- **Real-time features**: WebSockets
+- **Asynchronous events**: Apache Kafka
+
+---
+
+### 📊 Data Ownership
+Each service owns its database to ensure loose coupling and independent scalability:
+
+- Auth & Subscription Service → PostgreSQL
+- Post & Relation Service → PostgreSQL
+- Chat Service → MongoDB
+- Notification Service → PostgreSQL
+- Redis → Shared cache (feeds & token blacklist)
+
+---
+
+### 🔄 Event Flow Example (Post Creation)
+
+1. User creates a post via **API Gateway**
+2. Request is forwarded to **Post & Relation Service**
+3. Post is persisted in PostgreSQL
+4. A `post_like` event is published to Kafka
+5. Consumers:
+   - Notification Service → sends notifications
+
+This ensures **low latency**, **high throughput**, and **eventual consistency**.
+
+---
+
+### 🧵 Real-Time Messaging Flow
+
+1. Client establishes a WebSocket connection
+2. Chat Service handles message delivery
+3. Messages are stored in MongoDB
+4. `message_sent` event is emitted to Kafka
+5. Notification Service pushes real-time alerts
+
+---
+
+### 🛡 Fault Tolerance & Resilience
+- Kafka ensures no event loss during service downtime
+- Redis reduces database load for hot data
+- Stateless services allow horizontal scaling
+
 
 ---
 
