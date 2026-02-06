@@ -79,12 +79,16 @@ message FetchNewsFeedResponse{
 }
 message FetchFollowingRequest{
     uint64 UserId=1;
+    int64 Limit=2;
+    int64 Offset=3;
 }
 message FetchFollowingResponse{
     repeated UserMetaData userMetaData=1;
 }
 message FetchFollowersRequest{
     uint64 UserId=1;
+    int64 Limit=2;
+    int64 Offset=3;
 }
 message FetchFollowersResponse{
     repeated UserMetaData userMetaData=1;
@@ -92,6 +96,8 @@ message FetchFollowersResponse{
 message FetchAllPostsRequest{
     uint64 CurrentUserId=1;
     uint64 TargetUserId=2;
+    int64 Limit=3;
+    int64 Offset=4;
 }
 message FetchAllPostsResponse{
     repeated Post posts=1;
@@ -119,6 +125,8 @@ message PostFollowCountResponse{
 
 message FetchCommentsRequest{
     uint64 PostId=1;
+    int64 Limit=2;
+    int64 Offset=3;
 }
 message UserMetaData{
     uint64 UserId=1;

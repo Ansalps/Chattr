@@ -460,6 +460,29 @@ func (as *PostRelationHandler) Unfollow(c *gin.Context) {
 }
 
 func (as *PostRelationHandler) FetchComments(c *gin.Context) {
+	pageStr := c.Query("page")
+	limitStr := c.Query("limit")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(page), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+		return
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+
+	if err != nil || limit < 1 || limit > 100 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(limit), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+		return
+	}
+
+	offset := (page - 1) * limit
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
@@ -468,8 +491,12 @@ func (as *PostRelationHandler) FetchComments(c *gin.Context) {
 	}
 	var fetchCommentsReq requestmodels.FetchCommentsReqeust
 	fetchCommentsReq.PostID = postId
+	fetchCommentsReq.Limit=limit
+	fetchCommentsReq.Offset=offset
 	fetchCommentsResponse, err := as.DirectPostClient.Client.FetchComments(context.Background(), &post_relation.FetchCommentsRequest{
 		PostId: fetchCommentsReq.PostID,
+		Limit: int64(fetchCommentsReq.Limit),
+		Offset: int64(fetchCommentsReq.Offset),
 	})
 	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
@@ -518,6 +545,29 @@ func (as *PostRelationHandler) FetchComments(c *gin.Context) {
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comments fetched successfully", finalComments))
 }
 func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
+	pageStr := c.Query("page")
+	limitStr := c.Query("limit")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(page), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+		return
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+
+	if err != nil || limit < 1 || limit > 100 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(limit), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+		return
+	}
+
+	offset := (page - 1) * limit
 	claims, exists := c.Get("claims")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
@@ -536,6 +586,8 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 		c.JSON(http.StatusBadRequest,response.ClientResponse(http.StatusBadRequest,"invalid user id",nil))
 	}
 	req.TargetUserID=targetUserId
+	req.Limit=limit
+	req.Offset=offset
 	authResp, err := as.DirectAuthClient.Client.GetProfileInformation(context.Background(), &auth_subscription.ProfileInfoReq{
 		UserId: req.TargetUserID,
 	})
@@ -554,6 +606,8 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 	postResp, err := as.DirectPostClient.Client.FetchAllPosts(context.Background(), &post_relation.FetchAllPostsRequest{
 		CurrentUserId: req.CurrentUserID,
 		TargetUserId: req.TargetUserID,
+		Limit: int64(req.Limit),
+		Offset: int64(req.Offset),
 	})
 	if err != nil {
 		log.Println("error from grpc", err)
@@ -589,6 +643,29 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 }
 
 func (as *PostRelationHandler)FetchFollowers(c *gin.Context){
+	pageStr := c.Query("page")
+	limitStr := c.Query("limit")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(page), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+		return
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+
+	if err != nil || limit < 1 || limit > 100 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(limit), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+		return
+	}
+
+	offset := (page - 1) * limit
 	userIdStr:=c.Param("user_id")
 	userId,err:=strconv.ParseUint(userIdStr,10,64)
 	if err!=nil{
@@ -597,6 +674,8 @@ func (as *PostRelationHandler)FetchFollowers(c *gin.Context){
 	}
 	resp,err:=as.DirectPostClient.Client.FetchFollowers(context.Background(),&post_relation.FetchFollowersRequest{
 		UserId: userId,
+		Limit: int64(limit),
+		Offset: int64(offset),
 	})
 	if err!=nil{
 		code, msg := utils.GRPCtoHTTP(err)
@@ -606,6 +685,29 @@ func (as *PostRelationHandler)FetchFollowers(c *gin.Context){
 	c.JSON(http.StatusOK,resp)
 }
 func (as *PostRelationHandler)FetchFollowing(c *gin.Context){
+	pageStr := c.Query("page")
+	limitStr := c.Query("limit")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(page), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+		return
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+
+	if err != nil || limit < 1 || limit > 100 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(limit), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+		return
+	}
+
+	offset := (page - 1) * limit
 	userIdStr:=c.Param("user_id")
 	userId,err:=strconv.ParseUint(userIdStr,10,64)
 	if err!=nil{
@@ -614,6 +716,8 @@ func (as *PostRelationHandler)FetchFollowing(c *gin.Context){
 	}
 	resp,err:=as.DirectPostClient.Client.FetchFollowing(context.Background(),&post_relation.FetchFollowingRequest{
 		UserId: userId,
+		Limit: int64(limit),
+		Offset: int64(offset),
 	})
 	if err!=nil{
 		code, msg := utils.GRPCtoHTTP(err)
@@ -774,8 +878,13 @@ func (as *PostRelationHandler)FetchGlobalNewseed(c *gin.Context){
 	if err!=nil{
 
 	}
+	fmt.Println("resp",resp)
+	if resp==nil{
+		c.JSON(500,"internal server error")
+		return
+	}
 	var finalResp []responsemodels.PostDataWithTrendingScore
-	for _, v := range resp.PostUserData {
+	for _, v := range resp.PostUserDataWithTrendingScore {
 		var s1 []string
 		for _, v1 := range v.MediaUrls {
 			s1 = append(s1, v1)

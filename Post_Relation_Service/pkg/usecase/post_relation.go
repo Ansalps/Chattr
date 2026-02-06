@@ -549,8 +549,8 @@ func (as *PostRelationUsecase) PostFollowCount(userid uint64) (responsemodels.Po
 	fmt.Println("resp print second in usecase", resp, resp.PostCount)
 	return resp, nil
 }
-func (as *PostRelationUsecase) FetchAllPosts(currentuserid uint64, targetuserid uint64) ([]responsemodels.PostWithCounts, error) {
-	resp, err := as.PostRelationRepository.FetchAllPosts(currentuserid, targetuserid)
+func (as *PostRelationUsecase) FetchAllPosts(req requestmodels.FetchAllPostsReq) ([]responsemodels.PostWithCounts, error) {
+	resp, err := as.PostRelationRepository.FetchAllPosts(req)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, ErrNoPosts
@@ -562,8 +562,8 @@ func (as *PostRelationUsecase) FetchAllPosts(currentuserid uint64, targetuserid 
 	}
 	return resp, nil
 }
-func (as *PostRelationUsecase) FetchFollowers(userid uint64) (responsemodels.FetchFollowersResponse, error) {
-	resp, err := as.PostRelationRepository.FetchFollowersUserIds(userid)
+func (as *PostRelationUsecase) FetchFollowers(req requestmodels.FetchFollowersRequest) (responsemodels.FetchFollowersResponse, error) {
+	resp, err := as.PostRelationRepository.FetchFollowersUserIds1(req)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.FetchFollowersResponse{}, domain.ErrNoFollowers
@@ -597,8 +597,8 @@ func (as *PostRelationUsecase) FetchFollowers(userid uint64) (responsemodels.Fet
 		Followers: usermetada,
 	}, nil
 }
-func (as *PostRelationUsecase) FetchFollowing(userid uint64) (responsemodels.FetchFollowingResponse, error) {
-	resp, err := as.PostRelationRepository.FetchFollowingUserIds(userid)
+func (as *PostRelationUsecase) FetchFollowing(req requestmodels.FetchFollowingRequest) (responsemodels.FetchFollowingResponse, error) {
+	resp, err := as.PostRelationRepository.FetchFollowingUserIds(req)
 	if err != nil {
 		fmt.Println("print the erro in fetch followin",err)
 		if err == gorm.ErrRecordNotFound {
@@ -1001,7 +1001,7 @@ func (as *PostRelationUsecase)FetchGlobalNewsFeed(req requestmodels.GlobalNewsFe
 	if err!=nil{
 		return responsemodels.FetchGlobalNewsFeedResponse{},err
 	}
-
+	fmt.Println("post resp",postResp)
 	userIDs := make(map[uint64]bool)
 
 	for _, v := range postResp {

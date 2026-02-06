@@ -7,7 +7,7 @@ import (
 
 type PostRelationRepository interface {
 	CreatePost(requestmodels.CreatePostRequest) (responsemodels.CreatePostResponse, error)
-	FetchAllPosts(currentuserid uint64,targetuserid uint64) ([]responsemodels.PostWithCounts, error)
+	FetchAllPosts(requestmodels.FetchAllPostsReq) ([]responsemodels.PostWithCounts, error)
 	EditPostById(requestmodels.EditPostRequest) (responsemodels.EditPostResponse, error)
 	DeletePostById(requestmodels.DeletePostRequest) (responsemodels.DeletePostResponse, error)
 
@@ -21,8 +21,9 @@ type PostRelationRepository interface {
 
 	Follow(requestmodels.FollowRequest) (responsemodels.FollowResponse, error)
 	UnfollowUserById(requestmodels.UnfollowRequest) (responsemodels.UnfollowResponse, error)
-	FetchFollowersUserIds(userid uint64)([]responsemodels.FollowerIds,error)
-	FetchFollowingUserIds(userid uint64)([]responsemodels.FollowingIds,error)
+	FetchFollowersUserIds(uint64)([]responsemodels.FollowerIds,error)
+	FetchFollowersUserIds1(requestmodels.FetchFollowersRequest)([]responsemodels.FollowerIds,error)
+	FetchFollowingUserIds(requestmodels.FetchFollowingRequest)([]responsemodels.FollowingIds,error)
 
 	FetchCommentsByPostId(requestmodels.FetchCommentsReqeust) ([]responsemodels.Comments, error)
 

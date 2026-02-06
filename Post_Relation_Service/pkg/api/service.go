@@ -241,6 +241,8 @@ func (as *PostRelationServer) Unfollow(ctx context.Context, req *pb.UnfollowRequ
 func (as *PostRelationServer) FetchComments(ctx context.Context, req *pb.FetchCommentsRequest) (*pb.FetchCommentsResponse, error) {
 	fetchCommentsReq := requestmodels.FetchCommentsReqeust{
 		PostID: req.PostId,
+		Limit: int(req.Limit),
+		Offset: int(req.Offset),
 	}
 	fetchCommentsResponse, err := as.PostRelationUsecase.FetchComments(fetchCommentsReq)
 	if err != nil {
@@ -306,7 +308,13 @@ func (as *PostRelationServer) PostFollowCount(ctx context.Context, req *pb.PostF
 	}, nil
 }
 func (as *PostRelationServer) FetchAllPosts(ctx context.Context, req *pb.FetchAllPostsRequest) (*pb.FetchAllPostsResponse, error) {
-	resp, err := as.PostRelationUsecase.FetchAllPosts(req.CurrentUserId,req.TargetUserId)
+	fetchPostsReq:=requestmodels.FetchAllPostsReq{
+		CurrentUserID: req.CurrentUserId,
+		TargetUserID: req.TargetUserId,
+		Limit: int(req.Limit),
+		Offset: int(req.Offset),
+	}
+	resp, err := as.PostRelationUsecase.FetchAllPosts(fetchPostsReq)
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +343,12 @@ func (as *PostRelationServer) FetchAllPosts(ctx context.Context, req *pb.FetchAl
 }
 
 func (as *PostRelationServer)FetchFollowers(ctx context.Context,req *pb.FetchFollowersRequest)(*pb.FetchFollowersResponse,error){
-	resp,err:=as.PostRelationUsecase.FetchFollowers(req.UserId)
+	fetchFollowersReq:=requestmodels.FetchFollowersRequest{
+		UserID: req.UserId,
+		Limit: int(req.Limit),
+		Offset: int(req.Offset),
+	}
+	resp,err:=as.PostRelationUsecase.FetchFollowers(fetchFollowersReq)
 	if err!=nil{
 		if err==domain.ErrNoFollowers{
 			return nil,status.Error(codes.NotFound,err.Error())
@@ -358,7 +371,12 @@ func (as *PostRelationServer)FetchFollowers(ctx context.Context,req *pb.FetchFol
 }
 
 func (as *PostRelationServer)FetchFollowing(ctx context.Context,req *pb.FetchFollowingRequest)(*pb.FetchFollowingResponse,error){
-	resp,err:=as.PostRelationUsecase.FetchFollowing(req.UserId)
+	fetchFollowingReq:=requestmodels.FetchFollowingRequest{
+		UserID: req.UserId,
+		Limit: int(req.Limit),
+		Offset: int(req.Offset),
+	}
+	resp,err:=as.PostRelationUsecase.FetchFollowing(fetchFollowingReq)
 	if err!=nil{
 		if err==domain.ErrNoFollowing{
 			return nil,status.Error(codes.NotFound,err.Error())
@@ -437,7 +455,8 @@ func (as *PostRelationServer)FetchGlobalNewsFeed(ctx context.Context,req *pb.Fet
 	}
 	resp,err:=as.PostRelationUsecase.FetchGlobalNewsFeed(newsfeedReq)
 	if err!=nil{
-
+		log.Println(err)
+		return nil,err
 	}
 	c:=make([]*pb.PostUserDataWithTrendingScore,len(resp.PostUserData))
 	for i,v:=range resp.PostUserData{
