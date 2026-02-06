@@ -725,7 +725,7 @@ func (as *PostRelationHandler)FetchFollowing(c *gin.Context){
 		return
 	}
 	
-	fmt.Println("resp in handler",resp)
+	//fmt.Println("resp in handler",resp)
 	c.JSON(http.StatusOK,resp)
 }
 
@@ -834,9 +834,32 @@ func (as *PostRelationHandler)FetchNewsFeed(c *gin.Context){
 }
 
 func (as *PostRelationHandler)FetchGlobalNewseed(c *gin.Context){
+	pageStr := c.Query("page")
+	limitStr := c.Query("limit")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(page), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+		return
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+
+	if err != nil || limit < 1 || limit > 100 {
+		if err != nil {
+			log.Printf("Error while string to int conversion(limit), error: %v", err)
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+		return
+	}
+
+	offset := (page - 1) * limit
 	var req requestmodels.GlobalNewsFeedRequest
 	//lastIdStr:=c.Query("last_id")
-	lastScoreStr:=c.Query("last_score")
+	//lastScoreStr:=c.Query("last_score")
 	
 	claims, exists := c.Get("claims")
 	if !exists {
@@ -849,36 +872,38 @@ func (as *PostRelationHandler)FetchGlobalNewseed(c *gin.Context){
 		return
 	}
 	req.UserID=jwtClaims.ID
+	req.Limit=limit
+	req.Offset=offset
 	// 1. Parse LastID (The Cursor)
     //lastID, _ := strconv.ParseUint(lastIdStr, 10, 64)
-	lastScore,_:=strconv.ParseFloat(lastScoreStr,64)
+	//lastScore,_:=strconv.ParseFloat(lastScoreStr,64)
 	
-    req.LastScore = lastScore
-	limitStr := c.Query("limit")
-
-	
-
-	limit, err := strconv.Atoi(limitStr)
-
-	if err != nil || limit < 1 || limit > 100 {
-		if err != nil {
-			log.Printf("Error while string to int conversion(limit), error: %v", err)
-		}
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
-		return
-	}
+    //req.LastScore = lastScore
+	//limitStr := c.Query("limit")
 
 	
-	req.Limit = limit
+
+	// limit, err := strconv.Atoi(limitStr)
+
+	// if err != nil || limit < 1 || limit > 100 {
+	// 	if err != nil {
+	// 		log.Printf("Error while string to int conversion(limit), error: %v", err)
+	// 	}
+	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+	// 	return
+	// }
+
+	
+	//req.Limit = limit
 	resp,err:=as.DirectPostClient.Client.FetchGlobalNewsFeed(context.Background(),&post_relation.FetchGlobalNewsFeedRequest{
-		Limit: int64(req.Limit),
-		LastScore: float32(req.LastScore),
 		UserId: req.UserID,
+		Limit: int64(req.Limit),
+		Offset: int64(req.Offset),
 	})
 	if err!=nil{
 
 	}
-	fmt.Println("resp",resp)
+	//fmt.Println("resp",resp)
 	if resp==nil{
 		c.JSON(500,"internal server error")
 		return

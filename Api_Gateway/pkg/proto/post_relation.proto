@@ -30,7 +30,8 @@ service PostRelationService{
 message FetchGlobalNewsFeedRequest{
     uint64 UserId=1;
     int64 Limit=2;
-    float LastScore=3;
+   // float LastScore=3;
+   int64 Offset=3;
 }
 message PostUserDataWithTrendingScore{
     uint64 PostId=1;

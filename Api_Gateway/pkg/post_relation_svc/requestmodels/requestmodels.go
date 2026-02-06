@@ -76,5 +76,6 @@ type FetchNewsFeedRequest struct{
 type GlobalNewsFeedRequest struct{
 	UserID uint64
 	Limit int
-	LastScore float64
+	//LastScore float64
+	Offset int
 }

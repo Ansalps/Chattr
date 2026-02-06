@@ -503,7 +503,7 @@ func (ad *PostRelationRepository) FetchGlobalTrendingSQL(req requestmodels.Globa
         Preload("Media").
         Order("trending_score DESC").
 		Limit(req.Limit).
-		//Offset(int(req.LastScore)).
+		Offset(int(req.Offset)).
         Find(&posts).Error
 
 		if err!=nil{

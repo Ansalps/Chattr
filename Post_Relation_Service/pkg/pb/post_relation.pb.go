@@ -23,10 +23,11 @@ const (
 )
 
 type FetchGlobalNewsFeedRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
-	Limit         int64                  `protobuf:"varint,2,opt,name=Limit,proto3" json:"Limit,omitempty"`
-	LastScore     float32                `protobuf:"fixed32,3,opt,name=LastScore,proto3" json:"LastScore,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	UserId uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	Limit  int64                  `protobuf:"varint,2,opt,name=Limit,proto3" json:"Limit,omitempty"`
+	// float LastScore=3;
+	Offset        int64 `protobuf:"varint,3,opt,name=Offset,proto3" json:"Offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -75,9 +76,9 @@ func (x *FetchGlobalNewsFeedRequest) GetLimit() int64 {
 	return 0
 }
 
-func (x *FetchGlobalNewsFeedRequest) GetLastScore() float32 {
+func (x *FetchGlobalNewsFeedRequest) GetOffset() int64 {
 	if x != nil {
-		return x.LastScore
+		return x.Offset
 	}
 	return 0
 }
@@ -2430,11 +2431,11 @@ var File_pkg_pb_post_relation_proto protoreflect.FileDescriptor
 
 const file_pkg_pb_post_relation_proto_rawDesc = "" +
 	"\n" +
-	"\x1apkg/pb/post_relation.proto\x12\rpost_relation\x1a\x1fgoogle/protobuf/timestamp.proto\"h\n" +
+	"\x1apkg/pb/post_relation.proto\x12\rpost_relation\x1a\x1fgoogle/protobuf/timestamp.proto\"b\n" +
 	"\x1aFetchGlobalNewsFeedRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x14\n" +
-	"\x05Limit\x18\x02 \x01(\x03R\x05Limit\x12\x1c\n" +
-	"\tLastScore\x18\x03 \x01(\x02R\tLastScore\"\xfc\x03\n" +
+	"\x05Limit\x18\x02 \x01(\x03R\x05Limit\x12\x16\n" +
+	"\x06Offset\x18\x03 \x01(\x03R\x06Offset\"\xfc\x03\n" +
 	"\x1dPostUserDataWithTrendingScore\x12\x16\n" +
 	"\x06PostId\x18\x01 \x01(\x04R\x06PostId\x128\n" +
 	"\tCreatedAt\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tCreatedAt\x128\n" +

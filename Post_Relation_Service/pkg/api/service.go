@@ -451,7 +451,7 @@ func (as *PostRelationServer)FetchGlobalNewsFeed(ctx context.Context,req *pb.Fet
 	newsfeedReq:=requestmodels.GlobalNewsFeedRequest{
 		UserID: req.UserId,
 		Limit: int(req.Limit),
-		LastScore: float64(req.LastScore),
+		Offset: int(req.Offset),
 	}
 	resp,err:=as.PostRelationUsecase.FetchGlobalNewsFeed(newsfeedReq)
 	if err!=nil{
