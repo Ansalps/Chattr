@@ -488,9 +488,12 @@ func (ad *PostRelationRepository) FetchGlobalTrendingSQL(req requestmodels.Globa
             "(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count, "+
             "(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count, "+
 			"("+
-                " (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) + "+
-                " (SELECT COUNT(*) FROM comments   WHERE comments.post_id   = posts.id) "+
-                ") AS trending_score, "+
+            "  ("+
+            "    (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) + "+
+            "    (SELECT COUNT(*) FROM comments   WHERE comments.post_id   = posts.id) "+
+            "  ) / "+
+            "  (EXTRACT(EPOCH FROM (NOW() - posts.created_at)) / 3600 + 1) "+
+            ") AS trending_score, "+
 			// "Is Liked" Subquery (Returns true if record exists)
             "EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked", 
             req.UserID). // Pass the logged-in user's ID here).
