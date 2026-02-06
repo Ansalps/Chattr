@@ -487,6 +487,10 @@ func (ad *PostRelationRepository) FetchGlobalTrendingSQL(req requestmodels.Globa
         Select("posts.*, "+
             "(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count, "+
             "(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count, "+
+			"("+
+                " (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) + "+
+                " (SELECT COUNT(*) FROM comments   WHERE comments.post_id   = posts.id) "+
+                ") AS trending_score, "+
 			// "Is Liked" Subquery (Returns true if record exists)
             "EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked", 
             req.UserID). // Pass the logged-in user's ID here).
@@ -494,7 +498,7 @@ func (ad *PostRelationRepository) FetchGlobalTrendingSQL(req requestmodels.Globa
         //Where("user_id = ?", req.TargetUserID).
         // 3. Still Preload your Media slice
         Preload("Media").
-        Order("created_at DESC").
+        Order("trending_score DESC").
 		Limit(req.Limit).
 		//Offset(int(req.LastScore)).
         Find(&posts).Error

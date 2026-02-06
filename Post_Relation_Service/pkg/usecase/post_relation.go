@@ -600,7 +600,7 @@ func (as *PostRelationUsecase) FetchFollowers(req requestmodels.FetchFollowersRe
 func (as *PostRelationUsecase) FetchFollowing(req requestmodels.FetchFollowingRequest) (responsemodels.FetchFollowingResponse, error) {
 	resp, err := as.PostRelationRepository.FetchFollowingUserIds(req)
 	if err != nil {
-		fmt.Println("print the erro in fetch followin",err)
+		log.Println("print the erro in fetch followin",err)
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.FetchFollowingResponse{}, domain.ErrNoFollowing
 		}
@@ -1001,7 +1001,10 @@ func (as *PostRelationUsecase)FetchGlobalNewsFeed(req requestmodels.GlobalNewsFe
 	if err!=nil{
 		return responsemodels.FetchGlobalNewsFeedResponse{},err
 	}
-	fmt.Println("post resp",postResp)
+	//fmt.Println("post resp",postResp)
+	if len(postResp)==0{
+		return responsemodels.FetchGlobalNewsFeedResponse{},domain.ErrNoPostGlobally
+	}
 	userIDs := make(map[uint64]bool)
 
 	for _, v := range postResp {

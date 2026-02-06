@@ -749,7 +749,7 @@ func (ad *AuthSubscriptionRepository) GetSubscriptionDetails(req requestmodels.G
         sp.razorpay_plan_id
     FROM user_subscriptions us 
     JOIN subscription_plans sp ON us.razorpay_plan_id = sp.razorpay_plan_id 
-    WHERE us.user_id = $1 and (us.status='active' or us.status='halted')
+    WHERE us.user_id = $1 and (us.status='active' or us.status='halted' or us.status='created')
     LIMIT 1`
 	result := ad.DB.Raw(query, req.UserID).Scan(&resp)
 	if result.Error != nil {

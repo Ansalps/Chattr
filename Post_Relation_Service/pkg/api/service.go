@@ -383,7 +383,7 @@ func (as *PostRelationServer)FetchFollowing(ctx context.Context,req *pb.FetchFol
 		}
 		return nil,err
 	}
-	fmt.Println("following",resp)
+	//fmt.Println("following",resp)
 	c:=make([]*pb.UserMetaData,len(resp.Following))
 	for i,v:=range resp.Following{
 		c[i]=&pb.UserMetaData{
@@ -394,7 +394,7 @@ func (as *PostRelationServer)FetchFollowing(ctx context.Context,req *pb.FetchFol
 			BlueTick: v.BlueTick,
 		}
 	}
-	fmt.Println("user metadata slice",c)
+	//fmt.Println("user metadata slice",c)
 	return &pb.FetchFollowingResponse{
 		UserMetaData: c,
 	},nil
@@ -456,6 +456,9 @@ func (as *PostRelationServer)FetchGlobalNewsFeed(ctx context.Context,req *pb.Fet
 	resp,err:=as.PostRelationUsecase.FetchGlobalNewsFeed(newsfeedReq)
 	if err!=nil{
 		log.Println(err)
+		if err==domain.ErrNoPostGlobally{
+			return nil,status.Error(codes.NotFound,err.Error())
+		}
 		return nil,err
 	}
 	c:=make([]*pb.PostUserDataWithTrendingScore,len(resp.PostUserData))
