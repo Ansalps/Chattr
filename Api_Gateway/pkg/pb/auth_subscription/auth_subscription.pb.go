@@ -347,14 +347,16 @@ type WebhookSubscriptionChargedRequest struct {
 	RazorpaySubscriptionId string                 `protobuf:"bytes,1,opt,name=RazorpaySubscriptionId,proto3" json:"RazorpaySubscriptionId,omitempty"`
 	RazorpayPlanId         string                 `protobuf:"bytes,2,opt,name=RazorpayPlanId,proto3" json:"RazorpayPlanId,omitempty"`
 	NextChargeAt           *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=NextChargeAt,proto3" json:"NextChargeAt,omitempty"`
-	InvoiceId              string                 `protobuf:"bytes,4,opt,name=InvoiceId,proto3" json:"InvoiceId,omitempty"`
-	Amount                 int64                  `protobuf:"varint,5,opt,name=Amount,proto3" json:"Amount,omitempty"`
-	Currency               string                 `protobuf:"bytes,6,opt,name=Currency,proto3" json:"Currency,omitempty"`
-	Method                 string                 `protobuf:"bytes,7,opt,name=Method,proto3" json:"Method,omitempty"`
-	Status                 string                 `protobuf:"bytes,8,opt,name=Status,proto3" json:"Status,omitempty"`
-	TransactionDate        *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=TransactionDate,proto3" json:"TransactionDate,omitempty"`
-	PaymentId              string                 `protobuf:"bytes,10,opt,name=PaymentId,proto3" json:"PaymentId,omitempty"`
-	UserId                 uint64                 `protobuf:"varint,11,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	PaidCount              int64                  `protobuf:"varint,4,opt,name=PaidCount,proto3" json:"PaidCount,omitempty"`
+	RemainingCount         int64                  `protobuf:"varint,5,opt,name=RemainingCount,proto3" json:"RemainingCount,omitempty"`
+	InvoiceId              string                 `protobuf:"bytes,6,opt,name=InvoiceId,proto3" json:"InvoiceId,omitempty"`
+	Amount                 int64                  `protobuf:"varint,7,opt,name=Amount,proto3" json:"Amount,omitempty"`
+	Currency               string                 `protobuf:"bytes,8,opt,name=Currency,proto3" json:"Currency,omitempty"`
+	Method                 string                 `protobuf:"bytes,9,opt,name=Method,proto3" json:"Method,omitempty"`
+	Status                 string                 `protobuf:"bytes,10,opt,name=Status,proto3" json:"Status,omitempty"`
+	TransactionDate        *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=TransactionDate,proto3" json:"TransactionDate,omitempty"`
+	PaymentId              string                 `protobuf:"bytes,12,opt,name=PaymentId,proto3" json:"PaymentId,omitempty"`
+	UserId                 uint64                 `protobuf:"varint,13,opt,name=UserId,proto3" json:"UserId,omitempty"`
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
@@ -408,6 +410,20 @@ func (x *WebhookSubscriptionChargedRequest) GetNextChargeAt() *timestamppb.Times
 		return x.NextChargeAt
 	}
 	return nil
+}
+
+func (x *WebhookSubscriptionChargedRequest) GetPaidCount() int64 {
+	if x != nil {
+		return x.PaidCount
+	}
+	return 0
+}
+
+func (x *WebhookSubscriptionChargedRequest) GetRemainingCount() int64 {
+	if x != nil {
+		return x.RemainingCount
+	}
+	return 0
 }
 
 func (x *WebhookSubscriptionChargedRequest) GetInvoiceId() string {
@@ -2373,6 +2389,7 @@ type SubscribeReqeust struct {
 	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
 	PlanId        uint64                 `protobuf:"varint,2,opt,name=PlanId,proto3" json:"PlanId,omitempty"`
 	UserEmail     string                 `protobuf:"bytes,3,opt,name=UserEmail,proto3" json:"UserEmail,omitempty"`
+	TotalCount    uint64                 `protobuf:"varint,4,opt,name=TotalCount,proto3" json:"TotalCount,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2426,6 +2443,13 @@ func (x *SubscribeReqeust) GetUserEmail() string {
 		return x.UserEmail
 	}
 	return ""
+}
+
+func (x *SubscribeReqeust) GetTotalCount() uint64 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
 }
 
 type SubscribeResponse struct {
@@ -4783,20 +4807,22 @@ const file_pkg_proto_auth_subscription_proto_rawDesc = "" +
 	"\x06Status\x18\x02 \x01(\tR\x06Status\x12\x16\n" +
 	"\x06UserId\x18\x03 \x01(\x04R\x06UserId\"[\n" +
 	"!WebhookSubscriptionHaltedResponse\x126\n" +
-	"\x16RazorpaySubscriptionId\x18\x01 \x01(\tR\x16RazorpaySubscriptionId\"\xc1\x03\n" +
+	"\x16RazorpaySubscriptionId\x18\x01 \x01(\tR\x16RazorpaySubscriptionId\"\x87\x04\n" +
 	"!WebhookSubscriptionChargedRequest\x126\n" +
 	"\x16RazorpaySubscriptionId\x18\x01 \x01(\tR\x16RazorpaySubscriptionId\x12&\n" +
 	"\x0eRazorpayPlanId\x18\x02 \x01(\tR\x0eRazorpayPlanId\x12>\n" +
 	"\fNextChargeAt\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\fNextChargeAt\x12\x1c\n" +
-	"\tInvoiceId\x18\x04 \x01(\tR\tInvoiceId\x12\x16\n" +
-	"\x06Amount\x18\x05 \x01(\x03R\x06Amount\x12\x1a\n" +
-	"\bCurrency\x18\x06 \x01(\tR\bCurrency\x12\x16\n" +
-	"\x06Method\x18\a \x01(\tR\x06Method\x12\x16\n" +
-	"\x06Status\x18\b \x01(\tR\x06Status\x12D\n" +
-	"\x0fTransactionDate\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x0fTransactionDate\x12\x1c\n" +
-	"\tPaymentId\x18\n" +
-	" \x01(\tR\tPaymentId\x12\x16\n" +
-	"\x06UserId\x18\v \x01(\x04R\x06UserId\"\\\n" +
+	"\tPaidCount\x18\x04 \x01(\x03R\tPaidCount\x12&\n" +
+	"\x0eRemainingCount\x18\x05 \x01(\x03R\x0eRemainingCount\x12\x1c\n" +
+	"\tInvoiceId\x18\x06 \x01(\tR\tInvoiceId\x12\x16\n" +
+	"\x06Amount\x18\a \x01(\x03R\x06Amount\x12\x1a\n" +
+	"\bCurrency\x18\b \x01(\tR\bCurrency\x12\x16\n" +
+	"\x06Method\x18\t \x01(\tR\x06Method\x12\x16\n" +
+	"\x06Status\x18\n" +
+	" \x01(\tR\x06Status\x12D\n" +
+	"\x0fTransactionDate\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\x0fTransactionDate\x12\x1c\n" +
+	"\tPaymentId\x18\f \x01(\tR\tPaymentId\x12\x16\n" +
+	"\x06UserId\x18\r \x01(\x04R\x06UserId\"\\\n" +
 	"\"WebhookSubscriptionChargedResponse\x126\n" +
 	"\x16RazorpaySubscriptionId\x18\x01 \x01(\tR\x16RazorpaySubscriptionId\"\xbb\x02\n" +
 	"#WebhookSubscriptionActivatedRequest\x126\n" +
@@ -4947,11 +4973,14 @@ const file_pkg_proto_auth_subscription_proto_rawDesc = "" +
 	"\x05Email\x18\x01 \x01(\tR\x05Email\"L\n" +
 	"\x16ForgotPasswordResponse\x12\x14\n" +
 	"\x05Email\x18\x01 \x01(\tR\x05Email\x12\x1c\n" +
-	"\tTempToken\x18\x02 \x01(\tR\tTempToken\"`\n" +
+	"\tTempToken\x18\x02 \x01(\tR\tTempToken\"\x80\x01\n" +
 	"\x10SubscribeReqeust\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x16\n" +
 	"\x06PlanId\x18\x02 \x01(\x04R\x06PlanId\x12\x1c\n" +
-	"\tUserEmail\x18\x03 \x01(\tR\tUserEmail\"\xd7\x03\n" +
+	"\tUserEmail\x18\x03 \x01(\tR\tUserEmail\x12\x1e\n" +
+	"\n" +
+	"TotalCount\x18\x04 \x01(\x04R\n" +
+	"TotalCount\"\xd7\x03\n" +
 	"\x11SubscribeResponse\x12\x0e\n" +
 	"\x02Id\x18\x01 \x01(\x04R\x02Id\x128\n" +
 	"\tCreatedAt\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tCreatedAt\x128\n" +

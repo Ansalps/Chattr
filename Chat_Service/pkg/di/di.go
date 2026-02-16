@@ -25,7 +25,7 @@ func DependencyInjection(router *gin.Engine, cfg *config.Config) error {
 	kafkaProducer := kafka.NewKafkaProducer([]string{cfg.Kafka.Brokers})
 	ChatRepository := repository.NewChatRepository(mongoClient.Client())
 	ChatUsecase := usecase.NewChatUsecase(ChatRepository, authClient)
-	ChatHandler := handler.NewChatHandler(ChatUsecase,kafkaProducer)
+	ChatHandler := handler.NewChatHandler(ChatUsecase,kafkaProducer,cfg)
 	routes.ChatServiceRoutes(router, ChatHandler)
 	return nil
 }

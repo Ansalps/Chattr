@@ -65,9 +65,15 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot parse form"})
 		return
 	}
-
+	str := as.config.MaxFileNumber
+    num, err := strconv.Atoi(str) // returns (int, error)
+    if err != nil {
+        log.Println("Error:", err)
+		c.JSON(http.StatusInternalServerError,gin.H{"error":"cannot convert max file number from string to int"})
+        return
+    }
 	files := c.Request.MultipartForm.File["media"]
-	if len(files) < 1 || len(files) > 5 {
+	if len(files) < 1 || len(files) > num {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Files count must be between 1 and 5"})
 		return
 	}

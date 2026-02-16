@@ -41,7 +41,7 @@ type RemoveMemberRequest struct {
 // }
 
 type MessageRequest struct {
-	SenderID    uint64    `json:"sender_id" validate:"required"`
+	SenderID    uint64    `json:"sender_id"`
 	RecipientID uint64    `json:"recipient_id"`
 	Content     string    `json:"content" `
 	CreatedAt   time.Time `json:"created_at"`

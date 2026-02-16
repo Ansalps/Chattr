@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Ansalps/Chattr_Chat_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/handler/interfacesHandler"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/requestmodels"
@@ -21,12 +22,14 @@ import (
 type ChatHandler struct {
 	ChatUsecase interfacesUsecase.ChatUsecase
 	KafkaProducer         interfacesHandler.KafkaProducer
+	Config *config.Config
 }
 
-func NewChatHandler(usecase interfacesUsecase.ChatUsecase,	kafkaProducer interfacesHandler.KafkaProducer) *ChatHandler {
+func NewChatHandler(usecase interfacesUsecase.ChatUsecase,	kafkaProducer interfacesHandler.KafkaProducer,config *config.Config) *ChatHandler {
 	return &ChatHandler{
 		ChatUsecase: usecase,
 		KafkaProducer: kafkaProducer,
+		Config: config,
 	}
 }
 
@@ -92,13 +95,17 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 	userID, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
 		log.Println("failed to convert userid from string to uint", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "ailed to convert userid from string to uint64",
+		})
+		return
 	}
 	authSource := c.GetHeader("X-Auth-Source")
 
 	log.Println("Headers:", c.Request.Header)
 	log.Println("User ID:", userID)
 
-	if userIdStr == "" || authSource != "gateway" {
+	if userIdStr == "" || authSource != as.Config.AuthSource {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "unauthorized websocket request",
 		})
@@ -126,8 +133,8 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 	go as.reader(client, hub)
 }
 func (h *Hub) SendToGroup(dm requestmodels.MessageRequest, userIds []uint64) {
-	fmt.Println("map", h.clients)
-	fmt.Println("userIds", userIds)
+	//fmt.Println("map", h.clients)
+	//fmt.Println("userIds", userIds)
 	for _, v := range userIds {
 		if v == dm.SenderID {
 			continue
@@ -135,7 +142,7 @@ func (h *Hub) SendToGroup(dm requestmodels.MessageRequest, userIds []uint64) {
 		client, ok := h.clients[v]
 		if !ok {
 			log.Println("User offline:",v)
-			return
+			continue
 		}
 		data, _ := json.Marshal(dm)
 		client.Conn.WriteMessage(websocket.TextMessage, data)
@@ -191,6 +198,20 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 		case "individual":
 			if dm.RecipientID == 0 {
 				log.Println("invalid recipient id")
+				data,_:=json.Marshal("invalid receipient id")
+				c.Conn.WriteMessage(websocket.TextMessage,data)
+				break
+			}
+			exists,err:=as.ChatUsecase.DoesUserExists(dm.RecipientID)
+			if err!=nil{
+				log.Println(err)
+				data, _ := json.Marshal(err.Error())
+				c.Conn.WriteMessage(websocket.TextMessage, data)
+				break
+			}
+			if !exists{
+				data, _ := json.Marshal("invalid recipient id")
+				c.Conn.WriteMessage(websocket.TextMessage, data)
 				break
 			}
 			syncTime := time.Now()
@@ -209,13 +230,15 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 			if err != nil {
 				log.Println("Conversation handling failed", err)
 				// Decide if you want to stop here or continue
+				data, _ := json.Marshal("failed to store individual chat in conversations")
+				c.Conn.WriteMessage(websocket.TextMessage, data)
 			}
 
 			// 2. Now store the message using the actualConvID
 			msgStruct := domain.Message{
 				MessageID:      uuid.NewString(),
 				ConversationID: actualConvID, // Now linked correctly!
-				SenderID:       dm.SenderID,
+				SenderID:       c.UserID,
 				RecipientID:    dm.RecipientID,
 				Content:        dm.Content,
 				CreatedAt:      syncTime,
@@ -225,12 +248,14 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 			err = as.ChatUsecase.StoreIndividualChatInMessages(msgStruct)
 			if err != nil {
 				log.Println("Store individual chat in messages collection failed")
+				data, _ := json.Marshal("failed to store individual chat in messages")
+				c.Conn.WriteMessage(websocket.TextMessage, data)
 			}
 
 			hub.SendToUser(dm)
 			event := map[string]interface{}{
 				"type":          "DIRECT_MESSAGE",
-				"actorId":       dm.SenderID,     // Person who clicked 'like'
+				"actorId":       c.UserID,     // Person who clicked 'like'
 				"recipientId":   dm.RecipientID,    // Person receiving the notification
 				"conversationId": actualConvID,     // The content being liked
 				"timestamp":     time.Now().Unix(),
@@ -245,15 +270,21 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 		case "group":
 			if dm.GroupID == "" {
 				log.Println("invalid group id")
+				data,_:=json.Marshal("invalid group id")
+				c.Conn.WriteMessage(websocket.TextMessage,data)
 				break
 			}
 			userIds, err := as.ChatUsecase.FetchMembersOfGroup(dm.GroupID)
 			if err != nil {
 				log.Println("can't send message to group failed to fetch user ids", err)
+				data,_:=json.Marshal("fetching group members failed or group id not found")
+				c.Conn.WriteMessage(websocket.TextMessage,data)
 				break
 			}
-			if !slices.Contains(userIds, dm.SenderID) {
+			if !slices.Contains(userIds, c.UserID) {
 				log.Println("can't send message because sender is not a group member")
+				data,_:=json.Marshal("can't send message because sender is not a group member")
+				c.Conn.WriteMessage(websocket.TextMessage,data)
 				break
 			}
 			syncTime := time.Now()
@@ -272,6 +303,8 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 			actualConvID, err := as.ChatUsecase.StoreOrUpdateGroupChatInConversation(conversationStruct)
 			if err != nil {
 				log.Println("failed to sync conversation:", err)
+				data,_:=json.Marshal("failed to store group chat in conversation")
+				c.Conn.WriteMessage(websocket.TextMessage,data)
 			}
 
 			// 2. SECOND: Store the Message with the correct ConversationID
@@ -287,6 +320,8 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 			err = as.ChatUsecase.StoreGroupChatInMessages(msgStruct)
 			if err != nil {
 				log.Println("store group chat in messages failed", err)
+				data,_:=json.Marshal("failed to store group chat in messages")
+				c.Conn.WriteMessage(websocket.TextMessage,data)
 			}
 			
 			hub.SendToGroup(dm, userIds)
@@ -297,7 +332,7 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 			}
 			event := map[string]interface{}{
 				"type":          "GROUP_MESSAGE",
-				"actorId":       dm.SenderID,     // Person who clicked 'like'
+				"actorId":       c.UserID,     // Person who clicked 'like'
 				"recipientId":   userIds,    // Person receiving the notification
 				"groupName":groupName,
 				"conversationId": actualConvID,     // The content being liked
@@ -312,6 +347,8 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 			}
 		default:
 			log.Println("invalid message type")
+			data, _ := json.Marshal("invalid message type")
+			c.Conn.WriteMessage(websocket.TextMessage, data)
 		}
 		// if dm.Type=="individual"{
 		// 	hub.SendToUser(dm)
@@ -335,6 +372,17 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
         c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user identity"})
         return
     }
+	authSource := c.GetHeader("X-Auth-Source")
+
+	log.Println("Headers:", c.Request.Header)
+	log.Println("User ID:", CreatorID)
+
+	if creatorIdStr == "" || authSource != as.Config.AuthSource {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized websocket request",
+		})
+		return
+	}
 	// 2. Bind JSON body
     if err := c.ShouldBindJSON(&req); err != nil {
         log.Println("error binding request:", err)
@@ -355,7 +403,7 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 func (as *ChatHandler) AddMembers(c *gin.Context) {
-	fmt.Println("why is it not reaching in AddMembers Handler?")
+	//fmt.Println("why is it not reaching in AddMembers Handler?")
 	var req requestmodels.AddMembersRequest
 
 	userIdStr := c.GetHeader("X-User-Id")
@@ -371,7 +419,17 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 			"error": "error in parsing",
 		})
 	}
+	authSource := c.GetHeader("X-Auth-Source")
 
+	log.Println("Headers:", c.Request.Header)
+	log.Println("User ID:", userID)
+
+	if userIdStr == "" || authSource != as.Config.AuthSource {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized websocket request",
+		})
+		return
+	}
 	req.UserID = userID
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Println("error binding request in chat service", err)
@@ -396,7 +454,23 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 	var req requestmodels.RemoveMemberRequest
 
 	userIdStr := c.GetHeader("X-User_Id")
-	userID, _ := strconv.ParseUint(userIdStr, 10, 64)
+	userID, err := strconv.ParseUint(userIdStr, 10, 64)
+	if err!=nil{
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "error in parsing",
+		})
+	}
+	authSource := c.GetHeader("X-Auth-Source")
+
+	log.Println("Headers:", c.Request.Header)
+	log.Println("User ID:", userID)
+
+	if userIdStr == "" || authSource != as.Config.AuthSource {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized websocket request",
+		})
+		return
+	}
 	req.UserID = userID
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Println("error binding request in chat service", err)
@@ -439,6 +513,17 @@ func (as *ChatHandler) GetRecentChatProfiles(c *gin.Context) {
 	if err != nil {
 		log.Println("error parsing userid to uint64")
 	}
+	authSource := c.GetHeader("X-Auth-Source")
+
+	log.Println("Headers:", c.Request.Header)
+	log.Println("User ID:", userID)
+
+	if userIdStr == "" || authSource != as.Config.AuthSource {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized websocket request",
+		})
+		return
+	}
 	req.UserID = userID
 	req.Limit = limit
 	req.Offset = offset
@@ -478,6 +563,17 @@ func (as *ChatHandler)GetChat(c *gin.Context){
 	userID, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
 		log.Println("error parsing userid to uint64")
+	}
+	authSource := c.GetHeader("X-Auth-Source")
+
+	log.Println("Headers:", c.Request.Header)
+	log.Println("User ID:", userID)
+
+	if userIdStr == "" || authSource != as.Config.AuthSource {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "unauthorized websocket request",
+		})
+		return
 	}
 	req.ConvID=convIdStr
 	req.UserID = userID

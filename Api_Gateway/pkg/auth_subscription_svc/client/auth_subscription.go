@@ -369,6 +369,7 @@ func (as *AuthSubscriptionClient) Subscribe(subscribeReq requestmodels.Subscribe
 		UserId: subscribeReq.UserId,
 		PlanId: subscribeReq.PlanId,
 		UserEmail: subscribeReq.UserEmail,
+		TotalCount: subscribeReq.TotalCount,
 	})
 	if err != nil {
 		log.Printf("grpc subscribe call failed: %v", err)

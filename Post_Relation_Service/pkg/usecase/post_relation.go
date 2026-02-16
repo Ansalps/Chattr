@@ -209,6 +209,17 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 }
 
 func (as *PostRelationUsecase) LikePost(likePostReq requestmodels.LikePostRequest) (responsemodels.LikePostResponse, error) {
+	postOwnerId,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(likePostReq.PostID)
+	if err!=nil{
+		if err==gorm.ErrRecordNotFound{
+			log.Println("Post Id not found")
+			return responsemodels.LikePostResponse{},ErrPostNotFound
+		}
+		log.Println(err)
+		return responsemodels.LikePostResponse{},err
+	}
+	//fmt.Println("post Owner",postOwnerId)
+
 	likePostRes, err := as.PostRelationRepository.LikePostById(likePostReq)
 	if err != nil {
 		return responsemodels.LikePostResponse{}, err
@@ -216,16 +227,6 @@ func (as *PostRelationUsecase) LikePost(likePostReq requestmodels.LikePostReques
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", likePostReq.UserID)
 	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
-
-	postOwnerId,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(likePostReq.PostID)
-	if err!=nil{
-		if err==gorm.ErrRecordNotFound{
-			log.Println("Post Id not found")
-		}else{
-			log.Println("some database error occured while fetching post owner id by post id")
-		}
-	}
-	fmt.Println("post Owner",postOwnerId)
 
 	event := map[string]interface{}{
 		"type":          "POST_LIKE",
@@ -249,6 +250,15 @@ func (as *PostRelationUsecase) LikePost(likePostReq requestmodels.LikePostReques
 }
 
 func (as *PostRelationUsecase) UnlikePost(unlikePostReq requestmodels.UnlikePostRequest) (responsemodels.UnlikePostResponse, error) {
+	_,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(unlikePostReq.PostID)
+	if err!=nil{
+		if err==gorm.ErrRecordNotFound{
+			log.Println("Post Id not found")
+			return responsemodels.UnlikePostResponse{},ErrPostNotFound
+		}
+		log.Println(err)
+		return responsemodels.UnlikePostResponse{},err
+	}
 	unlikePostRes, err := as.PostRelationRepository.UnlikePostById(unlikePostReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -294,11 +304,12 @@ func (as *PostRelationUsecase) AddComment(addCommentReq requestmodels.AddComment
 	if err!=nil{
 		if err==gorm.ErrRecordNotFound{
 			log.Println("Post Id not found")
-		}else{
-			log.Println("some database error occured while fetching post owner id by post id")
+			return responsemodels.AddCommentResponse{},ErrPostNotFound
 		}
+			log.Println("some database error occured while fetching post owner id by post id")
+		return responsemodels.AddCommentResponse{},err
 	}
-	fmt.Println("post Owner",postOwnerId)
+	//fmt.Println("post Owner",postOwnerId)
 
 	event := map[string]interface{}{
 		"type":          "POST_COMMENT",
@@ -319,6 +330,15 @@ func (as *PostRelationUsecase) AddComment(addCommentReq requestmodels.AddComment
 	return addCommentRes, nil
 }
 func (as *PostRelationUsecase) EditComment(editCommentReq requestmodels.EditCommentRequest) (responsemodels.EditCommentResponse, error) {
+	_,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(editCommentReq.PostID)
+	if err!=nil{
+		if err==gorm.ErrRecordNotFound{
+			log.Println("Post Id not found")
+			return responsemodels.EditCommentResponse{},ErrPostNotFound
+		}
+			log.Println("some database error occured while fetching post owner id by post id")
+		return responsemodels.EditCommentResponse{},err
+	}
 	resp, err := as.PostRelationRepository.EditComment(editCommentReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -330,6 +350,15 @@ func (as *PostRelationUsecase) EditComment(editCommentReq requestmodels.EditComm
 	return resp, nil
 }
 func (as *PostRelationUsecase) DeleteComment(deleteCommentReq requestmodels.DeleteCommentRequest) (responsemodels.DeleteCommentResponse, error) {
+	_,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(deleteCommentReq.PostID)
+	if err!=nil{
+		if err==gorm.ErrRecordNotFound{
+			log.Println("Post Id not found")
+			return responsemodels.DeleteCommentResponse{},ErrPostNotFound
+		}
+			log.Println("some database error occured while fetching post owner id by post id")
+		return responsemodels.DeleteCommentResponse{},err
+	}
 	deleteCommentRes, err := as.PostRelationRepository.DeleteCommentById(deleteCommentReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {

@@ -34,7 +34,7 @@ func (ad *ChatRepository) groupColl() *mongo.Collection {
 
 // Helper to get the conversation collection
 func (ad *ChatRepository) convColl() *mongo.Collection {
-	return ad.MongoClient.Database("message").Collection("conversations")
+	return ad.MongoClient.Database("chat").Collection("conversations")
 }
 
 // func (ad *ChatRepository) CreateGroup(req requestmodels.CreateGroupRequest) (responsemodels.CreateGroupResponse, error) {
@@ -52,6 +52,20 @@ func (ad *ChatRepository) convColl() *mongo.Collection {
 //			GroupID: req.GroupID,
 //		}, nil
 //	}
+// GroupExists checks if a group exists by its string groupid
+func (r *ChatRepository) GroupExists(ctx context.Context, groupID string) (bool, error) {
+	// We only need to know if at least one document matches
+	filter := bson.M{"groupid": groupID}
+
+	// Using CountDocuments is idiomatic and efficient
+	count, err := r.groupColl().CountDocuments(ctx, filter)
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
 func (ad *ChatRepository) CreateGroup(req requestmodels.CreateGroupRequest) (responsemodels.CreateGroupResponse, error) {
 	groupCollection := ad.MongoClient.Database("chat").Collection("group")
 

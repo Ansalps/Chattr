@@ -31,7 +31,7 @@ func DependencyIndjection(cfg *config.Config) (*services.AuthSubscriptionServer,
 	//razorpayClient := utils.NewRazorpayClient(cfg.Razorpay.KeyId, cfg.Razorpay.KeySecret)
 	razorpayGateway := razorpaygateway.NewRazorpayGateway(cfg.Razorpay.KeyId, cfg.Razorpay.KeySecret)
 	AuthSubscriptionUsecase := usecase.NewAuthSubscriptionUsecase(AuthSubscriptionRepository,
-		RandomUtil, SmtpUtil, &cfg.Token, JwtUtil, razorpayGateway, AwsS3Client, cfg.Aws.AwsBucket)
+		RandomUtil, SmtpUtil, cfg, JwtUtil, razorpayGateway, AwsS3Client, cfg.Aws.AwsBucket)
 	AuthSubscriptionServiceServer := services.NewAuthSubscriptionServer(AuthSubscriptionUsecase)
 
 	return AuthSubscriptionServiceServer, nil

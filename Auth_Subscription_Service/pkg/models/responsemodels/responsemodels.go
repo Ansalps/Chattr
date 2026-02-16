@@ -259,6 +259,7 @@ type UserPublicDataResponse struct{
 	Bio string
 	Links string
 	BlueTick bool
+	RazorpayCustomerID string
 }
 type FetchSubscriptionPlan struct{
 	ID uint64 `gorm:"column:plan_id"`

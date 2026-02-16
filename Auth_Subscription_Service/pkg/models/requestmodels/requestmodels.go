@@ -112,6 +112,7 @@ type SubscribeRequest struct{
     UserId uint64
     PlanId uint64
 	UserEmail string
+	TotalCount uint64
 }
 
 type VerifySubscriptionPaymentRequest struct{
@@ -134,14 +135,7 @@ type SetProfileImageRequest struct{
 type GetProfileInformationRequest struct{
 	UserId uint64
 }
-// type EditProfile struct{
-// 	Name *string	`json:"name"`
-// 	Bio *string	`json:"bio"`
-// 	Links *string `json:"links"`
-// }
-// type CheckUserExistsRequest struct{
-//     UserId uint64
-// }
+
 type ChangePassword struct{
 	UserID uint64
 	OldPassword	string	`json:"old_password" validate:"required"`
@@ -172,15 +166,19 @@ type SubscriptionWrapper struct {
 }
 
 type SubscriptionEntity struct {
-	ID           string            `json:"id"`
-	Entity       string            `json:"entity"`
-	PlanID       string            `json:"plan_id"`
-	CustomerID   string            `json:"customer_id"`
-	Status       string            `json:"status"` // "completed", "active", etc.
-	CurrentStart int64             `json:"current_start"`
+    ID             string            `json:"id"`
+    Status         string            `json:"status"`
+    PlanID         string            `json:"plan_id"`
+    Notes          map[string]string `json:"notes"`
+    // Added fields
+    StartAt        int64             `json:"start_at"`         // Use int64 for Unix timestamps
+    EndAt          int64             `json:"end_at"`
+    //NextChargeAt   int64             `json:"next_charge_at"`
 	CurrentEnd   int64             `json:"current_end"`
-	EndedAt      int64             `json:"ended_at"`
-	Notes        map[string]string `json:"notes"` // Useful for passing Email/UserID
+	EndedAt          int64 `json:"ended_at"`
+    RemainingCount int               `json:"remaining_count"`
+    PaidCount      int               `json:"paid_count"`
+    TotalCount     int               `json:"total_count"`
 }
 
 type WebhookSubscriptionActivatedRequest struct{
@@ -201,6 +199,8 @@ type WebhookSubscriptionChargedRequest struct{
     Currency       string `json:"currency"`
 	Method         string `json:"method"` // card, upi, etc.
     Status         string `json:"status"`
+	PaidCount int
+	RemainingCount int
     TransactionDate time.Time    `json:"transaction_date"`
 	PaymentID  string `json:"id"`
 	UserID uint64

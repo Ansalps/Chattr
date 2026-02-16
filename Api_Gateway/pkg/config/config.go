@@ -8,6 +8,9 @@ type Config struct {
 	PostRelationSvcUrl       string `mapstructure:"POST_RELATION_SVC_URL"`
 	ChatSvcUrl             string `mapstructure:"CHAT_SVC_URL"`
 	NotificationSvcUrl     string `mapstructure:"NOTIFICATION_SVC_URL"`
+	MaxFileNumber	string `mapstructure:"MAX_FILE_NUMBER"`
+	ProfileImgSize string `mapstructure:"PROFILE_IMG_SIZE"`
+	AuthSource 	string `mapstructure:"AUTH_SOURCE"`
 	Token Token
 	Razorpay Razorpay
 	Cloudinary Cloudinary

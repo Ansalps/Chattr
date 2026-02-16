@@ -274,3 +274,11 @@ type WebhookResponse struct {
     RazorpaySubscriptionId string `json:"razorpay_subscription_id"`
     Message                string `json:"message,omitempty"` // Added for better feedback
 }
+
+type AuthData struct{
+	UserId uint64
+	UserName string
+	Name string
+	ProfileImgUrl string
+	BlueTick bool
+}

@@ -75,14 +75,16 @@ message WebhookSubscriptionChargedRequest{
     string RazorpaySubscriptionId=1;
     string RazorpayPlanId=2;
     google.protobuf.Timestamp NextChargeAt=3;
-    string InvoiceId=4;
-    int64 Amount=5;
-    string Currency=6;
-    string Method=7;
-    string Status=8;
-    google.protobuf.Timestamp TransactionDate=9;
-    string PaymentId=10;
-    uint64 UserId=11;
+    int64 PaidCount=4;
+    int64 RemainingCount=5;
+    string InvoiceId=6;
+    int64 Amount=7;
+    string Currency=8;
+    string Method=9;
+    string Status=10;
+    google.protobuf.Timestamp TransactionDate=11;
+    string PaymentId=12;
+    uint64 UserId=13;
 }
 message WebhookSubscriptionChargedResponse{
     string RazorpaySubscriptionId=1;
@@ -275,6 +277,7 @@ message SubscribeReqeust{
     uint64 UserId=1;
     uint64 PlanId=2;
     string UserEmail=3;
+    uint64 TotalCount=4;
 }
 
 message SubscribeResponse{

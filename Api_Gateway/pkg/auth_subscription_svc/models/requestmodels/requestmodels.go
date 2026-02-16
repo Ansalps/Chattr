@@ -99,6 +99,7 @@ type SubscribeRequest struct{
     UserId uint64
     PlanId uint64
 	UserEmail string
+	TotalCount uint64 `json:"total_count" validate:"required"`
 }
 
 type VerifySubscriptionPaymentRequest struct{
@@ -216,9 +217,11 @@ type WebhookSubscriptionChargedRequest struct{
     Currency       string `json:"currency"`
 	Method         string `json:"method"` // card, upi, etc.
     Status         string `json:"status"`
+	PaidCount int
+	RemainingCount int
     CreatedAt int64    `json:"created_at"`
 	PaymentID  string `json:"id"`
-	UserID uint64
+	UserID uint64	`json:"user_id"`
 }
 type WebhookSubscriptionHaltedRequest struct{
 	RazorpaySubscriptionId string

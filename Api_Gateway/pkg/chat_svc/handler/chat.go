@@ -97,7 +97,7 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 
 		req.Header.Del("Authorization")
 		req.Header.Set("X-User-ID", strconv.FormatUint(claims.ID, 10))
-		req.Header.Set("X-Auth-Source", "gateway")
+		req.Header.Set("X-Auth-Source", as.config.AuthSource)
 	}
 
 	proxy.ServeHTTP(c.Writer, c.Request)
@@ -133,11 +133,13 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 		return
 	}
 
+	httpReq.Header.Del("Authorization")
 	// Identity headers
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
 	//httpReq.Header.Set("X-User-Role", claims.Role)
 	//httpReq.Header.Set("X-User-Email", claims.Email)
-	httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+	//httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
@@ -170,7 +172,7 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 	req.GroupMembers = slices.DeleteFunc(req.GroupMembers, func(id uint64) bool {
 		return id == claims.ID
 	})
-	fmt.Println("in api gateway", req)
+	//fmt.Println("in api gateway", req)
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to encode request"})
@@ -185,11 +187,13 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 		return
 	}
 
+	httpReq.Header.Del("Authorization")
 	// Identity headers
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
 	//httpReq.Header.Set("X-User-Role", claims.Role)
 	//httpReq.Header.Set("X-User-Email", claims.Email)
-	httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+	//httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
@@ -247,11 +251,13 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 		return
 	}
 
+	httpReq.Header.Del("Authorization")
 	// Identity headers
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
 	//httpReq.Header.Set("X-User-Role", claims.Role)
 	//httpReq.Header.Set("X-User-Email", claims.Email)
-	httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+	//httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
@@ -294,11 +300,14 @@ func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
+
+	httpReq.Header.Del("Authorization")
 	// Identity headers
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
 	//httpReq.Header.Set("X-User-Role", claims.Role)
 	//httpReq.Header.Set("X-User-Email", claims.Email)
-	httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+	//httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
@@ -346,11 +355,14 @@ func (as *ChatHandler)GetChat(c *gin.Context){
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
+
+	httpReq.Header.Del("Authorization")
 	// Identity headers
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
 	//httpReq.Header.Set("X-User-Role", claims.Role)
 	//httpReq.Header.Set("X-User-Email", claims.Email)
-	httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+	//httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
 
 	httpReq.Header.Set("Content-Type", "application/json")
 

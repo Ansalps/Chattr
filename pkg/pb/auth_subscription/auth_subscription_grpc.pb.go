@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.33.0
-// source: pkg/pb/auth_subscription.proto
+// source: Api_Gateway/pkg/proto/auth_subscription.proto
 
-package pb
+package auth_subscription
 
 import (
 	context "context"
@@ -39,22 +39,18 @@ const (
 	AuthSubscriptionService_VerifySubscriptionPayment_FullMethodName     = "/auth_subscription.AuthSubscriptionService/VerifySubscriptionPayment"
 	AuthSubscriptionService_Unsubscribe_FullMethodName                   = "/auth_subscription.AuthSubscriptionService/Unsubscribe"
 	AuthSubscriptionService_SetProfileImage_FullMethodName               = "/auth_subscription.AuthSubscriptionService/SetProfileImage"
-	AuthSubscriptionService_CheckUserExists_FullMethodName               = "/auth_subscription.AuthSubscriptionService/CheckUserExists"
+	AuthSubscriptionService_Webhook_FullMethodName                       = "/auth_subscription.AuthSubscriptionService/Webhook"
 	AuthSubscriptionService_ChangePassword_FullMethodName                = "/auth_subscription.AuthSubscriptionService/ChangePassword"
 	AuthSubscriptionService_GetProfileInformation_FullMethodName         = "/auth_subscription.AuthSubscriptionService/GetProfileInformation"
 	AuthSubscriptionService_EditProfileInfromation_FullMethodName        = "/auth_subscription.AuthSubscriptionService/EditProfileInfromation"
 	AuthSubscriptionService_SearchUser_FullMethodName                    = "/auth_subscription.AuthSubscriptionService/SearchUser"
 	AuthSubscriptionService_UserPublicData_FullMethodName                = "/auth_subscription.AuthSubscriptionService/UserPublicData"
-	AuthSubscriptionService_FetchUserMetaData_FullMethodName             = "/auth_subscription.AuthSubscriptionService/FetchUserMetaData"
-	AuthSubscriptionService_CheckUserListExists_FullMethodName           = "/auth_subscription.AuthSubscriptionService/CheckUserListExists"
-	AuthSubscriptionService_Webhook_FullMethodName                       = "/auth_subscription.AuthSubscriptionService/Webhook"
 	AuthSubscriptionService_GetSubscriptionDetails_FullMethodName        = "/auth_subscription.AuthSubscriptionService/GetSubscriptionDetails"
 	AuthSubscriptionService_WebhookSubscriptionActivated_FullMethodName  = "/auth_subscription.AuthSubscriptionService/WebhookSubscriptionActivated"
 	AuthSubscriptionService_WebhookSubscriptionCharged_FullMethodName    = "/auth_subscription.AuthSubscriptionService/WebhookSubscriptionCharged"
 	AuthSubscriptionService_WebhookSubscriptionHalted_FullMethodName     = "/auth_subscription.AuthSubscriptionService/WebhookSubscriptionHalted"
 	AuthSubscriptionService_WebhookSubscriptionCancelled_FullMethodName  = "/auth_subscription.AuthSubscriptionService/WebhookSubscriptionCancelled"
 	AuthSubscriptionService_WebhookSubscriptionCompleted_FullMethodName  = "/auth_subscription.AuthSubscriptionService/WebhookSubscriptionCompleted"
-	AuthSubscriptionService_DoesUserExists_FullMethodName                = "/auth_subscription.AuthSubscriptionService/DoesUserExists"
 )
 
 // AuthSubscriptionServiceClient is the client API for AuthSubscriptionService service.
@@ -73,7 +69,7 @@ type AuthSubscriptionServiceClient interface {
 	VerifyOtp(ctx context.Context, in *OtpRequest, opts ...grpc.CallOption) (*OtpVerificationResponse, error)
 	ResendOtp(ctx context.Context, in *ResendOtpRequest, opts ...grpc.CallOption) (*ResendOtpResponse, error)
 	AccessRegenerator(ctx context.Context, in *AccessRegeneratorRequest, opts ...grpc.CallOption) (*AccessRegeneratorResponse, error)
-	ForgetPassword(ctx context.Context, in *ForgotPasswordReqeust, opts ...grpc.CallOption) (*ForgotPasswordResponse, error)
+	ForgetPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*ForgotPasswordResponse, error)
 	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error)
 	UserLogin(ctx context.Context, in *UserLoginRequest, opts ...grpc.CallOption) (*UserLoginResponse, error)
 	GetAllActiveSubscriptionPlans(ctx context.Context, in *GetAllActiveSubscriptionPlansRequest, opts ...grpc.CallOption) (*GetAllActiveSubscriptionPlansResponse, error)
@@ -81,22 +77,18 @@ type AuthSubscriptionServiceClient interface {
 	VerifySubscriptionPayment(ctx context.Context, in *VerifySubscriptionPaymentRequest, opts ...grpc.CallOption) (*VerifySubscriptionPaymentResponse, error)
 	Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error)
 	SetProfileImage(ctx context.Context, in *SetProfileImageRequest, opts ...grpc.CallOption) (*SetProfileImageResponse, error)
-	CheckUserExists(ctx context.Context, in *CheckUserExistsRequest, opts ...grpc.CallOption) (*CheckUserExistsResponse, error)
+	Webhook(ctx context.Context, in *WebhookRequest, opts ...grpc.CallOption) (*WebhookResponse, error)
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
 	GetProfileInformation(ctx context.Context, in *ProfileInfoReq, opts ...grpc.CallOption) (*ProfileInfoRes, error)
 	EditProfileInfromation(ctx context.Context, in *EditProfileReq, opts ...grpc.CallOption) (*EditProfileRes, error)
 	SearchUser(ctx context.Context, in *SearchUserRequest, opts ...grpc.CallOption) (*SearchUserResponse, error)
 	UserPublicData(ctx context.Context, in *UserPublicDataRequest, opts ...grpc.CallOption) (*UserPublicDataResponse, error)
-	FetchUserMetaData(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*BatchUserMetadataResponse, error)
-	CheckUserListExists(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*BatchUserExistResponse, error)
-	Webhook(ctx context.Context, in *WebhookRequest, opts ...grpc.CallOption) (*WebhookResponse, error)
 	GetSubscriptionDetails(ctx context.Context, in *GetSubscriptionDetailsRequest, opts ...grpc.CallOption) (*GetSubscriptionDetailsResponse, error)
 	WebhookSubscriptionActivated(ctx context.Context, in *WebhookSubscriptionActivatedRequest, opts ...grpc.CallOption) (*WebhookSubscriptionActivatedResponse, error)
 	WebhookSubscriptionCharged(ctx context.Context, in *WebhookSubscriptionChargedRequest, opts ...grpc.CallOption) (*WebhookSubscriptionChargedResponse, error)
 	WebhookSubscriptionHalted(ctx context.Context, in *WebhookSubscriptionHaltedRequest, opts ...grpc.CallOption) (*WebhookSubscriptionHaltedResponse, error)
 	WebhookSubscriptionCancelled(ctx context.Context, in *WebhookSubscriptionCancelledRequest, opts ...grpc.CallOption) (*WebhookSubscriptionCancelledResponse, error)
 	WebhookSubscriptionCompleted(ctx context.Context, in *WebhookSubscriptionCompletedRequest, opts ...grpc.CallOption) (*WebhookSubscriptionCompletedResponse, error)
-	DoesUserExists(ctx context.Context, in *DoesUserExistsRequest, opts ...grpc.CallOption) (*DoesUserExistsResponse, error)
 }
 
 type authSubscriptionServiceClient struct {
@@ -227,7 +219,7 @@ func (c *authSubscriptionServiceClient) AccessRegenerator(ctx context.Context, i
 	return out, nil
 }
 
-func (c *authSubscriptionServiceClient) ForgetPassword(ctx context.Context, in *ForgotPasswordReqeust, opts ...grpc.CallOption) (*ForgotPasswordResponse, error) {
+func (c *authSubscriptionServiceClient) ForgetPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*ForgotPasswordResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ForgotPasswordResponse)
 	err := c.cc.Invoke(ctx, AuthSubscriptionService_ForgetPassword_FullMethodName, in, out, cOpts...)
@@ -307,10 +299,10 @@ func (c *authSubscriptionServiceClient) SetProfileImage(ctx context.Context, in 
 	return out, nil
 }
 
-func (c *authSubscriptionServiceClient) CheckUserExists(ctx context.Context, in *CheckUserExistsRequest, opts ...grpc.CallOption) (*CheckUserExistsResponse, error) {
+func (c *authSubscriptionServiceClient) Webhook(ctx context.Context, in *WebhookRequest, opts ...grpc.CallOption) (*WebhookResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CheckUserExistsResponse)
-	err := c.cc.Invoke(ctx, AuthSubscriptionService_CheckUserExists_FullMethodName, in, out, cOpts...)
+	out := new(WebhookResponse)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_Webhook_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -361,36 +353,6 @@ func (c *authSubscriptionServiceClient) UserPublicData(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UserPublicDataResponse)
 	err := c.cc.Invoke(ctx, AuthSubscriptionService_UserPublicData_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authSubscriptionServiceClient) FetchUserMetaData(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*BatchUserMetadataResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BatchUserMetadataResponse)
-	err := c.cc.Invoke(ctx, AuthSubscriptionService_FetchUserMetaData_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authSubscriptionServiceClient) CheckUserListExists(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*BatchUserExistResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(BatchUserExistResponse)
-	err := c.cc.Invoke(ctx, AuthSubscriptionService_CheckUserListExists_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *authSubscriptionServiceClient) Webhook(ctx context.Context, in *WebhookRequest, opts ...grpc.CallOption) (*WebhookResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(WebhookResponse)
-	err := c.cc.Invoke(ctx, AuthSubscriptionService_Webhook_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -457,16 +419,6 @@ func (c *authSubscriptionServiceClient) WebhookSubscriptionCompleted(ctx context
 	return out, nil
 }
 
-func (c *authSubscriptionServiceClient) DoesUserExists(ctx context.Context, in *DoesUserExistsRequest, opts ...grpc.CallOption) (*DoesUserExistsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DoesUserExistsResponse)
-	err := c.cc.Invoke(ctx, AuthSubscriptionService_DoesUserExists_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // AuthSubscriptionServiceServer is the server API for AuthSubscriptionService service.
 // All implementations must embed UnimplementedAuthSubscriptionServiceServer
 // for forward compatibility.
@@ -483,7 +435,7 @@ type AuthSubscriptionServiceServer interface {
 	VerifyOtp(context.Context, *OtpRequest) (*OtpVerificationResponse, error)
 	ResendOtp(context.Context, *ResendOtpRequest) (*ResendOtpResponse, error)
 	AccessRegenerator(context.Context, *AccessRegeneratorRequest) (*AccessRegeneratorResponse, error)
-	ForgetPassword(context.Context, *ForgotPasswordReqeust) (*ForgotPasswordResponse, error)
+	ForgetPassword(context.Context, *ForgotPasswordRequest) (*ForgotPasswordResponse, error)
 	ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error)
 	UserLogin(context.Context, *UserLoginRequest) (*UserLoginResponse, error)
 	GetAllActiveSubscriptionPlans(context.Context, *GetAllActiveSubscriptionPlansRequest) (*GetAllActiveSubscriptionPlansResponse, error)
@@ -491,22 +443,18 @@ type AuthSubscriptionServiceServer interface {
 	VerifySubscriptionPayment(context.Context, *VerifySubscriptionPaymentRequest) (*VerifySubscriptionPaymentResponse, error)
 	Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error)
 	SetProfileImage(context.Context, *SetProfileImageRequest) (*SetProfileImageResponse, error)
-	CheckUserExists(context.Context, *CheckUserExistsRequest) (*CheckUserExistsResponse, error)
+	Webhook(context.Context, *WebhookRequest) (*WebhookResponse, error)
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
 	GetProfileInformation(context.Context, *ProfileInfoReq) (*ProfileInfoRes, error)
 	EditProfileInfromation(context.Context, *EditProfileReq) (*EditProfileRes, error)
 	SearchUser(context.Context, *SearchUserRequest) (*SearchUserResponse, error)
 	UserPublicData(context.Context, *UserPublicDataRequest) (*UserPublicDataResponse, error)
-	FetchUserMetaData(context.Context, *UserDataReq) (*BatchUserMetadataResponse, error)
-	CheckUserListExists(context.Context, *UserDataReq) (*BatchUserExistResponse, error)
-	Webhook(context.Context, *WebhookRequest) (*WebhookResponse, error)
 	GetSubscriptionDetails(context.Context, *GetSubscriptionDetailsRequest) (*GetSubscriptionDetailsResponse, error)
 	WebhookSubscriptionActivated(context.Context, *WebhookSubscriptionActivatedRequest) (*WebhookSubscriptionActivatedResponse, error)
 	WebhookSubscriptionCharged(context.Context, *WebhookSubscriptionChargedRequest) (*WebhookSubscriptionChargedResponse, error)
 	WebhookSubscriptionHalted(context.Context, *WebhookSubscriptionHaltedRequest) (*WebhookSubscriptionHaltedResponse, error)
 	WebhookSubscriptionCancelled(context.Context, *WebhookSubscriptionCancelledRequest) (*WebhookSubscriptionCancelledResponse, error)
 	WebhookSubscriptionCompleted(context.Context, *WebhookSubscriptionCompletedRequest) (*WebhookSubscriptionCompletedResponse, error)
-	DoesUserExists(context.Context, *DoesUserExistsRequest) (*DoesUserExistsResponse, error)
 	mustEmbedUnimplementedAuthSubscriptionServiceServer()
 }
 
@@ -553,7 +501,7 @@ func (UnimplementedAuthSubscriptionServiceServer) ResendOtp(context.Context, *Re
 func (UnimplementedAuthSubscriptionServiceServer) AccessRegenerator(context.Context, *AccessRegeneratorRequest) (*AccessRegeneratorResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AccessRegenerator not implemented")
 }
-func (UnimplementedAuthSubscriptionServiceServer) ForgetPassword(context.Context, *ForgotPasswordReqeust) (*ForgotPasswordResponse, error) {
+func (UnimplementedAuthSubscriptionServiceServer) ForgetPassword(context.Context, *ForgotPasswordRequest) (*ForgotPasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ForgetPassword not implemented")
 }
 func (UnimplementedAuthSubscriptionServiceServer) ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error) {
@@ -577,8 +525,8 @@ func (UnimplementedAuthSubscriptionServiceServer) Unsubscribe(context.Context, *
 func (UnimplementedAuthSubscriptionServiceServer) SetProfileImage(context.Context, *SetProfileImageRequest) (*SetProfileImageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetProfileImage not implemented")
 }
-func (UnimplementedAuthSubscriptionServiceServer) CheckUserExists(context.Context, *CheckUserExistsRequest) (*CheckUserExistsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CheckUserExists not implemented")
+func (UnimplementedAuthSubscriptionServiceServer) Webhook(context.Context, *WebhookRequest) (*WebhookResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Webhook not implemented")
 }
 func (UnimplementedAuthSubscriptionServiceServer) ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChangePassword not implemented")
@@ -594,15 +542,6 @@ func (UnimplementedAuthSubscriptionServiceServer) SearchUser(context.Context, *S
 }
 func (UnimplementedAuthSubscriptionServiceServer) UserPublicData(context.Context, *UserPublicDataRequest) (*UserPublicDataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UserPublicData not implemented")
-}
-func (UnimplementedAuthSubscriptionServiceServer) FetchUserMetaData(context.Context, *UserDataReq) (*BatchUserMetadataResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method FetchUserMetaData not implemented")
-}
-func (UnimplementedAuthSubscriptionServiceServer) CheckUserListExists(context.Context, *UserDataReq) (*BatchUserExistResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CheckUserListExists not implemented")
-}
-func (UnimplementedAuthSubscriptionServiceServer) Webhook(context.Context, *WebhookRequest) (*WebhookResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Webhook not implemented")
 }
 func (UnimplementedAuthSubscriptionServiceServer) GetSubscriptionDetails(context.Context, *GetSubscriptionDetailsRequest) (*GetSubscriptionDetailsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSubscriptionDetails not implemented")
@@ -621,9 +560,6 @@ func (UnimplementedAuthSubscriptionServiceServer) WebhookSubscriptionCancelled(c
 }
 func (UnimplementedAuthSubscriptionServiceServer) WebhookSubscriptionCompleted(context.Context, *WebhookSubscriptionCompletedRequest) (*WebhookSubscriptionCompletedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method WebhookSubscriptionCompleted not implemented")
-}
-func (UnimplementedAuthSubscriptionServiceServer) DoesUserExists(context.Context, *DoesUserExistsRequest) (*DoesUserExistsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DoesUserExists not implemented")
 }
 func (UnimplementedAuthSubscriptionServiceServer) mustEmbedUnimplementedAuthSubscriptionServiceServer() {
 }
@@ -864,7 +800,7 @@ func _AuthSubscriptionService_AccessRegenerator_Handler(srv interface{}, ctx con
 }
 
 func _AuthSubscriptionService_ForgetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ForgotPasswordReqeust)
+	in := new(ForgotPasswordRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -876,7 +812,7 @@ func _AuthSubscriptionService_ForgetPassword_Handler(srv interface{}, ctx contex
 		FullMethod: AuthSubscriptionService_ForgetPassword_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthSubscriptionServiceServer).ForgetPassword(ctx, req.(*ForgotPasswordReqeust))
+		return srv.(AuthSubscriptionServiceServer).ForgetPassword(ctx, req.(*ForgotPasswordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1007,20 +943,20 @@ func _AuthSubscriptionService_SetProfileImage_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthSubscriptionService_CheckUserExists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CheckUserExistsRequest)
+func _AuthSubscriptionService_Webhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WebhookRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthSubscriptionServiceServer).CheckUserExists(ctx, in)
+		return srv.(AuthSubscriptionServiceServer).Webhook(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AuthSubscriptionService_CheckUserExists_FullMethodName,
+		FullMethod: AuthSubscriptionService_Webhook_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthSubscriptionServiceServer).CheckUserExists(ctx, req.(*CheckUserExistsRequest))
+		return srv.(AuthSubscriptionServiceServer).Webhook(ctx, req.(*WebhookRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1111,60 +1047,6 @@ func _AuthSubscriptionService_UserPublicData_Handler(srv interface{}, ctx contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthSubscriptionServiceServer).UserPublicData(ctx, req.(*UserPublicDataRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthSubscriptionService_FetchUserMetaData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserDataReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthSubscriptionServiceServer).FetchUserMetaData(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthSubscriptionService_FetchUserMetaData_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthSubscriptionServiceServer).FetchUserMetaData(ctx, req.(*UserDataReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthSubscriptionService_CheckUserListExists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UserDataReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthSubscriptionServiceServer).CheckUserListExists(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthSubscriptionService_CheckUserListExists_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthSubscriptionServiceServer).CheckUserListExists(ctx, req.(*UserDataReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthSubscriptionService_Webhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(WebhookRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthSubscriptionServiceServer).Webhook(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthSubscriptionService_Webhook_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthSubscriptionServiceServer).Webhook(ctx, req.(*WebhookRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1277,24 +1159,6 @@ func _AuthSubscriptionService_WebhookSubscriptionCompleted_Handler(srv interface
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthSubscriptionService_DoesUserExists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DoesUserExistsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthSubscriptionServiceServer).DoesUserExists(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthSubscriptionService_DoesUserExists_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthSubscriptionServiceServer).DoesUserExists(ctx, req.(*DoesUserExistsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // AuthSubscriptionService_ServiceDesc is the grpc.ServiceDesc for AuthSubscriptionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1383,8 +1247,8 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AuthSubscriptionService_SetProfileImage_Handler,
 		},
 		{
-			MethodName: "CheckUserExists",
-			Handler:    _AuthSubscriptionService_CheckUserExists_Handler,
+			MethodName: "Webhook",
+			Handler:    _AuthSubscriptionService_Webhook_Handler,
 		},
 		{
 			MethodName: "ChangePassword",
@@ -1405,18 +1269,6 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UserPublicData",
 			Handler:    _AuthSubscriptionService_UserPublicData_Handler,
-		},
-		{
-			MethodName: "FetchUserMetaData",
-			Handler:    _AuthSubscriptionService_FetchUserMetaData_Handler,
-		},
-		{
-			MethodName: "CheckUserListExists",
-			Handler:    _AuthSubscriptionService_CheckUserListExists_Handler,
-		},
-		{
-			MethodName: "Webhook",
-			Handler:    _AuthSubscriptionService_Webhook_Handler,
 		},
 		{
 			MethodName: "GetSubscriptionDetails",
@@ -1442,11 +1294,7 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "WebhookSubscriptionCompleted",
 			Handler:    _AuthSubscriptionService_WebhookSubscriptionCompleted_Handler,
 		},
-		{
-			MethodName: "DoesUserExists",
-			Handler:    _AuthSubscriptionService_DoesUserExists_Handler,
-		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "pkg/pb/auth_subscription.proto",
+	Metadata: "Api_Gateway/pkg/proto/auth_subscription.proto",
 }

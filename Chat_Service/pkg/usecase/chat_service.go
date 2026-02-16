@@ -28,6 +28,17 @@ func NewChatUsecase(repository interfacesrepository.ChatRepository, authClient p
 	}
 }
 
+func (as *ChatUsecase)DoesUserExists(userid uint64)(bool,error){
+	resp,err:=as.AuthClient.DoesUserExists(context.Background(),&pb.DoesUserExistsRequest{
+		UserId: userid,
+	})
+	if err!=nil{
+		log.Println(err)
+		return false,err
+	}
+	return resp.Exists,nil
+}
+
 
 func (as *ChatUsecase) GetGroupName(groupID string) (string, error) {
 	if groupID == "" {
@@ -70,6 +81,13 @@ func (as *ChatUsecase) CreateGroup(req requestmodels.CreateGroupRequest) (respon
 }
 
 func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (responsemodels.AddMembersResponse, error) {
+	exists,err:=as.ChatRepository.GroupExists(context.Background(),req.GroupID)
+	if err!=nil{
+		return responsemodels.AddMembersResponse{},err
+	}
+	if !exists{
+		return responsemodels.AddMembersResponse{},domain.ErrGroupNotFound
+	}
 	resp1, err := as.ChatRepository.ExistingMembers(req.GroupID)
 	if err != nil {
 		return responsemodels.AddMembersResponse{}, err
@@ -114,6 +132,13 @@ func (as *ChatUsecase) RemoveMember(req requestmodels.RemoveMemberRequest) (resp
 	// if creatorId != req.UserID {
 	// 	return responsemodels.RemoveMemberResponse{}, domain.ErrNotCreatorId
 	// }
+	exists,err:=as.ChatRepository.GroupExists(context.Background(),req.GroupID)
+	if err!=nil{
+		return responsemodels.RemoveMemberResponse{},err
+	}
+	if !exists{
+		return responsemodels.RemoveMemberResponse{},domain.ErrGroupNotFound
+	}
 	resp1, err := as.ChatRepository.ExistingMembers(req.GroupID)
 	if err != nil {
 		return responsemodels.RemoveMemberResponse{}, err

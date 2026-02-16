@@ -29,7 +29,15 @@ func NewAuthSubscriptionServer(useCase interfacesUsecase.AuthSubscriptionUsecase
 		AuthSubscriptionUsecase: useCase,
 	}
 }
-
+func (as *AuthSubscriptionServer)DoesUserExists(ctx context.Context,req *pb.DoesUserExistsRequest)(*pb.DoesUserExistsResponse,error){
+	resp,err:=as.AuthSubscriptionUsecase.DoesUserExists(req.UserId)
+	if err!=nil{
+		return nil,err
+	}
+	return &pb.DoesUserExistsResponse{
+		Exists: resp,
+	},nil
+}
 func (as *AuthSubscriptionServer) AdminLogin(ctx context.Context, req *pb.AdminLoginRequest) (*pb.AdminLoginResponse, error) {
 	adminLogin := requestmodels.AdminLoginRequest{
 		Email:    req.Email,
@@ -472,13 +480,18 @@ func (as *AuthSubscriptionServer) Subscribe(ctx context.Context, req *pb.Subscri
 		UserId:    req.UserId,
 		PlanId:    req.PlanId,
 		UserEmail: req.UserEmail,
+		TotalCount: req.TotalCount,
 	}
 	subscribeRes, err := as.AuthSubscriptionUsecase.Subscribe(subscribeReq)
 	if err != nil {
-		if err==domain.ErrNotEligible{
+		switch err{
+		case domain.ErrNotEligible:
 			return nil,status.Error(codes.AlreadyExists,err.Error())
+		case domain.ErrSubPlanNotFound:
+			return nil,status.Error(codes.NotFound,err.Error())
+		default:
+			return nil,status.Errorf(codes.Internal,"status internal server error")
 		}
-		return nil, status.Error(codes.Internal, "interanal server error")
 	}
 	return &pb.SubscribeResponse{
 		Id:        subscribeRes.ID,
@@ -663,10 +676,13 @@ func (as *AuthSubscriptionServer) SearchUser(ctx context.Context, req *pb.Search
 	}, nil
 }
 func (as *AuthSubscriptionServer) UserPublicData(ctx context.Context, req *pb.UserPublicDataRequest) (*pb.UserPublicDataResponse, error) {
+	//fmt.Println("is it not even entering here?")
 	resp, err := as.AuthSubscriptionUsecase.FetchUserPublicData(req.UserId)
 	if err != nil {
+		log.Println("show error",err)
 		return &pb.UserPublicDataResponse{}, err
 	}
+	//fmt.Println("resp in UserPublicData",resp)
 	return &pb.UserPublicDataResponse{
 		UserId:        resp.UserID,
 		UserName:      resp.UserName,
@@ -801,6 +817,8 @@ func(as *AuthSubscriptionServer)WebhookSubscriptionCharged(ctx context.Context,r
 		Currency: req.Currency,
 		Method: req.Method,
 		Status: req.Status,
+		PaidCount: int(req.PaidCount),
+		RemainingCount: int(req.RemainingCount),
 		TransactionDate: req.TransactionDate.AsTime().In(loc),
 		PaymentID: req.PaymentId,
 		UserID: req.UserId,
@@ -849,6 +867,8 @@ func(as *AuthSubscriptionServer)WebhookSubscriptionCancelled(ctx context.Context
 	},nil
 }
 func (as *AuthSubscriptionServer)WebhookSubscriptionCompleted(ctx context.Context,req *pb.WebhookSubscriptionCompletedRequest)(*pb.WebhookSubscriptionCompletedResponse,error){
+	fmt.Println("is ti here in webhook completed in service")
+	fmt.Println("request in service ",req)
 	webhookReq:=requestmodels.WebhookSubscriptionCompletedRequest{
 		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
 		Status: req.Status,

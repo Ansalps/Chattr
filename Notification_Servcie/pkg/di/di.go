@@ -5,6 +5,7 @@ import (
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/handler"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/infrastructure/db"
+	"github.com/Ansalps/Chattr_Notification_Service/pkg/infrastructure/logger"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/infrastructure/websockethub"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/repository"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/routes"
@@ -22,8 +23,9 @@ func DependencyInjection(router *gin.Engine, cfg *config.Config, hub *websocketh
 	if err != nil {
 		return nil,err
 	}
+	logger:=logger.NewLogrusLogger()
 	NotificationRepository := repository.NewNotificationRepository(gormDB)
-	NotificationUsecase := usecase.NewNotificationUsecase(NotificationRepository, hub,authClient)
+	NotificationUsecase := usecase.NewNotificationUsecase(NotificationRepository, hub,authClient,logger)
 	NotificationHandler := handler.NewNotificationHandler(NotificationUsecase, hub)
 	routes.NotificationServiceRoutes(router, NotificationHandler)
 	return NotificationUsecase, nil

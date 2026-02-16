@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	AuthSubscriptionService_FetchUserMetaData_FullMethodName   = "/auth_subscription.AuthSubscriptionService/FetchUserMetaData"
 	AuthSubscriptionService_CheckUserListExists_FullMethodName = "/auth_subscription.AuthSubscriptionService/CheckUserListExists"
+	AuthSubscriptionService_DoesUserExists_FullMethodName      = "/auth_subscription.AuthSubscriptionService/DoesUserExists"
 )
 
 // AuthSubscriptionServiceClient is the client API for AuthSubscriptionService service.
@@ -30,6 +31,7 @@ type AuthSubscriptionServiceClient interface {
 	// rpc CheckUserExists(CheckUserExistsRequest) returns (CheckUserExistsResponse);
 	FetchUserMetaData(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*BatchUserMetadataResponse, error)
 	CheckUserListExists(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*BatchUserExistResponse, error)
+	DoesUserExists(ctx context.Context, in *DoesUserExistsRequest, opts ...grpc.CallOption) (*DoesUserExistsResponse, error)
 }
 
 type authSubscriptionServiceClient struct {
@@ -60,6 +62,16 @@ func (c *authSubscriptionServiceClient) CheckUserListExists(ctx context.Context,
 	return out, nil
 }
 
+func (c *authSubscriptionServiceClient) DoesUserExists(ctx context.Context, in *DoesUserExistsRequest, opts ...grpc.CallOption) (*DoesUserExistsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DoesUserExistsResponse)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_DoesUserExists_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthSubscriptionServiceServer is the server API for AuthSubscriptionService service.
 // All implementations must embed UnimplementedAuthSubscriptionServiceServer
 // for forward compatibility.
@@ -67,6 +79,7 @@ type AuthSubscriptionServiceServer interface {
 	// rpc CheckUserExists(CheckUserExistsRequest) returns (CheckUserExistsResponse);
 	FetchUserMetaData(context.Context, *UserDataReq) (*BatchUserMetadataResponse, error)
 	CheckUserListExists(context.Context, *UserDataReq) (*BatchUserExistResponse, error)
+	DoesUserExists(context.Context, *DoesUserExistsRequest) (*DoesUserExistsResponse, error)
 	mustEmbedUnimplementedAuthSubscriptionServiceServer()
 }
 
@@ -82,6 +95,9 @@ func (UnimplementedAuthSubscriptionServiceServer) FetchUserMetaData(context.Cont
 }
 func (UnimplementedAuthSubscriptionServiceServer) CheckUserListExists(context.Context, *UserDataReq) (*BatchUserExistResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckUserListExists not implemented")
+}
+func (UnimplementedAuthSubscriptionServiceServer) DoesUserExists(context.Context, *DoesUserExistsRequest) (*DoesUserExistsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DoesUserExists not implemented")
 }
 func (UnimplementedAuthSubscriptionServiceServer) mustEmbedUnimplementedAuthSubscriptionServiceServer() {
 }
@@ -141,6 +157,24 @@ func _AuthSubscriptionService_CheckUserListExists_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthSubscriptionService_DoesUserExists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DoesUserExistsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthSubscriptionServiceServer).DoesUserExists(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthSubscriptionService_DoesUserExists_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthSubscriptionServiceServer).DoesUserExists(ctx, req.(*DoesUserExistsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthSubscriptionService_ServiceDesc is the grpc.ServiceDesc for AuthSubscriptionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -155,6 +189,10 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckUserListExists",
 			Handler:    _AuthSubscriptionService_CheckUserListExists_Handler,
+		},
+		{
+			MethodName: "DoesUserExists",
+			Handler:    _AuthSubscriptionService_DoesUserExists_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -53,9 +53,9 @@ func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
 		return
 	}
-	fmt.Println("is call reaching here")
+	//fmt.Println("is call reaching here")
 	admin, err := as.GPPC_Client.AdminLogin(adminDetails)
-	fmt.Println("what about here")
+	//fmt.Println("what about here")
 	if err != nil {
 		var obj response.Response
 		// Check if it’s a gRPC status error
@@ -144,11 +144,11 @@ func (as *AuthSubscriptionHandler) VerifyOtp(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
-	fmt.Println("will call even comes here?????")
+	//fmt.Println("will call even comes here?????")
 	otpRequest.Email = jwtClaims.Email
 	otpRequest.UserId = jwtClaims.ID
-	fmt.Println("inside verify otp handler ", jwtClaims.Email, jwtClaims.ID)
-	fmt.Println("print otp request", otpRequest)
+	//fmt.Println("inside verify otp handler ", jwtClaims.Email, jwtClaims.ID)
+	//fmt.Println("print otp request", otpRequest)
 	otpResponse, err := as.GPPC_Client.VerifyOtp(otpRequest)
 	if err != nil {
 		var obj response.Response
@@ -210,8 +210,8 @@ func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
-	fmt.Printf("Claims type: %T\n", claims)
-	fmt.Println(claims)
+	//fmt.Printf("Claims type: %T\n", claims)
+	//fmt.Println(claims)
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
@@ -222,7 +222,7 @@ func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
 	accessRegenerator.ID = jwtClaims.ID
 	accessRegenerator.Email = jwtClaims.Email
 	accessRegenerator.Role = jwtClaims.Role
-	fmt.Println("inside handler access regeneration", jwtClaims.ID, jwtClaims.Email, jwtClaims.Role)
+	//fmt.Println("inside handler access regeneration", jwtClaims.ID, jwtClaims.Email, jwtClaims.Role)
 	accessRegeneratorResponse, err := as.GPPC_Client.AccessRegenerator(accessRegenerator)
 	if err != nil {
 		var obj response.Response
@@ -680,6 +680,16 @@ func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
 	//fmt.Println("jwt claims", jwtClaims)
 	subscribeReq.UserId = jwtClaims.ID
 	subscribeReq.UserEmail = jwtClaims.Email
+	if err := c.ShouldBindJSON(&subscribeReq); err != nil {
+		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
+			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
+			return
+		}
+		log.Printf("Bind error: %v", err)
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+		return
+	}
+
 	//fmt.Println("user id", subscribeReq.UserId)
 	subscribeResponse, err := as.GPPC_Client.Subscribe(subscribeReq)
 	if err != nil {
@@ -690,7 +700,7 @@ func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
 			case codes.NotFound:
 				obj = response.ClientResponse(http.StatusUnauthorized, "Invalide Email or Password", nil)
 			case codes.AlreadyExists:
-				obj=response.ClientResponse(http.StatusPreconditionFailed,st.Message(),nil)
+				obj = response.ClientResponse(http.StatusPreconditionFailed, st.Message(), nil)
 			default:
 				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
 			}
@@ -701,7 +711,7 @@ func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
 		c.JSON(obj.StatusCode, obj)
 		return
 	}
-
+	
 	// fmt.Println("razorpay subscription id", subscribeResponse.RazorpaySubscriptionId)
 	// data := gin.H{
 	// 	"SubscriptionID": subscribeResponse.RazorpaySubscriptionId,
@@ -795,16 +805,24 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	setProfileImageReq.UserId = jwtClaims.ID
 	file, err := c.FormFile("image")
 	if err != nil {
+		log.Println(err)
 		c.JSON(400, gin.H{"error": "Image is required"})
 		return
 	}
+	str := as.config.ProfileImgSize
+    num, err := strconv.Atoi(str) // returns (int, error)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
 	// Check file size < 2 MB
-	if file.Size > 2*1024*1024 {
+	if file.Size > int64(num)*1024*1024 {
 		c.JSON(400, gin.H{"error": "Image must be less than 2MB"})
 		return
 	}
 	src, err := file.Open()
 	if err != nil {
+		log.Println(err)
 		c.JSON(500, gin.H{"error": "Cannot open image"})
 		return
 	}
@@ -814,6 +832,7 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	buf := make([]byte, 512)
 	_, err = src.Read(buf)
 	if err != nil {
+		log.Println(err)
 		c.JSON(400, gin.H{"error": "Invalid image"})
 		return
 	}
@@ -840,6 +859,7 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	// Read full bytes
 	data, err := io.ReadAll(src)
 	if err != nil {
+		log.Println(err)
 		c.JSON(500, gin.H{"error": "Cannot read image"})
 		return
 
@@ -848,6 +868,7 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	setProfileImageReq.ContentType = contentType
 	setProfileImageResponse, err := as.GPPC_Client.SetProfileImage(setProfileImageReq)
 	if err != nil {
+		log.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "error in resonse"})
 		return
 	}
@@ -1005,6 +1026,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 	authChan := make(chan *auth_subscription.UserPublicDataResponse, 1)
 	postChan := make(chan *post_relation.PostFollowCountResponse, 1)
 	errChan := make(chan error, 2)
+	fmt.Println("user id print here please ", req.UserID)
 	go func() {
 		authresp, err := as.DirectClient.Client.UserPublicData(context.Background(), &auth_subscription.UserPublicDataRequest{
 			UserId: req.UserID,
@@ -1040,12 +1062,22 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 			return
 		}
 	}
+	fmt.Println("auth datat", authData)
+	// if authData.BlueTick==nil{
 
+	// }
 	// 1. Mandatory Check: Did we get the profile?
 	if authData == nil {
 		// If Auth failed, we can't show a profile at all.
 		c.JSON(http.StatusNotFound, response.ClientResponse(http.StatusNotFound, "User not found", nil))
 		return
+	}
+	user_info_resp := responsemodels.AuthData{
+		UserId:        authData.UserId,
+		UserName:      authData.UserName,
+		Name:          authData.Name,
+		ProfileImgUrl: authData.ProfileImgUrl,
+		BlueTick:      authData.BlueTick,
 	}
 
 	// 2. Optional Data: Did we get stats?
@@ -1061,7 +1093,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 
 	// 3. Construct the response
 	c.JSON(http.StatusOK, gin.H{
-		"user_info": authData,
+		"user_info": user_info_resp,
 		"social_stats": gin.H{
 			"followers": followers,
 			"following": following,
@@ -1132,7 +1164,7 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 		return
 	}
 	fmt.Printf("Type: %T, Value: %v\n", webhookReq.Payload.Subscription.Entity.Notes["user_id"], webhookReq.Payload.Subscription.Entity.Notes["user_id"])
-	UserIdStr:=webhookReq.Payload.Subscription.Entity.Notes["user_id"]
+	UserIdStr := webhookReq.Payload.Subscription.Entity.Notes["user_id"]
 	UserID, err := strconv.ParseUint(UserIdStr, 10, 64)
 	if err != nil {
 		fmt.Println("Error converting string to uint64:", err)
@@ -1147,72 +1179,78 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 		//fmt.Println("is it coming here man?")
 		res, err = as.DirectClient.Client.WebhookSubscriptionActivated(context.Background(), &auth_subscription.WebhookSubscriptionActivatedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
-			Status: webhookReq.Payload.Subscription.Entity.Status,
-			PaidCount:int64(webhookReq.Payload.Subscription.Entity.PaidCount),
-			RemainingCount: int64(webhookReq.Payload.Subscription.Entity.RemainingCount),
-			StartAt: utils.UnixToProto(webhookReq.Payload.Subscription.Entity.StartAt),
-			EndAt: utils.UnixToProto(webhookReq.Payload.Subscription.Entity.EndAt),
-			UserId: UserID,
+			Status:                 webhookReq.Payload.Subscription.Entity.Status,
+			PaidCount:              int64(webhookReq.Payload.Subscription.Entity.PaidCount),
+			RemainingCount:         int64(webhookReq.Payload.Subscription.Entity.RemainingCount),
+			StartAt:                utils.UnixToProto(webhookReq.Payload.Subscription.Entity.StartAt),
+			EndAt:                  utils.UnixToProto(webhookReq.Payload.Subscription.Entity.EndAt),
+			UserId:                 UserID,
 		})
-		if err!=nil{
-			c.JSON(http.StatusInternalServerError,err.Error())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err.Error())
 			return
 		}
 	case "subscription.charged":
-		res,err:=as.DirectClient.Client.WebhookSubscriptionCharged(context.Background(),&auth_subscription.WebhookSubscriptionChargedRequest{
+		fmt.Printf("The type of UserID is: %T\n", UserID)
+		res, err := as.DirectClient.Client.WebhookSubscriptionCharged(context.Background(), &auth_subscription.WebhookSubscriptionChargedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
-			RazorpayPlanId:  webhookReq.Payload.Subscription.Entity.PlanID,
-			NextChargeAt: utils.UnixToProto(webhookReq.Payload.Subscription.Entity.CurrentEnd),
-			InvoiceId: webhookReq.Payload.Payment.Entity.InvoiceID,
-			Amount: webhookReq.Payload.Payment.Entity.Amount,
-			Currency: webhookReq.Payload.Payment.Entity.Currency,
-			Method: webhookReq.Payload.Payment.Entity.Method,
-			Status: webhookReq.Payload.Payment.Entity.Status,
-			TransactionDate: utils.UnixToProto(webhookReq.CreatedAt),
-			PaymentId: webhookReq.Payload.Payment.Entity.ID,
-			UserId: UserID,
+			RazorpayPlanId:         webhookReq.Payload.Subscription.Entity.PlanID,
+			NextChargeAt:           utils.UnixToProto(webhookReq.Payload.Subscription.Entity.CurrentEnd),
+			InvoiceId:              webhookReq.Payload.Payment.Entity.InvoiceID,
+			Amount:                 webhookReq.Payload.Payment.Entity.Amount,
+			Currency:               webhookReq.Payload.Payment.Entity.Currency,
+			Method:                 webhookReq.Payload.Payment.Entity.Method,
+			Status:                 webhookReq.Payload.Payment.Entity.Status,
+			PaidCount:              int64(webhookReq.Payload.Subscription.Entity.PaidCount),
+			RemainingCount:         int64(webhookReq.Payload.Subscription.Entity.RemainingCount),
+			TransactionDate:        utils.UnixToProto(webhookReq.CreatedAt),
+			PaymentId:              webhookReq.Payload.Payment.Entity.ID,
+			UserId:                 UserID,
 		})
-		fmt.Println("res",res)
-		if err!=nil{
-			c.JSON(http.StatusInternalServerError,err.Error())
+		fmt.Println("res", res)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err.Error())
 			return
 		}
 	case "subscription.halted":
-		resp,err:=as.DirectClient.Client.WebhookSubscriptionHalted(context.Background(),&auth_subscription.WebhookSubscriptionHaltedRequest{
+		//fmt.Println("user id ",UserID)
+		//fmt.Printf("The type of UserID is: %T\n", UserID)
+		resp, err := as.DirectClient.Client.WebhookSubscriptionHalted(context.Background(), &auth_subscription.WebhookSubscriptionHaltedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
-			Status: webhookReq.Payload.Subscription.Entity.Status,
-			UserId: UserID,
+			Status:                 webhookReq.Payload.Subscription.Entity.Status,
+			UserId:                 UserID,
 		})
-		fmt.Println("resp",resp)
-		if err!=nil{
-			c.JSON(http.StatusInternalServerError,err.Error())
+		fmt.Println("resp", resp)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err.Error())
 			return
 		}
 	case "subscription.cancelled":
-		resp,err:=as.DirectClient.Client.WebhookSubscriptionCancelled(context.Background(),&auth_subscription.WebhookSubscriptionCancelledRequest{
+		resp, err := as.DirectClient.Client.WebhookSubscriptionCancelled(context.Background(), &auth_subscription.WebhookSubscriptionCancelledRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
-			Status: webhookReq.Payload.Subscription.Entity.Status,
-			CancelledAt: utils.UnixToProto(webhookReq.Payload.Subscription.Entity.EndedAt),
-			UserId: UserID,
+			Status:                 webhookReq.Payload.Subscription.Entity.Status,
+			CancelledAt:            utils.UnixToProto(webhookReq.Payload.Subscription.Entity.EndedAt),
+			UserId:                 UserID,
 		})
-		fmt.Println("resp",resp)
-		if err!=nil{
-			c.JSON(http.StatusInternalServerError,err.Error())
+		fmt.Println("resp", resp)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err.Error())
 			return
 		}
 	case "subscription.completed":
-		resp,err:=as.DirectClient.Client.WebhookSubscriptionCompleted(context.Background(),&auth_subscription.WebhookSubscriptionCompletedRequest{
+		fmt.Println("is it here in completed")
+		resp, err := as.DirectClient.Client.WebhookSubscriptionCompleted(context.Background(), &auth_subscription.WebhookSubscriptionCompletedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
-			Status: webhookReq.Payload.Subscription.Entity.Status,
-			UserId: UserID,
+			Status:                 webhookReq.Payload.Subscription.Entity.Status,
+			UserId:                 UserID,
 		})
-		fmt.Println("resp",resp)
-		if err!=nil{
-			c.JSON(http.StatusInternalServerError,err.Error())
+		fmt.Println("resp", resp)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, err.Error())
 			return
 		}
 	default:
-		c.JSON(http.StatusOK,"ignored event")
+		c.JSON(http.StatusOK, "ignored event")
 	}
 
 	// if webhookReq.Event != "subscription.completed" {
@@ -1260,35 +1298,35 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 		log.Println(err)
 		return
 	}
-	resp2:=responsemodels.SubscriptionPlan{
-		ID: resp.SubsciptionPlan.Id,
-		CreatedAt: resp.SubsciptionPlan.CreatedAt.AsTime(),
-		UpdatedAt: resp.SubsciptionPlan.UpdatedAt.AsTime(),
+	resp2 := responsemodels.SubscriptionPlan{
+		ID:             resp.SubsciptionPlan.Id,
+		CreatedAt:      resp.SubsciptionPlan.CreatedAt.AsTime(),
+		UpdatedAt:      resp.SubsciptionPlan.UpdatedAt.AsTime(),
 		RazorpayPlanId: resp.SubsciptionPlan.RazorpayPlanId,
-		Name: resp.SubsciptionPlan.Name,
-		Price: resp.SubsciptionPlan.Price/100,
-		Currency: resp.SubsciptionPlan.Currency,
-		Period: resp.SubsciptionPlan.Period,
-		Interval: resp.SubsciptionPlan.Interval,
-		Description: resp.SubsciptionPlan.Description,
-		IsActive: resp.SubsciptionPlan.IsActive,
+		Name:           resp.SubsciptionPlan.Name,
+		Price:          resp.SubsciptionPlan.Price / 100,
+		Currency:       resp.SubsciptionPlan.Currency,
+		Period:         resp.SubsciptionPlan.Period,
+		Interval:       resp.SubsciptionPlan.Interval,
+		Description:    resp.SubsciptionPlan.Description,
+		IsActive:       resp.SubsciptionPlan.IsActive,
 	}
-	resp1:=responsemodels.GetSubscriptionDetails{
-		SubscriptionPlan: resp2,
-		ID: resp.SubscriptionId,
-		CreatedAt: resp.CreatedAt.AsTime(),
-		UpdatedAt: resp.UpdatedAt.AsTime(),
-		UserID: resp.UserId,
+	resp1 := responsemodels.GetSubscriptionDetails{
+		SubscriptionPlan:       resp2,
+		ID:                     resp.SubscriptionId,
+		CreatedAt:              resp.CreatedAt.AsTime(),
+		UpdatedAt:              resp.UpdatedAt.AsTime(),
+		UserID:                 resp.UserId,
 		RazorpaySubscriptionId: resp.RazorpaySubscriptionId,
-		Status: resp.Status,
-		StartAt: resp.StartAt.AsTime(),
-		EndAt: resp.EndAt.AsTime(),
-		NextChargeAt: resp.NextChargeAt.AsTime(),
-		TotalCount: int(resp.TotalCount),
-		RemainingCount: int(resp.RemainingCount),
-		PaidCount: int(resp.PaidCount),
-		CancelledAt: resp.CancelledAt.AsTime(),
-		CancelReason: resp.CancelReason,
+		Status:                 resp.Status,
+		StartAt:                resp.StartAt.AsTime(),
+		EndAt:                  resp.EndAt.AsTime(),
+		NextChargeAt:           resp.NextChargeAt.AsTime(),
+		TotalCount:             int(resp.TotalCount),
+		RemainingCount:         int(resp.RemainingCount),
+		PaidCount:              int(resp.PaidCount),
+		CancelledAt:            resp.CancelledAt.AsTime(),
+		CancelReason:           resp.CancelReason,
 	}
 	c.JSON(http.StatusOK, resp1)
 }

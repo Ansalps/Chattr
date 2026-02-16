@@ -254,8 +254,12 @@ func (ad *AuthSubscriptionRepository) CreateSubscription(req requestmodels.Subsc
 func (ad *AuthSubscriptionRepository) FetchStatusFromSubcriptionPlan(id uint64) (bool, error) {
 	var status bool
 	query := `SELECT is_active FROM subscription_plans WHERE id=?`
-	if err := ad.DB.Raw(query, id).Scan(&status).Error; err != nil {
-		return false, err
+	result := ad.DB.Raw(query, id).Scan(&status); 
+	if result.Error != nil {
+		return false, result.Error
+	}
+	if result.RowsAffected==0{
+		return false,gorm.ErrRecordNotFound
 	}
 	return status, nil
 }
@@ -349,8 +353,12 @@ func (ad *AuthSubscriptionRepository) GetAllActiveSubscriptionPlans(getAllActive
 func (ad *AuthSubscriptionRepository) FetchRazorpayPlanIdFromId(id uint64) (string, error) {
 	var RazorpayPlanId string
 	query := `SELECT razorpay_plan_id FROM subscription_plans WHERE id=?`
-	if err := ad.DB.Raw(query, id).Scan(&RazorpayPlanId).Error; err != nil {
-		return "", err
+	result := ad.DB.Raw(query, id).Scan(&RazorpayPlanId)
+	if result.Error != nil {
+		return "", result.Error
+	}
+	if result.RowsAffected==0{
+		return "",gorm.ErrRecordNotFound
 	}
 	return RazorpayPlanId, nil
 }
@@ -464,6 +472,7 @@ func (ad *AuthSubscriptionRepository) FetchUserIdFromSubscriptionId(razorpaySubI
 }
 
 func (ad *AuthSubscriptionRepository) TurnBlueTickTrueForUserId(userid uint64) error {
+	fmt.Println("most probably user_id",userid)
 	query := `UPDATE users SET blue_tick=true where id=?`
 	if err := ad.DB.Exec(query, userid).Error; err != nil {
 		return err
@@ -624,7 +633,7 @@ func (ad *AuthSubscriptionRepository) GetProfileInformation(req requestmodels.Ge
 	if result.RowsAffected == 0 {
 		return responsemodels.GetProfileInformationResponse{}, gorm.ErrRecordNotFound
 	}
-	fmt.Println("resp in repo", resp, resp.UserID)
+	//fmt.Println("resp in repo", resp, resp.UserID)
 	return resp, nil
 }
 func (ad *AuthSubscriptionRepository) EditProfileInformation(userId uint64, updateData map[string]interface{}) (responsemodels.EditProfile, error) {
@@ -689,7 +698,7 @@ func (ad *AuthSubscriptionRepository) SearchUser(req requestmodels.SearchUser) (
 }
 func (ad *AuthSubscriptionRepository) FetchUserPublicData(userid uint64) (responsemodels.UserPublicDataResponse, error) {
 	var resp responsemodels.UserPublicDataResponse
-	query := `SELECT id as user_id,user_name,name,profile_img_url,bio,links,blue_tick FROM users WHERE id=$1`
+	query := `SELECT id as user_id,user_name,name,profile_img_url,bio,links,blue_tick,razorpay_customer_id FROM users WHERE id=$1`
 	result := ad.DB.Raw(query, userid).Scan(&resp)
 	if result.Error != nil {
 		return responsemodels.UserPublicDataResponse{}, result.Error
@@ -763,7 +772,7 @@ func (ad *AuthSubscriptionRepository) GetSubscriptionDetails(req requestmodels.G
 }
 
 func (ad *AuthSubscriptionRepository) UpddateActivatedSubscription(req requestmodels.WebhookSubscriptionActivatedRequest) (responsemodels.WebhookSubscriptionActivatedResponse, error) {
-	query := `UPDATE user_subscriptionS SET status=$1,paid_count=$2,remaining_count=$3,start_at=$4,end_at=$5 WHERE razorpay_subscription_id=$6`
+	query := `UPDATE user_subscriptionS SET paid_count=$1,remaining_count=$2,start_at=$3,end_at=$4 WHERE razorpay_subscription_id=$5`
 	result := ad.DB.Exec(query, req.Status, req.PaidCount, req.RemainingCount, req.StartAt, req.EndAt, req.RazorpaySubscriptionId)
 	if result.Error != nil {
 		log.Println("database error", result.Error)
@@ -778,9 +787,21 @@ func (ad *AuthSubscriptionRepository) UpddateActivatedSubscription(req requestmo
 	}, nil
 }
 
+
 func (ad *AuthSubscriptionRepository) UpdateNextChargeAt(nextChargeAt time.Time, razorpaySubId string) error {
-	query := `UPDATE user_subscriptions SET next_charge_at=$1 WHERE razorpay_subscription_id=$2`
+	query := `UPDATE user_subscriptions SET next_charge_at=$1,status='active' WHERE razorpay_subscription_id=$2`
 	result := ad.DB.Exec(query, nextChargeAt, razorpaySubId)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+func (ad *AuthSubscriptionRepository) UpdateStatusToActive(status string, razorpaySubId string) error {
+	query := `UPDATE user_subscriptions SET status='active' WHERE razorpay_subscription_id=$1`
+	result := ad.DB.Exec(query, status, razorpaySubId)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -868,4 +889,39 @@ func (ad *AuthSubscriptionRepository) IsEligibleForSubsciption(req requestmodels
 
 	// If count is 0, they are eligible
 	return num == 0, nil
+}
+
+func (ad *AuthSubscriptionRepository)UpdateCount(req requestmodels.WebhookSubscriptionChargedRequest)error{
+	query := `UPDATE user_subscriptions SET paid_coutn=$1,remaining_count=$2 WHERE razorpay_subscription_id=$2`
+	result := ad.DB.Exec(query, req.PaidCount,req.RemainingCount, req.RazorpaySubscriptionId)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return  gorm.ErrRecordNotFound
+	}
+	return  nil
+}
+
+func (ad *AuthSubscriptionRepository)FetchUserSubscription(subId uint64)(string,error){
+	var status string
+	query:=`select status from user_subscriptions where id=$1`
+	result := ad.DB.Raw(query, subId).Scan(&status)
+	if result.Error != nil {
+		return "",result.Error
+	}
+	if result.RowsAffected == 0 {
+		return  "",gorm.ErrRecordNotFound
+	}
+	return  status,nil
+}
+
+func (ad *AuthSubscriptionRepository)DoesUserExists(userid uint64)(bool,error){
+	var num int64
+	query:=`select count(*) from users where id=$1`
+	err:=ad.DB.Raw(query,userid).Scan(&num).Error
+	if err!=nil{
+		return false,err
+	}
+	return num!=0,nil
 }

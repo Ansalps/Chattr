@@ -80,4 +80,12 @@ type AuthSubscriptionRepository interface {
 	UpdateSubscripionCompleted(requestmodels.WebhookSubscriptionCompletedRequest)(responsemodels.WebhookSubscriptionCompletedResponse,error)
 
 	IsEligibleForSubsciption(requestmodels.SubscribeRequest)(bool,error)
+
+	UpdateStatusToActive(status string, razorpaySubId string) error
+
+	UpdateCount(requestmodels.WebhookSubscriptionChargedRequest)error
+
+	FetchUserSubscription(uint64)(string,error)
+
+	DoesUserExists(userid uint64)(bool,error)
 }

@@ -14,12 +14,14 @@ type KafkaConfig struct {
 }
 
 type Config struct {
+	AuthSource 	string `mapstructure:"AUTH_SOURCE"`
 	PortMngr PortManager
 	DB       Database
 	Kafka        KafkaConfig
 }
 
 func LoadConfig() (*Config, error) {
+	var c Config
 	var portmngr PortManager
 	var db Database
 	var kafka KafkaConfig
@@ -44,8 +46,13 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	err = viper.Unmarshal(&c)
+	if err != nil {
+		return nil, err
+	}
 	
-	config := Config{PortMngr: portmngr, DB: db,Kafka: kafka}
-	return &config, nil
+	c.PortMngr=portmngr
+	c.DB=db
+	c.Kafka=kafka
+	return &c, nil
 }

@@ -23,4 +23,6 @@ type ChatUsecase interface {
 
 	//PublishEvent(topic string, message interface{}) error
 	GetGroupName(groupID string) (string, error)
+
+	DoesUserExists(userid uint64)(bool,error)
 }
