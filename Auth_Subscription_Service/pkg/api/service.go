@@ -622,8 +622,12 @@ func (as *AuthSubscriptionServer) EditProfileInfromation(ctx context.Context, re
 		updateData["bio"] = *req.Bio
 	}
 	if req.Links != nil {
-		fmt.Println("here **")
+		fmt.Println("here ***")
 		updateData["links"] = *req.Links
+	}
+	if req.Phone!=nil{
+		fmt.Println("here ****")
+		updateData["phone"] = *req.Phone
 	}
 	fmt.Println("update data", updateData)
 	resp, err := as.AuthSubscriptionUsecase.EditProfileInformation(req.UserId, updateData)

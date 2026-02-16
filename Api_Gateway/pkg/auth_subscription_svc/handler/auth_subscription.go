@@ -927,6 +927,7 @@ func (as *AuthSubscriptionHandler) EditProfileInformation(c *gin.Context) {
 		Name:   editProfile.Name,
 		Bio:    editProfile.Bio,
 		Links:  editProfile.Links,
+		Phone: editProfile.Phone,
 	})
 	if err != nil {
 		log.Println("error from grpc calling editp profile information,error: ", err)

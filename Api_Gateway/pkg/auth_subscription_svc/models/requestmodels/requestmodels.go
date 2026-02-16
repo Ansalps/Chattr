@@ -11,6 +11,7 @@ type UserSignUpRequest struct {
 	Email           string `json:"Email" binding:"required,email"`
 	Password        string `json:"Password" binding:"required,min=3,max=30"`
 	ConfirmPassword string `json:"ConfirmPassword" binding:"required,eqfield=Password"`
+	Phone string	`json:"phone" binding:"required,regexp=^[0-9]{10}$"`
 }
 
 type OtpRequest struct {
@@ -127,6 +128,7 @@ type EditProfile struct{
 	Name *string	`json:"name"`
 	Bio *string	`json:"bio"`
 	Links *string `json:"links"`
+	Phone *string `json:"phone"`
 }
 type ChangePassword struct{
 	UserID uint64

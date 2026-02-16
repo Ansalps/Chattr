@@ -178,6 +178,7 @@ message EditProfileReq{
     optional string Name=2;
     optional string Bio=3;
     optional string Links=4;
+    optional string Phone=5;
 }
 message EditProfileRes{
     uint64 UserId=1;

@@ -660,6 +660,10 @@ func (ad *AuthSubscriptionRepository) EditProfileInformation(userId uint64, upda
 		fmt.Println("is reaching 3")
 		resp.Links = &val
 	}
+	if val, ok := updateData["phone"].(string); ok {
+		fmt.Println("is reaching 4")
+		resp.Links = &val
+	}
 	fmt.Println("resp", resp)
 	return resp, nil
 }
@@ -698,7 +702,7 @@ func (ad *AuthSubscriptionRepository) SearchUser(req requestmodels.SearchUser) (
 }
 func (ad *AuthSubscriptionRepository) FetchUserPublicData(userid uint64) (responsemodels.UserPublicDataResponse, error) {
 	var resp responsemodels.UserPublicDataResponse
-	query := `SELECT id as user_id,user_name,name,profile_img_url,bio,links,blue_tick,razorpay_customer_id FROM users WHERE id=$1`
+	query := `SELECT id as user_id,user_name,name,profile_img_url,bio,links,blue_tick,razorpay_customer_id,phone FROM users WHERE id=$1`
 	result := ad.DB.Raw(query, userid).Scan(&resp)
 	if result.Error != nil {
 		return responsemodels.UserPublicDataResponse{}, result.Error
@@ -708,6 +712,20 @@ func (ad *AuthSubscriptionRepository) FetchUserPublicData(userid uint64) (respon
 	}
 	return resp, nil
 }
+
+func (ad *AuthSubscriptionRepository)UpdateUserRazorpayCustomerID(userid uint64,customerid string)error{
+	query:=`UPDATE users SET razorpay_customer_id=$1 WHERE id=$2`
+	result:=ad.DB.Exec(query,customerid,userid)
+	if result.Error!=nil{
+		return result.Error
+	}
+	if result.RowsAffected==0{
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+
 func (ad *AuthSubscriptionRepository) FetchUserMetaData(userids []uint64) (map[uint64]responsemodels.UserMetaData, error) {
 	var resp []responsemodels.UserMetaData
 	query := `SELECT id as user_id,user_name,name,profile_img_url,blue_tick FROM users WHERE id IN ?`

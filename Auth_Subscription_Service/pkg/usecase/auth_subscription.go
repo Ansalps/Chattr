@@ -557,7 +557,10 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 	//fmt.Println("userDetail", userDetail)
 	//return responsemodels.SubscribeResponse{},nil
 	if userDetail.RazorpayCustomerID==""{
-		//userDetail.RazorpayCustomerID=createAndSaveCustomer()
+		userDetail.RazorpayCustomerID,err=as.createAndSaveCustomer(userDetail,subscribeReq.UserEmail)
+		if err!=nil{
+			return responsemodels.SubscribeResponse{},err
+		}
 	}
 
 	//razorpayClient:=utils.NewRazorpayClient(as.RazorpayCredentials.KeyId,as.RazorpayCredentials.KeySecret)
@@ -595,79 +598,41 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 	//fmt.Println("subscribeRes",subcribeRes)
 	return subcribeRes, nil
 }
-func (as *AuthSubscriptionUsecase) pollRazorpayAndSync(subid string) {
-	ticker := time.NewTicker(30 * time.Second) // Poll every 30 seconds
-	defer ticker.Stop()
-	count := 0
-	for range ticker.C {
 
-		// Call Razorpay API to get subscription data
-		razorpayData, err := as.RazorpayGateway.Client.Subscription.Fetch(subid, nil, nil)
-		if err != nil {
-			count++
-			if count == 20 {
-				return
-			}
-			fmt.Println("Error fetching Razorpay subscription:", err)
-			continue //retry on error
+func (as *AuthSubscriptionUsecase)createAndSaveCustomer(userDetail responsemodels.UserPublicDataResponse,email string)(string,error){
+	// 1. Prepare Customer Data for Razorpay
+    customerParams := map[string]interface{}{
+        "name":    userDetail.UserName,
+        "email":   email,
+        "contact": userDetail.Phone, // Ensure this is in your user model
+        "fail_existing": 0,               // 0 means if email exists, it returns the existing customer instead of erroring
+    }
+	// 2. Call Razorpay API
+    // Assuming as.RazorpayGateway is your initialized razorpay client
+    res, err := as.RazorpayGateway.Client.Customer.Create(customerParams, nil)
+    if err != nil {
+        log.Printf("Failed to create Razorpay customer: %v", err)
+        return "", err
+    }
+	// 3. Extract the ID from the response
+    // res is usually a map[string]interface{} or a specific struct depending on your SDK wrapper
+    customerID, ok := res["id"].(string)
+    if !ok {
+        return "", fmt.Errorf("invalid response format from Razorpay")
+    }
+
+    // 4. Update your local database
+    // This links your internal UserID to the Razorpay CustomerID forever
+    err = as.AuthSubscriptionRepository.UpdateUserRazorpayCustomerID(userDetail.UserID, customerID)
+    if err != nil {
+        log.Printf("Failed to save customerID %s to DB for user %d: %v", customerID, userDetail.UserID, err)
+		if err==gorm.ErrRecordNotFound{
+			return "",ErrUserNotFound
 		}
-		// Check if charge_at exists and is a valid value
-		chargeAt, ok := razorpayData["charge_at"].(float64) // or try .(string) or other types if needed
-		if !ok || chargeAt == 0 {
-			count++
-			if count == 20 {
-				return
-			}
-			fmt.Println("charge_at not populated or invalid")
-			continue // Retry if charge_at is null or invalid
-		}
-		// Sync the data if charge_at is populated
-		_, err = as.AuthSubscriptionRepository.UpdateUserSubscripion(subid, razorpayData)
-		if err != nil {
-			count++
-			if count == 20 {
-				return
-			}
-			fmt.Println("Error syncing Razorpay subscription data:", err)
-			continue // Retry on sync error
-		}
-		// Successfully synced, print success and return
-		//fmt.Println("Successfully synced subscription data for:", subid)
-		return // Stop polling after a successful update
-	}
-}
+        return "", err
+    }
 
-// Function to calculate `end_at` and `NextChargeAt` based on period, interval, and total_count
-func calculateEndAndNextChargeTime(startAt time.Time, period string, interval uint64, totalCount int) (time.Time, time.Time) {
-	// Calculate the total period
-	totalInterval := int(interval) * totalCount
-
-	// Variable to store the calculated end_at
-	var endAt time.Time
-	var nextChargeAt time.Time
-
-	// Calculate the end date based on the interval and total period
-	switch period {
-	case "day":
-		// If the interval is in days, add the total period in days
-		endAt = startAt.AddDate(0, 0, totalInterval)
-		nextChargeAt = endAt.AddDate(0, 0, int(interval)) // Next charge is after the `end_at` by 1 period (in days)
-	case "month":
-		// If the interval is in months, add the total period in months
-		endAt = startAt.AddDate(0, totalInterval, 0)
-		nextChargeAt = endAt.AddDate(0, int(interval), 0) // Next charge is after the `end_at` by 1 period (in months)
-	case "year":
-		// If the interval is in years, add the total period in years
-		endAt = startAt.AddDate(totalInterval, 0, 0)
-		nextChargeAt = endAt.AddDate(int(interval), 0, 0) // Next charge is after the `end_at` by 1 period (in years)
-	default:
-		// Default case if the interval is not recognized
-		endAt = startAt
-		nextChargeAt = startAt
-	}
-	fmt.Println("endAt---", endAt, "nextChargeAt---", nextChargeAt)
-	// Return both end_at and next_charge_at
-	return endAt, nextChargeAt
+    return customerID, nil
 }
 
 // func (as *AuthSubscriptionUsecase) VerifySubscriptionPayment(verifySubscriptionPaymentReq requestmodels.VerifySubscriptionPaymentRequest) (responsemodels.VerifySubscriptionPaymentResponse, error) {

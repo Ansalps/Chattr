@@ -88,4 +88,6 @@ type AuthSubscriptionRepository interface {
 	FetchUserSubscription(uint64)(string,error)
 
 	DoesUserExists(userid uint64)(bool,error)
+
+	UpdateUserRazorpayCustomerID(uint64,string)error
 }

@@ -1414,6 +1414,7 @@ type EditProfileReq struct {
 	Name          *string                `protobuf:"bytes,2,opt,name=Name,proto3,oneof" json:"Name,omitempty"`
 	Bio           *string                `protobuf:"bytes,3,opt,name=Bio,proto3,oneof" json:"Bio,omitempty"`
 	Links         *string                `protobuf:"bytes,4,opt,name=Links,proto3,oneof" json:"Links,omitempty"`
+	Phone         *string                `protobuf:"bytes,5,opt,name=Phone,proto3,oneof" json:"Phone,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1472,6 +1473,13 @@ func (x *EditProfileReq) GetBio() string {
 func (x *EditProfileReq) GetLinks() string {
 	if x != nil && x.Links != nil {
 		return *x.Links
+	}
+	return ""
+}
+
+func (x *EditProfileReq) GetPhone() string {
+	if x != nil && x.Phone != nil {
+		return *x.Phone
 	}
 	return ""
 }
@@ -4898,15 +4906,17 @@ const file_pkg_proto_auth_subscription_proto_rawDesc = "" +
 	"\vNewPasswrod\x18\x03 \x01(\tR\vNewPasswrod\x12.\n" +
 	"\x12ConfirmNewPassword\x18\x04 \x01(\tR\x12ConfirmNewPassword\"0\n" +
 	"\x16ChangePasswordResponse\x12\x16\n" +
-	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"\x8e\x01\n" +
+	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"\xb3\x01\n" +
 	"\x0eEditProfileReq\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x17\n" +
 	"\x04Name\x18\x02 \x01(\tH\x00R\x04Name\x88\x01\x01\x12\x15\n" +
 	"\x03Bio\x18\x03 \x01(\tH\x01R\x03Bio\x88\x01\x01\x12\x19\n" +
-	"\x05Links\x18\x04 \x01(\tH\x02R\x05Links\x88\x01\x01B\a\n" +
+	"\x05Links\x18\x04 \x01(\tH\x02R\x05Links\x88\x01\x01\x12\x19\n" +
+	"\x05Phone\x18\x05 \x01(\tH\x03R\x05Phone\x88\x01\x01B\a\n" +
 	"\x05_NameB\x06\n" +
 	"\x04_BioB\b\n" +
-	"\x06_Links\"\x8e\x01\n" +
+	"\x06_LinksB\b\n" +
+	"\x06_Phone\"\x8e\x01\n" +
 	"\x0eEditProfileRes\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x17\n" +
 	"\x04Name\x18\x02 \x01(\tH\x00R\x04Name\x88\x01\x01\x12\x15\n" +

@@ -235,6 +235,7 @@ type EditProfile struct{
 	Name *string	`json:"name,omitempty"`
 	Bio *string	`json:"bio,omitempty"`
 	Links *string `json:"links,omitempty"`
+	Phone *string	`json:"phone,omitempty"`
 }
 
 type ChangePasswordResponse struct{
@@ -260,6 +261,7 @@ type UserPublicDataResponse struct{
 	Links string
 	BlueTick bool
 	RazorpayCustomerID string
+	Phone string
 }
 type FetchSubscriptionPlan struct{
 	ID uint64 `gorm:"column:plan_id"`
