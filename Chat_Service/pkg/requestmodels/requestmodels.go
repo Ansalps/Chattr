@@ -42,15 +42,21 @@ type RemoveMemberRequest struct {
 
 type MessageRequest struct {
 	SenderID    uint64    `json:"sender_id"`
-	RecipientID uint64    `json:"recipient_id"`
+	RecipientID uint64    `json:"recipient_id,omitempty"`
 	Content     string    `json:"content" `
 	CreatedAt   time.Time `json:"created_at"`
 	Type        string    `json:"type" validate:"required"`
 	//Status      string    `json:"Status"`
-	GroupID string `json:"group_id"`
+	GroupID string `json:"group_id,omitempty"`
 	//TypingStat  bool
 }
 
+type GetGroupMembersRequest struct{
+	GroupID string
+	UserID uint64
+	Limit int
+	Offset int
+}
 type RecentChatProfilesRequest struct{
 	UserID uint64
 	Limit int
@@ -62,4 +68,11 @@ type GetChatRequest struct{
 	UserID uint64
 	Limit int
 	Offset int
+}
+
+type GroupProfileImageRequest struct{
+	UserID uint64
+	GroupID string
+    ContentType string `json:"content_type" binding:"required"`
+    Image       []byte	`json:"image" binding:"required"`
 }

@@ -164,12 +164,16 @@ func (ad *ChatRepository) AddMembers(req requestmodels.AddMembersRequest) (respo
 	_, err = ad.convColl().UpdateOne(ctx, convFilter, convUpdate, convOpts)
 	if err != nil {
 		log.Printf("Warning: Failed to sync conversation for group %s: %v", req.GroupID, err)
+		return responsemodels.AddMembersResponse{},err
 	}
-	fmt.Println("hello hello")
+	fmt.Println("updatedDoc.GroupID",updatedDoc.GroupID)
+	fmt.Println("updatdDoc.GroupMembers",updatedDoc.GroupMembers)
+	fmt.Println("updatedDoc.CreatorID",updatedDoc.CreatorID)
+	//fmt.Println("hello hello")
 	return responsemodels.AddMembersResponse{
 		GroupID:      updatedDoc.GroupID,
 		GroupMembers: updatedDoc.GroupMembers,
-		//CreatorID:    updatedDoc.CreatorID,
+		UserID:    updatedDoc.CreatorID,
 	}, nil
 }
 
@@ -407,12 +411,41 @@ func (ad *ChatRepository) GetUserConversation(req requestmodels.RecentChatProfil
 	return conversations, nil
 }
 
-func (ad *ChatRepository) GetGroupNamesBatch(groupIDs []string) (map[string]string, error) {
+// func (ad *ChatRepository) GetGroupNamesBatch(groupIDs []string) (map[string]string, error) {
+// 	collection := ad.MongoClient.Database("chat").Collection("group")
+
+// 	// Query: { groupid: { $in: ["id1", "id2"...] } }
+// 	filter := bson.M{"groupid": bson.M{"$in": groupIDs}}
+// 	projection := bson.M{"groupid": 1, "groupname": 1, "_id": 0}
+
+// 	cursor, err := collection.Find(context.Background(), filter, options.Find().SetProjection(projection))
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer cursor.Close(context.Background())
+
+// 	results := make(map[string]string)
+// 	for cursor.Next(context.Background()) {
+// 		var temp struct {
+// 			ID   string `bson:"groupid"`
+// 			Name string `bson:"groupname"`
+// 		}
+// 		if err := cursor.Decode(&temp); err == nil {
+// 			results[temp.ID] = temp.Name
+// 		}
+// 	}
+// 	return results, nil
+// }
+func (ad *ChatRepository) GetGroupMetaBatch(groupIDs []string) (map[string]responsemodels.GroupMeta, error) {
 	collection := ad.MongoClient.Database("chat").Collection("group")
 
-	// Query: { groupid: { $in: ["id1", "id2"...] } }
 	filter := bson.M{"groupid": bson.M{"$in": groupIDs}}
-	projection := bson.M{"groupid": 1, "groupname": 1, "_id": 0}
+	projection := bson.M{
+		"groupid":       1,
+		"groupname":     1,
+		"groupimageurl": 1,
+		"_id":           0,
+	}
 
 	cursor, err := collection.Find(context.Background(), filter, options.Find().SetProjection(projection))
 	if err != nil {
@@ -420,18 +453,26 @@ func (ad *ChatRepository) GetGroupNamesBatch(groupIDs []string) (map[string]stri
 	}
 	defer cursor.Close(context.Background())
 
-	results := make(map[string]string)
+	results := make(map[string]responsemodels.GroupMeta)
+
 	for cursor.Next(context.Background()) {
 		var temp struct {
-			ID   string `bson:"groupid"`
-			Name string `bson:"groupname"`
+			ID       string `bson:"groupid"`
+			Name     string `bson:"groupname"`
+			ImageURL string `bson:"groupimageurl"`
 		}
+
 		if err := cursor.Decode(&temp); err == nil {
-			results[temp.ID] = temp.Name
+			results[temp.ID] = responsemodels.GroupMeta{
+				Name:     temp.Name,
+				ImageURL: temp.ImageURL, // may be empty
+			}
 		}
 	}
+
 	return results, nil
 }
+
 
 func (ad *ChatRepository) GetUserMessagesByConversationId(req requestmodels.GetChatRequest) ([]domain.Message, error) {
 	collection := ad.MongoClient.Database("chat").Collection("messages")
@@ -500,4 +541,29 @@ func (ad *ChatRepository) GetGroupNameByGroupID(groupID string) (string, error) 
 	}
 
 	return result.GroupName, nil
+}
+
+func (r *ChatRepository) SetGroupProfileImage(groupID string, imageURL string) error {
+	filter := bson.M{
+		"groupid": groupID,
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"groupimageurl": imageURL,
+			"updatedat":     time.Now(),
+		},
+	}
+
+	result, err := r.groupColl().UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		return err
+	}
+
+	// if no document updated → group not found
+	if result.MatchedCount == 0 {
+		return domain.ErrGroupNotFound
+	}
+
+	return nil
 }

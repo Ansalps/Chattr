@@ -24,13 +24,16 @@ type ChatRepository interface {
 
 	GetUserConversation(req requestmodels.RecentChatProfilesRequest) ([]domain.Conversation, error)
 
-	GetGroupNamesBatch(groupIDs []string) (map[string]string, error)
+	//GetGroupNamesBatch(groupIDs []string) (map[string]string, error)
+	GetGroupMetaBatch(groupIDs []string) (map[string]responsemodels.GroupMeta, error)
 
 	GetUserMessagesByConversationId(req requestmodels.GetChatRequest) ([]domain.Message, error)
 
 	IsUserInConversation(convID string, userID uint64) (bool, error)
 
 	GetGroupNameByGroupID(groupID string) (string, error)
+	
 
 	GroupExists(ctx context.Context, groupID string) (bool, error)
+	SetGroupProfileImage(groupID string, imageURL string) error
 }

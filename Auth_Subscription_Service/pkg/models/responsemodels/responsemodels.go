@@ -228,6 +228,7 @@ type GetProfileInformationResponse struct{
 	ProfileImgUrl string
 	Links         string
 	BlueTick	bool	
+	Phone string
 }
 
 type EditProfile struct{

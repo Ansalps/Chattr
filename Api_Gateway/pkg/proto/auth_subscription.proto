@@ -198,6 +198,7 @@ message ProfileInfoRes{
     string ProfileImageUrl=6;
     string Links=7;
     bool BlueTick=8;
+    string Phone=9;
 }
 message WebhookRequest {
     string event = 1;

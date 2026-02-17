@@ -19,3 +19,8 @@ type RemoveMembersRequest struct {
 	UserID uint64 `json:"user_id"`  
 	MemberID uint64 `json:"member_id" validate:"required"`
 }
+
+type GroupProfileImageRequest struct{
+    ContentType string `json:"content_type" binding:"required"`
+    Image       []byte	`json:"image" binding:"required"`
+}

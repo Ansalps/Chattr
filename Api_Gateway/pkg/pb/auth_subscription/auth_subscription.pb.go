@@ -1606,6 +1606,7 @@ type ProfileInfoRes struct {
 	ProfileImageUrl string                 `protobuf:"bytes,6,opt,name=ProfileImageUrl,proto3" json:"ProfileImageUrl,omitempty"`
 	Links           string                 `protobuf:"bytes,7,opt,name=Links,proto3" json:"Links,omitempty"`
 	BlueTick        bool                   `protobuf:"varint,8,opt,name=BlueTick,proto3" json:"BlueTick,omitempty"`
+	Phone           string                 `protobuf:"bytes,9,opt,name=Phone,proto3" json:"Phone,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -1694,6 +1695,13 @@ func (x *ProfileInfoRes) GetBlueTick() bool {
 		return x.BlueTick
 	}
 	return false
+}
+
+func (x *ProfileInfoRes) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
 }
 
 type WebhookRequest struct {
@@ -4926,7 +4934,7 @@ const file_pkg_proto_auth_subscription_proto_rawDesc = "" +
 	"\x04_BioB\b\n" +
 	"\x06_Links\"(\n" +
 	"\x0eProfileInfoReq\x12\x16\n" +
-	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"\xdc\x01\n" +
+	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"\xf2\x01\n" +
 	"\x0eProfileInfoRes\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x12\n" +
 	"\x04Name\x18\x02 \x01(\tR\x04Name\x12\x1a\n" +
@@ -4935,7 +4943,8 @@ const file_pkg_proto_auth_subscription_proto_rawDesc = "" +
 	"\x03Bio\x18\x05 \x01(\tR\x03Bio\x12(\n" +
 	"\x0fProfileImageUrl\x18\x06 \x01(\tR\x0fProfileImageUrl\x12\x14\n" +
 	"\x05Links\x18\a \x01(\tR\x05Links\x12\x1a\n" +
-	"\bBlueTick\x18\b \x01(\bR\bBlueTick\"\\\n" +
+	"\bBlueTick\x18\b \x01(\bR\bBlueTick\x12\x14\n" +
+	"\x05Phone\x18\t \x01(\tR\x05Phone\"\\\n" +
 	"\x0eWebhookRequest\x12\x14\n" +
 	"\x05event\x18\x01 \x01(\tR\x05event\x124\n" +
 	"\apayload\x18\x02 \x01(\v2\x1a.auth_subscription.PayloadR\apayload\"N\n" +

@@ -155,11 +155,120 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 	c.Data(resp.StatusCode, "application/json", body)
 }
 
+func (as *ChatHandler)SetGroupProfileImage(c *gin.Context){
+	claims := c.MustGet("claims").(responsemodels.JwtClaims)
+	groupIdStr := c.Param("group_id")
+	if groupIdStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "group id missing"})
+		return
+	}
+	var req requestmodels.GroupProfileImageRequest
+	file, err := c.FormFile("image")
+	if err != nil {
+		log.Println(err)
+		c.JSON(400, gin.H{"error": "Image is required"})
+		return
+	}
+	str := as.config.ProfileImgSize
+    num, err := strconv.Atoi(str) // returns (int, error)
+    if err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+	// Check file size < 2 MB
+	if file.Size > int64(num)*1024*1024 {
+		c.JSON(400, gin.H{"error": "Image must be less than 2MB"})
+		return
+	}
+	src, err := file.Open()
+	if err != nil {
+		log.Println(err)
+		c.JSON(500, gin.H{"error": "Cannot open image"})
+		return
+	}
+	defer src.Close()
+
+	// Read first 512 bytes to detect content type
+	buf := make([]byte, 512)
+	_, err = src.Read(buf)
+	if err != nil {
+		log.Println(err)
+		c.JSON(400, gin.H{"error": "Invalid image"})
+		return
+	}
+
+	// Detect MIME type
+	contentType := http.DetectContentType(buf)
+
+	// Allowed types
+	allowed := map[string]bool{
+		"image/jpeg": true,
+		"image/jpg":  true,
+		"image/png":  true,
+		"image/webp": true,
+	}
+
+	if !allowed[contentType] {
+		c.JSON(400, gin.H{"error": "Only JPG, PNG, or WebP images are allowed"})
+		return
+	}
+
+	// Reset file pointer (since we read 512 bytes)
+	src.Seek(0, 0)
+
+	// Read full bytes
+	data, err := io.ReadAll(src)
+	if err != nil {
+		log.Println(err)
+		c.JSON(500, gin.H{"error": "Cannot read image"})
+		return
+
+	}
+
+	req.Image=data
+	req.ContentType=contentType
+
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to encode request"})
+		return
+	}
+	url := fmt.Sprintf("http://localhost:50053/user/group/%s/set-group-profile-image",groupIdStr)
+	
+	httpReq, err := http.NewRequest("PATCH", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	
+	httpReq.Header.Del("Authorization")
+	// Identity headers
+	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
+	
+	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		c.JSON(502, gin.H{"error": "chat service unavailable"})
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	c.Data(resp.StatusCode, "application/json", body)
+}
+
 func (as *ChatHandler) AddMembers(c *gin.Context) {
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
 	groupIdStr := c.Param("group_id")
-
+	if groupIdStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "group id missing"})
+		return
+	}
 	var req requestmodels.AddMembersRequest
 
 	req.GroupID = groupIdStr
@@ -190,9 +299,7 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 	httpReq.Header.Del("Authorization")
 	// Identity headers
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
-	//httpReq.Header.Set("X-User-Role", claims.Role)
-	//httpReq.Header.Set("X-User-Email", claims.Email)
-	//httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+	
 	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
 
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -232,10 +339,10 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 	req.MemberID = memberId
 	req.UserID = claims.ID
 
-	if memberId == claims.ID {
-		c.JSON(412, gin.H{"error": "cannot remove yourself from the group"})
-		return
-	}
+	// if memberId == claims.ID {
+	// 	c.JSON(412, gin.H{"error": "cannot remove yourself from the group"})
+	// 	return
+	// }
 
 	jsonData, err := json.Marshal(req)
 	if err != nil {
@@ -254,13 +361,59 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 	httpReq.Header.Del("Authorization")
 	// Identity headers
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
-	//httpReq.Header.Set("X-User-Role", claims.Role)
-	//httpReq.Header.Set("X-User-Email", claims.Email)
-	//httpReq.Header.Set("X-Internal-Secret", "internalSecret")
+	
 	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
 
 	httpReq.Header.Set("Content-Type", "application/json")
 
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		c.JSON(502, gin.H{"error": "chat service unavailable"})
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	c.Data(resp.StatusCode, "application/json", body)
+}
+
+func (as *ChatHandler)GetGroupMembers(c *gin.Context){
+	claims := c.MustGet("claims").(responsemodels.JwtClaims)
+
+	groupIdStr := c.Param("group_id")
+	if groupIdStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "group id missing"})
+		return
+	}
+
+	// 1. Parse Pagination
+    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+    limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	if page < 1 || limit < 1 || limit > 100 {
+        c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page or limit", nil))
+        return
+    }
+
+	offset := (page - 1) * limit
+
+	url := fmt.Sprintf("http://localhost:50053/user/group/%s/members?limit=%d&offset=%d",groupIdStr,limit,offset)
+
+	httpReq, err := http.NewRequest("GET", url, nil)
+
+	if err != nil {
+		log.Printf("Failed to create request: %v", err)
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	httpReq.Header.Del("Authorization")
+	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
+	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
+
+	httpReq.Header.Set("Content-Type", "application/json")
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(httpReq)
 	if err != nil {

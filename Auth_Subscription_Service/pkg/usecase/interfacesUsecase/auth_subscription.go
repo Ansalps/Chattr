@@ -57,4 +57,6 @@ type AuthSubscriptionUsecase interface{
 
 	DoesUserExists(userid uint64)(bool,error)
 
+	CheckAllUsersExists([]uint64)([]uint64,error)
+
 }

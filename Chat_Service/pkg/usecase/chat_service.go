@@ -1,44 +1,152 @@
 package usecase
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
 	"slices"
+	"strings"
 	"time"
 
+	"github.com/Ansalps/Chattr_Chat_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/pb"
 	interfacesrepository "github.com/Ansalps/Chattr_Chat_Service/pkg/repository/interfacesRepository"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/requestmodels"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/responsemodels"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/usecase/interfacesUsecase"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type ChatUsecase struct {
 	ChatRepository interfacesrepository.ChatRepository
 	AuthClient     pb.AuthSubscriptionServiceClient
+	AwsS3Client    *s3.Client
+	AwsBucket      string
+	Config         *config.Config
 }
 
-func NewChatUsecase(repository interfacesrepository.ChatRepository, authClient pb.AuthSubscriptionServiceClient) interfacesUsecase.ChatUsecase {
+func NewChatUsecase(repository interfacesrepository.ChatRepository, authClient pb.AuthSubscriptionServiceClient, awsS3Client *s3.Client, awsBucket string, config *config.Config) interfacesUsecase.ChatUsecase {
 	return &ChatUsecase{
 		ChatRepository: repository,
 		AuthClient:     authClient,
+		AwsS3Client:    awsS3Client,
+		AwsBucket:      awsBucket,
+		Config:         config,
 	}
 }
 
-func (as *ChatUsecase)DoesUserExists(userid uint64)(bool,error){
-	resp,err:=as.AuthClient.DoesUserExists(context.Background(),&pb.DoesUserExistsRequest{
+func (as *ChatUsecase) SetGroupProfileImage(req requestmodels.GroupProfileImageRequest) (string, error) {
+	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return "", domain.ErrGroupNotFound
+	}
+	userIds, err := as.ChatRepository.FetchMembersOfGroup(req.GroupID)
+	if err != nil {
+		return "nil", err
+	}
+	if !slices.Contains(userIds, req.UserID) {
+		return "", domain.ErrNotGroupMember
+	}
+	ct := req.ContentType
+
+	ct = strings.TrimPrefix(ct, "image/")
+
+	filename := fmt.Sprintf("%d_%d.%s", req.UserID, time.Now().Unix(), ct)
+	fmt.Println("file name", filename)
+	key := "group_profiles/" + filename
+	//fmt.Println("inside usecase type", setProfileImageReq.ContentType)
+	if req.ContentType == "" {
+		return "", domain.ErrContentTypeNil /*fmt.Errorf("content type is nil")*/
+	}
+	//fmt.Println("hi hello",aws.String(as.AwsBucket),aws.String(key),as.AwsBucket,key)
+	uploader := manager.NewUploader(as.AwsS3Client)
+	_, err = uploader.Upload(context.Background(), &s3.PutObjectInput{
+		Bucket:      aws.String(as.AwsBucket),
+		Key:         aws.String(key),
+		Body:        bytes.NewReader(req.Image),
+		ContentType: aws.String(req.ContentType),
+	})
+	if err != nil {
+		//fmt.Println("is it here")
+		return "", status.Errorf(codes.Internal, "upload failed: %v", err)
+	}
+	// Construct URL
+	imageURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", as.AwsBucket, as.Config.Aws.AwsRegion, key)
+	// Save to DB
+	err = as.ChatRepository.SetGroupProfileImage(req.GroupID, imageURL)
+	if err != nil {
+		return "", status.Errorf(codes.Internal, "db update failed: %v", err)
+	}
+
+	return imageURL, nil
+}
+func (as *ChatUsecase) GetGroupMembers(req requestmodels.GetGroupMembersRequest) ([]responsemodels.GetGroupMembersResponse, error) {
+	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, domain.ErrGroupNotFound
+	}
+	userIds, err := as.ChatRepository.FetchMembersOfGroup(req.GroupID)
+	if err != nil {
+		return nil, err
+	}
+	if !slices.Contains(userIds, req.UserID) {
+		return nil, domain.ErrNotGroupMember
+	}
+	// ✅ Apply pagination
+	start := req.Offset
+	end := req.Offset + req.Limit
+
+	if start > len(userIds) {
+		return []responsemodels.GetGroupMembersResponse{}, nil
+	}
+
+	if end > len(userIds) {
+		end = len(userIds)
+	}
+
+	userIds = userIds[start:end]
+	authRes, err := as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+		UserId: userIds})
+	if err != nil {
+		log.Printf("Auth service batch call failed: %v", err)
+		return nil, err
+	}
+	//fmt.Println("",authRes.Users)
+
+	resp := make([]responsemodels.GetGroupMembersResponse, 0)
+	for _, v := range userIds {
+		r := responsemodels.GetGroupMembersResponse{
+			UserID:        authRes.Users[v].UserId,
+			UserName:      authRes.Users[v].UserName,
+			ProfileImgUrl: authRes.Users[v].ProfileImgUrl,
+		}
+		resp = append(resp, r)
+	}
+	return resp, nil
+}
+func (as *ChatUsecase) DoesUserExist(userid uint64) (bool, error) {
+	resp, err := as.AuthClient.DoesUserExists(context.Background(), &pb.DoesUserExistsRequest{
 		UserId: userid,
 	})
-	if err!=nil{
+	if err != nil {
 		log.Println(err)
-		return false,err
+		return false, err
 	}
-	return resp.Exists,nil
+	return resp.Exists, nil
 }
-
 
 func (as *ChatUsecase) GetGroupName(groupID string) (string, error) {
 	if groupID == "" {
@@ -49,6 +157,28 @@ func (as *ChatUsecase) GetGroupName(groupID string) (string, error) {
 }
 
 func (as *ChatUsecase) CreateGroup(req requestmodels.CreateGroupRequest) (responsemodels.CreateGroupResponse, error) {
+	allUsersNotExists, err := as.AuthClient.CheckAllUsersExists(context.Background(), &pb.UserDataReq{
+		UserId: req.GroupMembers,
+	})
+	if err != nil {
+		return responsemodels.CreateGroupResponse{}, err
+	}
+	if len(allUsersNotExists.UserId) != 0 {
+		return responsemodels.CreateGroupResponse{}, &domain.NonExistingUsersError{
+			UserIDs: allUsersNotExists.UserId,
+		}
+	}
+	resp1, err := as.AuthClient.CheckUserListExists(context.Background(), &pb.UserDataReq{
+		UserId: req.GroupMembers,
+	})
+	if err != nil {
+		log.Println(err)
+		return responsemodels.CreateGroupResponse{}, err
+	}
+	if len(resp1.UserId) == 0 {
+		return responsemodels.CreateGroupResponse{}, domain.ErrNoUsersFound
+	}
+	req.GroupMembers = resp1.UserId
 	// 1. Create the Group entry in the 'groups' collection
 	resp, err := as.ChatRepository.CreateGroup(req)
 	if err != nil {
@@ -81,12 +211,23 @@ func (as *ChatUsecase) CreateGroup(req requestmodels.CreateGroupRequest) (respon
 }
 
 func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (responsemodels.AddMembersResponse, error) {
-	exists,err:=as.ChatRepository.GroupExists(context.Background(),req.GroupID)
-	if err!=nil{
-		return responsemodels.AddMembersResponse{},err
+	allUsersNotExists, err := as.AuthClient.CheckAllUsersExists(context.Background(), &pb.UserDataReq{
+		UserId: req.GroupMembers,
+	})
+	if err != nil {
+		return responsemodels.AddMembersResponse{}, err
 	}
-	if !exists{
-		return responsemodels.AddMembersResponse{},domain.ErrGroupNotFound
+	if len(allUsersNotExists.UserId) != 0 {
+		return responsemodels.AddMembersResponse{}, &domain.NonExistingUsersError{
+			UserIDs: allUsersNotExists.UserId,
+		}
+	}
+	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
+	if err != nil {
+		return responsemodels.AddMembersResponse{}, err
+	}
+	if !exists {
+		return responsemodels.AddMembersResponse{}, domain.ErrGroupNotFound
 	}
 	resp1, err := as.ChatRepository.ExistingMembers(req.GroupID)
 	if err != nil {
@@ -120,7 +261,7 @@ func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (response
 		return responsemodels.AddMembersResponse{}, err
 	}
 	resp2.UserID = req.UserID
-	fmt.Println("resp2", resp2)
+	//fmt.Println("resp2", resp2)
 	return resp2, nil
 }
 
@@ -132,12 +273,12 @@ func (as *ChatUsecase) RemoveMember(req requestmodels.RemoveMemberRequest) (resp
 	// if creatorId != req.UserID {
 	// 	return responsemodels.RemoveMemberResponse{}, domain.ErrNotCreatorId
 	// }
-	exists,err:=as.ChatRepository.GroupExists(context.Background(),req.GroupID)
-	if err!=nil{
-		return responsemodels.RemoveMemberResponse{},err
+	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
+	if err != nil {
+		return responsemodels.RemoveMemberResponse{}, err
 	}
-	if !exists{
-		return responsemodels.RemoveMemberResponse{},domain.ErrGroupNotFound
+	if !exists {
+		return responsemodels.RemoveMemberResponse{}, domain.ErrGroupNotFound
 	}
 	resp1, err := as.ChatRepository.ExistingMembers(req.GroupID)
 	if err != nil {
@@ -225,15 +366,18 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 	}
 
 	// 2. One Batch Call for Groups
-	groupNames, err := as.ChatRepository.GetGroupNamesBatch(groupIDs) // Map[ID]Name
+	//groupNames, err := as.ChatRepository.GetGroupNamesBatch(groupIDs) // Map[ID]Name
+	groupMeta, err := as.ChatRepository.GetGroupMetaBatch(groupIDs)
+
 	if err != nil {
 		log.Println("error fetching group names")
+		return []responsemodels.ChatProfileResponse{},err
 	}
 
 	// 3. Batch Call to Auth Service
 	// Request: { user_ids: [10, 11, ...] }
 	// Response: { user_metadata_map: { "10": {name: "Ansal", img: "..."}, "11": {...} } }
-	fmt.Println("individualUserIDs", individualUserIDs)
+	//fmt.Println("individualUserIDs", individualUserIDs)
 	authRes, err := as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
 		UserId: individualUserIDs})
 	if err != nil {
@@ -251,7 +395,10 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 		}
 
 		if conv.Type == "group" {
-			profile.ChatName = groupNames[conv.GroupID]
+			meta := groupMeta[conv.GroupID]
+
+			profile.ChatName = meta.Name
+			profile.ChatImage = meta.ImageURL // empty if not set
 		} else {
 			// Find the "other" person in this chat
 			for _, pID := range conv.Participants {
@@ -270,21 +417,20 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 	return finalProfiles, nil
 }
 
-func (as *ChatUsecase)GetChat(req requestmodels.GetChatRequest)(responsemodels.GetChatResponse,error){
+func (as *ChatUsecase) GetChat(req requestmodels.GetChatRequest) (responsemodels.GetChatResponse, error) {
 	fmt.Println("req.UserID", req.UserID)
 
 	// 1. SECURITY VALIDATION
-    // Check if the UserID is a participant in this Conversation
-    isParticipant, err := as.ChatRepository.IsUserInConversation(req.ConvID, req.UserID)
-    if err != nil || !isParticipant {
-        log.Printf("Unauthorized access attempt: User %d for ConvID %s", req.UserID, req.ConvID)
-        return responsemodels.GetChatResponse{}, domain.ErrUserNotInConversation
-    }
+	// Check if the UserID is a participant in this Conversation
+	isParticipant, err := as.ChatRepository.IsUserInConversation(req.ConvID, req.UserID)
+	if err != nil || !isParticipant {
+		log.Printf("Unauthorized access attempt: User %d for ConvID %s", req.UserID, req.ConvID)
+		return responsemodels.GetChatResponse{}, domain.ErrUserNotInConversation
+	}
 
 	// 1. Request one extra message to check if there's more data
-    originalLimit := req.Limit
-    req.Limit = originalLimit + 1
-
+	originalLimit := req.Limit
+	req.Limit = originalLimit + 1
 
 	messages, err := as.ChatRepository.GetUserMessagesByConversationId(req)
 	if err != nil {
@@ -293,58 +439,58 @@ func (as *ChatUsecase)GetChat(req requestmodels.GetChatRequest)(responsemodels.G
 	}
 
 	hasMore := false
-    // 2. If we got back more than the original limit, we know a next page exists
-    if len(messages) > originalLimit {
-        hasMore = true
-        messages = messages[:originalLimit] // Remove the extra message before returning
-    }
+	// 2. If we got back more than the original limit, we know a next page exists
+	if len(messages) > originalLimit {
+		hasMore = true
+		messages = messages[:originalLimit] // Remove the extra message before returning
+	}
 
 	// 3. Reverse the slice so oldest is first, newest is last (UI friendly)
-    for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
-        messages[i], messages[j] = messages[j], messages[i]
-    }
+	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
+		messages[i], messages[j] = messages[j], messages[i]
+	}
 
 	// 2. Collect unique SenderIDs to batch-fetch names/profiles
-    senderIDsMap := make(map[uint64]bool)
-    var uniqueIDs []uint64
-    for _, msg := range messages {
-        if !senderIDsMap[msg.SenderID] {
-            uniqueIDs = append(uniqueIDs, msg.SenderID)
-            senderIDsMap[msg.SenderID] = true
-        }
-    }
+	senderIDsMap := make(map[uint64]bool)
+	var uniqueIDs []uint64
+	for _, msg := range messages {
+		if !senderIDsMap[msg.SenderID] {
+			uniqueIDs = append(uniqueIDs, msg.SenderID)
+			senderIDsMap[msg.SenderID] = true
+		}
+	}
 	// 3. Batch Call to Auth Service (gRPC)
-    var authRes *pb.BatchUserMetadataResponse // Replace with your actual gRPC generated package name
-    if len(uniqueIDs) > 0 {
-        authRes, err = as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
-            UserId: uniqueIDs,
-        })
-        if err != nil {
-            log.Printf("Warning: Auth service call failed: %v", err)
-            // We continue so the user sees message text even if profiles fail
-        }
-    }
+	var authRes *pb.BatchUserMetadataResponse // Replace with your actual gRPC generated package name
+	if len(uniqueIDs) > 0 {
+		authRes, err = as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+			UserId: uniqueIDs,
+		})
+		if err != nil {
+			log.Printf("Warning: Auth service call failed: %v", err)
+			// We continue so the user sees message text even if profiles fail
+		}
+	}
 
 	// 4. Map to response models and hydrate sender data
-    var messageResponses []responsemodels.MessageResponse
-    for _, msg := range messages {
-        mResp := responsemodels.MessageResponse{
-            MessageID:   msg.MessageID,
-            SenderID:    msg.SenderID,
-            Content:     msg.Content,
-            CreatedAt:   msg.CreatedAt,
-            Status:      msg.Status,
-        }
+	var messageResponses []responsemodels.MessageResponse
+	for _, msg := range messages {
+		mResp := responsemodels.MessageResponse{
+			MessageID: msg.MessageID,
+			SenderID:  msg.SenderID,
+			Content:   msg.Content,
+			CreatedAt: msg.CreatedAt,
+			Status:    msg.Status,
+		}
 
 		// Fill Name and Profile if available from gRPC response
-        if authRes != nil && authRes.Users != nil {
-            if user, ok := authRes.Users[msg.SenderID]; ok {
-                mResp.SenderName = user.UserName
-                mResp.SenderProfileImgUrl = user.ProfileImgUrl
-            }
-        }
+		if authRes != nil && authRes.Users != nil {
+			if user, ok := authRes.Users[msg.SenderID]; ok {
+				mResp.SenderName = user.UserName
+				mResp.SenderProfileImgUrl = user.ProfileImgUrl
+			}
+		}
 		messageResponses = append(messageResponses, mResp)
-		
+
 	}
 	// 5. Final Response
 	return responsemodels.GetChatResponse{

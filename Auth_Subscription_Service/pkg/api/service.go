@@ -29,6 +29,16 @@ func NewAuthSubscriptionServer(useCase interfacesUsecase.AuthSubscriptionUsecase
 		AuthSubscriptionUsecase: useCase,
 	}
 }
+
+func (as *AuthSubscriptionServer)CheckAllUsersExists(ctx context.Context,req *pb.UserDataReq)(*pb.UsersNotExistsResponse,error){
+	resp,err:=as.AuthSubscriptionUsecase.CheckAllUsersExists(req.UserId)
+	if err!=nil{
+		return nil,err
+	}
+	return &pb.UsersNotExistsResponse{
+		UserId: resp,
+	},nil
+}
 func (as *AuthSubscriptionServer)DoesUserExists(ctx context.Context,req *pb.DoesUserExistsRequest)(*pb.DoesUserExistsResponse,error){
 	resp,err:=as.AuthSubscriptionUsecase.DoesUserExists(req.UserId)
 	if err!=nil{
@@ -609,6 +619,7 @@ func (as *AuthSubscriptionServer) GetProfileInformation(ctx context.Context, req
 		ProfileImageUrl: resp.ProfileImgUrl,
 		Links:           resp.Links,
 		BlueTick:        resp.BlueTick,
+		Phone: resp.Phone,
 	}, nil
 }
 func (as *AuthSubscriptionServer) EditProfileInfromation(ctx context.Context, req *pb.EditProfileReq) (*pb.EditProfileRes, error) {
@@ -728,7 +739,10 @@ func (as *AuthSubscriptionServer) CheckUserListExists(ctx context.Context, req *
 	userids = req.UserId
 	resp, err := as.AuthSubscriptionUsecase.CheckUserListExists(userids)
 	if err != nil {
-		return nil, usecase.ErrNoUsersFound
+		if err==usecase.ErrNoUsersFound{
+			return nil,status.Error(codes.NotFound,err.Error())
+		}
+		return nil, err
 	}
 	return &pb.BatchUserExistResponse{
 		UserId: resp,

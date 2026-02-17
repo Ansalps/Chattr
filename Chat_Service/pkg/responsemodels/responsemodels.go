@@ -17,6 +17,11 @@ type RemoveMemberResponse struct {
 	MemberID  uint64 `json:"group_members" validate:"required"`
 	CreatorID uint64 `json:"creator_id"`
 }
+type GetGroupMembersResponse struct{
+	UserID uint64
+	UserName string
+	ProfileImgUrl string
+}
 type ChatProfileResponse struct {
 	ChatID          string    `json:"chat_id"`
 	ChatName        string    `json:"chat_name"`
@@ -40,4 +45,9 @@ type GetChatResponse struct {
     ConversationID string            `json:"conversation_id"`
     Messages       []MessageResponse `json:"messages"`
     HasMore        bool              `json:"has_more"`
+}
+
+type GroupMeta struct {
+	Name     string
+	ImageURL string
 }

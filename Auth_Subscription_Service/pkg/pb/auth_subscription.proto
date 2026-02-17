@@ -52,6 +52,11 @@ service AuthSubscriptionService{
     rpc WebhookSubscriptionCompleted(WebhookSubscriptionCompletedRequest) returns (WebhookSubscriptionCompletedResponse);
 
     rpc DoesUserExists(DoesUserExistsRequest) returns (DoesUserExistsResponse);
+
+    rpc CheckAllUsersExists(UserDataReq) returns (UsersNotExistsResponse);
+}
+message UsersNotExistsResponse{
+    repeated uint64 UserId=1;
 }
 message DoesUserExistsRequest{
     uint64 UserId=1;
@@ -223,6 +228,7 @@ message ProfileInfoRes{
     string ProfileImageUrl=6;
     string Links=7;
     bool BlueTick=8;
+    string Phone=9;
 }
 message CheckUserExistsRequest{
     uint64 UserId=1;

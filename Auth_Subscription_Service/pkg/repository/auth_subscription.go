@@ -8,6 +8,7 @@ import (
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/responsemodels"
+	"github.com/lib/pq"
 
 	//"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/repository/interfacesRepository"
@@ -254,12 +255,12 @@ func (ad *AuthSubscriptionRepository) CreateSubscription(req requestmodels.Subsc
 func (ad *AuthSubscriptionRepository) FetchStatusFromSubcriptionPlan(id uint64) (bool, error) {
 	var status bool
 	query := `SELECT is_active FROM subscription_plans WHERE id=?`
-	result := ad.DB.Raw(query, id).Scan(&status); 
+	result := ad.DB.Raw(query, id).Scan(&status)
 	if result.Error != nil {
 		return false, result.Error
 	}
-	if result.RowsAffected==0{
-		return false,gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		return false, gorm.ErrRecordNotFound
 	}
 	return status, nil
 }
@@ -357,8 +358,8 @@ func (ad *AuthSubscriptionRepository) FetchRazorpayPlanIdFromId(id uint64) (stri
 	if result.Error != nil {
 		return "", result.Error
 	}
-	if result.RowsAffected==0{
-		return "",gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		return "", gorm.ErrRecordNotFound
 	}
 	return RazorpayPlanId, nil
 }
@@ -472,7 +473,7 @@ func (ad *AuthSubscriptionRepository) FetchUserIdFromSubscriptionId(razorpaySubI
 }
 
 func (ad *AuthSubscriptionRepository) TurnBlueTickTrueForUserId(userid uint64) error {
-	fmt.Println("most probably user_id",userid)
+	fmt.Println("most probably user_id", userid)
 	query := `UPDATE users SET blue_tick=true where id=?`
 	if err := ad.DB.Exec(query, userid).Error; err != nil {
 		return err
@@ -625,7 +626,7 @@ func (ad *AuthSubscriptionRepository) CheckUserExistsById(userId uint64) (bool, 
 }
 func (ad *AuthSubscriptionRepository) GetProfileInformation(req requestmodels.GetProfileInformationRequest) (responsemodels.GetProfileInformationResponse, error) {
 	var resp responsemodels.GetProfileInformationResponse
-	query := `SELECT id as user_id,name,user_name,email,bio,profile_img_url,links,blue_tick FROM users WHERE id=$1`
+	query := `SELECT id as user_id,name,user_name,email,bio,profile_img_url,links,blue_tick,phone FROM users WHERE id=$1`
 	result := ad.DB.Raw(query, req.UserId).Scan(&resp)
 	if result.Error != nil {
 		return responsemodels.GetProfileInformationResponse{}, result.Error
@@ -713,18 +714,17 @@ func (ad *AuthSubscriptionRepository) FetchUserPublicData(userid uint64) (respon
 	return resp, nil
 }
 
-func (ad *AuthSubscriptionRepository)UpdateUserRazorpayCustomerID(userid uint64,customerid string)error{
-	query:=`UPDATE users SET razorpay_customer_id=$1 WHERE id=$2`
-	result:=ad.DB.Exec(query,customerid,userid)
-	if result.Error!=nil{
+func (ad *AuthSubscriptionRepository) UpdateUserRazorpayCustomerID(userid uint64, customerid string) error {
+	query := `UPDATE users SET razorpay_customer_id=$1 WHERE id=$2`
+	result := ad.DB.Exec(query, customerid, userid)
+	if result.Error != nil {
 		return result.Error
 	}
-	if result.RowsAffected==0{
+	if result.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound
 	}
 	return nil
 }
-
 
 func (ad *AuthSubscriptionRepository) FetchUserMetaData(userids []uint64) (map[uint64]responsemodels.UserMetaData, error) {
 	var resp []responsemodels.UserMetaData
@@ -804,7 +804,6 @@ func (ad *AuthSubscriptionRepository) UpddateActivatedSubscription(req requestmo
 		RazorpaySubcriptionId: req.RazorpaySubscriptionId,
 	}, nil
 }
-
 
 func (ad *AuthSubscriptionRepository) UpdateNextChargeAt(nextChargeAt time.Time, razorpaySubId string) error {
 	query := `UPDATE user_subscriptions SET next_charge_at=$1,status='active' WHERE razorpay_subscription_id=$2`
@@ -909,37 +908,61 @@ func (ad *AuthSubscriptionRepository) IsEligibleForSubsciption(req requestmodels
 	return num == 0, nil
 }
 
-func (ad *AuthSubscriptionRepository)UpdateCount(req requestmodels.WebhookSubscriptionChargedRequest)error{
+func (ad *AuthSubscriptionRepository) UpdateCount(req requestmodels.WebhookSubscriptionChargedRequest) error {
 	query := `UPDATE user_subscriptions SET paid_coutn=$1,remaining_count=$2 WHERE razorpay_subscription_id=$2`
-	result := ad.DB.Exec(query, req.PaidCount,req.RemainingCount, req.RazorpaySubscriptionId)
+	result := ad.DB.Exec(query, req.PaidCount, req.RemainingCount, req.RazorpaySubscriptionId)
 	if result.Error != nil {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return  gorm.ErrRecordNotFound
+		return gorm.ErrRecordNotFound
 	}
-	return  nil
+	return nil
 }
 
-func (ad *AuthSubscriptionRepository)FetchUserSubscription(subId uint64)(string,error){
+func (ad *AuthSubscriptionRepository) FetchUserSubscription(subId uint64) (string, error) {
 	var status string
-	query:=`select status from user_subscriptions where id=$1`
+	query := `select status from user_subscriptions where id=$1`
 	result := ad.DB.Raw(query, subId).Scan(&status)
 	if result.Error != nil {
-		return "",result.Error
+		return "", result.Error
 	}
 	if result.RowsAffected == 0 {
-		return  "",gorm.ErrRecordNotFound
+		return "", gorm.ErrRecordNotFound
 	}
-	return  status,nil
+	return status, nil
 }
 
-func (ad *AuthSubscriptionRepository)DoesUserExists(userid uint64)(bool,error){
+func (ad *AuthSubscriptionRepository) DoesUserExists(userid uint64) (bool, error) {
 	var num int64
-	query:=`select count(*) from users where id=$1`
-	err:=ad.DB.Raw(query,userid).Scan(&num).Error
-	if err!=nil{
-		return false,err
+	query := `select count(*) from users where id=$1`
+	err := ad.DB.Raw(query, userid).Scan(&num).Error
+	if err != nil {
+		return false, err
 	}
-	return num!=0,nil
+	return num != 0, nil
+}
+
+func (ad *AuthSubscriptionRepository) CheckAllUsersExists(userIDs []uint64) ([]uint64, error) {
+	var existingIDs []uint64
+
+	query := `SELECT id FROM users WHERE id = ANY($1)`
+	err := ad.DB.Raw(query, pq.Array(userIDs)).Scan(&existingIDs).Error
+	if err != nil {
+		return nil, err
+	}
+
+	existingMap := make(map[uint64]struct{})
+	for _, id := range existingIDs {
+		existingMap[id] = struct{}{}
+	}
+
+	var missing []uint64
+	for _, id := range userIDs {
+		if _, ok := existingMap[id]; !ok {
+			missing = append(missing, id)
+		}
+	}
+
+	return missing, nil
 }

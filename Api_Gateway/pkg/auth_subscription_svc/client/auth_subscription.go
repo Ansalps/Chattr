@@ -25,7 +25,7 @@ func NewAuthSubscriptionClient(cfg *config.Config) interfaces.AuthSubscriptionCl
 	if err != nil {
 		log.Fatalf("could not connect: %v", err)
 	}
-	fmt.Println("grpc connection ---", grpcConnection)
+	//fmt.Println("grpc connection ---", grpcConnection)
 	grpcClient := auth_subscription.NewAuthSubscriptionServiceClient(grpcConnection)
 	return &AuthSubscriptionClient{
 		Client: grpcClient,
@@ -470,6 +470,7 @@ func (as *AuthSubscriptionClient)GetProfileInformation(req requestmodels.GetProf
 		ProfileImgUrl: resp.ProfileImageUrl,
 		Links: resp.Links,
 		BlueTick: resp.BlueTick,
+		Phone: resp.Phone,
 	},nil
 }
 

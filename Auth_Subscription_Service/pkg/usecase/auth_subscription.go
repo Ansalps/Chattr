@@ -792,6 +792,14 @@ func (as *AuthSubscriptionUsecase) CheckUserExists(userId uint64) (bool, error) 
 	return status, err
 }
 
+func (as *AuthSubscriptionUsecase)CheckAllUsersExists(users []uint64)([]uint64,error){
+	resp,err:=as.AuthSubscriptionRepository.CheckAllUsersExists(users)
+	if err!=nil{
+		return nil,err
+	}
+	return resp,err
+}
+
 func (as *AuthSubscriptionUsecase) GetProfileInformation(req requestmodels.GetProfileInformationRequest) (responsemodels.GetProfileInformationResponse, error) {
 	resp, err := as.AuthSubscriptionRepository.GetProfileInformation(req)
 	if err != nil {

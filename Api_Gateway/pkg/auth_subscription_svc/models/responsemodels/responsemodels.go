@@ -241,6 +241,7 @@ type GetProfileInformationResponse struct{
 	ProfileImgUrl string
 	Links         string
 	BlueTick	bool	
+	Phone string
 }
 type EditProfile struct{
 	UserID uint64	`json:"user_id"`

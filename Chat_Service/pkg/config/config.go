@@ -12,12 +12,19 @@ type Database struct {
 type KafkaConfig struct {
 	Brokers string `mapstructure:"KAFKA_BROKERS"`
 }
+type Aws struct{
+	AwsRegion string `mapstructure:"AWS_REGION"`
+	AwsAccessKey string `mapstructure:"AWS_ACCESS_KEY"`
+	AwsSecretAccessKey string	`mapstructure:"AWS_SECRET_ACCESS_KEY"`
+	AwsBucket string	`mapstructure:"AWS_BUCKET"`
+}
 
 type Config struct {
 	AuthSource 	string `mapstructure:"AUTH_SOURCE"`
 	PortMngr PortManager
 	DB       Database
 	Kafka        KafkaConfig
+	Aws Aws
 }
 
 func LoadConfig() (*Config, error) {
@@ -25,6 +32,7 @@ func LoadConfig() (*Config, error) {
 	var portmngr PortManager
 	var db Database
 	var kafka KafkaConfig
+	var aws Aws
 
 	viper.AddConfigPath("./pkg/config")
 	viper.SetConfigName("dev")
@@ -46,6 +54,10 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = viper.Unmarshal(&aws)
+	if err != nil {
+		return nil, err
+	}
 	err = viper.Unmarshal(&c)
 	if err != nil {
 		return nil, err
@@ -54,5 +66,6 @@ func LoadConfig() (*Config, error) {
 	c.PortMngr=portmngr
 	c.DB=db
 	c.Kafka=kafka
+	c.Aws=aws
 	return &c, nil
 }

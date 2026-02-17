@@ -7,6 +7,10 @@ service AuthSubscriptionService{
     rpc FetchUserMetaData(UserDataReq) returns (BatchUserMetadataResponse);
     rpc CheckUserListExists(UserDataReq) returns (BatchUserExistResponse);
     rpc DoesUserExists(DoesUserExistsRequest) returns (DoesUserExistsResponse);
+    rpc CheckAllUsersExists(UserDataReq) returns (UsersNotExistsResponse);
+}
+message UsersNotExistsResponse{
+    repeated uint64 UserId=1;
 }
 message DoesUserExistsRequest{
     uint64 UserId=1;

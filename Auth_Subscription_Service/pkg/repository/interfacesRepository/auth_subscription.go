@@ -90,4 +90,6 @@ type AuthSubscriptionRepository interface {
 	DoesUserExists(userid uint64)(bool,error)
 
 	UpdateUserRazorpayCustomerID(uint64,string)error
+
+	CheckAllUsersExists([]uint64)([]uint64,error)
 }

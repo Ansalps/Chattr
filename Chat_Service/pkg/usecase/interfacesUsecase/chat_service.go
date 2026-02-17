@@ -24,5 +24,7 @@ type ChatUsecase interface {
 	//PublishEvent(topic string, message interface{}) error
 	GetGroupName(groupID string) (string, error)
 
-	DoesUserExists(userid uint64)(bool,error)
+	DoesUserExist(uint64)(bool,error)
+	GetGroupMembers(requestmodels.GetGroupMembersRequest)([]responsemodels.GetGroupMembersResponse,error)
+	SetGroupProfileImage(requestmodels.GroupProfileImageRequest)(string,error)
 }
