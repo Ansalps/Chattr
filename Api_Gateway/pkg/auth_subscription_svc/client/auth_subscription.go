@@ -351,7 +351,7 @@ func (as *AuthSubscriptionClient) GetAllActiveSubscriptionPlans(getAllActiveSubs
 			UpdatedAt:      subscriptionPlan.UpdatedAt.AsTime().UTC(),
 			RazorpayPlanId: subscriptionPlan.RazorpayPlanId,
 			Name:           subscriptionPlan.Name,
-			Price:          subscriptionPlan.Price,
+			Price:          subscriptionPlan.Price/100,
 			Currency:       subscriptionPlan.Currency,
 			Period:         subscriptionPlan.Period,
 			Interval:       subscriptionPlan.Interval,
@@ -424,7 +424,8 @@ func (as *AuthSubscriptionClient) VerifySubscriptionPayment(verifySubscriptionPa
 
 func (as *AuthSubscriptionClient) Unsubscribe(unsubscribeReq requestmodels.UnsubscribeRequest) (responsemodels.UnsubscribeResponse, error) {
 	resp, err := as.Client.Unsubscribe(context.Background(), &auth_subscription.UnsubscribeRequest{
-		SubId:        unsubscribeReq.SubId,
+		//SubId:        unsubscribeReq.SubId,
+		UserId: unsubscribeReq.UserID,
 		CancelReason: unsubscribeReq.CancelReason,
 		CancelAtCycleEnd: unsubscribeReq.CancelAtCycleEnd,
 	})

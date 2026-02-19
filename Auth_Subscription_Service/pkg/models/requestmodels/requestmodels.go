@@ -123,7 +123,8 @@ type VerifySubscriptionPaymentRequest struct{
 }
 
 type UnsubscribeRequest struct{
-	SubId uint64
+	RazorpaySubId string
+	UserID uint64
 	CancelReason string	`json:"cancel_reason" binding:"required"`
 	CancelAtCycleEnd bool
 }

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/client"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/client/interfaces"
@@ -711,13 +712,13 @@ func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
 		c.JSON(obj.StatusCode, obj)
 		return
 	}
-	
-	// fmt.Println("razorpay subscription id", subscribeResponse.RazorpaySubscriptionId)
-	// data := gin.H{
-	// 	"SubscriptionID": subscribeResponse.RazorpaySubscriptionId,
-	// 	"KeyID":          as.config.Razorpay.KeyId,
-	// }
-	// c.HTML(http.StatusOK, "subscription_checkout.html", data)
+
+	fmt.Println("razorpay subscription id", subscribeResponse.RazorpaySubscriptionId)
+	data := gin.H{
+		"SubscriptionID": subscribeResponse.RazorpaySubscriptionId,
+		"KeyID":          as.config.Razorpay.KeyId,
+	}
+	c.HTML(http.StatusOK, "razorpaydoc.html", data)
 	success := response.ClientResponse(http.StatusOK, "User subscribe to the plan successfully", subscribeResponse)
 	c.JSON(success.StatusCode, success)
 }
@@ -752,7 +753,18 @@ func (as *AuthSubscriptionHandler) VerifySubscriptionPayment(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) Unsubscribe(c *gin.Context) {
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
+		return
+	}
 	var unsubscribeReq requestmodels.UnsubscribeRequest
+	unsubscribeReq.UserID = jwtClaims.ID
 	if err := c.ShouldBindJSON(&unsubscribeReq); err != nil {
 		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
 			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
@@ -762,21 +774,26 @@ func (as *AuthSubscriptionHandler) Unsubscribe(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
 		return
 	}
-	subIdStr := c.Param("sub_id")
-	subID, err := strconv.ParseUint(subIdStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid Subscription Plan Id", nil))
-		return
-	}
-	unsubscribeReq.SubId = subID
+	// subIdStr := c.Param("sub_id")
+	// subID, err := strconv.ParseUint(subIdStr, 10, 64)
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid Subscription Plan Id", nil))
+	// 	return
+	// }
+	//unsubscribeReq.SubId = subID
+
 	unsubscribeResponse, err := as.GPPC_Client.Unsubscribe(unsubscribeReq)
 	if err != nil {
 		var obj response.Response
 		// Check if it’s a gRPC status error
 		if st, ok := status.FromError(err); ok {
 			switch st.Code() {
-			// case codes.NotFound:
-			// 	obj = response.ClientResponse(http.StatusUnauthorized, "Invalide Email or Password", nil)
+			case codes.FailedPrecondition:
+				obj = response.ClientResponse(http.StatusUnauthorized, st.Message(), nil)
+			case codes.NotFound:
+				obj=response.ClientResponse(http.StatusNotFound,st.Message(),nil)
+			case codes.Internal:
+				obj=response.ClientResponse(http.StatusInternalServerError,st.Message(),nil)
 			default:
 				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
 			}
@@ -810,11 +827,11 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 		return
 	}
 	str := as.config.ProfileImgSize
-    num, err := strconv.Atoi(str) // returns (int, error)
-    if err != nil {
-        fmt.Println("Error:", err)
-        return
-    }
+	num, err := strconv.Atoi(str) // returns (int, error)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
 	// Check file size < 2 MB
 	if file.Size > int64(num)*1024*1024 {
 		c.JSON(400, gin.H{"error": "Image must be less than 2MB"})
@@ -927,7 +944,7 @@ func (as *AuthSubscriptionHandler) EditProfileInformation(c *gin.Context) {
 		Name:   editProfile.Name,
 		Bio:    editProfile.Bio,
 		Links:  editProfile.Links,
-		Phone: editProfile.Phone,
+		Phone:  editProfile.Phone,
 	})
 	if err != nil {
 		log.Println("error from grpc calling editp profile information,error: ", err)
@@ -1053,6 +1070,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 	for i := 0; i < 2; i++ {
 		select {
 		case res := <-authChan:
+			//fmt.Println("res00000",res)
 			authData = res
 		case res := <-postChan:
 			postData = res
@@ -1297,6 +1315,19 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 	})
 	if err != nil {
 		log.Println(err)
+		if st, ok := status.FromError(err); ok {
+			switch st.Code() {
+			case codes.NotFound:
+				c.JSON(http.StatusNotFound, gin.H{"error": st.Message()})
+				return
+			default:
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "unexpected error"})
+		}
 		return
 	}
 	resp2 := responsemodels.SubscriptionPlan{
@@ -1312,6 +1343,24 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 		Description:    resp.SubsciptionPlan.Description,
 		IsActive:       resp.SubsciptionPlan.IsActive,
 	}
+	var cancelledAt,startAt,endAt,nextChargeAt *time.Time
+	if resp.CancelledAt!=nil{
+		t := resp.CancelledAt.AsTime()
+    cancelledAt = &t
+	}
+	if resp.StartAt!=nil{
+		t := resp.StartAt.AsTime()
+		startAt = &t
+	}
+	if resp.EndAt!=nil{
+		t := resp.EndAt.AsTime()
+		endAt = &t
+	}
+	if resp.NextChargeAt!=nil{
+		t := resp.NextChargeAt.AsTime()
+		nextChargeAt = &t
+	}
+	//fmt.Println("cancelld at",resp.CancelledAt.AsTime())
 	resp1 := responsemodels.GetSubscriptionDetails{
 		SubscriptionPlan:       resp2,
 		ID:                     resp.SubscriptionId,
@@ -1320,13 +1369,14 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 		UserID:                 resp.UserId,
 		RazorpaySubscriptionId: resp.RazorpaySubscriptionId,
 		Status:                 resp.Status,
-		StartAt:                resp.StartAt.AsTime(),
-		EndAt:                  resp.EndAt.AsTime(),
-		NextChargeAt:           resp.NextChargeAt.AsTime(),
+		ShortUrl:               resp.ShortUrl,
+		StartAt:                startAt,
+		EndAt:                  endAt,
+		NextChargeAt:           nextChargeAt,
 		TotalCount:             int(resp.TotalCount),
 		RemainingCount:         int(resp.RemainingCount),
 		PaidCount:              int(resp.PaidCount),
-		CancelledAt:            resp.CancelledAt.AsTime(),
+		CancelledAt:            cancelledAt,
 		CancelReason:           resp.CancelReason,
 	}
 	c.JSON(http.StatusOK, resp1)

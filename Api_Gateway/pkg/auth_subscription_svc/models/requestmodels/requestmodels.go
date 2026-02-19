@@ -110,7 +110,8 @@ type VerifySubscriptionPaymentRequest struct{
 }
 
 type UnsubscribeRequest struct{
-	SubId uint64
+	//SubId uint64
+	UserID uint64
 	CancelReason string	`json:"cancel_reason" binding:"required"`
 	CancelAtCycleEnd bool `json:"cancel_at_cycle_end" validate:"required"`
 }

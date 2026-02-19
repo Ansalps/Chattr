@@ -442,24 +442,32 @@ func (ad *AuthSubscriptionRepository) FetchAmountCurrencyFromSubscriptionPlan(id
 	return plan.Price, plan.Currency, nil
 }
 
-func (ad *AuthSubscriptionRepository) FetchRazorpaySubscriptionIdFromSubcriptionId(subid uint64) (string, error) {
+func (ad *AuthSubscriptionRepository) FetchRazorpaySubscriptionIdFromUserId(userid uint64) (string, error) {
 	var razorpaySubscriptionId string
-	query := `SELECT razorpay_subscription_id FROM user_subscriptions WHERE id=?`
-	if err := ad.DB.Raw(query, subid).Scan(&razorpaySubscriptionId).Error; err != nil {
-		return "", nil
+	query := `SELECT razorpay_subscription_id FROM user_subscriptions WHERE user_id=? and status!='cancelled' and status!='completed'`
+	result := ad.DB.Raw(query, userid).Scan(&razorpaySubscriptionId)
+	if result.Error != nil {
+		return "", result.Error
+	}
+	if result.RowsAffected==0{
+		return "",gorm.ErrRecordNotFound
 	}
 	return razorpaySubscriptionId, nil
 }
 
 func (ad *AuthSubscriptionRepository) SetCancelReason(req requestmodels.UnsubscribeRequest) (responsemodels.UnsubscribeResponse, error) {
-
-	query := `UPDATE user_subscriptions SET cancel_reason=$1 WHERE id=$2`
-	if err := ad.DB.Exec(query, req.CancelReason, req.SubId).Error; err != nil {
-		return responsemodels.UnsubscribeResponse{}, err
+	var subId uint64
+	query := `UPDATE user_subscriptions SET cancel_reason=$1 WHERE razorpay_subscription_id=$2 returning id`
+	result := ad.DB.Raw(query, req.CancelReason, req.RazorpaySubId).Scan(&subId)
+	if result.Error != nil {
+		return responsemodels.UnsubscribeResponse{}, result.Error
 	}
+	// if result.RowsAffected==0{
+	// 	return responsemodels.UnsubscribeResponse{},gorm.ErrRecordNotFound
+	// }
 	//fmt.Println("printing user id", userSubscription.UserID)
 	return responsemodels.UnsubscribeResponse{
-		SubId: req.SubId,
+		SubId: subId,
 	}, nil
 }
 
@@ -790,7 +798,7 @@ func (ad *AuthSubscriptionRepository) GetSubscriptionDetails(req requestmodels.G
 }
 
 func (ad *AuthSubscriptionRepository) UpddateActivatedSubscription(req requestmodels.WebhookSubscriptionActivatedRequest) (responsemodels.WebhookSubscriptionActivatedResponse, error) {
-	query := `UPDATE user_subscriptionS SET paid_count=$1,remaining_count=$2,start_at=$3,end_at=$4 WHERE razorpay_subscription_id=$5`
+	query := `UPDATE user_subscriptionS SET status=$1,paid_count=$2,remaining_count=$3,start_at=$4,end_at=$5 WHERE razorpay_subscription_id=$6`
 	result := ad.DB.Exec(query, req.Status, req.PaidCount, req.RemainingCount, req.StartAt, req.EndAt, req.RazorpaySubscriptionId)
 	if result.Error != nil {
 		log.Println("database error", result.Error)
@@ -806,7 +814,7 @@ func (ad *AuthSubscriptionRepository) UpddateActivatedSubscription(req requestmo
 }
 
 func (ad *AuthSubscriptionRepository) UpdateNextChargeAt(nextChargeAt time.Time, razorpaySubId string) error {
-	query := `UPDATE user_subscriptions SET next_charge_at=$1,status='active' WHERE razorpay_subscription_id=$2`
+	query := `UPDATE user_subscriptions SET next_charge_at=$1 WHERE razorpay_subscription_id=$2`
 	result := ad.DB.Exec(query, nextChargeAt, razorpaySubId)
 	if result.Error != nil {
 		return result.Error
@@ -816,9 +824,9 @@ func (ad *AuthSubscriptionRepository) UpdateNextChargeAt(nextChargeAt time.Time,
 	}
 	return nil
 }
-func (ad *AuthSubscriptionRepository) UpdateStatusToActive(status string, razorpaySubId string) error {
+func (ad *AuthSubscriptionRepository) UpdateStatusToActive(razorpaySubId string) error {
 	query := `UPDATE user_subscriptions SET status='active' WHERE razorpay_subscription_id=$1`
-	result := ad.DB.Exec(query, status, razorpaySubId)
+	result := ad.DB.Exec(query, razorpaySubId)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -909,7 +917,7 @@ func (ad *AuthSubscriptionRepository) IsEligibleForSubsciption(req requestmodels
 }
 
 func (ad *AuthSubscriptionRepository) UpdateCount(req requestmodels.WebhookSubscriptionChargedRequest) error {
-	query := `UPDATE user_subscriptions SET paid_coutn=$1,remaining_count=$2 WHERE razorpay_subscription_id=$2`
+	query := `UPDATE user_subscriptions SET paid_count=$1,remaining_count=$2 WHERE razorpay_subscription_id=$3`
 	result := ad.DB.Exec(query, req.PaidCount, req.RemainingCount, req.RazorpaySubscriptionId)
 	if result.Error != nil {
 		return result.Error
@@ -920,10 +928,10 @@ func (ad *AuthSubscriptionRepository) UpdateCount(req requestmodels.WebhookSubsc
 	return nil
 }
 
-func (ad *AuthSubscriptionRepository) FetchUserSubscription(subId uint64) (string, error) {
+func (ad *AuthSubscriptionRepository) FetchUserSubscription(razorpaySubId string) (string, error) {
 	var status string
-	query := `select status from user_subscriptions where id=$1`
-	result := ad.DB.Raw(query, subId).Scan(&status)
+	query := `select status from user_subscriptions where razorpay_subscription_id=$1`
+	result := ad.DB.Raw(query, razorpaySubId).Scan(&status)
 	if result.Error != nil {
 		return "", result.Error
 	}
@@ -965,4 +973,17 @@ func (ad *AuthSubscriptionRepository) CheckAllUsersExists(userIDs []uint64) ([]u
 	}
 
 	return missing, nil
+}
+
+func (ad *AuthSubscriptionRepository)FetchSubStatus(rsubid string)(string,error){
+	var status string
+	query:=`select status from user_subscriptions where razorpay_subscription_id=$1`
+	result:=ad.DB.Raw(query,rsubid).Scan(&status)
+	if result.Error!=nil{
+		return "",result.Error
+	}
+	if result.RowsAffected==0{
+		return "",gorm.ErrRecordNotFound
+	}
+	return status,nil
 }

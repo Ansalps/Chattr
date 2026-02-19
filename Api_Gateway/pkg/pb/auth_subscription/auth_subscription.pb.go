@@ -841,14 +841,15 @@ type GetSubscriptionDetailsResponse struct {
 	RazorpaySubscriptionId string                 `protobuf:"bytes,6,opt,name=RazorpaySubscriptionId,proto3" json:"RazorpaySubscriptionId,omitempty"`
 	// string RazorpayPlanId=7;
 	Status         string                 `protobuf:"bytes,7,opt,name=Status,proto3" json:"Status,omitempty"`
-	StartAt        *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=StartAt,proto3" json:"StartAt,omitempty"`
-	EndAt          *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=EndAt,proto3" json:"EndAt,omitempty"`
-	NextChargeAt   *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=NextChargeAt,proto3" json:"NextChargeAt,omitempty"`
-	TotalCount     int64                  `protobuf:"varint,11,opt,name=TotalCount,proto3" json:"TotalCount,omitempty"`
-	RemainingCount int64                  `protobuf:"varint,12,opt,name=RemainingCount,proto3" json:"RemainingCount,omitempty"`
-	PaidCount      int64                  `protobuf:"varint,13,opt,name=PaidCount,proto3" json:"PaidCount,omitempty"`
-	CancelledAt    *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=CancelledAt,proto3" json:"CancelledAt,omitempty"`
-	CancelReason   string                 `protobuf:"bytes,15,opt,name=CancelReason,proto3" json:"CancelReason,omitempty"`
+	ShortUrl       string                 `protobuf:"bytes,8,opt,name=ShortUrl,proto3" json:"ShortUrl,omitempty"`
+	StartAt        *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=StartAt,proto3" json:"StartAt,omitempty"`
+	EndAt          *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=EndAt,proto3" json:"EndAt,omitempty"`
+	NextChargeAt   *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=NextChargeAt,proto3" json:"NextChargeAt,omitempty"`
+	TotalCount     int64                  `protobuf:"varint,12,opt,name=TotalCount,proto3" json:"TotalCount,omitempty"`
+	RemainingCount int64                  `protobuf:"varint,13,opt,name=RemainingCount,proto3" json:"RemainingCount,omitempty"`
+	PaidCount      int64                  `protobuf:"varint,14,opt,name=PaidCount,proto3" json:"PaidCount,omitempty"`
+	CancelledAt    *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=CancelledAt,proto3" json:"CancelledAt,omitempty"`
+	CancelReason   string                 `protobuf:"bytes,16,opt,name=CancelReason,proto3" json:"CancelReason,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -928,6 +929,13 @@ func (x *GetSubscriptionDetailsResponse) GetRazorpaySubscriptionId() string {
 func (x *GetSubscriptionDetailsResponse) GetStatus() string {
 	if x != nil {
 		return x.Status
+	}
+	return ""
+}
+
+func (x *GetSubscriptionDetailsResponse) GetShortUrl() string {
+	if x != nil {
+		return x.ShortUrl
 	}
 	return ""
 }
@@ -2009,10 +2017,11 @@ func (x *SetProfileImageResponse) GetImageUrl() string {
 }
 
 type UnsubscribeRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	SubId            uint64                 `protobuf:"varint,1,opt,name=SubId,proto3" json:"SubId,omitempty"`
-	CancelReason     string                 `protobuf:"bytes,2,opt,name=CancelReason,proto3" json:"CancelReason,omitempty"`
-	CancelAtCycleEnd bool                   `protobuf:"varint,3,opt,name=CancelAtCycleEnd,proto3" json:"CancelAtCycleEnd,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// uint64 SubId=1;
+	UserId           uint64 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	CancelReason     string `protobuf:"bytes,2,opt,name=CancelReason,proto3" json:"CancelReason,omitempty"`
+	CancelAtCycleEnd bool   `protobuf:"varint,3,opt,name=CancelAtCycleEnd,proto3" json:"CancelAtCycleEnd,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -2047,9 +2056,9 @@ func (*UnsubscribeRequest) Descriptor() ([]byte, []int) {
 	return file_pkg_proto_auth_subscription_proto_rawDescGZIP(), []int{30}
 }
 
-func (x *UnsubscribeRequest) GetSubId() uint64 {
+func (x *UnsubscribeRequest) GetUserId() uint64 {
 	if x != nil {
-		return x.SubId
+		return x.UserId
 	}
 	return 0
 }
@@ -4865,7 +4874,7 @@ const file_pkg_proto_auth_subscription_proto_rawDesc = "" +
 	" \x01(\tR\vDescription\x12\x1a\n" +
 	"\bIsActive\x18\v \x01(\bR\bIsActive\"7\n" +
 	"\x1dGetSubscriptionDetailsRequest\x12\x16\n" +
-	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"\xe2\x05\n" +
+	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"\xfe\x05\n" +
 	"\x1eGetSubscriptionDetailsResponse\x12L\n" +
 	"\x0fsubsciptionPlan\x18\x01 \x01(\v2\".auth_subscription.SubscriptioPlanR\x0fsubsciptionPlan\x12\x16\n" +
 	"\x06UserId\x18\x02 \x01(\x04R\x06UserId\x12&\n" +
@@ -4873,18 +4882,19 @@ const file_pkg_proto_auth_subscription_proto_rawDesc = "" +
 	"\tCreatedAt\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tCreatedAt\x128\n" +
 	"\tUpdatedAt\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tUpdatedAt\x126\n" +
 	"\x16RazorpaySubscriptionId\x18\x06 \x01(\tR\x16RazorpaySubscriptionId\x12\x16\n" +
-	"\x06Status\x18\a \x01(\tR\x06Status\x124\n" +
-	"\aStartAt\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\aStartAt\x120\n" +
-	"\x05EndAt\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x05EndAt\x12>\n" +
-	"\fNextChargeAt\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\fNextChargeAt\x12\x1e\n" +
+	"\x06Status\x18\a \x01(\tR\x06Status\x12\x1a\n" +
+	"\bShortUrl\x18\b \x01(\tR\bShortUrl\x124\n" +
+	"\aStartAt\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\aStartAt\x120\n" +
+	"\x05EndAt\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\x05EndAt\x12>\n" +
+	"\fNextChargeAt\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\fNextChargeAt\x12\x1e\n" +
 	"\n" +
-	"TotalCount\x18\v \x01(\x03R\n" +
+	"TotalCount\x18\f \x01(\x03R\n" +
 	"TotalCount\x12&\n" +
-	"\x0eRemainingCount\x18\f \x01(\x03R\x0eRemainingCount\x12\x1c\n" +
-	"\tPaidCount\x18\r \x01(\x03R\tPaidCount\x12<\n" +
-	"\vCancelledAt\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampR\vCancelledAt\x12\"\n" +
-	"\fCancelReason\x18\x0f \x01(\tR\fCancelReason\"/\n" +
+	"\x0eRemainingCount\x18\r \x01(\x03R\x0eRemainingCount\x12\x1c\n" +
+	"\tPaidCount\x18\x0e \x01(\x03R\tPaidCount\x12<\n" +
+	"\vCancelledAt\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vCancelledAt\x12\"\n" +
+	"\fCancelReason\x18\x10 \x01(\tR\fCancelReason\"/\n" +
 	"\x15UserPublicDataRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"\xca\x01\n" +
 	"\x16UserPublicDataResponse\x12\x16\n" +
@@ -4961,9 +4971,9 @@ const file_pkg_proto_auth_subscription_proto_rawDesc = "" +
 	"\vContentType\x18\x02 \x01(\tR\vContentType\x12\x14\n" +
 	"\x05Image\x18\x03 \x01(\fR\x05Image\"5\n" +
 	"\x17SetProfileImageResponse\x12\x1a\n" +
-	"\bImageUrl\x18\x01 \x01(\tR\bImageUrl\"z\n" +
-	"\x12UnsubscribeRequest\x12\x14\n" +
-	"\x05SubId\x18\x01 \x01(\x04R\x05SubId\x12\"\n" +
+	"\bImageUrl\x18\x01 \x01(\tR\bImageUrl\"|\n" +
+	"\x12UnsubscribeRequest\x12\x16\n" +
+	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\"\n" +
 	"\fCancelReason\x18\x02 \x01(\tR\fCancelReason\x12*\n" +
 	"\x10CancelAtCycleEnd\x18\x03 \x01(\bR\x10CancelAtCycleEnd\"+\n" +
 	"\x13UnsubscribeResponse\x12\x14\n" +

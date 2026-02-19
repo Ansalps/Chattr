@@ -260,14 +260,15 @@ type GetSubscriptionDetails struct{
 	UserID uint64
 	RazorpaySubscriptionId string
 	Status string
-	StartAt time.Time
-	EndAt	time.Time
-	NextChargeAt time.Time
+	ShortUrl string
+	StartAt *time.Time	`json:"StartAt,omitempty"`
+	EndAt	*time.Time	`json:"EndAt,omitempty"`
+	NextChargeAt *time.Time	`json:"NextChargeAt,omitempty"`
 	TotalCount int
 	RemainingCount int
 	PaidCount int
-	CancelledAt time.Time
-	CancelReason string
+	CancelledAt *time.Time `json:"CancelledAt,omitempty"`
+	CancelReason string `json:"CancelReason,omitempty"`
 }
 
 type WebhookResponse struct {

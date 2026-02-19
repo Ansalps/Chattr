@@ -13,3 +13,10 @@ func ToProtoTimestamp(t time.Time) *timestamppb.Timestamp {
 	//fmt.Println(t,timestamppb.New(t))
 	return timestamppb.New(t)
 }
+
+func ToProtoTimestampPtr(t *time.Time) *timestamppb.Timestamp {
+    if t == nil {
+        return nil
+    }
+    return timestamppb.New(*t)
+}

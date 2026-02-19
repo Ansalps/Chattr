@@ -37,7 +37,7 @@ type AuthSubscriptionRepository interface {
 	FetchRazorpayPlanIdFromId(uint64)(string,error)
 	UpdateUserSubscripion(string,map[string]interface{})(responsemodels.VerifySubscriptionPaymentResponse,error)
 	FetchAmountCurrencyFromSubscriptionPlan(id uint64)(int64,string,error)
-	FetchRazorpaySubscriptionIdFromSubcriptionId(subid uint64)(string,error)
+	FetchRazorpaySubscriptionIdFromUserId(userid uint64)(string,error)
 	SetCancelReason(requestmodels.UnsubscribeRequest)(responsemodels.UnsubscribeResponse,error)
 	FetchUserIdFromSubscriptionId(string)(uint64,error)
 	TurnBlueTickTrueForUserId(uint64)error
@@ -81,15 +81,17 @@ type AuthSubscriptionRepository interface {
 
 	IsEligibleForSubsciption(requestmodels.SubscribeRequest)(bool,error)
 
-	UpdateStatusToActive(status string, razorpaySubId string) error
+	UpdateStatusToActive( razorpaySubId string) error
 
 	UpdateCount(requestmodels.WebhookSubscriptionChargedRequest)error
 
-	FetchUserSubscription(uint64)(string,error)
+	FetchUserSubscription(string)(string,error)
 
 	DoesUserExists(userid uint64)(bool,error)
 
 	UpdateUserRazorpayCustomerID(uint64,string)error
 
 	CheckAllUsersExists([]uint64)([]uint64,error)
+
+	FetchSubStatus(string)(string,error)
 }

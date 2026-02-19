@@ -568,14 +568,14 @@ func (as *PostRelationUsecase) PostFollowCount(userid uint64) (responsemodels.Po
 	if err != nil {
 		return responsemodels.PostFollowCountResponse{}, err
 	}
-	fmt.Println("print post Count in usecase", postCount)
+	//fmt.Println("print post Count in usecase", postCount)
 	resp, err := as.PostRelationRepository.FetchFollowCountByUserId(userid)
 	if err != nil {
 		return responsemodels.PostFollowCountResponse{}, err
 	}
-	fmt.Println("resp print first in usecase", resp)
+	//fmt.Println("resp print first in usecase", resp)
 	resp.PostCount = postCount
-	fmt.Println("resp print second in usecase", resp, resp.PostCount)
+	//fmt.Println("resp print second in usecase", resp, resp.PostCount)
 	return resp, nil
 }
 func (as *PostRelationUsecase) FetchAllPosts(req requestmodels.FetchAllPostsReq) ([]responsemodels.PostWithCounts, error) {

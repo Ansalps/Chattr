@@ -567,6 +567,7 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 	subscriptionData := map[string]interface{}{
 		"plan_id":         razorpayPlanId,
 		"total_count":     subscribeReq.TotalCount,
+		"customer_id":     userDetail.RazorpayCustomerID, // Use the ID instead of the "customer" map
 		//"quantity":        1,
 		//"customer_notify": 1,
 
@@ -700,30 +701,41 @@ func (as *AuthSubscriptionUsecase)createAndSaveCustomer(userDetail responsemodel
 // }
 
 func (as *AuthSubscriptionUsecase) Unsubscribe(unsubscribeReq requestmodels.UnsubscribeRequest) (responsemodels.UnsubscribeResponse, error) {
-	status,err:=as.AuthSubscriptionRepository.FetchUserSubscription(unsubscribeReq.SubId)
+	razorpaySubscritpionId, err := as.AuthSubscriptionRepository.FetchRazorpaySubscriptionIdFromUserId(unsubscribeReq.UserID)
+	if err != nil {
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.UnsubscribeResponse{},domain.ErrNoActiveSubscription
+		}
+		return responsemodels.UnsubscribeResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+	}
+	unsubscribeReq.RazorpaySubId=razorpaySubscritpionId
+	fmt.Println("is it actually nil,???", unsubscribeReq.RazorpaySubId)
+	
+	status,err:=as.AuthSubscriptionRepository.FetchUserSubscription(unsubscribeReq.RazorpaySubId)
 	if err!=nil{
 		log.Println(err)
-		return responsemodels.UnsubscribeResponse{},err
+		return responsemodels.UnsubscribeResponse{},fmt.Errorf("%w: %v: %v:",domain.ErrDatabase,err,"fetching subscription from database failed")
 	}
 	if status=="completed"{
-		return responsemodels.UnsubscribeResponse{},errors.New("status already completed")
+		return responsemodels.UnsubscribeResponse{},domain.ErrSubCompleted
+	}
+	if status=="cancelled"{
+		return responsemodels.UnsubscribeResponse{},domain.ErrSubCancelled
 	}
 	data := map[string]interface{}{
 		"cancel_at_cycle_end": unsubscribeReq.CancelAtCycleEnd,
 	}
-	razorpaySubscritpionId, err := as.AuthSubscriptionRepository.FetchRazorpaySubscriptionIdFromSubcriptionId(unsubscribeReq.SubId)
-	if err != nil {
-		return responsemodels.UnsubscribeResponse{}, fmt.Errorf("database error: %w", err)
-	}
+	
 	_, err = as.RazorpayGateway.Client.Subscription.Cancel(razorpaySubscritpionId, data, nil)
 	if err != nil {
 		log.Println("print the error on cancellation razorpay api call", err)
-		return responsemodels.UnsubscribeResponse{}, err
+		return responsemodels.UnsubscribeResponse{},
+		fmt.Errorf("%w: %v", domain.ErrRazorpayCancel, err)
 	}
-	fmt.Println("is it actually nil,???", unsubscribeReq.SubId)
+	
 	unsubscibeRes, err := as.AuthSubscriptionRepository.SetCancelReason(unsubscribeReq)
 	if err != nil {
-		return responsemodels.UnsubscribeResponse{}, err
+		return responsemodels.UnsubscribeResponse{}, fmt.Errorf("%w: %v: %v:",domain.ErrDatabase,err,"cancel reason failed to update in db")
 	}
 	// userid, err := as.AuthSubscriptionRepository.FetchUserIdFromSubscriptionId(razorpaySubscritpionId)
 	// if err != nil {
@@ -875,13 +887,21 @@ func (as *AuthSubscriptionUsecase) GetSubscriptionDetails(req requestmodels.GetS
 	resp, err := as.AuthSubscriptionRepository.GetSubscriptionDetails(req)
 	if err != nil {
 		log.Println(err)
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.GetSubscriptionDetails{},domain.ErrNoSubscription
+		}
 		return responsemodels.GetSubscriptionDetails{}, err
 	}
 	return resp, nil
 }
 
 func (as *AuthSubscriptionUsecase)WebhookSubscriptionActivated(req requestmodels.WebhookSubscriptionActivatedRequest)(responsemodels.WebhookSubscriptionActivatedResponse,error){
-	if req.Status=="completed"||req.Status=="cancelled"{
+	status,err:=as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
+	if err!=nil{
+		log.Println(err)
+		return responsemodels.WebhookSubscriptionActivatedResponse{},err
+	}
+	if status=="completed"||status=="cancelled"{
 		return responsemodels.WebhookSubscriptionActivatedResponse{},errors.New("subscription already in cancelled or completed state")
 	}
 	if req.Status=="active"{
@@ -901,19 +921,32 @@ func (as *AuthSubscriptionUsecase)WebhookSubscriptionActivated(req requestmodels
 }
 
 func (as *AuthSubscriptionUsecase)WebhookSubscriptionCharged(req requestmodels.WebhookSubscriptionChargedRequest)(responsemodels.WebhookSubscriptionChargedResponse,error){
-	if req.Status=="completed"||req.Status=="cancelled"{
-		return responsemodels.WebhookSubscriptionChargedResponse{},errors.New("subscription already in cancelled or completed state")
+	status,err:=as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
+	if err!=nil{
+		log.Println(err)
+		return responsemodels.WebhookSubscriptionChargedResponse{},err
 	}
-	fmt.Println("is it coming here")
-	err:=as.AuthSubscriptionRepository.UpdateNextChargeAt(req.NextChargeAt,req.RazorpaySubscriptionId)
+	fmt.Println("is it coming here",req.RazorpaySubscriptionId)
+	err=as.AuthSubscriptionRepository.UpdateNextChargeAt(req.NextChargeAt,req.RazorpaySubscriptionId)
 	if err!=nil{
 		if err==gorm.ErrRecordNotFound{
 			return responsemodels.WebhookSubscriptionChargedResponse{},domain.RazorpaySubscriptionIdNotFound
 		}
 	}
 	err=as.AuthSubscriptionRepository.UpdateCount(req)
+
+	resp,err:=as.AuthSubscriptionRepository.UpdatePayment(req)
+	if err!=nil{
+		return responsemodels.WebhookSubscriptionChargedResponse{},err
+	}
+
+	if status=="completed"||status=="cancelled"{
+		return responsemodels.WebhookSubscriptionChargedResponse{},errors.New("subscription already in cancelled or completed state")
+	}
 	
-	err=as.AuthSubscriptionRepository.UpdateStatusToActive(req.Status,req.RazorpaySubscriptionId)
+	
+	
+	err=as.AuthSubscriptionRepository.UpdateStatusToActive(req.RazorpaySubscriptionId)
 		if err!=nil{
 			if err==gorm.ErrRecordNotFound{
 				return responsemodels.WebhookSubscriptionChargedResponse{},domain.RazorpaySubscriptionIdNotFound
@@ -927,17 +960,19 @@ func (as *AuthSubscriptionUsecase)WebhookSubscriptionCharged(req requestmodels.W
 			log.Printf("failed to trun on blue tick for user id %d\n",req.UserID)
 		}
 	//}
-	resp,err:=as.AuthSubscriptionRepository.UpdatePayment(req)
-	if err!=nil{
-		return responsemodels.WebhookSubscriptionChargedResponse{},err
-	}
+	
 	return resp,nil
 }
 func (as *AuthSubscriptionUsecase)WebhookSubscriptionHalted(req requestmodels.WebhookSubscriptionHaltedRequest)(responsemodels.WebhookSubscriptionHaltedResponse,error){
-	if req.Status=="completed"||req.Status=="cancelled"{
+	status,err:=as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
+	if err!=nil{
+		log.Println(err)
+		return responsemodels.WebhookSubscriptionHaltedResponse{},err
+	}
+	if status=="completed"||status=="cancelled"{
 		return responsemodels.WebhookSubscriptionHaltedResponse{},errors.New("subscription already in cancelled or completed state")
 	}
-	err:=as.AuthSubscriptionRepository.UpdateStatusHalted(req)
+	err=as.AuthSubscriptionRepository.UpdateStatusHalted(req)
 	if err!=nil{
 		if err==gorm.ErrRecordNotFound{
 			return responsemodels.WebhookSubscriptionHaltedResponse{},domain.RazorpaySubscriptionIdNotFound
@@ -954,6 +989,14 @@ func (as *AuthSubscriptionUsecase)WebhookSubscriptionHalted(req requestmodels.We
 }
 
 func (as *AuthSubscriptionUsecase)WebhookSubscriptionCancelled(req requestmodels.WebhookSubscriptionCancelledRequest)(responsemodels.WebhookSubscriptionCancelledResponse,error){
+	status,err:=as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
+	if err!=nil{
+		log.Println(err)
+		return responsemodels.WebhookSubscriptionCancelledResponse{},err
+	}
+	if status=="completed"||status=="cancelled"{
+		return responsemodels.WebhookSubscriptionCancelledResponse{},errors.New("subscription already in cancelled or completed state")
+	}
 	resp,err:=as.AuthSubscriptionRepository.UpdateSubscriptionCancelled(req)
 	if err!=nil{
 		if err==gorm.ErrRecordNotFound{
@@ -970,8 +1013,11 @@ func (as *AuthSubscriptionUsecase)WebhookSubscriptionCancelled(req requestmodels
 }
 	
 func (as *AuthSubscriptionUsecase)WebhookSubscriptionCompleted(req requestmodels.WebhookSubscriptionCompletedRequest)(responsemodels.WebhookSubscriptionCompletedResponse,error){
+	fmt.Println("why not coming in completed")
+	fmt.Println("complete usecase req",req)
 	resp,err:=as.AuthSubscriptionRepository.UpdateSubscripionCompleted(req)
 	if err!=nil{
+		log.Println("error while updating to completed",err)
 		if err==gorm.ErrRecordNotFound{
 			return responsemodels.WebhookSubscriptionCompletedResponse{},domain.RazorpaySubscriptionIdNotFound
 		}

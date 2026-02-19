@@ -2,23 +2,18 @@
 		<script src = "https://checkout.razorpay.com/v1/checkout.js"></script>
 		<script>
 			var options = {
-				"key": "{{.KeyID}}",
-				"subscription_id": "{{.SubscriptionID}}",
+				"key": "rzp_test_S8uRIsu5MQkpdK",
+				"subscription_id": "sub_SHvITlhOMdQeCh",
 				"name": "Acme Corp.",
 				"description": "Monthly Test Plan",
 				"image": "/your_logo.jpg",
-				"callback_url": "https://eneqd3r9zrjok.x.pipedream.net/",
-				"prefill": {
-					"name": "<name>",
-					"email": "<email>",
-					"contact": "<phone>"
-				},
+				
 				"notes": {
 					"note_key_1": "Tea. Earl Grey. Hot",
 					"note_key_2": "Make it so."
 				},
 				"theme": {
-					"color": "#F37254"
+					"color": "#A37254"
 				}
 			};
 			var rzp1 = new Razorpay(options);
