@@ -505,6 +505,7 @@ message UserSignUpRequest{
     string Email =3;
     string Password = 4;
     string ConfirmPassword = 5;
+    string Phone=6;
 }
 
 message UserSignUpResponse{

@@ -61,6 +61,7 @@ func (as *AuthSubscriptionClient) UserSignUp(user requestmodels.UserSignUpReques
 		Email:           user.Email,
 		Password:        user.Password,
 		ConfirmPassword: user.ConfirmPassword,
+		Phone:user.Phone,
 	})
 	if err != nil {
 		log.Printf("grpc user signup call failed :%v", err)
@@ -251,7 +252,7 @@ func (as *AuthSubscriptionClient) CreateSubscriptionPlan(createSubscriptionPlanR
 		CreatedAt:   resp.CreatedAt.AsTime(),
 		UpdatedAt:   resp.UpdatedAt.AsTime(),
 		Name:        resp.Name,
-		Price:       resp.Price,
+		Price:       resp.Price/100,
 		Currency:    resp.Currency,
 		Period:      resp.Period,
 		Interval:    resp.Interval,

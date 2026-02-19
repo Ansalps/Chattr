@@ -36,6 +36,7 @@ func AuthSubscriptionRoutes(router *gin.Engine, authSubscriptionHandler *handler
 
 	router.GET("/user/get-profile-information",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.GetProfileInformation)
 	router.PATCH("/user/edit-profile-information",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.EditProfileInformation)
+	router.GET("/user/public-profile",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.GetPublicProfile)
 	router.GET("/user/:user_id/get-public-profile",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.GetPublicProfile)
 	router.POST("/user/set-profile-image",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.SetProfileImage)
 	router.PATCH("/user/change-password",authMiddleware.VerifyJwt([]string{"user"},"access",tokenSecurityKey.UserSecurityKey),authSubscriptionHandler.ChangePassword)

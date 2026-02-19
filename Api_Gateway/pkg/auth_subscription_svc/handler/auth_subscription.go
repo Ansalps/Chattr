@@ -1032,7 +1032,21 @@ func (as *AuthSubscriptionHandler) SearchUser(c *gin.Context) {
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "users retrieved successfully", resp))
 }
 func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
+	claims, exists := c.Get("claims")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(responsemodels.JwtClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
+		return
+	}
 	userIdStr := c.Param("user_id")
+	if userIdStr==""{
+		str := strconv.FormatUint(jwtClaims.ID, 10)
+		userIdStr=str
+	}
 	userId, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid user id", nil))

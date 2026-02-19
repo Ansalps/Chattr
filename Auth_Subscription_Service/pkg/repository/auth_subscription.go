@@ -82,6 +82,7 @@ func (ad *AuthSubscriptionRepository) CreateUser(userData *requestmodels.UserSig
 		UserName: userData.UserName,
 		Email:    userData.Email,
 		Password: userData.Password,
+		Phone: userData.Phone,
 	}
 	if err := ad.DB.Create(&user).Error; err != nil {
 		return nil, err
@@ -911,7 +912,9 @@ func (ad *AuthSubscriptionRepository) IsEligibleForSubsciption(req requestmodels
 	if err != nil {
 		return false, err
 	}
-
+	fmt.Println("userid",req.UserId)
+	fmt.Println("req",req)
+	fmt.Println("num",num)
 	// If count is 0, they are eligible
 	return num == 0, nil
 }

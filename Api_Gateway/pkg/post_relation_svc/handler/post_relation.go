@@ -778,9 +778,9 @@ func (as *PostRelationHandler)FetchNewsFeed(c *gin.Context){
 	} else{
 		req.PullToRefresh=false
 	}
-	fmt.Println("req.LastID",req.LastID)
-	fmt.Println("refreshStr",refreshStr)
-	fmt.Println("req.PullToRefresh",req.PullToRefresh)
+	//fmt.Println("req.LastID",req.LastID)
+	//fmt.Println("refreshStr",refreshStr)
+	//fmt.Println("req.PullToRefresh",req.PullToRefresh)
 	resp,err:=as.DirectPostClient.Client.FetchNewsFeed(context.Background(),&post_relation.FetchNewsFeedRequest{
 		UserId: req.UserID,
 		Limit: int64(req.Limit),

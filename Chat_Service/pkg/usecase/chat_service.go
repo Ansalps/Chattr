@@ -211,10 +211,12 @@ func (as *ChatUsecase) CreateGroup(req requestmodels.CreateGroupRequest) (respon
 }
 
 func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (responsemodels.AddMembersResponse, error) {
+	fmt.Println("first")
 	allUsersNotExists, err := as.AuthClient.CheckAllUsersExists(context.Background(), &pb.UserDataReq{
 		UserId: req.GroupMembers,
 	})
 	if err != nil {
+		fmt.Println("is it here")
 		return responsemodels.AddMembersResponse{}, err
 	}
 	if len(allUsersNotExists.UserId) != 0 {
@@ -224,19 +226,24 @@ func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (response
 	}
 	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
 	if err != nil {
+		fmt.Println("seconde")
 		return responsemodels.AddMembersResponse{}, err
 	}
 	if !exists {
+		fmt.Println("third")
 		return responsemodels.AddMembersResponse{}, domain.ErrGroupNotFound
 	}
 	resp1, err := as.ChatRepository.ExistingMembers(req.GroupID)
 	if err != nil {
+		fmt.Println("fourth")
 		return responsemodels.AddMembersResponse{}, err
 	}
 
 	if !slices.Contains(resp1, req.UserID) {
+		fmt.Println("fifth")
 		return responsemodels.AddMembersResponse{}, domain.ErrNotGroupMember
 	}
+	fmt.Println("req.GroupMembers",req.GroupMembers)
 	resp, err := as.AuthClient.CheckUserListExists(context.Background(), &pb.UserDataReq{
 		UserId: req.GroupMembers,
 	})

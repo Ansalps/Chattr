@@ -479,6 +479,7 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 		log.Println("error binding request in chat service", err)
 		return
 	}
+	fmt.Println("req",req)
 	//fmt.Println("req in handler", req)
 	// resp, err := as.ChatUsecase.AddMembers(req)
 	// if err != nil {

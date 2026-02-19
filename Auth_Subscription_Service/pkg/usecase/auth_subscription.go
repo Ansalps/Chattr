@@ -709,7 +709,7 @@ func (as *AuthSubscriptionUsecase) Unsubscribe(unsubscribeReq requestmodels.Unsu
 		return responsemodels.UnsubscribeResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	unsubscribeReq.RazorpaySubId=razorpaySubscritpionId
-	fmt.Println("is it actually nil,???", unsubscribeReq.RazorpaySubId)
+	//fmt.Println("is it actually nil,???", unsubscribeReq.RazorpaySubId)
 	
 	status,err:=as.AuthSubscriptionRepository.FetchUserSubscription(unsubscribeReq.RazorpaySubId)
 	if err!=nil{

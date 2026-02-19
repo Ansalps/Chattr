@@ -37,7 +37,7 @@ type OtpVerificationResponse struct {
 	Status   string
 	AccessToken string
 	RefreshToken string
-	TempToken string
+	TempToken string `json:"TempToken,omitempty"`
 }
 
 type ResendOtpResponse struct{

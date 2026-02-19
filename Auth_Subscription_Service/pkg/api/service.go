@@ -158,6 +158,7 @@ func (as *AuthSubscriptionServer) UserSignUp(ctx context.Context, req *pb.UserSi
 		Email:           req.Email,
 		Password:        req.Password,
 		ConfirmPassword: req.ConfirmPassword,
+		Phone: req.Phone,
 	}
 	userResponse, err := as.AuthSubscriptionUsecase.UserSignUp(userSignup)
 	if err != nil {

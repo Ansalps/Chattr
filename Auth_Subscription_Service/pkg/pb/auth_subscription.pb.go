@@ -4579,6 +4579,7 @@ type UserSignUpRequest struct {
 	Email           string                 `protobuf:"bytes,3,opt,name=Email,proto3" json:"Email,omitempty"`
 	Password        string                 `protobuf:"bytes,4,opt,name=Password,proto3" json:"Password,omitempty"`
 	ConfirmPassword string                 `protobuf:"bytes,5,opt,name=ConfirmPassword,proto3" json:"ConfirmPassword,omitempty"`
+	Phone           string                 `protobuf:"bytes,6,opt,name=Phone,proto3" json:"Phone,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -4644,6 +4645,13 @@ func (x *UserSignUpRequest) GetPassword() string {
 func (x *UserSignUpRequest) GetConfirmPassword() string {
 	if x != nil {
 		return x.ConfirmPassword
+	}
+	return ""
+}
+
+func (x *UserSignUpRequest) GetPhone() string {
+	if x != nil {
+		return x.Phone
 	}
 	return ""
 }
@@ -5543,13 +5551,14 @@ const file_pkg_pb_auth_subscription_proto_rawDesc = "" +
 	"\x03Bio\x18\x05 \x01(\tR\x03Bio\x12$\n" +
 	"\rProfileImgUrl\x18\x06 \x01(\tR\rProfileImgUrl\x12\x14\n" +
 	"\x05Links\x18\a \x01(\tR\x05Links\x12\x16\n" +
-	"\x06Status\x18\b \x01(\tR\x06Status\"\x9f\x01\n" +
+	"\x06Status\x18\b \x01(\tR\x06Status\"\xb5\x01\n" +
 	"\x11UserSignUpRequest\x12\x1a\n" +
 	"\bUserName\x18\x01 \x01(\tR\bUserName\x12\x12\n" +
 	"\x04Name\x18\x02 \x01(\tR\x04Name\x12\x14\n" +
 	"\x05Email\x18\x03 \x01(\tR\x05Email\x12\x1a\n" +
 	"\bPassword\x18\x04 \x01(\tR\bPassword\x12(\n" +
-	"\x0fConfirmPassword\x18\x05 \x01(\tR\x0fConfirmPassword\"\x9e\x01\n" +
+	"\x0fConfirmPassword\x18\x05 \x01(\tR\x0fConfirmPassword\x12\x14\n" +
+	"\x05Phone\x18\x06 \x01(\tR\x05Phone\"\x9e\x01\n" +
 	"\x12UserSignUpResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x1a\n" +
 	"\bUserName\x18\x02 \x01(\tR\bUserName\x12\x12\n" +

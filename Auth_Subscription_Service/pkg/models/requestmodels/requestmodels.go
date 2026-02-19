@@ -25,7 +25,7 @@ type UserSignUpRequest struct {
     Email           string `json:"Email" binding:"required,email"`
     Password        string `json:"Password" binding:"required,min=3,max=30"`
     ConfirmPassword string `json:"ConfirmPassword" binding:"required,eqfield=Password"`
-	Phone string	`json:"phone" binding:"required,regexp=^[0-9]{10}$"`
+	Phone string	`json:"phone" binding:"required"`
 }
 
 type OtpRequest struct{
