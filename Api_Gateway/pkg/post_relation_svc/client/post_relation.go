@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/config"
@@ -113,7 +112,7 @@ func (as *PostRelationClient) AddComment(addCommentReq requestmodels.AddCommentR
 		log.Println("grpc call failed for add comment", err)
 		return responsemodels.AddCommentResponse{}, err
 	}
-	fmt.Println("resp in client in api gateway", resp)
+	//fmt.Println("resp in client in api gateway", resp)
 	return responsemodels.AddCommentResponse{
 		UserID:          resp.UserId,
 		PostID:          resp.PostId,
@@ -135,9 +134,9 @@ func (as *PostRelationClient) EditComment(editCommentReq requestmodels.EditComme
 		log.Println("grpc edit Comment call failed", err)
 		return responsemodels.EditCommentResponse{}, err
 	}
-	fmt.Println("check in ",resp)
+	//fmt.Println("check in ",resp)
 	return responsemodels.EditCommentResponse{
-		PostID: resp.PostId,
+		PostID:      resp.PostId,
 		CommentID:   resp.CommentId,
 		CommentText: resp.CommentText,
 	}, nil

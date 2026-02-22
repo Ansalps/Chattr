@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 
@@ -24,7 +23,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Post_Relation_Service started on:", config.PortMngr.RunnerPort)
+	log.Println("Post_Relation_Service started on:", config.PortMngr.RunnerPort)
 	grpcServer := grpc.NewServer()
 	pb.RegisterPostRelationServiceServer(grpcServer, PostRelationServiceServer)
 	if err := grpcServer.Serve(lis); err != nil {

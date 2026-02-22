@@ -12,7 +12,7 @@ func VerifyRazorpaySignature(paymentID, subscriptionID, signature string, keySec
 	pID := paymentID
 	sID := subscriptionID
 	secret := keySecret
-	fmt.Println(paymentID, subscriptionID, keySecret)
+	//fmt.Println(paymentID, subscriptionID, keySecret)
 	res1 := GenerateHmacSHA256(pID+"|"+sID, secret)
 	fmt.Println("Result 1 (Pay|Sub):", res1)
 	return true

@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -20,7 +19,7 @@ type AuthSubscriptionClient struct {
 	Client auth_subscription.AuthSubscriptionServiceClient
 }
 
-func NewAuthSubscriptionClient(cfg *config.Config) interfaces.AuthSubscriptionClientInterface  {
+func NewAuthSubscriptionClient(cfg *config.Config) interfaces.AuthSubscriptionClientInterface {
 	grpcConnection, err := grpc.NewClient(cfg.AuthSubscriptionSvcUrl, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("could not connect: %v", err)
@@ -61,7 +60,7 @@ func (as *AuthSubscriptionClient) UserSignUp(user requestmodels.UserSignUpReques
 		Email:           user.Email,
 		Password:        user.Password,
 		ConfirmPassword: user.ConfirmPassword,
-		Phone:user.Phone,
+		Phone:           user.Phone,
 	})
 	if err != nil {
 		log.Printf("grpc user signup call failed :%v", err)
@@ -77,7 +76,7 @@ func (as *AuthSubscriptionClient) UserSignUp(user requestmodels.UserSignUpReques
 }
 
 func (as *AuthSubscriptionClient) VerifyOtp(otpReq requestmodels.OtpRequest) (responsemodels.OtpVerificationResponse, error) {
-	fmt.Print("in client calling server function",otpReq.UserId)
+	//fmt.Print("in client calling server function",otpReq.UserId)
 	resp, err := as.Client.VerifyOtp(context.Background(), &auth_subscription.OtpRequest{
 		UserId:  otpReq.UserId,
 		OtpCode: otpReq.OtpCode,
@@ -178,7 +177,7 @@ func (as *AuthSubscriptionClient) UnblockUser(unblockUserReq requestmodels.Unblo
 		log.Printf("grpc unblock user call failed :%v", err)
 		return responsemodels.UnblockUserResponse{}, err
 	}
-	fmt.Println("see if we get back user id in unblock user in client function",resp.UserId)
+	//fmt.Println("see if we get back user id in unblock user in client function",resp.UserId)
 	return responsemodels.UnblockUserResponse{
 		UserId: resp.UserId,
 	}, nil
@@ -252,7 +251,7 @@ func (as *AuthSubscriptionClient) CreateSubscriptionPlan(createSubscriptionPlanR
 		CreatedAt:   resp.CreatedAt.AsTime(),
 		UpdatedAt:   resp.UpdatedAt.AsTime(),
 		Name:        resp.Name,
-		Price:       resp.Price/100,
+		Price:       resp.Price / 100,
 		Currency:    resp.Currency,
 		Period:      resp.Period,
 		Interval:    resp.Interval,
@@ -274,7 +273,7 @@ func (as *AuthSubscriptionClient) ActivateSubscriptionPlan(activateSubscriptionP
 		CreatedAt:   resp.CreatedAt.AsTime(),
 		UpdatedAt:   resp.UpdatedAt.AsTime(),
 		Name:        resp.Name,
-		Price:       resp.Price,
+		Price:       resp.Price / 100,
 		Currency:    resp.Currency,
 		Period:      resp.Period,
 		Interval:    resp.Interval,
@@ -296,7 +295,7 @@ func (as *AuthSubscriptionClient) DeactivateSubscriptionPlan(deactivateSubscript
 		CreatedAt:   resp.CreatedAt.AsTime(),
 		UpdatedAt:   resp.UpdatedAt.AsTime(),
 		Name:        resp.Name,
-		Price:       resp.Price,
+		Price:       resp.Price / 100,
 		Currency:    resp.Currency,
 		Period:      resp.Period,
 		Interval:    resp.Interval,
@@ -322,7 +321,7 @@ func (as *AuthSubscriptionClient) GetAllSubscriptionPlans(getAllSubscritpionPlan
 			UpdatedAt:      subscriptionPlan.UpdatedAt.AsTime().UTC(),
 			RazorpayPlanId: subscriptionPlan.RazorpayPlanId,
 			Name:           subscriptionPlan.Name,
-			Price:          subscriptionPlan.Price/100,
+			Price:          subscriptionPlan.Price / 100,
 			Currency:       subscriptionPlan.Currency,
 			Period:         subscriptionPlan.Period,
 			Interval:       subscriptionPlan.Interval,
@@ -352,7 +351,7 @@ func (as *AuthSubscriptionClient) GetAllActiveSubscriptionPlans(getAllActiveSubs
 			UpdatedAt:      subscriptionPlan.UpdatedAt.AsTime().UTC(),
 			RazorpayPlanId: subscriptionPlan.RazorpayPlanId,
 			Name:           subscriptionPlan.Name,
-			Price:          subscriptionPlan.Price/100,
+			Price:          subscriptionPlan.Price / 100,
 			Currency:       subscriptionPlan.Currency,
 			Period:         subscriptionPlan.Period,
 			Interval:       subscriptionPlan.Interval,
@@ -367,9 +366,9 @@ func (as *AuthSubscriptionClient) GetAllActiveSubscriptionPlans(getAllActiveSubs
 
 func (as *AuthSubscriptionClient) Subscribe(subscribeReq requestmodels.SubscribeRequest) (responsemodels.SubscribeResponse, error) {
 	resp, err := as.Client.Subscribe(context.Background(), &auth_subscription.SubscribeReqeust{
-		UserId: subscribeReq.UserId,
-		PlanId: subscribeReq.PlanId,
-		UserEmail: subscribeReq.UserEmail,
+		UserId:     subscribeReq.UserId,
+		PlanId:     subscribeReq.PlanId,
+		UserEmail:  subscribeReq.UserEmail,
 		TotalCount: subscribeReq.TotalCount,
 	})
 	if err != nil {
@@ -377,22 +376,22 @@ func (as *AuthSubscriptionClient) Subscribe(subscribeReq requestmodels.Subscribe
 		return responsemodels.SubscribeResponse{}, err
 	}
 	return responsemodels.SubscribeResponse{
-		ID:                     resp.Id,
-		CreatedAt:              resp.CreatedAt.AsTime(),
-		UpdatedAt:              resp.UpdatedAt.AsTime(),
+		ID:        resp.Id,
+		CreatedAt: resp.CreatedAt.AsTime(),
+		UpdatedAt: resp.UpdatedAt.AsTime(),
 
-		UserID:                 resp.UserId,
+		UserID: resp.UserId,
 
 		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
-		SubscriptionPlanID: resp.SubscriptionPlanId,
-		RazorpayPlanId: resp.RazorpayPlanId,
+		SubscriptionPlanID:     resp.SubscriptionPlanId,
+		RazorpayPlanId:         resp.RazorpayPlanId,
 
-		Status:                 resp.Status,
+		Status:   resp.Status,
 		ShortUrl: resp.ShortUrl,
 
-		TotalCount:             int(resp.TotalCount),
-		RemainingCount:         int(resp.RemainingCount),
-		PaidCount:              int(resp.PaidCount),
+		TotalCount:     int(resp.TotalCount),
+		RemainingCount: int(resp.RemainingCount),
+		PaidCount:      int(resp.PaidCount),
 	}, nil
 }
 
@@ -405,7 +404,7 @@ func (as *AuthSubscriptionClient) VerifySubscriptionPayment(verifySubscriptionPa
 	if err != nil {
 		return responsemodels.VerifySubscriptionPaymentResponse{}, err
 	}
-	fmt.Println("just printing in apin gateway --", resp.StartAt, resp.StartAt.AsTime())
+	//fmt.Println("just printing in apin gateway --", resp.StartAt, resp.StartAt.AsTime())
 	loc, _ := time.LoadLocation("Asia/Kolkata")
 	return responsemodels.VerifySubscriptionPaymentResponse{
 		ID:                     resp.Id,
@@ -426,8 +425,8 @@ func (as *AuthSubscriptionClient) VerifySubscriptionPayment(verifySubscriptionPa
 func (as *AuthSubscriptionClient) Unsubscribe(unsubscribeReq requestmodels.UnsubscribeRequest) (responsemodels.UnsubscribeResponse, error) {
 	resp, err := as.Client.Unsubscribe(context.Background(), &auth_subscription.UnsubscribeRequest{
 		//SubId:        unsubscribeReq.SubId,
-		UserId: unsubscribeReq.UserID,
-		CancelReason: unsubscribeReq.CancelReason,
+		UserId:           unsubscribeReq.UserID,
+		CancelReason:     unsubscribeReq.CancelReason,
 		CancelAtCycleEnd: unsubscribeReq.CancelAtCycleEnd,
 	})
 	if err != nil {
@@ -439,64 +438,64 @@ func (as *AuthSubscriptionClient) Unsubscribe(unsubscribeReq requestmodels.Unsub
 	}, nil
 }
 
-func (as *AuthSubscriptionClient)SetProfileImage(setProfileImgReq requestmodels.SetProfileImageRequest)(responsemodels.SetProfileImageResponse,error){
-	resp,err:=as.Client.SetProfileImage(context.Background(),&auth_subscription.SetProfileImageRequest{
-		UserId: setProfileImgReq.UserId,
+func (as *AuthSubscriptionClient) SetProfileImage(setProfileImgReq requestmodels.SetProfileImageRequest) (responsemodels.SetProfileImageResponse, error) {
+	resp, err := as.Client.SetProfileImage(context.Background(), &auth_subscription.SetProfileImageRequest{
+		UserId:      setProfileImgReq.UserId,
 		ContentType: setProfileImgReq.ContentType,
-		Image: setProfileImgReq.Image,
+		Image:       setProfileImgReq.Image,
 	})
-	if err!=nil{
-		log.Println("print in client error",err)
-		return responsemodels.SetProfileImageResponse{},err
+	if err != nil {
+		log.Println("print in client error", err)
+		return responsemodels.SetProfileImageResponse{}, err
 	}
-	fmt.Println("if no error pint  image url",resp.ImageUrl)
+	//fmt.Println("if no error pint  image url",resp.ImageUrl)
 	return responsemodels.SetProfileImageResponse{
 		ImageUrl: resp.ImageUrl,
-	},nil
+	}, nil
 }
 
-func (as *AuthSubscriptionClient)GetProfileInformation(req requestmodels.GetProfileInformationRequest)(responsemodels.GetProfileInformationResponse,error){
-	resp,err:=as.Client.GetProfileInformation(context.Background(),&auth_subscription.ProfileInfoReq{
+func (as *AuthSubscriptionClient) GetProfileInformation(req requestmodels.GetProfileInformationRequest) (responsemodels.GetProfileInformationResponse, error) {
+	resp, err := as.Client.GetProfileInformation(context.Background(), &auth_subscription.ProfileInfoReq{
 		UserId: req.UserId,
 	})
-	if err!=nil{
-		log.Println("error from grpc",err)
-		return responsemodels.GetProfileInformationResponse{},err
+	if err != nil {
+		log.Println("error from grpc", err)
+		return responsemodels.GetProfileInformationResponse{}, err
 	}
 	return responsemodels.GetProfileInformationResponse{
-		UserID: resp.UserId,
-		Name: resp.Name,
-		UserName: resp.Username,
-		Email: resp.Email,
-		Bio:resp.Bio,
+		UserID:        resp.UserId,
+		Name:          resp.Name,
+		UserName:      resp.Username,
+		Email:         resp.Email,
+		Bio:           resp.Bio,
 		ProfileImgUrl: resp.ProfileImageUrl,
-		Links: resp.Links,
-		BlueTick: resp.BlueTick,
-		Phone: resp.Phone,
-	},nil
+		Links:         resp.Links,
+		BlueTick:      resp.BlueTick,
+		Phone:         resp.Phone,
+	}, nil
 }
 
 func (as *AuthSubscriptionClient) WebhookSubsciptionCompleted(req requestmodels.RazorpayEvent) (responsemodels.WebhookResponse, error) {
-    // 1. Correctly drill down into the nested payload
-    subscriptionID := req.Payload.Subscription.Entity.ID
-    userEmail := req.Payload.Subscription.Entity.Notes["email"]
+	// 1. Correctly drill down into the nested payload
+	subscriptionID := req.Payload.Subscription.Entity.ID
+	userEmail := req.Payload.Subscription.Entity.Notes["email"]
 
-    resp, err := as.Client.Webhook(context.Background(), &auth_subscription.WebhookRequest{
-        Event: req.Event,
-        Payload: &auth_subscription.Payload{
-            Subscription: &auth_subscription.Subscription{
-                Id:    subscriptionID,
-                Email: userEmail, // Assuming you updated your proto
-            },
-        },
-    })
-    
-    if err != nil {
-        log.Printf("gRPC Call Failed: %v", err)
-        return responsemodels.WebhookResponse{}, err // Return the error so the handler knows it failed
-    }
+	resp, err := as.Client.Webhook(context.Background(), &auth_subscription.WebhookRequest{
+		Event: req.Event,
+		Payload: &auth_subscription.Payload{
+			Subscription: &auth_subscription.Subscription{
+				Id:    subscriptionID,
+				Email: userEmail, // Assuming you updated your proto
+			},
+		},
+	})
 
-    return responsemodels.WebhookResponse{
+	if err != nil {
+		log.Printf("gRPC Call Failed: %v", err)
+		return responsemodels.WebhookResponse{}, err // Return the error so the handler knows it failed
+	}
+
+	return responsemodels.WebhookResponse{
 		Event:                  resp.Event,
 		RazorpaySubscriptionId: resp.RazorpaySubscriptionId,
 		Message:                "Webhook processed successfully",

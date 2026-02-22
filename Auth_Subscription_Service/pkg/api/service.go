@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -69,8 +68,8 @@ func (as *AuthSubscriptionServer) AdminLogin(ctx context.Context, req *pb.AdminL
 		Id:    uint64(admin.Admin.ID),
 		Email: admin.Admin.Email,
 	}
-	fmt.Println("adminDetails", adminDetails)
-	fmt.Println("adminToken", admin.AccessToken)
+	//fmt.Println("adminDetails", adminDetails)
+	//fmt.Println("adminToken", admin.AccessToken)
 	return &pb.AdminLoginResponse{
 		AdminDetails: adminDetails,
 		AccessToken:  admin.AccessToken,
@@ -158,7 +157,7 @@ func (as *AuthSubscriptionServer) UserSignUp(ctx context.Context, req *pb.UserSi
 		Email:           req.Email,
 		Password:        req.Password,
 		ConfirmPassword: req.ConfirmPassword,
-		Phone: req.Phone,
+		Phone:           req.Phone,
 	}
 	userResponse, err := as.AuthSubscriptionUsecase.UserSignUp(userSignup)
 	if err != nil {
@@ -204,9 +203,9 @@ func (as *AuthSubscriptionServer) VerifyOtp(ctx context.Context, req *pb.OtpRequ
 			return nil, status.Error(codes.Internal, "internal server error")
 		}
 	}
-	fmt.Println("in service Access Token", otpResponse.AccessToken)
-	fmt.Println("in service Refresh Token", otpResponse.RefreshToken)
-	fmt.Println("in service Temp Token", otpResponse.TempToken)
+	//fmt.Println("in service Access Token", otpResponse.AccessToken)
+	//fmt.Println("in service Refresh Token", otpResponse.RefreshToken)
+	//fmt.Println("in service Temp Token", otpResponse.TempToken)
 	return &pb.OtpVerificationResponse{
 		Email:        otpResponse.Email,
 		Status:       otpResponse.Status,
@@ -585,7 +584,7 @@ func (as *AuthSubscriptionServer) Unsubscribe(ctx context.Context, req *pb.Unsub
 }
 
 func (as *AuthSubscriptionServer) SetProfileImage(ctx context.Context, req *pb.SetProfileImageRequest) (*pb.SetProfileImageResponse, error) {
-	fmt.Println("inside service print type", req.ContentType)
+	//fmt.Println("inside service print type", req.ContentType)
 	setProfileImageReq := requestmodels.SetProfileImageRequest{
 		UserId:      req.UserId,
 		ContentType: req.ContentType,
@@ -595,7 +594,7 @@ func (as *AuthSubscriptionServer) SetProfileImage(ctx context.Context, req *pb.S
 	if err != nil {
 		log.Println("is there any error from usercase", err)
 	}
-	fmt.Println("in service printing image url", setProfileImageRes.ImageUrl)
+	//fmt.Println("in service printing image url", setProfileImageRes.ImageUrl)
 	return &pb.SetProfileImageResponse{
 		ImageUrl: setProfileImageRes.ImageUrl,
 	}, nil
@@ -617,6 +616,7 @@ func (as *AuthSubscriptionServer) CheckUserExists(ctx context.Context, req *pb.C
 }
 
 func (as *AuthSubscriptionServer) GetProfileInformation(ctx context.Context, req *pb.ProfileInfoReq) (*pb.ProfileInfoRes, error) {
+
 	profileReq := requestmodels.GetProfileInformationRequest{
 		UserId: req.UserId,
 	}
@@ -624,7 +624,7 @@ func (as *AuthSubscriptionServer) GetProfileInformation(ctx context.Context, req
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("resp in service", resp)
+	//fmt.Println("resp in service", resp)
 	return &pb.ProfileInfoRes{
 		UserId:          resp.UserID,
 		Name:            resp.Name,
@@ -640,22 +640,22 @@ func (as *AuthSubscriptionServer) GetProfileInformation(ctx context.Context, req
 func (as *AuthSubscriptionServer) EditProfileInfromation(ctx context.Context, req *pb.EditProfileReq) (*pb.EditProfileRes, error) {
 	updateData := make(map[string]interface{})
 	if req.Name != nil {
-		fmt.Println("here *")
+		//fmt.Println("here *")
 		updateData["name"] = *req.Name
 	}
 	if req.Bio != nil {
-		fmt.Println("here **")
+		//fmt.Println("here **")
 		updateData["bio"] = *req.Bio
 	}
 	if req.Links != nil {
-		fmt.Println("here ***")
+		//fmt.Println("here ***")
 		updateData["links"] = *req.Links
 	}
 	if req.Phone != nil {
-		fmt.Println("here ****")
+		//fmt.Println("here ****")
 		updateData["phone"] = *req.Phone
 	}
-	fmt.Println("update data", updateData)
+	//fmt.Println("update data", updateData)
 	resp, err := as.AuthSubscriptionUsecase.EditProfileInformation(req.UserId, updateData)
 	if err != nil {
 		return nil, err
@@ -775,12 +775,12 @@ func (as *AuthSubscriptionServer) GetSubscriptionDetails(ctx context.Context, re
 	if err != nil {
 		log.Println(err)
 		if err == domain.ErrNoSubscription {
-			fmt.Println("hi here")
+			//fmt.Println("hi here")
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, err
 	}
-//	fmt.Println("resp.cancelled at",*resp.CancelledAt)
+	//	fmt.Println("resp.cancelled at",*resp.CancelledAt)
 	return &pb.GetSubscriptionDetailsResponse{
 		SubsciptionPlan: &pb.SubscriptioPlan{
 			Id:             resp.FetchSubscriptionPlan.ID,
@@ -815,12 +815,12 @@ func (as *AuthSubscriptionServer) GetSubscriptionDetails(ctx context.Context, re
 
 func (as *AuthSubscriptionServer) WebhookSubscriptionActivated(ctx context.Context, req *pb.WebhookSubscriptionActivatedRequest) (*pb.WebhookSubscriptionActivatedResponse, error) {
 
-	if req.StartAt == nil {
-		fmt.Println("10000")
-	}
-	if req.EndAt == nil {
-		fmt.Println("20000")
-	}
+	// if req.StartAt == nil {
+	// 	fmt.Println("10000")
+	// }
+	// if req.EndAt == nil {
+	// 	fmt.Println("20000")
+	// }
 
 	loc, _ := time.LoadLocation("Asia/Kolkata")
 	webhookReq := requestmodels.WebhookSubscriptionActivatedRequest{
@@ -905,8 +905,8 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionCancelled(ctx context.Conte
 	}, nil
 }
 func (as *AuthSubscriptionServer) WebhookSubscriptionCompleted(ctx context.Context, req *pb.WebhookSubscriptionCompletedRequest) (*pb.WebhookSubscriptionCompletedResponse, error) {
-	fmt.Println("is ti here in webhook completed in service")
-	fmt.Println("request in service ", req)
+	//fmt.Println("is ti here in webhook completed in service")
+	//fmt.Println("request in service ", req)
 	webhookReq := requestmodels.WebhookSubscriptionCompletedRequest{
 		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
 		Status:                 req.Status,
@@ -926,7 +926,7 @@ func (as *AuthSubscriptionServer) Webhook(ctx context.Context, req *pb.WebhookRe
 		Event: req.Event,
 	}
 	if webhookRequest.Event != "subscription.completed" {
-		fmt.Println("please return")
+		//	fmt.Println("please return")
 		return &pb.WebhookResponse{}, nil
 	}
 	//  Prevent nil pointer panic
@@ -935,7 +935,7 @@ func (as *AuthSubscriptionServer) Webhook(ctx context.Context, req *pb.WebhookRe
 	}
 	webhoodRes, err := as.AuthSubscriptionUsecase.Webhook(webhookRequest)
 	if err != nil {
-		fmt.Print("error in service", err)
+		//fmt.Print("error in service", err)
 		return &pb.WebhookResponse{}, nil
 	}
 	return &pb.WebhookResponse{

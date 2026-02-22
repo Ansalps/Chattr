@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"slices"
@@ -159,7 +158,7 @@ func (h *Hub) SendToGroup(dm requestmodels.MessageRequest, userIds []uint64) {
 
 }
 func (h *Hub) SendToUser(dm requestmodels.MessageRequest) {
-	fmt.Println("map", h.clients)
+	//fmt.Println("map", h.clients)
 	client, ok := h.clients[dm.RecipientID]
 	if !ok {
 		log.Println("User offline:", dm.RecipientID)
@@ -236,7 +235,7 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 				data, _ := json.Marshal("failed to store individual chat in conversations")
 				c.Conn.WriteMessage(websocket.TextMessage, data)
 			}
-			fmt.Println("c.UserID", c.UserID)
+			//fmt.Println("c.UserID", c.UserID)
 			// 2. Now store the message using the actualConvID
 			msgStruct := domain.Message{
 				MessageID:      uuid.NewString(),
@@ -417,33 +416,33 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 	// }
 	// c.JSON(http.StatusOK, resp)
 	resp, err := as.ChatUsecase.CreateGroup(req)
-if err != nil {
-	log.Println(err)
+	if err != nil {
+		log.Println(err)
 
-	var userErr *domain.NonExistingUsersError
-	if errors.As(err, &userErr) {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":            "some users do not exist",
-			"missing_user_ids": userErr.UserIDs,
+		var userErr *domain.NonExistingUsersError
+		if errors.As(err, &userErr) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":            "some users do not exist",
+				"missing_user_ids": userErr.UserIDs,
+			})
+			return
+		}
+
+		if errors.Is(err, domain.ErrNoUsersFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "no users found",
+			})
+			return
+		}
+
+		// ✅ fallback (VERY IMPORTANT)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "internal server error",
 		})
 		return
 	}
 
-	if errors.Is(err, domain.ErrNoUsersFound) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "no users found",
-		})
-		return
-	}
-
-	// ✅ fallback (VERY IMPORTANT)
-	c.JSON(http.StatusInternalServerError, gin.H{
-		"error": "internal server error",
-	})
-	return
-}
-
-c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, resp)
 
 }
 func (as *ChatHandler) AddMembers(c *gin.Context) {
@@ -479,7 +478,7 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 		log.Println("error binding request in chat service", err)
 		return
 	}
-	fmt.Println("req",req)
+	//fmt.Println("req",req)
 	//fmt.Println("req in handler", req)
 	// resp, err := as.ChatUsecase.AddMembers(req)
 	// if err != nil {
@@ -512,47 +511,47 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 	// //fmt.Println("resp", resp)
 	// c.JSON(http.StatusOK, resp)
 	resp, err := as.ChatUsecase.AddMembers(req)
-if err != nil {
-	log.Println(err)
+	if err != nil {
+		log.Println(err)
 
-	var userErr *domain.NonExistingUsersError
-	if errors.As(err, &userErr) {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":            "some users do not exist",
-			"missing_user_ids": userErr.UserIDs,
-		})
-		return
-	}
+		var userErr *domain.NonExistingUsersError
+		if errors.As(err, &userErr) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":            "some users do not exist",
+				"missing_user_ids": userErr.UserIDs,
+			})
+			return
+		}
 
-	switch {
-	case errors.Is(err, domain.ErrGroupNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "Group does not exist"})
+		switch {
+		case errors.Is(err, domain.ErrGroupNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "Group does not exist"})
 
-	case errors.Is(err, domain.ErrNotGroupMember):
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": "Do not have permission to add members to group",
-		})
+		case errors.Is(err, domain.ErrNotGroupMember):
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "Do not have permission to add members to group",
+			})
 
-	default:
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.NotFound:
-				c.JSON(http.StatusNotFound, gin.H{"error": st.Message()})
-			default:
+		default:
+			if st, ok := status.FromError(err); ok {
+				switch st.Code() {
+				case codes.NotFound:
+					c.JSON(http.StatusNotFound, gin.H{"error": st.Message()})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "internal server error",
+					})
+				}
+			} else {
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"error": "internal server error",
 				})
 			}
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "internal server error",
-			})
 		}
+		return
 	}
-	return
-}
 
-c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 func (as *ChatHandler) RemoveMember(c *gin.Context) {
@@ -760,7 +759,7 @@ func (as *ChatHandler) GetChat(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, resp)
 }
-func (as *ChatHandler)SetGroupProfileImage(c *gin.Context){
+func (as *ChatHandler) SetGroupProfileImage(c *gin.Context) {
 	groupIdStr := c.Param("group_id")
 	if groupIdStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "group id missing"})
@@ -787,17 +786,17 @@ func (as *ChatHandler)SetGroupProfileImage(c *gin.Context){
 		return
 	}
 	var req requestmodels.GroupProfileImageRequest
-	req.UserID=userID
-	req.GroupID=groupIdStr
+	req.UserID = userID
+	req.GroupID = groupIdStr
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Println("error binding request in chat service", err)
 		return
 	}
-	fmt.Println("req",req)
-	resp,err:=as.ChatUsecase.SetGroupProfileImage(req)
-	if err!=nil{
-		c.JSON(500,err.Error())
+	//fmt.Println("req",req)
+	resp, err := as.ChatUsecase.SetGroupProfileImage(req)
+	if err != nil {
+		c.JSON(500, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"group_profile_image_url":resp})
+	c.JSON(http.StatusOK, gin.H{"group_profile_image_url": resp})
 }

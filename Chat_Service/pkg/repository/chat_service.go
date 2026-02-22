@@ -84,7 +84,7 @@ func (ad *ChatRepository) CreateGroup(req requestmodels.CreateGroupRequest) (res
 }
 
 func (ad *ChatRepository) CreatorID(groupId string) (uint64, error) {
-	fmt.Println("goupId", groupId)
+	//fmt.Println("goupId", groupId)
 	var result struct {
 		CreatorID uint64 `bson:"creatorid"`
 	}
@@ -121,7 +121,7 @@ func (ad *ChatRepository) ExistingMembers(groupId string) ([]uint64, error) {
 }
 
 func (ad *ChatRepository) AddMembers(req requestmodels.AddMembersRequest) (responsemodels.AddMembersResponse, error) {
-	fmt.Println("request in group rep", req)
+	//fmt.Println("request in group rep", req)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -139,13 +139,13 @@ func (ad *ChatRepository) AddMembers(req requestmodels.AddMembersRequest) (respo
 	}
 
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
-	fmt.Println("hi hello")
+	//fmt.Println("hi hello")
 	err := ad.groupColl().FindOneAndUpdate(ctx, groupFilter, groupUpdate, opts).Decode(&updatedDoc)
 	if err != nil {
 		log.Println(err)
 		return responsemodels.AddMembersResponse{}, err
 	}
-	fmt.Println("hello hi")
+	//fmt.Println("hello hi")
 	// 2. IMMEDIATE VISIBILITY: Sync to Conversations Collection
 	// We use Upsert so the group appears in the inbox immediately.
 	convFilter := bson.M{"group_id": req.GroupID, "type": "group"}
@@ -166,9 +166,9 @@ func (ad *ChatRepository) AddMembers(req requestmodels.AddMembersRequest) (respo
 		log.Printf("Warning: Failed to sync conversation for group %s: %v", req.GroupID, err)
 		return responsemodels.AddMembersResponse{},err
 	}
-	fmt.Println("updatedDoc.GroupID",updatedDoc.GroupID)
-	fmt.Println("updatdDoc.GroupMembers",updatedDoc.GroupMembers)
-	fmt.Println("updatedDoc.CreatorID",updatedDoc.CreatorID)
+	//fmt.Println("updatedDoc.GroupID",updatedDoc.GroupID)
+	//fmt.Println("updatdDoc.GroupMembers",updatedDoc.GroupMembers)
+	//fmt.Println("updatedDoc.CreatorID",updatedDoc.CreatorID)
 	//fmt.Println("hello hello")
 	return responsemodels.AddMembersResponse{
 		GroupID:      updatedDoc.GroupID,

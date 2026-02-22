@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/config"
@@ -15,7 +14,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("cannot load configuration: %v", err)
 	}
-	fmt.Println("Config.Port", config.Port, "Config.AuthSubscriptionSvcUrl", config.AuthSubscriptionSvcUrl)
+	//fmt.Println("Config.Port", config.Port, "Config.AuthSubscriptionSvcUrl", config.AuthSubscriptionSvcUrl)
 	router := gin.New()
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{

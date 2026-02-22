@@ -9,7 +9,7 @@ import (
 )
 
 func GRPCtoHTTP(err error) (int, string) {
-	fmt.Println("error printing", err.Error())
+	//fmt.Println("error printing", err.Error())
 	if st, ok := status.FromError(err); ok {
 		fmt.Println("code printing",st.Code())
 		switch st.Code() {

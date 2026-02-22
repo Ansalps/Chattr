@@ -2,7 +2,6 @@ package repository
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -25,41 +24,41 @@ func NewPostRelationRepository(db *gorm.DB) interfacesRepository.PostRelationRep
 }
 
 func (ad *PostRelationRepository) CreatePost(createPostReq requestmodels.CreatePostRequest) (responsemodels.CreatePostResponse, error) {
-	fmt.Println("if it comes here print list of urls",createPostReq.MediaUrls)
+	//fmt.Println("if it comes here print list of urls",createPostReq.MediaUrls)
 	var mediaRecords []domain.PostMedia
-	for _,url:=range createPostReq.MediaUrls{
-		mediaRecords=append(mediaRecords, domain.PostMedia{MediaUrl: url})
+	for _, url := range createPostReq.MediaUrls {
+		mediaRecords = append(mediaRecords, domain.PostMedia{MediaUrl: url})
 	}
-	newPost:=domain.Post{
-		UserID: uint(createPostReq.UserID),
+	newPost := domain.Post{
+		UserID:    uint(createPostReq.UserID),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		Caption: createPostReq.Caption,
-		Media: mediaRecords,// GORM will see this and handle the insertion
+		Caption:   createPostReq.Caption,
+		Media:     mediaRecords, // GORM will see this and handle the insertion
 	}
 	// 2. Single call to Create
 	// GORM opens a transaction, inserts Post, gets ID, and batch inserts Media
-	// GORM will start a transaction, save the Post, 
-    // grab the new Post.ID, assign it to all mediaRecords.PostID,
-    // and set timestamps for EVERYTHING.
+	// GORM will start a transaction, save the Post,
+	// grab the new Post.ID, assign it to all mediaRecords.PostID,
+	// and set timestamps for EVERYTHING.
 	err := ad.DB.Create(&newPost).Error
-    if err != nil {
-        return responsemodels.CreatePostResponse{}, err
-    }
+	if err != nil {
+		return responsemodels.CreatePostResponse{}, err
+	}
 
-    return responsemodels.CreatePostResponse{
-        PostID: uint64(newPost.ID),
-    }, nil
+	return responsemodels.CreatePostResponse{
+		PostID: uint64(newPost.ID),
+	}, nil
 }
 
 func (ad *PostRelationRepository) EditPostById(editPostReq requestmodels.EditPostRequest) (responsemodels.EditPostResponse, error) {
 	query := `UPDATE posts SET caption=? WHERE user_id=? and id=?`
 	result := ad.DB.Exec(query, editPostReq.Caption, editPostReq.UserID, editPostReq.PostID)
-	 if result.Error != nil {
+	if result.Error != nil {
 		return responsemodels.EditPostResponse{}, result.Error
 	}
-	if result.RowsAffected==0{
-		return responsemodels.EditPostResponse{},gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		return responsemodels.EditPostResponse{}, gorm.ErrRecordNotFound
 	}
 	return responsemodels.EditPostResponse{
 		Caption: editPostReq.Caption,
@@ -81,11 +80,11 @@ func (ad *PostRelationRepository) DeletePostById(deletePostReq requestmodels.Del
 
 func (ad *PostRelationRepository) LikePostById(likePostReq requestmodels.LikePostRequest) (responsemodels.LikePostResponse, error) {
 	query := `INSERT INTO post_likes (user_id,post_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`
-	result:= ad.DB.Exec(query, likePostReq.UserID, likePostReq.PostID)
-	if result.Error!= nil {
+	result := ad.DB.Exec(query, likePostReq.UserID, likePostReq.PostID)
+	if result.Error != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(result.Error, &pgErr) && pgErr.Code == "23503" {
-			fmt.Println("is it reaching in postgres err", result.Error)
+			//fmt.Println("is it reaching in postgres err", result.Error)
 			return responsemodels.LikePostResponse{}, domain.ErrForeignKeyViolationCommentPost
 		}
 		return responsemodels.LikePostResponse{}, result.Error
@@ -95,17 +94,17 @@ func (ad *PostRelationRepository) LikePostById(likePostReq requestmodels.LikePos
 	}, nil
 }
 
-func (ad *PostRelationRepository)FetchPostOwnerIdByPostId(postId uint64)(uint64,error){
+func (ad *PostRelationRepository) FetchPostOwnerIdByPostId(postId uint64) (uint64, error) {
 	var postOwnerId uint64
-	query:=`select user_id from posts where id=?`
-	result:=ad.DB.Raw(query,postId).Scan(&postOwnerId)
-	if result.Error!=nil{
-		return 0,result.Error
+	query := `select user_id from posts where id=?`
+	result := ad.DB.Raw(query, postId).Scan(&postOwnerId)
+	if result.Error != nil {
+		return 0, result.Error
 	}
-	if result.RowsAffected==0{
-		return 0,gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		return 0, gorm.ErrRecordNotFound
 	}
-	return postOwnerId,nil
+	return postOwnerId, nil
 }
 
 func (ad *PostRelationRepository) UnlikePostById(unlikePostReq requestmodels.UnlikePostRequest) (responsemodels.UnlikePostResponse, error) {
@@ -114,8 +113,8 @@ func (ad *PostRelationRepository) UnlikePostById(unlikePostReq requestmodels.Unl
 	if result.Error != nil {
 		return responsemodels.UnlikePostResponse{}, result.Error
 	}
-	if result.RowsAffected==0{
-		return responsemodels.UnlikePostResponse{},gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		return responsemodels.UnlikePostResponse{}, gorm.ErrRecordNotFound
 	}
 	return responsemodels.UnlikePostResponse{
 		PostID: unlikePostReq.PostID,
@@ -138,17 +137,17 @@ func (ad *PostRelationRepository) AddComment(addCommentReq requestmodels.AddComm
 	query := `INSERT INTO comments (created_at,updated_at,user_id,post_id,comment_text,parent_comment_id) VALUES ($1,$2,$3,$4,$5,$6) returning id`
 	result := ad.DB.Raw(query, time.Now(), time.Now(), addCommentReq.UserID, addCommentReq.PostID, addCommentReq.CommentText, addCommentReq.ParentCommentId).Scan(&commetId)
 	if result.Error != nil {
-		fmt.Println("heelllo at least here")
-		fmt.Printf("Error Type: %T\n", result.Error)
+		//fmt.Println("heelllo at least here")
+		//fmt.Printf("Error Type: %T\n", result.Error)
 		var pgErr *pgconn.PgError
 		if errors.As(result.Error, &pgErr) && pgErr.Code == "23503" {
-			fmt.Println("is it reaching in postgres err", result.Error)
+			//fmt.Println("is it reaching in postgres err", result.Error)
 			return responsemodels.AddCommentResponse{}, domain.ErrForeignKeyViolationCommentPost
 		}
 
 		return responsemodels.AddCommentResponse{}, result.Error
 	}
-	fmt.Println("is comment id printed",commetId)
+	//fmt.Println("is comment id printed",commetId)
 	return responsemodels.AddCommentResponse{
 		UserID:          addCommentReq.UserID,
 		PostID:          addCommentReq.PostID,
@@ -167,7 +166,7 @@ func (ad *PostRelationRepository) EditComment(editCommentReq requestmodels.EditC
 		return responsemodels.EditCommentResponse{}, gorm.ErrRecordNotFound
 	}
 	return responsemodels.EditCommentResponse{
-		PostID: editCommentReq.PostID,
+		PostID:      editCommentReq.PostID,
 		CommentID:   editCommentReq.CommentID,
 		CommentText: editCommentReq.CommentText,
 	}, nil
@@ -179,7 +178,7 @@ func (ad *PostRelationRepository) DeleteCommentById(deleteCommentReq requestmode
 		return responsemodels.DeleteCommentResponse{}, result.Error
 	}
 	if result.RowsAffected == 0 {
-		fmt.Println("is it really happening in database?")
+		//fmt.Println("is it really happening in database?")
 		return responsemodels.DeleteCommentResponse{}, gorm.ErrRecordNotFound
 	}
 	return responsemodels.DeleteCommentResponse{
@@ -193,9 +192,9 @@ func (ad *PostRelationRepository) Follow(followReq requestmodels.FollowRequest) 
 	if result.Error != nil {
 		return responsemodels.FollowResponse{}, result.Error
 	}
-	if result.RowsAffected==0{
-		fmt.Println("is it entering")
-		return responsemodels.FollowResponse{},gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		//fmt.Println("is it entering")
+		return responsemodels.FollowResponse{}, gorm.ErrRecordNotFound
 	}
 	return responsemodels.FollowResponse{
 		FollowingUserID: followReq.FollowingUserID,
@@ -218,7 +217,7 @@ func (ad *PostRelationRepository) UnfollowUserById(unfollowReq requestmodels.Unf
 func (ad *PostRelationRepository) FetchCommentsByPostId(fetchCommentsReq requestmodels.FetchCommentsReqeust) ([]responsemodels.Comments, error) {
 	var resp []responsemodels.Comments
 	query := `SELECT * FROM comments WHERE post_id=$1 limit $2 offset $3`
-	result := ad.DB.Raw(query, fetchCommentsReq.PostID,fetchCommentsReq.Limit,fetchCommentsReq.Offset).Scan(&resp)
+	result := ad.DB.Raw(query, fetchCommentsReq.PostID, fetchCommentsReq.Limit, fetchCommentsReq.Offset).Scan(&resp)
 	if result.Error != nil {
 		return []responsemodels.Comments{}, result.Error
 	}
@@ -246,9 +245,10 @@ func (ad *PostRelationRepository) FetchFollowCountByUserId(userid uint64) (respo
 	}
 	return resp, nil
 }
+
 // func (ad *PostRelationRepository) FetchAllPosts(userid uint64) (responsemodels.FetchAllPostsResponse, error) {
 // 	var resp domain.Post
-// 	// query := `SELECT id as post_id,created_at,updated_at,user_id,caption,media_url FROM posts LEFT JOIN post_media 
+// 	// query := `SELECT id as post_id,created_at,updated_at,user_id,caption,media_url FROM posts LEFT JOIN post_media
 // 	// ON posts.id=post_media.post_id WHERE user_id=$1`
 // 	// result := ad.DB.Raw(query, userid).Scan(&resp)
 // 	// if result.Error != nil {
@@ -285,72 +285,72 @@ func (ad *PostRelationRepository) FetchFollowCountByUserId(userid uint64) (respo
 
 //     // Preload("Media") matches the field name in your Post struct
 //     err := ad.DB.Preload("Media").Where("user_id = ?", userid).Find(&posts).Error
-    
+
 //     if err != nil {
 //         return nil, err
 //     }
 
-//     return posts, nil
-// }
+//	    return posts, nil
+//	}
 func (ad *PostRelationRepository) FetchAllPosts(req requestmodels.FetchAllPostsReq) ([]responsemodels.PostWithCounts, error) {
-    var posts []responsemodels.PostWithCounts
+	var posts []responsemodels.PostWithCounts
 
-    err := ad.DB.Model(&domain.Post{}).
-        // 1. Select all post fields + Subqueries for counts
-        Select("posts.*, "+
-            "(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count, "+
-            "(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count, "+
+	err := ad.DB.Model(&domain.Post{}).
+		// 1. Select all post fields + Subqueries for counts
+		Select("posts.*, "+
+			"(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count, "+
+			"(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count, "+
 			// "Is Liked" Subquery (Returns true if record exists)
-            "EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked", 
-            req.CurrentUserID). // Pass the logged-in user's ID here).
-        // 2. Filter by User
-        Where("user_id = ?", req.TargetUserID).
-        // 3. Still Preload your Media slice
-        Preload("Media").
-        Order("created_at DESC").
+			"EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked",
+			req.CurrentUserID). // Pass the logged-in user's ID here).
+		// 2. Filter by User
+		Where("user_id = ?", req.TargetUserID).
+		// 3. Still Preload your Media slice
+		Preload("Media").
+		Order("created_at DESC").
 		Limit(req.Limit).
 		Offset(req.Offset).
-        Find(&posts).Error
+		Find(&posts).Error
 
-    return posts, err
+	return posts, err
 }
 
-func (ad *PostRelationRepository)FetchFollowersUserIds(userid uint64)([]responsemodels.FollowerIds,error){
+func (ad *PostRelationRepository) FetchFollowersUserIds(userid uint64) ([]responsemodels.FollowerIds, error) {
 	var resp []responsemodels.FollowerIds
-	query:=`SELECT follower_id FROM relations WHERE following_id=$1`
-	result:=ad.DB.Raw(query,userid).Scan(&resp)
-	if result.Error!=nil{
-		return nil,result.Error
+	query := `SELECT follower_id FROM relations WHERE following_id=$1`
+	result := ad.DB.Raw(query, userid).Scan(&resp)
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	if result.RowsAffected==0{
-		return nil,gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
 	}
-	return resp,nil
+	return resp, nil
 }
-func (ad *PostRelationRepository)FetchFollowersUserIds1(req requestmodels.FetchFollowersRequest)([]responsemodels.FollowerIds,error){
+func (ad *PostRelationRepository) FetchFollowersUserIds1(req requestmodels.FetchFollowersRequest) ([]responsemodels.FollowerIds, error) {
 	var resp []responsemodels.FollowerIds
-	query:=`SELECT follower_id FROM relations WHERE following_id=$1 LIMIT $2 OFFSET $3`
-	result:=ad.DB.Raw(query,req.UserID,req.Limit,req.Offset).Scan(&resp)
-	if result.Error!=nil{
-		return nil,result.Error
+	query := `SELECT follower_id FROM relations WHERE following_id=$1 LIMIT $2 OFFSET $3`
+	result := ad.DB.Raw(query, req.UserID, req.Limit, req.Offset).Scan(&resp)
+	if result.Error != nil {
+		return nil, result.Error
 	}
-	if result.RowsAffected==0{
-		return nil,gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
 	}
-	return resp,nil
+	return resp, nil
 }
-func (ad *PostRelationRepository)FetchFollowingUserIds(req requestmodels.FetchFollowingRequest)([]responsemodels.FollowingIds,error){
+func (ad *PostRelationRepository) FetchFollowingUserIds(req requestmodels.FetchFollowingRequest) ([]responsemodels.FollowingIds, error) {
 	var resp []responsemodels.FollowingIds
-	query:=`SELECT following_id FROM relations WHERE follower_id=$1 LIMIT $2 OFFSET $3`
-	result:=ad.DB.Raw(query,req.UserID,req.Limit,req.Offset).Scan(&resp)
-	if result.Error!=nil{
-		fmt.Println("is it reaching in error")
-		return nil,result.Error
+	query := `SELECT following_id FROM relations WHERE follower_id=$1 LIMIT $2 OFFSET $3`
+	result := ad.DB.Raw(query, req.UserID, req.Limit, req.Offset).Scan(&resp)
+	if result.Error != nil {
+		//fmt.Println("is it reaching in error")
+		return nil, result.Error
 	}
-	if result.RowsAffected==0{
-		return nil,gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
 	}
-	return resp,nil
+	return resp, nil
 }
 
 // func (ad *PostRelationRepository) FetchPostDataForNewsFeed(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error) {
@@ -358,7 +358,7 @@ func (ad *PostRelationRepository)FetchFollowingUserIds(req requestmodels.FetchFo
 
 //     query := ad.DB.Table("posts").
 //         Select(`
-//             posts.*, 
+//             posts.*,
 //             (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count,
 //             (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
 //             EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked
@@ -369,12 +369,12 @@ func (ad *PostRelationRepository)FetchFollowingUserIds(req requestmodels.FetchFo
 
 // 		// 2. Logic to include Followings + Self
 //     // We use a subquery for following_ids to make the 'OR' condition efficient
-//     query = query.Where("posts.user_id = ? OR posts.user_id IN (SELECT following_id FROM relations WHERE follower_id = ?)", 
+//     query = query.Where("posts.user_id = ? OR posts.user_id IN (SELECT following_id FROM relations WHERE follower_id = ?)",
 //         newsfeedReq.UserID, newsfeedReq.UserID)
 
 //     // 3. Keep existing filters
 //     query = query.Where("posts.post_status = ?", "normal")
-        
+
 // 		// CURSOR LOGIC: If LastID is provided, fetch posts older than that ID
 // 		if newsfeedReq.LastID > 0 {
 // 			query = query.Where("posts.id < ?", newsfeedReq.LastID)
@@ -385,133 +385,132 @@ func (ad *PostRelationRepository)FetchFollowingUserIds(req requestmodels.FetchFo
 //         Preload("Media").
 //         Find(&resp).Error
 
-//     return resp, err
-// }
+//	    return resp, err
+//	}
 func (ad *PostRelationRepository) FetchNormalPostData(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error) {
-    var resp []responsemodels.PostWithStatus
+	var resp []responsemodels.PostWithStatus
 
-    // Subquery to get Followings who are NOT celebrities
-    normalFollowingSubquery := ad.DB.Table("relations").
-        Select("following_id").
-        Where("follower_id = ? AND following_id NOT IN (SELECT id FROM celebrities)", newsfeedReq.UserID)
-	fmt.Println("user id",newsfeedReq.UserID)
-    query := ad.DB.Table("posts").
-        Select(`posts.*, 
+	// Subquery to get Followings who are NOT celebrities
+	normalFollowingSubquery := ad.DB.Table("relations").
+		Select("following_id").
+		Where("follower_id = ? AND following_id NOT IN (SELECT id FROM celebrities)", newsfeedReq.UserID)
+		//fmt.Println("user id",newsfeedReq.UserID)
+	query := ad.DB.Table("posts").
+		Select(`posts.*, 
 		(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count,
 		(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
 		EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?)  as is_liked
-		`,newsfeedReq.UserID). // Use your existing SELECT logic
-        Where("(posts.user_id = ? OR posts.user_id IN (?))", newsfeedReq.UserID, normalFollowingSubquery).
-        Where("posts.post_status = ?", "normal")
+		`, newsfeedReq.UserID). // Use your existing SELECT logic
+		Where("(posts.user_id = ? OR posts.user_id IN (?))", newsfeedReq.UserID, normalFollowingSubquery).
+		Where("posts.post_status = ?", "normal")
 
-    if newsfeedReq.LastID > 0 {
-        query = query.Where("posts.id < ?", newsfeedReq.LastID)
-    }
+	if newsfeedReq.LastID > 0 {
+		query = query.Where("posts.id < ?", newsfeedReq.LastID)
+	}
 
-    err := query.Order("posts.id DESC").Limit(int(newsfeedReq.Limit) + 1).Preload("Media").Find(&resp).Error
-    return resp, err
+	err := query.Order("posts.id DESC").Limit(int(newsfeedReq.Limit) + 1).Preload("Media").Find(&resp).Error
+	return resp, err
 }
 func (ad *PostRelationRepository) GetFollowedCelebrityIDs(userID uint64) ([]uint64, error) {
-    var celebIDs []uint64
-    err := ad.DB.Table("relations").
-        Select("following_id").
-        Where("follower_id = ? AND following_id IN (SELECT id FROM celebrities)", userID).
-        Pluck("following_id", &celebIDs).Error
-    return celebIDs, err
+	var celebIDs []uint64
+	err := ad.DB.Table("relations").
+		Select("following_id").
+		Where("follower_id = ? AND following_id IN (SELECT id FROM celebrities)", userID).
+		Pluck("following_id", &celebIDs).Error
+	return celebIDs, err
 }
 func (ad *PostRelationRepository) FetchPostsByIDs(postIDs []uint64, viewerID uint64) ([]responsemodels.PostWithStatus, error) {
-    var resp []responsemodels.PostWithStatus
-    if len(postIDs) == 0 { return resp, nil }
+	var resp []responsemodels.PostWithStatus
+	if len(postIDs) == 0 {
+		return resp, nil
+	}
 
-    err := ad.DB.Table("posts").
-        Select(`posts.*, 
+	err := ad.DB.Table("posts").
+		Select(`posts.*, 
 		(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count,
 		(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
 		EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?)  as is_liked
 		`, viewerID). // Existing SELECT with counts
-        Where("id IN ?", postIDs).
-        Preload("Media").
-        Order("id DESC"). // Keep them sorted for the merge
-        Find(&resp).Error
-    return resp, err
+		Where("id IN ?", postIDs).
+		Preload("Media").
+		Order("id DESC"). // Keep them sorted for the merge
+		Find(&resp).Error
+	return resp, err
 }
 func (ad *PostRelationRepository) FetchCelebrityPostIDsFromSQL(celebIDs []uint64, lastID uint64, limit int) ([]uint64, error) {
-    var postIDs []uint64
+	var postIDs []uint64
 
-    query := ad.DB.Table("posts").
-        Select("id").
-        Where("user_id IN ? AND post_status = 'normal'", celebIDs)
+	query := ad.DB.Table("posts").
+		Select("id").
+		Where("user_id IN ? AND post_status = 'normal'", celebIDs)
 
-    if lastID > 0 {
-        query = query.Where("id < ?", lastID)
-    }
+	if lastID > 0 {
+		query = query.Where("id < ?", lastID)
+	}
 
-    // We pull 'limit' posts per request to ensure we have enough to merge
-    err := query.Order("id DESC").Limit(limit).Pluck("id", &postIDs).Error
-    
-    return postIDs, err
+	// We pull 'limit' posts per request to ensure we have enough to merge
+	err := query.Order("id DESC").Limit(limit).Pluck("id", &postIDs).Error
+
+	return postIDs, err
 }
 func (ad *PostRelationRepository) FetchLatestPostIDsByUserID(userID uint64, limit int) ([]uint64, error) {
-    var ids []uint64
-    err := ad.DB.Table("posts").
-        Select("id").
-        Where("user_id = ? AND post_status = 'normal'", userID).
-        Order("id DESC").
-        Limit(limit).
-        Pluck("id", &ids).Error
-    return ids, err
+	var ids []uint64
+	err := ad.DB.Table("posts").
+		Select("id").
+		Where("user_id = ? AND post_status = 'normal'", userID).
+		Order("id DESC").
+		Limit(limit).
+		Pluck("id", &ids).Error
+	return ids, err
 }
-func (ad *PostRelationRepository)PromoteToCelebrity(userid uint64)error{
-	query:=`INSERT INTO celebrities (id,created_at) VALUES ($1,$2)`
-	result:=ad.DB.Exec(query,userid,time.Now())
-	if result.Error!=nil{
+func (ad *PostRelationRepository) PromoteToCelebrity(userid uint64) error {
+	query := `INSERT INTO celebrities (id,created_at) VALUES ($1,$2)`
+	result := ad.DB.Exec(query, userid, time.Now())
+	if result.Error != nil {
 		return result.Error
 	}
 	return nil
 }
-func (ad *PostRelationRepository)DepromoteToNormalUser(userid uint64)error{
-	query:=`DELETE FROM celebrities WHERE id=$1`
-	result:=ad.DB.Exec(query,userid)
-	if result.Error!=nil{
+func (ad *PostRelationRepository) DepromoteToNormalUser(userid uint64) error {
+	query := `DELETE FROM celebrities WHERE id=$1`
+	result := ad.DB.Exec(query, userid)
+	if result.Error != nil {
 		return result.Error
 	}
 	return nil
 }
-
 
 func (ad *PostRelationRepository) FetchGlobalTrendingSQL(req requestmodels.GlobalNewsFeedRequest) ([]responsemodels.PostWithStatusWithTrendingScore, error) {
-    var posts []responsemodels.PostWithStatusWithTrendingScore
-	
+	var posts []responsemodels.PostWithStatusWithTrendingScore
+
 	err := ad.DB.Model(&domain.Post{}).
-        // 1. Select all post fields + Subqueries for counts
-        Select("posts.*, "+
-            "(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count, "+
-            "(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count, "+
+		// 1. Select all post fields + Subqueries for counts
+		Select("posts.*, "+
+			"(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count, "+
+			"(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count, "+
 			"("+
-            "  ("+
-            "    (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) + "+
-            "    (SELECT COUNT(*) FROM comments   WHERE comments.post_id   = posts.id) "+
-            "  ) / "+
-            "  (EXTRACT(EPOCH FROM (NOW() - posts.created_at)) / 3600 + 1) "+
-            ") AS trending_score, "+
+			"  ("+
+			"    (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) + "+
+			"    (SELECT COUNT(*) FROM comments   WHERE comments.post_id   = posts.id) "+
+			"  ) / "+
+			"  (EXTRACT(EPOCH FROM (NOW() - posts.created_at)) / 3600 + 1) "+
+			") AS trending_score, "+
 			// "Is Liked" Subquery (Returns true if record exists)
-            "EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked", 
-            req.UserID). // Pass the logged-in user's ID here).
-        // 2. Filter by User
-        //Where("user_id = ?", req.TargetUserID).
-        // 3. Still Preload your Media slice
-        Preload("Media").
-        Order("trending_score DESC").
+			"EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked",
+			req.UserID). // Pass the logged-in user's ID here).
+		// 2. Filter by User
+		//Where("user_id = ?", req.TargetUserID).
+		// 3. Still Preload your Media slice
+		Preload("Media").
+		Order("trending_score DESC").
 		Limit(req.Limit).
 		Offset(int(req.Offset)).
-        Find(&posts).Error
+		Find(&posts).Error
 
-		if err!=nil{
-			log.Println("database error in global newsfeed",err)
-			return []responsemodels.PostWithStatusWithTrendingScore{},err
-		}
+	if err != nil {
+		log.Println("database error in global newsfeed", err)
+		return []responsemodels.PostWithStatusWithTrendingScore{}, err
+	}
 
-    
-
-    return posts, nil
+	return posts, nil
 }

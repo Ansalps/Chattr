@@ -1,8 +1,6 @@
 package utils
 
 import (
-	"fmt"
-
 	"github.com/razorpay/razorpay-go"
 )
 
@@ -21,7 +19,7 @@ func RazorpayCreatePlan(razorpayClient *razorpay.Client, planData map[string]int
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(plan)
+	//fmt.Println(plan)
 	return plan, err
 
 }
@@ -31,7 +29,6 @@ func RazorpayCreateSubscription(razorpayClient *razorpay.Client, subscriptionDat
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(subscription)
+	//fmt.Println(subscription)
 	return subscription, nil
 }
-

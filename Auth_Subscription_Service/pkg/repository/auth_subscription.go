@@ -392,7 +392,7 @@ func (ad *AuthSubscriptionRepository) UpdateUserSubscripion(id string, subscript
 	if !ok {
 		return responsemodels.VerifySubscriptionPaymentResponse{}, fmt.Errorf("remaining_count is missing or invalid")
 	}
-	fmt.Println("start at ***", startAt, "endAt **", endAt, "nextChargeAt", nextChargeAt)
+	//fmt.Println("start at ***", startAt, "endAt **", endAt, "nextChargeAt", nextChargeAt)
 	// Update DB
 	updateData := map[string]any{
 		"status":          "active",
@@ -482,7 +482,7 @@ func (ad *AuthSubscriptionRepository) FetchUserIdFromSubscriptionId(razorpaySubI
 }
 
 func (ad *AuthSubscriptionRepository) TurnBlueTickTrueForUserId(userid uint64) error {
-	fmt.Println("most probably user_id", userid)
+	//fmt.Println("most probably user_id", userid)
 	query := `UPDATE users SET blue_tick=true where id=?`
 	if err := ad.DB.Exec(query, userid).Error; err != nil {
 		return err
@@ -647,7 +647,7 @@ func (ad *AuthSubscriptionRepository) GetProfileInformation(req requestmodels.Ge
 	return resp, nil
 }
 func (ad *AuthSubscriptionRepository) EditProfileInformation(userId uint64, updateData map[string]interface{}) (responsemodels.EditProfile, error) {
-	fmt.Println("data in repo", updateData)
+	//fmt.Println("data in repo", updateData)
 	// 1. Still perform the update
 	if err := ad.DB.Model(&domain.User{}).Where("id = ?", userId).Updates(updateData).Error; err != nil {
 		return responsemodels.EditProfile{}, err
@@ -659,22 +659,22 @@ func (ad *AuthSubscriptionRepository) EditProfileInformation(userId uint64, upda
 
 	// 2. Only populate fields that were in the original update request
 	if val, ok := updateData["name"].(string); ok {
-		fmt.Println("is reaching")
+		//fmt.Println("is reaching")
 		resp.Name = &val
 	}
 	if val, ok := updateData["bio"].(string); ok {
-		fmt.Println("is reaching 2")
+	//	fmt.Println("is reaching 2")
 		resp.Bio = &val
 	}
 	if val, ok := updateData["links"].(string); ok {
-		fmt.Println("is reaching 3")
+		//fmt.Println("is reaching 3")
 		resp.Links = &val
 	}
 	if val, ok := updateData["phone"].(string); ok {
-		fmt.Println("is reaching 4")
+		//fmt.Println("is reaching 4")
 		resp.Links = &val
 	}
-	fmt.Println("resp", resp)
+	//fmt.Println("resp", resp)
 	return resp, nil
 }
 func (ad *AuthSubscriptionRepository) FetchHashedPassword(req requestmodels.ChangePassword) (string, error) {
@@ -912,9 +912,9 @@ func (ad *AuthSubscriptionRepository) IsEligibleForSubsciption(req requestmodels
 	if err != nil {
 		return false, err
 	}
-	fmt.Println("userid",req.UserId)
-	fmt.Println("req",req)
-	fmt.Println("num",num)
+	//fmt.Println("userid",req.UserId)
+	//fmt.Println("req",req)
+	//fmt.Println("num",num)
 	// If count is 0, they are eligible
 	return num == 0, nil
 }

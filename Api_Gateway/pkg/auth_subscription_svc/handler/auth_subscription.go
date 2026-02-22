@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -713,7 +712,7 @@ func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("razorpay subscription id", subscribeResponse.RazorpaySubscriptionId)
+	//fmt.Println("razorpay subscription id", subscribeResponse.RazorpaySubscriptionId)
 	data := gin.H{
 		"SubscriptionID": subscribeResponse.RazorpaySubscriptionId,
 		"KeyID":          as.config.Razorpay.KeyId,
@@ -791,9 +790,9 @@ func (as *AuthSubscriptionHandler) Unsubscribe(c *gin.Context) {
 			case codes.FailedPrecondition:
 				obj = response.ClientResponse(http.StatusUnauthorized, st.Message(), nil)
 			case codes.NotFound:
-				obj=response.ClientResponse(http.StatusNotFound,st.Message(),nil)
+				obj = response.ClientResponse(http.StatusNotFound, st.Message(), nil)
 			case codes.Internal:
-				obj=response.ClientResponse(http.StatusInternalServerError,st.Message(),nil)
+				obj = response.ClientResponse(http.StatusInternalServerError, st.Message(), nil)
 			default:
 				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
 			}
@@ -829,7 +828,8 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	str := as.config.ProfileImgSize
 	num, err := strconv.Atoi(str) // returns (int, error)
 	if err != nil {
-		fmt.Println("Error:", err)
+		//fmt.Println("Error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error in converting prorile image size from string to int"})
 		return
 	}
 	// Check file size < 2 MB
@@ -910,7 +910,7 @@ func (as *AuthSubscriptionHandler) GetProfileInformation(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, err)
 		return
 	}
-	fmt.Println("resp in api gateway", res)
+	//fmt.Println("resp in api gateway", res)
 	c.JSON(http.StatusOK, res)
 
 }
@@ -932,10 +932,10 @@ func (as *AuthSubscriptionHandler) EditProfileInformation(c *gin.Context) {
 		return
 	}
 	//fmt.Println("**",*editProfile.Bio,"&&",*editProfile.Name,"!!",*editProfile.Links)
-	if editProfile.Links == nil {
-		fmt.Println("just checking on the firs")
-	}
-	if editProfile.Bio != nil && editProfile.Links == nil && editProfile.Name == nil {
+	// if editProfile.Links == nil {
+	// 	fmt.Println("just checking on the firs")
+	// }
+	if editProfile.Bio == nil && editProfile.Links == nil && editProfile.Name == nil {
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Need any one data to update", nil))
 		return
 	}
@@ -1043,9 +1043,9 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 		return
 	}
 	userIdStr := c.Param("user_id")
-	if userIdStr==""{
+	if userIdStr == "" {
 		str := strconv.FormatUint(jwtClaims.ID, 10)
-		userIdStr=str
+		userIdStr = str
 	}
 	userId, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
@@ -1058,7 +1058,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 	authChan := make(chan *auth_subscription.UserPublicDataResponse, 1)
 	postChan := make(chan *post_relation.PostFollowCountResponse, 1)
 	errChan := make(chan error, 2)
-	fmt.Println("user id print here please ", req.UserID)
+	//fmt.Println("user id print here please ", req.UserID)
 	go func() {
 		authresp, err := as.DirectClient.Client.UserPublicData(context.Background(), &auth_subscription.UserPublicDataRequest{
 			UserId: req.UserID,
@@ -1095,7 +1095,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 			return
 		}
 	}
-	fmt.Println("auth datat", authData)
+	//fmt.Println("auth datat", authData)
 	// if authData.BlueTick==nil{
 
 	// }
@@ -1196,15 +1196,16 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 		log.Println("error in binding", err)
 		return
 	}
-	fmt.Printf("Type: %T, Value: %v\n", webhookReq.Payload.Subscription.Entity.Notes["user_id"], webhookReq.Payload.Subscription.Entity.Notes["user_id"])
+	//fmt.Printf("Type: %T, Value: %v\n", webhookReq.Payload.Subscription.Entity.Notes["user_id"], webhookReq.Payload.Subscription.Entity.Notes["user_id"])
 	UserIdStr := webhookReq.Payload.Subscription.Entity.Notes["user_id"]
 	UserID, err := strconv.ParseUint(UserIdStr, 10, 64)
 	if err != nil {
-		fmt.Println("Error converting string to uint64:", err)
+		//fmt.Println("Error converting string to uint64:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error in conver string user id to uint64"})
 		return
 	}
-	log.Println("printing webhook event", webhookReq.Event)
-	log.Println("webhook req", webhookReq)
+	//log.Println("printing webhook event", webhookReq.Event)
+	//log.Println("webhook req", webhookReq)
 	// 4. Validate Event Type
 	var res *auth_subscription.WebhookSubscriptionActivatedResponse
 	switch webhookReq.Event {
@@ -1224,8 +1225,8 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 			return
 		}
 	case "subscription.charged":
-		fmt.Printf("The type of UserID is: %T\n", UserID)
-		res, err := as.DirectClient.Client.WebhookSubscriptionCharged(context.Background(), &auth_subscription.WebhookSubscriptionChargedRequest{
+		//fmt.Printf("The type of UserID is: %T\n", UserID)
+		_, err := as.DirectClient.Client.WebhookSubscriptionCharged(context.Background(), &auth_subscription.WebhookSubscriptionChargedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
 			RazorpayPlanId:         webhookReq.Payload.Subscription.Entity.PlanID,
 			NextChargeAt:           utils.UnixToProto(webhookReq.Payload.Subscription.Entity.CurrentEnd),
@@ -1240,7 +1241,7 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 			PaymentId:              webhookReq.Payload.Payment.Entity.ID,
 			UserId:                 UserID,
 		})
-		fmt.Println("res", res)
+		//fmt.Println("res", res)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err.Error())
 			return
@@ -1248,36 +1249,36 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 	case "subscription.halted":
 		//fmt.Println("user id ",UserID)
 		//fmt.Printf("The type of UserID is: %T\n", UserID)
-		resp, err := as.DirectClient.Client.WebhookSubscriptionHalted(context.Background(), &auth_subscription.WebhookSubscriptionHaltedRequest{
+		_, err := as.DirectClient.Client.WebhookSubscriptionHalted(context.Background(), &auth_subscription.WebhookSubscriptionHaltedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
 			Status:                 webhookReq.Payload.Subscription.Entity.Status,
 			UserId:                 UserID,
 		})
-		fmt.Println("resp", resp)
+		//fmt.Println("resp", resp)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err.Error())
 			return
 		}
 	case "subscription.cancelled":
-		resp, err := as.DirectClient.Client.WebhookSubscriptionCancelled(context.Background(), &auth_subscription.WebhookSubscriptionCancelledRequest{
+		_, err := as.DirectClient.Client.WebhookSubscriptionCancelled(context.Background(), &auth_subscription.WebhookSubscriptionCancelledRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
 			Status:                 webhookReq.Payload.Subscription.Entity.Status,
 			CancelledAt:            utils.UnixToProto(webhookReq.Payload.Subscription.Entity.EndedAt),
 			UserId:                 UserID,
 		})
-		fmt.Println("resp", resp)
+		//fmt.Println("resp", resp)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err.Error())
 			return
 		}
 	case "subscription.completed":
-		fmt.Println("is it here in completed")
-		resp, err := as.DirectClient.Client.WebhookSubscriptionCompleted(context.Background(), &auth_subscription.WebhookSubscriptionCompletedRequest{
+		//fmt.Println("is it here in completed")
+		_, err := as.DirectClient.Client.WebhookSubscriptionCompleted(context.Background(), &auth_subscription.WebhookSubscriptionCompletedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
 			Status:                 webhookReq.Payload.Subscription.Entity.Status,
 			UserId:                 UserID,
 		})
-		fmt.Println("resp", resp)
+		//fmt.Println("resp", resp)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, err.Error())
 			return
@@ -1357,20 +1358,20 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 		Description:    resp.SubsciptionPlan.Description,
 		IsActive:       resp.SubsciptionPlan.IsActive,
 	}
-	var cancelledAt,startAt,endAt,nextChargeAt *time.Time
-	if resp.CancelledAt!=nil{
+	var cancelledAt, startAt, endAt, nextChargeAt *time.Time
+	if resp.CancelledAt != nil {
 		t := resp.CancelledAt.AsTime()
-    cancelledAt = &t
+		cancelledAt = &t
 	}
-	if resp.StartAt!=nil{
+	if resp.StartAt != nil {
 		t := resp.StartAt.AsTime()
 		startAt = &t
 	}
-	if resp.EndAt!=nil{
+	if resp.EndAt != nil {
 		t := resp.EndAt.AsTime()
 		endAt = &t
 	}
-	if resp.NextChargeAt!=nil{
+	if resp.NextChargeAt != nil {
 		t := resp.NextChargeAt.AsTime()
 		nextChargeAt = &t
 	}

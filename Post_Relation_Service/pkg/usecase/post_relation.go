@@ -456,7 +456,7 @@ func (as *PostRelationUsecase) Unfollow(unfollowReq requestmodels.UnfollowReques
 	unfollowRes, err := as.PostRelationRepository.UnfollowUserById(unfollowReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			fmt.Println("is it actually")
+			//fmt.Println("is it actually")
 			return responsemodels.UnfollowResponse{}, domain.ErrNoFollower
 		}
 		return responsemodels.UnfollowResponse{}, err
@@ -802,7 +802,7 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 		if err!=nil{
 			log.Println("what is the error in fetching normal posts",err)
 		}
-		fmt.Println("length of normal posts",len(normalPosts))
+		//fmt.Println("length of normal posts",len(normalPosts))
 			userIDs := make(map[uint64]bool)
 
 			for _, v := range normalPosts {

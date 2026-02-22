@@ -67,7 +67,7 @@ var (
 	ErrPendingLogin                    = errors.New("Otp Verfication Pending, verfiy otp to login")
 	ErrSubscriptionPlanAlreadyActive   = errors.New("Cannot the activate the subscription plan, subscription plan is already active")
 	ErrSubscriptionPlanAlreadyDeactive = errors.New("Cannot the deactivate the subscription plan, subscription plan is already deactive")
-	ErrNoUsersFound                    = errors.New("No such users exist")
+	ErrNoUsersFound                    = errors.New("No such user id exist")
 	//ErrRazropayApi=errors.New("error calling razorpay api")
 )
 func (as *AuthSubscriptionUsecase)DoesUserExists(userid uint64)(bool,error){
@@ -290,7 +290,7 @@ func (as *AuthSubscriptionUsecase) ResendOtp(resendOtpReq requestmodels.ResendOt
 	expiration := time.Now().Add(5 * time.Minute)
 	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(otp, resendOtpReq.Email, expiration)
 	if err != nil {
-		fmt.Println("cannont save otp in db")
+		//fmt.Println("cannont save otp in db")
 		return responsemodels.ResendOtpResponse{}, fmt.Errorf("database error: %w", err)
 	}
 	err = as.SmtpUtil.SendVerifcationEmailWithOtp(otp, resendOtpReq.Email, resendOtpReq.Name)
@@ -762,7 +762,7 @@ func (as *AuthSubscriptionUsecase) SetProfileImage(setProfileImageReq requestmod
 	ct = strings.TrimPrefix(ct, "image/")
 
 	filename := fmt.Sprintf("%d_%d.%s", setProfileImageReq.UserId, time.Now().Unix(), ct)
-	fmt.Println("file name", filename)
+	//fmt.Println("file name", filename)
 	key := "profiles/" + filename
 	//fmt.Println("inside usecase type", setProfileImageReq.ContentType)
 	if setProfileImageReq.ContentType == "" {
@@ -777,7 +777,7 @@ func (as *AuthSubscriptionUsecase) SetProfileImage(setProfileImageReq requestmod
 		ContentType: aws.String(setProfileImageReq.ContentType),
 	})
 	if err != nil {
-		fmt.Println("is it here")
+		//fmt.Println("is it here")
 		return responsemodels.SetProfileImageResponse{}, status.Errorf(codes.Internal, "upload failed: %v", err)
 	}
 	// Construct URL
@@ -815,6 +815,9 @@ func (as *AuthSubscriptionUsecase)CheckAllUsersExists(users []uint64)([]uint64,e
 func (as *AuthSubscriptionUsecase) GetProfileInformation(req requestmodels.GetProfileInformationRequest) (responsemodels.GetProfileInformationResponse, error) {
 	resp, err := as.AuthSubscriptionRepository.GetProfileInformation(req)
 	if err != nil {
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.GetProfileInformationResponse{},ErrNoUsersFound
+		}
 		return responsemodels.GetProfileInformationResponse{}, err
 	}
 	//fmt.Println("resp in usecase", resp)
@@ -926,7 +929,7 @@ func (as *AuthSubscriptionUsecase)WebhookSubscriptionCharged(req requestmodels.W
 		log.Println(err)
 		return responsemodels.WebhookSubscriptionChargedResponse{},err
 	}
-	fmt.Println("is it coming here",req.RazorpaySubscriptionId)
+	//fmt.Println("is it coming here",req.RazorpaySubscriptionId)
 	err=as.AuthSubscriptionRepository.UpdateNextChargeAt(req.NextChargeAt,req.RazorpaySubscriptionId)
 	if err!=nil{
 		if err==gorm.ErrRecordNotFound{
@@ -953,7 +956,7 @@ func (as *AuthSubscriptionUsecase)WebhookSubscriptionCharged(req requestmodels.W
 			}
 		}
 	
-	fmt.Println("request in charged",req)
+	//fmt.Println("request in charged",req)
 	//if req.Status=="active"{
 		err=as.AuthSubscriptionRepository.TurnBlueTickTrueForUserId(req.UserID)
 		if err!=nil{
@@ -1013,8 +1016,8 @@ func (as *AuthSubscriptionUsecase)WebhookSubscriptionCancelled(req requestmodels
 }
 	
 func (as *AuthSubscriptionUsecase)WebhookSubscriptionCompleted(req requestmodels.WebhookSubscriptionCompletedRequest)(responsemodels.WebhookSubscriptionCompletedResponse,error){
-	fmt.Println("why not coming in completed")
-	fmt.Println("complete usecase req",req)
+//	fmt.Println("why not coming in completed")
+	//fmt.Println("complete usecase req",req)
 	resp,err:=as.AuthSubscriptionRepository.UpdateSubscripionCompleted(req)
 	if err!=nil{
 		log.Println("error while updating to completed",err)

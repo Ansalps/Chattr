@@ -172,7 +172,8 @@ func (as *ChatHandler)SetGroupProfileImage(c *gin.Context){
 	str := as.config.ProfileImgSize
     num, err := strconv.Atoi(str) // returns (int, error)
     if err != nil {
-        fmt.Println("Error:", err)
+       // fmt.Println("Error:", err)
+	   c.JSON(http.StatusInternalServerError,gin.H{"error":"error in converting profile image size from sting to int"})
         return
     }
 	// Check file size < 2 MB

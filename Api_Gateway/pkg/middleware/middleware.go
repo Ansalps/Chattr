@@ -84,7 +84,7 @@ func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tok
 			}
 
 			// Check for an invalid signature error
-			if errors.Is(err, jwt.ErrSignatureInvalid) {
+			if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
 				log.Println("Token signature is invalid.")
 				c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid token signature", nil))
 				c.Abort()
@@ -92,12 +92,12 @@ func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tok
 			}
 
 			// Check for an invalid claims error (e.g., unexpected claims)
-			if err == jwt.ErrSignatureInvalid {
-				log.Println("Invalid token signature error.")
-				c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid token signature", nil))
-				c.Abort()
-				return
-			}
+			// if err == jwt.ErrSignatureInvalid {
+			// 	log.Println("Invalid token signature error.")
+			// 	c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid token signature", nil))
+			// 	c.Abort()
+			// 	return
+			// }
 
 			// Check for an unknown JWT parsing error
 			log.Printf("Unexpected error: %v\n", err)

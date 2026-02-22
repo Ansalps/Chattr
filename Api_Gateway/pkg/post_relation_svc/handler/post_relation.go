@@ -167,7 +167,7 @@ func (as *PostRelationHandler) EditPost(c *gin.Context) {
 	editPostRequest.UserID = jwtClaims.ID
 	editPostResponse, err := as.GPPC_Client.EditPost(editPostRequest)
 	if err != nil {
-		fmt.Println("will it reach inside")
+		//fmt.Println("will it reach inside")
 		code, msg := utils.GRPCtoHTTP(err)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
@@ -187,8 +187,8 @@ func (as *PostRelationHandler) DeletePost(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims Not Found", nil))
 		return
 	}
-	fmt.Println("print claims", claims)
-	fmt.Printf("claims type = %T\n", claims)
+	//fmt.Println("print claims", claims)
+	//fmt.Printf("claims type = %T\n", claims)
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
@@ -594,11 +594,24 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 	req.TargetUserID=targetUserId
 	req.Limit=limit
 	req.Offset=offset
-	authResp, err := as.DirectAuthClient.Client.GetProfileInformation(context.Background(), &auth_subscription.ProfileInfoReq{
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	authResp, err := as.DirectAuthClient.Client.GetProfileInformation(ctx, &auth_subscription.ProfileInfoReq{
 		UserId: req.TargetUserID,
 	})
 	if err != nil {
 		log.Println("error from grpc", err)
+		if st,ok:=status.FromError(err); ok{
+			//fmt.Println("st.Code",st.Code(),"st.Message()",st.Message())
+			switch st.Code(){
+			case codes.Unavailable:
+				c.JSON(http.StatusServiceUnavailable,st.Message())
+				return
+			case codes.DeadlineExceeded:
+				c.JSON(http.StatusGatewayTimeout,st.Message())
+				return
+			}
+		}
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}

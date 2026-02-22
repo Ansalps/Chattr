@@ -1,8 +1,6 @@
 package di
 
 import (
-	"fmt"
-
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/client"
 	authClient "github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/client"
 	authHandler "github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/handler"
@@ -24,28 +22,28 @@ import (
 )
 
 func DependencyInjection(router *gin.Engine, cfg *config.Config) error {
-	redisClient:=client.NewRedisClient(cfg)
-	RedisRepository:=repository.NewRedisRepository(redisClient)
+	redisClient := client.NewRedisClient(cfg)
+	RedisRepository := repository.NewRedisRepository(redisClient)
 
-	AuthMiddleware:=middleware.NewAuthMiddlware(RedisRepository)
+	AuthMiddleware := middleware.NewAuthMiddlware(RedisRepository)
 
 	authSubscriptionClient := authClient.NewAuthSubscriptionClient(cfg)
 	authSubClient := authSubscriptionClient.(*client.AuthSubscriptionClient)
-	
+
 	postRelationClient := postClient.NewPostRelationClient(cfg)
-	postDirectClient:=postRelationClient.(*postClient.PostRelationClient)
+	postDirectClient := postRelationClient.(*postClient.PostRelationClient)
 
-	authSubscriptionHandler := authHandler.NewAuthSubscriptionHandler(authSubscriptionClient, cfg, authSubClient,postDirectClient,RedisRepository)
-	authRoutes.AuthSubscriptionRoutes(router, authSubscriptionHandler, &cfg.Token,AuthMiddleware)
+	authSubscriptionHandler := authHandler.NewAuthSubscriptionHandler(authSubscriptionClient, cfg, authSubClient, postDirectClient, RedisRepository)
+	authRoutes.AuthSubscriptionRoutes(router, authSubscriptionHandler, &cfg.Token, AuthMiddleware)
 
-	postRelationHandler := postRelationHandler.NewPostRelationHandler(postRelationClient, cfg,authSubClient,postDirectClient)
-	postRelationRoutes.PostRelationRoutes(router, postRelationHandler, cfg,AuthMiddleware)
-	fmt.Println("what happens here")
-	chatHandler:=chatServiceHandler.NewChatHandler(cfg)
-	chatServiceRoutes.ChatRoutes(router,chatHandler,cfg,AuthMiddleware)
-	fmt.Println("what happens here 2")
-	notificationHandler:=notificationServiceHandler.NewNotificationHandler(cfg)
-	fmt.Println("is there any ",notificationHandler)
-	notificationServiceRoutes.NotificationRoutes(router,notificationHandler,cfg,AuthMiddleware)
+	postRelationHandler := postRelationHandler.NewPostRelationHandler(postRelationClient, cfg, authSubClient, postDirectClient)
+	postRelationRoutes.PostRelationRoutes(router, postRelationHandler, cfg, AuthMiddleware)
+	//fmt.Println("what happens here")
+	chatHandler := chatServiceHandler.NewChatHandler(cfg)
+	chatServiceRoutes.ChatRoutes(router, chatHandler, cfg, AuthMiddleware)
+	//fmt.Println("what happens here 2")
+	notificationHandler := notificationServiceHandler.NewNotificationHandler(cfg)
+	//fmt.Println("is there any ",notificationHandler)
+	notificationServiceRoutes.NotificationRoutes(router, notificationHandler, cfg, AuthMiddleware)
 	return nil
 }

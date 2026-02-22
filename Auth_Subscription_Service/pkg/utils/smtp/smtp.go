@@ -41,7 +41,7 @@ func (sc *SmtpCredentials) SendVerifcationEmailWithOtp(otp int, recieverEmail st
 	// Send actual message
 	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, message)
 	if err != nil {
-		fmt.Println("-----", err)
+		//fmt.Println("-----", err)
 		return err
 	}
 	return nil
@@ -66,7 +66,7 @@ func (sc *SmtpCredentials) SendResetPasswordEmailOtp(otp int, recieverEmail stri
 	// Send actual message
 	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, message)
 	if err != nil {
-		fmt.Println("-----", err)
+		//fmt.Println("-----", err)
 		return err
 	}
 	return nil
