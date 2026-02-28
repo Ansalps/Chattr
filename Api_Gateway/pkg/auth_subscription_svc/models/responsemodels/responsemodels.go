@@ -91,8 +91,10 @@ type User struct{
 	Status string
 }
 
+
 type GetAllUsersResponse struct{
 	Users []User
+	Pagination PaginationDetails
 }
 
 type CreateSubscriptionPlanResponse struct{
@@ -162,13 +164,18 @@ type SubscriptionPlan struct{
 	Description string
 	IsActive bool
 }
-
+type PaginationDetails struct{
+	CurrentPage int
+	PageSize int
+}
 type GetAllSubscriptionPlansResponse struct{
 	SubscriptionPlans []SubscriptionPlan
+	Pagination PaginationDetails
 }
 
 type GetAllActiveSubscriptionPlansResponse struct{
 	SubscriptionPlans []SubscriptionPlan
+	Pagination PaginationDetails
 }
 
 // type SubscribeResponse struct{
@@ -283,4 +290,14 @@ type AuthData struct{
 	Name string
 	ProfileImgUrl string
 	BlueTick bool
+}
+type UserMetaData struct{
+	UserId uint64
+	UserName string
+	Name string
+	ProfileImgUrl string
+}
+type SearchUserResponse struct{
+	UserMeataData []UserMetaData
+	Pagingation PaginationDetails
 }

@@ -205,13 +205,13 @@ func (as *AuthSubscriptionHandler) ResendOtp(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
+	//log := utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
-	//fmt.Printf("Claims type: %T\n", claims)
-	//fmt.Println(claims)
+
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
@@ -222,12 +222,18 @@ func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
 	accessRegenerator.ID = jwtClaims.ID
 	accessRegenerator.Email = jwtClaims.Email
 	accessRegenerator.Role = jwtClaims.Role
-	//fmt.Println("inside handler access regeneration", jwtClaims.ID, jwtClaims.Email, jwtClaims.Role)
+
 	accessRegeneratorResponse, err := as.GPPC_Client.AccessRegenerator(accessRegenerator)
 	if err != nil {
+		// log.Error("grpc access regenerator call failed",
+		// 	logger.Field{Key: "error", Value: err},
+		// 	logger.Field{Key: "user_id", Value: accessRegenerator.ID},
+		// 	logger.Field{Key: "email", Value: accessRegenerator.Email},
+		// )
 		var obj response.Response
 		// Check if it’s a gRPC status error
 		if st, ok := status.FromError(err); ok {
+			satuscode,err1:=utils.GRPCtoHTTP(err)
 			switch st.Code() {
 			default:
 				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
@@ -448,7 +454,7 @@ func (as *AuthSubscriptionHandler) GetAllUsers(c *gin.Context) {
 	var getAllUsers requestmodels.GetAllUsersRequest
 	getAllUsers.Limit = uint64(limit)
 	getAllUsers.Offset = uint64(offset)
-	users, err := as.GPPC_Client.GetAllUsers(getAllUsers)
+	users, err := as.GPPC_Client.GetAllUsers(getAllUsers, page)
 	if err != nil {
 		var obj response.Response
 		// Check if it’s a gRPC status error
@@ -587,7 +593,7 @@ func (as *AuthSubscriptionHandler) GetAllSubscriptionPlans(c *gin.Context) {
 	var getAllSubscriptionPlans requestmodels.GetAllSubscriptionPlansRequest
 	getAllSubscriptionPlans.Limit = uint64(limit)
 	getAllSubscriptionPlans.Offset = uint64(offset)
-	subscriptionPlans, err := as.GPPC_Client.GetAllSubscriptionPlans(getAllSubscriptionPlans)
+	subscriptionPlans, err := as.GPPC_Client.GetAllSubscriptionPlans(getAllSubscriptionPlans, page)
 	if err != nil {
 		var obj response.Response
 		// Check if it’s a gRPC status error
@@ -637,7 +643,7 @@ func (as *AuthSubscriptionHandler) GetAllActiveSubscriptionPlans(c *gin.Context)
 	var getAllActiveSubscriptionPlans requestmodels.GetAllActiveSubscriptionPlansRequest
 	getAllActiveSubscriptionPlans.Limit = uint64(limit)
 	getAllActiveSubscriptionPlans.Offset = uint64(offset)
-	subscriptionPlans, err := as.GPPC_Client.GetAllActiveSubscriptionPlans(getAllActiveSubscriptionPlans)
+	subscriptionPlans, err := as.GPPC_Client.GetAllActiveSubscriptionPlans(getAllActiveSubscriptionPlans, page)
 	if err != nil {
 		var obj response.Response
 		// Check if it’s a gRPC status error
@@ -1021,6 +1027,8 @@ func (as *AuthSubscriptionHandler) SearchUser(c *gin.Context) {
 	req.Offset = offset
 	searchText := c.Query("username")
 	req.SearchText = searchText
+	// var resp *auth_subscription.SearchUserResponse
+	// var r  []*auth_subscription.UserMetaData
 	resp, err := as.DirectClient.Client.SearchUser(context.Background(), &auth_subscription.SearchUserRequest{
 		SearchText: req.SearchText,
 		Limit:      int64(req.Limit),
@@ -1029,7 +1037,22 @@ func (as *AuthSubscriptionHandler) SearchUser(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "users retrieved successfully", resp))
+	resp2 := make([]responsemodels.UserMetaData, len(resp.UserMetaData))
+	//var resp1 responsemodels.SearchUserResponse
+	for i, v := range resp.UserMetaData {
+		resp2[i].UserId = v.UserId
+		resp2[i].UserName = v.UserName
+		resp2[i].Name = v.Name
+		resp2[i].ProfileImgUrl = v.ProfileImgUrl
+	}
+	resp1 := responsemodels.SearchUserResponse{
+		UserMeataData: resp2,
+		Pagingation: responsemodels.PaginationDetails{
+			CurrentPage: page,
+			PageSize:    limit,
+		},
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "users retrieved successfully", resp1))
 }
 func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 	claims, exists := c.Get("claims")

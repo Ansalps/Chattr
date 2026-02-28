@@ -70,6 +70,15 @@ type Comment struct {
 }
 type FetchCommentsResponse struct {
 	Comments []Comment
+	Pagination PagingationDetails 
+}
+type FetchFollowersResponse struct{
+	UserMetaData []UserMetaData
+	Pagingation PagingationDetails
+}
+type FetchFollowingResponse struct {
+	UserMetaData []UserMetaData
+	Pagingation PagingationDetails
 }
 type Post struct{
 	PostID uint64
@@ -85,7 +94,10 @@ type Post struct{
 type FetchAllPostsResponse struct{
 	Posts []Post
 }
-
+type PagingationDetails struct{
+	CurrentPage int
+	PageSize int
+}
 type PostData struct{
 	PostID uint64
 	CreatedAt time.Time
@@ -98,6 +110,7 @@ type PostData struct{
 	PostAge       string
 	IsLiked bool
 	UserData UserMetaData
+	Pagination PagingationDetails
 }
 
 
@@ -122,6 +135,5 @@ type PostDataWithTrendingScore struct{
 }
 type FetchGlobalNewsFeedResponse struct{
 	PostUserData []PostDataWithTrendingScore
-	NextCursor uint64
-	HasMore bool
+	Pagination PagingationDetails
 }

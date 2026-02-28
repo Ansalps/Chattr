@@ -13,3 +13,11 @@ type Notification struct {
 	//IsRead     bool      `gorm:"default:false" json:"is_read"`
 	CreatedAt  time.Time `json:"created_at"`
 }
+type PaginationDetails struct{
+	CurrentPage int
+	PageSize int
+}
+type NotificationResponse struct{
+	Notifications []Notification
+	Pagination PaginationDetails
+}

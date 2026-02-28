@@ -118,7 +118,8 @@ func (as *AuthSubscriptionClient) AccessRegenerator(accessRegeneratorReq request
 		Role:  accessRegeneratorReq.Role,
 	})
 	if err != nil {
-		log.Printf("grpc access regenerator call failed :%v", err)
+		//log.Printf("grpc access regenerator call failed :%v", err)
+		
 		return responsemodels.AccessRegeneratorResponse{}, err
 	}
 	return responsemodels.AccessRegeneratorResponse{
@@ -206,7 +207,7 @@ func (as *AuthSubscriptionClient) UserLogin(userLoginReq requestmodels.UserLogin
 	}, nil
 }
 
-func (as *AuthSubscriptionClient) GetAllUsers(getAllUsersReq requestmodels.GetAllUsersRequest) (responsemodels.GetAllUsersResponse, error) {
+func (as *AuthSubscriptionClient) GetAllUsers(getAllUsersReq requestmodels.GetAllUsersRequest,page int) (responsemodels.GetAllUsersResponse, error) {
 	resp, err := as.Client.GetAllUsers(context.Background(), &auth_subscription.GetAllUsersRequest{
 		Limit:  getAllUsersReq.Limit,
 		Offset: getAllUsersReq.Offset,
@@ -228,8 +229,13 @@ func (as *AuthSubscriptionClient) GetAllUsers(getAllUsersReq requestmodels.GetAl
 			Status:        user.Status,
 		}
 	}
+	
 	return responsemodels.GetAllUsersResponse{
 		Users: users,
+		Pagination: responsemodels.PaginationDetails{
+			CurrentPage: page,
+			PageSize: int(getAllUsersReq.Limit),
+		},
 	}, nil
 }
 
@@ -304,7 +310,7 @@ func (as *AuthSubscriptionClient) DeactivateSubscriptionPlan(deactivateSubscript
 	}, nil
 }
 
-func (as *AuthSubscriptionClient) GetAllSubscriptionPlans(getAllSubscritpionPlansReq requestmodels.GetAllSubscriptionPlansRequest) (responsemodels.GetAllSubscriptionPlansResponse, error) {
+func (as *AuthSubscriptionClient) GetAllSubscriptionPlans(getAllSubscritpionPlansReq requestmodels.GetAllSubscriptionPlansRequest,page int) (responsemodels.GetAllSubscriptionPlansResponse, error) {
 	resp, err := as.Client.GetAllSubscriptionPlans(context.Background(), &auth_subscription.GetAllSubscriptionPlansRequest{
 		Limit:  getAllSubscritpionPlansReq.Limit,
 		Offset: getAllSubscritpionPlansReq.Offset,
@@ -331,10 +337,14 @@ func (as *AuthSubscriptionClient) GetAllSubscriptionPlans(getAllSubscritpionPlan
 	}
 	return responsemodels.GetAllSubscriptionPlansResponse{
 		SubscriptionPlans: subscriptionPlans,
+		Pagination: responsemodels.PaginationDetails{
+			CurrentPage: page,
+			PageSize: int(getAllSubscritpionPlansReq.Limit),
+		},
 	}, nil
 }
 
-func (as *AuthSubscriptionClient) GetAllActiveSubscriptionPlans(getAllActiveSubscriptionPlansReq requestmodels.GetAllActiveSubscriptionPlansRequest) (responsemodels.GetAllActiveSubscriptionPlansResponse, error) {
+func (as *AuthSubscriptionClient) GetAllActiveSubscriptionPlans(getAllActiveSubscriptionPlansReq requestmodels.GetAllActiveSubscriptionPlansRequest,page int) (responsemodels.GetAllActiveSubscriptionPlansResponse, error) {
 	resp, err := as.Client.GetAllActiveSubscriptionPlans(context.Background(), &auth_subscription.GetAllActiveSubscriptionPlansRequest{
 		Limit:  getAllActiveSubscriptionPlansReq.Limit,
 		Offset: getAllActiveSubscriptionPlansReq.Offset,
@@ -361,6 +371,10 @@ func (as *AuthSubscriptionClient) GetAllActiveSubscriptionPlans(getAllActiveSubs
 	}
 	return responsemodels.GetAllActiveSubscriptionPlansResponse{
 		SubscriptionPlans: subscriptionPlans,
+		Pagination: responsemodels.PaginationDetails{
+			CurrentPage: page,
+			PageSize: int(getAllActiveSubscriptionPlansReq.Limit),
+		},
 	}, nil
 }
 

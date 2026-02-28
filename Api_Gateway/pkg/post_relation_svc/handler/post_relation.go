@@ -547,8 +547,15 @@ func (as *PostRelationHandler) FetchComments(c *gin.Context) {
 			ChildComment:      childComments,
 		})
 	}
+	resp:=responsemodels.FetchCommentsResponse{
+		Comments: finalComments,
+		Pagination: responsemodels.PagingationDetails{
+			CurrentPage: page,
+			PageSize: limit,
+		},
+	}
 	//fetchCommentsResponse.Comments.CreatedAt=
-	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comments fetched successfully", finalComments))
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comments fetched successfully", resp))
 }
 func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 	pageStr := c.Query("page")
@@ -651,6 +658,10 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 			PostAge:       v.PostAge,
 			IsLiked: v.IsLiked,
 			UserData: userMetaData,
+			Pagination: responsemodels.PagingationDetails{
+				CurrentPage: page,
+				PageSize: limit,
+			},
 		})
 	}
 	if postResp == nil {
@@ -691,6 +702,8 @@ func (as *PostRelationHandler)FetchFollowers(c *gin.Context){
 		c.JSON(http.StatusBadRequest,response.ClientResponse(http.StatusBadRequest,"invalid user id",nil))
 		return
 	}
+	// var resp *post_relation.FetchFollowersResponse
+	// var r  []*post_relation.UserMetaData 
 	resp,err:=as.DirectPostClient.Client.FetchFollowers(context.Background(),&post_relation.FetchFollowersRequest{
 		UserId: userId,
 		Limit: int64(limit),
@@ -701,7 +714,22 @@ func (as *PostRelationHandler)FetchFollowers(c *gin.Context){
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
-	c.JSON(http.StatusOK,resp)
+	userMetaData:=make([]responsemodels.UserMetaData,len(resp.UserMetaData))
+	for i,v:=range resp.UserMetaData{
+		userMetaData[i].UserID=v.UserId
+		userMetaData[i].UserName=v.UserName
+		userMetaData[i].Name=v.Name
+		userMetaData[i].ProfileImgUrl=v.ProfileImgUrl
+		userMetaData[i].BlueTick=v.BlueTick
+	}
+	resp1:=responsemodels.FetchFollowersResponse{
+		UserMetaData: userMetaData,
+		Pagingation: responsemodels.PagingationDetails{
+			CurrentPage: page,
+			PageSize: limit,
+		},
+	}
+	c.JSON(http.StatusOK,resp1)
 }
 func (as *PostRelationHandler)FetchFollowing(c *gin.Context){
 	pageStr := c.Query("page")
@@ -733,6 +761,8 @@ func (as *PostRelationHandler)FetchFollowing(c *gin.Context){
 		c.JSON(http.StatusBadRequest,response.ClientResponse(http.StatusBadRequest,"invalid user id",nil))
 		return
 	}
+	// var resp *post_relation.FetchFollowingResponse
+	// var t  []*post_relation.UserMetaData
 	resp,err:=as.DirectPostClient.Client.FetchFollowing(context.Background(),&post_relation.FetchFollowingRequest{
 		UserId: userId,
 		Limit: int64(limit),
@@ -743,9 +773,24 @@ func (as *PostRelationHandler)FetchFollowing(c *gin.Context){
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
+	userMetaData:=make([]responsemodels.UserMetaData,len(resp.UserMetaData))
+	for i,v:=range resp.UserMetaData{
+		userMetaData[i].UserID=v.UserId
+		userMetaData[i].UserName=v.UserName
+		userMetaData[i].Name=v.Name
+		userMetaData[i].ProfileImgUrl=v.ProfileImgUrl
+		userMetaData[i].BlueTick=v.BlueTick
+	}
+	resp1:=responsemodels.FetchFollowingResponse{
+		UserMetaData: userMetaData,
+		Pagingation: responsemodels.PagingationDetails{
+			CurrentPage: page,
+			PageSize: limit,
+		},
+	}	
 	
 	//fmt.Println("resp in handler",resp)
-	c.JSON(http.StatusOK,resp)
+	c.JSON(http.StatusOK,resp1)
 }
 
 func (as *PostRelationHandler)FetchNewsFeed(c *gin.Context){
@@ -953,6 +998,13 @@ func (as *PostRelationHandler)FetchGlobalNewseed(c *gin.Context){
 				BlueTick: v.UserMetaData.BlueTick,
 			},
 		})
+	}	
+	resp1:=responsemodels.FetchGlobalNewsFeedResponse{
+		PostUserData: finalResp,
+		Pagination: responsemodels.PagingationDetails{
+			CurrentPage: page,
+			PageSize: limit,
+		},
 	}
-	c.JSON(http.StatusOK,finalResp)
+	c.JSON(http.StatusOK,resp1)
 }

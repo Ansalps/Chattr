@@ -22,6 +22,14 @@ type GetGroupMembersResponse struct{
 	UserName string
 	ProfileImgUrl string
 }
+type GetGroupMembers struct{
+	GetGroupMembers []GetGroupMembersResponse
+	Pagination PaginationDetails
+}
+type PaginationDetails struct{
+	CurrentPage int
+	PageSize int
+}
 type ChatProfileResponse struct {
 	ChatID          string    `json:"chat_id"`
 	ChatName        string    `json:"chat_name"`
@@ -29,6 +37,12 @@ type ChatProfileResponse struct {
 	LastMessage     string    `json:"last_message"`
 	LastMessageTime time.Time `json:"last_message_time"`
 	IsGroup         bool      `json:"is_group"`
+	
+}
+
+type ChatProfileFinalResponse struct{
+	ChatProfiles []ChatProfileResponse
+	Pagination PaginationDetails
 }
 
 type MessageResponse struct {
@@ -45,6 +59,7 @@ type GetChatResponse struct {
     ConversationID string            `json:"conversation_id"`
     Messages       []MessageResponse `json:"messages"`
     HasMore        bool              `json:"has_more"`
+	Pagination PaginationDetails
 }
 
 type GroupMeta struct {

@@ -13,6 +13,8 @@ func GRPCtoHTTP(err error) (int, string) {
 	if st, ok := status.FromError(err); ok {
 		fmt.Println("code printing",st.Code())
 		switch st.Code() {
+		case codes.Unavailable:
+			return http.StatusServiceUnavailable,"Service Unavailable"
 		case codes.NotFound:
 			return http.StatusNotFound, st.Message()
 		case codes.FailedPrecondition:

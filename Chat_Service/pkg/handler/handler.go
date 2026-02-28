@@ -13,6 +13,7 @@ import (
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/handler/interfacesHandler"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/requestmodels"
+	"github.com/Ansalps/Chattr_Chat_Service/pkg/responsemodels"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/usecase/interfacesUsecase"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -649,13 +650,21 @@ func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
 	req.UserID = userID
 	req.Limit = limit
 	req.Offset = offset
+	//var resp []responsemodels.GetGroupMembersResponse
 	resp, err := as.ChatUsecase.GetGroupMembers(req)
 	if err != nil {
 		log.Println(err)
 		c.JSON(500, gin.H{"error": "internal server error"})
 		return
 	}
-	c.JSON(http.StatusOK, resp)
+	resp1:=responsemodels.GetGroupMembers{
+		GetGroupMembers: resp,
+		Pagination: responsemodels.PaginationDetails{
+			CurrentPage: page,
+			PageSize: limit,
+		},
+	}
+	c.JSON(http.StatusOK, resp1)
 }
 
 func (as *ChatHandler) GetRecentChatProfiles(c *gin.Context) {
@@ -695,13 +704,21 @@ func (as *ChatHandler) GetRecentChatProfiles(c *gin.Context) {
 	req.UserID = userID
 	req.Limit = limit
 	req.Offset = offset
+	//var resp []responsemodels.ChatProfileResponse
 	resp, err := as.ChatUsecase.GetRecentChatProfiles(req)
 	if err != nil {
 		log.Println(err)
 		c.JSON(500, gin.H{"error": "internal server error"})
 		return
 	}
-	c.JSON(http.StatusOK, resp)
+	resp1:=responsemodels.ChatProfileFinalResponse{
+		ChatProfiles: resp,
+		Pagination: responsemodels.PaginationDetails{
+			CurrentPage: page,
+			PageSize: limit,
+		},
+	}
+	c.JSON(http.StatusOK, resp1)
 }
 
 func (as *ChatHandler) GetChat(c *gin.Context) {
@@ -751,11 +768,16 @@ func (as *ChatHandler) GetChat(c *gin.Context) {
 	req.UserID = userID
 	req.Limit = limit
 	req.Offset = offset
+	//var resp responsemodels.GetChatResponse
 	resp, err := as.ChatUsecase.GetChat(req)
 	if err != nil {
 		log.Println(err)
 		c.JSON(500, gin.H{"error": "internal server error"})
 		return
+	}
+	resp.Pagination=responsemodels.PaginationDetails{
+		CurrentPage: page,
+		PageSize: limit,
 	}
 	c.JSON(http.StatusOK, resp)
 }

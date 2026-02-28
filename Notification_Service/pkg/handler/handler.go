@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Ansalps/Chattr_Notification_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/infrastructure/websockethub"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/requestmodels"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/usecase/interfacesUsecase"
@@ -75,23 +76,23 @@ func (as *NotificationHandler) WebSocketConnection(c *gin.Context) {
 }
 
 func (as *NotificationHandler) ConsumeWebsocket(client *websockethub.Client) {
-    // 3️⃣ DEFER Unregister: This runs when this function exits
-    defer func() {
-        as.Hub.Unregister <- client.UserID
-    }()
+	// 3️⃣ DEFER Unregister: This runs when this function exits
+	defer func() {
+		as.Hub.Unregister <- client.UserID
+	}()
 
-    for {
-        // We read from the connection. If the user disconnects, 
-        // ReadMessage will return an error, breaking the loop.
-        _, _, err := client.Conn.ReadMessage()
-        if err != nil {
-            log.Printf("User %d disconnected: %v", client.UserID, err)
-            break 
-        }
-    }
+	for {
+		// We read from the connection. If the user disconnects,
+		// ReadMessage will return an error, breaking the loop.
+		_, _, err := client.Conn.ReadMessage()
+		if err != nil {
+			log.Printf("User %d disconnected: %v", client.UserID, err)
+			break
+		}
+	}
 }
 
-func (as *NotificationHandler)GetAllNotifications(c *gin.Context){
+func (as *NotificationHandler) GetAllNotifications(c *gin.Context) {
 
 	// 1. Parse Pagination
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -119,14 +120,22 @@ func (as *NotificationHandler)GetAllNotifications(c *gin.Context){
 	req.UserID = userID
 	req.Limit = limit
 	req.Offset = offset
-	resp,err:=as.NotificationUsecase.GetAllNotifications(req)
-	if err!=nil{
+	//var resp []domain.Notification
+	resp, err := as.NotificationUsecase.GetAllNotifications(req)
+	if err != nil {
 
 		log.Println(err)
 		c.JSON(500, gin.H{"error": "internal server error"})
 		return
 	}
-	c.JSON(http.StatusOK, resp)
+	resp1 := domain.NotificationResponse{
+		Notifications: resp,
+		Pagination: domain.PaginationDetails{
+			CurrentPage: page,
+			PageSize:    limit,
+		},
+	}
+	c.JSON(http.StatusOK, resp1)
 }
 
 // func (as *NotificationHandler) reader(c *websockethub.Client) {
