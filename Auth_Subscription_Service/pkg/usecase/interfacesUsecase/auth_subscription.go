@@ -1,12 +1,14 @@
 package interfacesUsecase
 
 import (
+	"context"
+
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/responsemodels"
 )
 
 type AuthSubscriptionUsecase interface{
-	AdminLogin(admin requestmodels.AdminLoginRequest)(responsemodels.AdminLoginResponse,error)
+	AdminLogin(ctx context.Context,admin requestmodels.AdminLoginRequest)(responsemodels.AdminLoginResponse,error)
 	BlockUser(requestmodels.BlockUserRequest)(responsemodels.BlockUserResponse,error)
 	UnblockUser(requestmodels.UnblockUserRequest)(responsemodels.UnblockUserResponse,error)
 	GetAllUsers(requestmodels.GetAllUsersRequest)(responsemodels.GetAllUsersResponse,error)

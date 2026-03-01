@@ -1,12 +1,14 @@
 package interfaces
 
 import (
+	"context"
+
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/requestmodels"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/responsemodels"
 )
 
 type AuthSubscriptionClientInterface interface{
-	AdminLogin(requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse,error)
+	AdminLogin(context.Context,requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse,error)
 	BlockUser(requestmodels.BlockUserRequest)(responsemodels.BlockUserResponse,error)
 	UnblockUser(requestmodels.UnblockUserRequest)(responsemodels.UnblockUserResponse,error)
 	GetAllUsers(requestmodels.GetAllUsersRequest,int)(responsemodels.GetAllUsersResponse,error)

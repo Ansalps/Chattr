@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -25,11 +27,17 @@ func NewAuthSubscriptionRepository(db *gorm.DB) interfacesRepository.AuthSubscri
 	}
 }
 
-func (ad *AuthSubscriptionRepository) CheckAdminExistsByEmail(email string) (*domain.Admin, error) {
+func (ad *AuthSubscriptionRepository) CheckAdminExistsByEmail(ctx context.Context, email string) (*domain.Admin, error) {
 	var admin domain.Admin
-	res := ad.DB.Where("email = ?", email).First(&admin)
+	res := ad.DB.WithContext(ctx).Where("email = ?", email).First(&admin)
 	if res.Error != nil {
+		if errors.Is(res.Error, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,res.Error) // This happens if the 10s limit is hit
+		}
 		return nil, res.Error
+	}
+	if res.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
 	}
 	return &admin, nil
 }
@@ -82,7 +90,7 @@ func (ad *AuthSubscriptionRepository) CreateUser(userData *requestmodels.UserSig
 		UserName: userData.UserName,
 		Email:    userData.Email,
 		Password: userData.Password,
-		Phone: userData.Phone,
+		Phone:    userData.Phone,
 	}
 	if err := ad.DB.Create(&user).Error; err != nil {
 		return nil, err
@@ -450,8 +458,8 @@ func (ad *AuthSubscriptionRepository) FetchRazorpaySubscriptionIdFromUserId(user
 	if result.Error != nil {
 		return "", result.Error
 	}
-	if result.RowsAffected==0{
-		return "",gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		return "", gorm.ErrRecordNotFound
 	}
 	return razorpaySubscriptionId, nil
 }
@@ -663,7 +671,7 @@ func (ad *AuthSubscriptionRepository) EditProfileInformation(userId uint64, upda
 		resp.Name = &val
 	}
 	if val, ok := updateData["bio"].(string); ok {
-	//	fmt.Println("is reaching 2")
+		//	fmt.Println("is reaching 2")
 		resp.Bio = &val
 	}
 	if val, ok := updateData["links"].(string); ok {
@@ -978,15 +986,15 @@ func (ad *AuthSubscriptionRepository) CheckAllUsersExists(userIDs []uint64) ([]u
 	return missing, nil
 }
 
-func (ad *AuthSubscriptionRepository)FetchSubStatus(rsubid string)(string,error){
+func (ad *AuthSubscriptionRepository) FetchSubStatus(rsubid string) (string, error) {
 	var status string
-	query:=`select status from user_subscriptions where razorpay_subscription_id=$1`
-	result:=ad.DB.Raw(query,rsubid).Scan(&status)
-	if result.Error!=nil{
-		return "",result.Error
+	query := `select status from user_subscriptions where razorpay_subscription_id=$1`
+	result := ad.DB.Raw(query, rsubid).Scan(&status)
+	if result.Error != nil {
+		return "", result.Error
 	}
-	if result.RowsAffected==0{
-		return "",gorm.ErrRecordNotFound
+	if result.RowsAffected == 0 {
+		return "", gorm.ErrRecordNotFound
 	}
-	return status,nil
+	return status, nil
 }

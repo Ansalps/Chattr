@@ -6,10 +6,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/Ansalps/Chattr_Auth_Subscription_Service/logger"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/pb"
-	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/usecase"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -48,17 +48,28 @@ func (as *AuthSubscriptionServer) DoesUserExists(ctx context.Context, req *pb.Do
 	}, nil
 }
 func (as *AuthSubscriptionServer) AdminLogin(ctx context.Context, req *pb.AdminLoginRequest) (*pb.AdminLoginResponse, error) {
+	log:=utils.GetLogger(ctx)
+	log.Info("access regenerator called",
+		logger.Field{Key: "user_email", Value: req.Email},
+	)
 	adminLogin := requestmodels.AdminLoginRequest{
 		Email:    req.Email,
 		Password: req.Password,
 	}
-	admin, err := as.AuthSubscriptionUsecase.AdminLogin(adminLogin)
+	admin, err := as.AuthSubscriptionUsecase.AdminLogin(ctx,adminLogin)
 	if err != nil {
-		log.Printf("AdminLogin failed for email=%s: %v", req.Email, err)
+		//log.Printf("AdminLogin failed for email=%s: %v", req.Email, err)
+		log.Error("failed to process request",
+			logger.Field{Key: "error", Value: err.Error()},
+		)
 		switch {
-		case errors.Is(err, usecase.ErrUserNotFound):
+		case errors.Is(err,domain.ErrDatabaseConnectionTimeOut):
+			return nil,status.Error(codes.Unavailable,domain.ErrDatabaseConnectionTimeOut.Error())
+		case errors.Is(err, domain.ErrUserNotFound):
 			return nil, status.Error(codes.NotFound, "user not found")
-		case errors.Is(err, usecase.ErrInvalidCredentials):
+		case errors.Is(err,domain.ErrDatabase):
+			return nil,status.Error(codes.Internal,domain.ErrDatabase.Error())
+		case errors.Is(err, domain.ErrInvalidCredentials):
 			return nil, status.Error(codes.Unauthenticated, "invalid credentials")
 		default:
 			return nil, status.Error(codes.Internal, "interanal server error")
@@ -68,8 +79,6 @@ func (as *AuthSubscriptionServer) AdminLogin(ctx context.Context, req *pb.AdminL
 		Id:    uint64(admin.Admin.ID),
 		Email: admin.Admin.Email,
 	}
-	//fmt.Println("adminDetails", adminDetails)
-	//fmt.Println("adminToken", admin.AccessToken)
 	return &pb.AdminLoginResponse{
 		AdminDetails: adminDetails,
 		AccessToken:  admin.AccessToken,
@@ -85,9 +94,9 @@ func (as *AuthSubscriptionServer) BlockUser(ctx context.Context, req *pb.BlockUs
 	if err != nil {
 		log.Printf("Block user failed for user id %d : %v", blockUserReq.UserId, err)
 		switch {
-		case errors.Is(err, usecase.ErrUserNotActive):
+		case errors.Is(err, domain.ErrUserNotActive):
 			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case errors.Is(err, usecase.ErrUserNotFound):
+		case errors.Is(err, domain.ErrUserNotFound):
 			return nil, status.Errorf(codes.NotFound, "user not found for user id: %v", blockUserReq.UserId)
 		default:
 			return nil, status.Error(codes.Internal, "internal server error")
@@ -106,9 +115,9 @@ func (as *AuthSubscriptionServer) UnblockUser(ctx context.Context, req *pb.Unblo
 	if err != nil {
 		log.Printf("Unblock user failed for user id %d : %v", unblockUserReq.UserId, err)
 		switch {
-		case errors.Is(err, usecase.ErrUserNotBlocked):
+		case errors.Is(err, domain.ErrUserNotBlocked):
 			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case errors.Is(err, usecase.ErrUserNotFound):
+		case errors.Is(err, domain.ErrUserNotFound):
 			return nil, status.Errorf(codes.NotFound, "user not found for user id: %v", unblockUserReq.UserId)
 		default:
 			return nil, status.Error(codes.Internal, "internal server error")
@@ -163,9 +172,9 @@ func (as *AuthSubscriptionServer) UserSignUp(ctx context.Context, req *pb.UserSi
 	if err != nil {
 		log.Printf("UsersignUp failed for email=%s and username=%s: %v", req.Email, req.UserName, err)
 		switch {
-		case errors.Is(err, usecase.ErrUserAlreadyExistsByEmail):
+		case errors.Is(err, domain.ErrUserAlreadyExistsByEmail):
 			return nil, status.Errorf(codes.AlreadyExists, "user with email=%s already exist", req.Email)
-		case errors.Is(err, usecase.ErrUserAlreadyExistsByUsername):
+		case errors.Is(err, domain.ErrUserAlreadyExistsByUsername):
 			return nil, status.Errorf(codes.AlreadyExists, "username %s is already taken", req.UserName)
 		default:
 			return nil, status.Error(codes.Internal, "interanal server error")
@@ -193,11 +202,11 @@ func (as *AuthSubscriptionServer) VerifyOtp(ctx context.Context, req *pb.OtpRequ
 	if err != nil {
 		log.Printf("OTP verification failed for email %s (reason: mismatch): %v", otpReq.Email, err)
 		switch {
-		case errors.Is(err, usecase.ErrUserNotFound):
+		case errors.Is(err, domain.ErrUserNotFound):
 			return nil, status.Errorf(codes.NotFound, "user not found")
-		case errors.Is(err, usecase.ErrInvalidCredentials):
+		case errors.Is(err, domain.ErrInvalidCredentials):
 			return nil, status.Errorf(codes.InvalidArgument, "invalid otp")
-		case errors.Is(err, usecase.ErrOtpExpired):
+		case errors.Is(err, domain.ErrOtpExpired):
 			return nil, status.Error(codes.FailedPrecondition, "otp expired")
 		default:
 			return nil, status.Error(codes.Internal, "internal server error")
@@ -233,6 +242,7 @@ func (as *AuthSubscriptionServer) ResendOtp(ctx context.Context, req *pb.ResendO
 }
 
 func (as *AuthSubscriptionServer) AccessRegenerator(ctx context.Context, req *pb.AccessRegeneratorRequest) (*pb.AccessRegeneratorResponse, error) {
+	log := utils.GetLogger(ctx)
 	accessRegeneratorReq := requestmodels.AccessRegeneratorRequest{
 		ID:    req.Id,
 		Email: req.Email,
@@ -240,8 +250,16 @@ func (as *AuthSubscriptionServer) AccessRegenerator(ctx context.Context, req *pb
 	}
 	accessRegeneratorResponse, err := as.AuthSubscriptionUsecase.AccessRegenerator(accessRegeneratorReq)
 	if err != nil {
-		log.Printf("new access regeneration failed for email %s : %v", accessRegeneratorReq.Email, err)
+		//log.Printf("new access regeneration failed for email %s : %v", accessRegeneratorReq.Email, err)
+		log.Error("new access regeneration failed",
+			logger.Field{Key: "error", Value: err.Error()},
+			logger.Field{Key: "user_id", Value: req.Id},
+			logger.Field{Key: "user_email", Value: req.Email})
 		switch {
+		case errors.Is(err, domain.ErrAdminAccessTokenFail):
+			return nil, status.Error(codes.Internal, domain.ErrAdminAccessTokenFail.Error())
+		case errors.Is(err, domain.ErrUserAccessTokenFail):
+			return nil, status.Error(codes.Internal, domain.ErrUserAccessTokenFail.Error())
 		default:
 			return nil, status.Error(codes.Internal, "internal server error")
 		}
@@ -261,7 +279,7 @@ func (as *AuthSubscriptionServer) ForgetPassword(ctx context.Context, req *pb.Fo
 	if err != nil {
 		log.Printf("OTP Forgot Password failed for email %s (reason: mismatch): %v", forgotPasswordReq.Email, err)
 		switch {
-		case errors.Is(err, usecase.ErrUserNotFound):
+		case errors.Is(err, domain.ErrUserNotFound):
 			return nil, status.Errorf(codes.NotFound, "user not found")
 		default:
 			return nil, status.Error(codes.Internal, "internal server error")
@@ -281,7 +299,7 @@ func (as *AuthSubscriptionServer) ResetPassword(ctx context.Context, req *pb.Res
 	if err != nil {
 		log.Printf("Reset password failed for email %s : %v", resetPasswordReq.Email, err)
 		switch {
-		case errors.Is(err, usecase.ErrUserNotFound):
+		case errors.Is(err, domain.ErrUserNotFound):
 			return nil, status.Errorf(codes.NotFound, "user not found")
 		default:
 			return nil, status.Error(codes.Internal, "internal server error")
@@ -301,13 +319,13 @@ func (as *AuthSubscriptionServer) UserLogin(ctx context.Context, req *pb.UserLog
 	if err != nil {
 		log.Printf("User Login failed for email=%s: %v", req.Email, err)
 		switch {
-		case errors.Is(err, usecase.ErrUserNotFound):
+		case errors.Is(err, domain.ErrUserNotFound):
 			return nil, status.Error(codes.NotFound, "user not found")
-		case errors.Is(err, usecase.ErrInvalidCredentials):
+		case errors.Is(err, domain.ErrInvalidCredentials):
 			return nil, status.Error(codes.Unauthenticated, "invalid credentials")
-		case errors.Is(err, usecase.ErrBlockedLogin):
+		case errors.Is(err, domain.ErrBlockedLogin):
 			return nil, status.Error(codes.PermissionDenied, "user account is blocked by admin, cannot login")
-		case errors.Is(err, usecase.ErrPendingLogin):
+		case errors.Is(err, domain.ErrPendingLogin):
 			return nil, status.Error(codes.FailedPrecondition, "email verification pending")
 		default:
 			return nil, status.Error(codes.Internal, "interanal server error")
@@ -367,7 +385,7 @@ func (as *AuthSubscriptionServer) ActivateSubscriptionPlan(ctx context.Context, 
 	if err != nil {
 		log.Printf("Actvate Subscription paln failed for subscription paln with id =%d: %v", req.Id, err)
 		switch {
-		case errors.Is(err, usecase.ErrSubscriptionPlanAlreadyActive):
+		case errors.Is(err, domain.ErrSubscriptionPlanAlreadyActive):
 			return nil, status.Error(codes.FailedPrecondition, "subscription plan is already active")
 		default:
 			return nil, status.Error(codes.Internal, "interanal server error")
@@ -396,7 +414,7 @@ func (as *AuthSubscriptionServer) DeactivateSubscriptionPlan(ctx context.Context
 	if err != nil {
 		log.Printf("Actvate Subscription paln failed for subscription paln with id =%d: %v", req.Id, err)
 		switch {
-		case errors.Is(err, usecase.ErrSubscriptionPlanAlreadyDeactive):
+		case errors.Is(err, domain.ErrSubscriptionPlanAlreadyDeactive):
 			return nil, status.Error(codes.FailedPrecondition, "subscription plan is already deactive")
 		default:
 			return nil, status.Error(codes.Internal, "interanal server error")
@@ -604,7 +622,7 @@ func (as *AuthSubscriptionServer) CheckUserExists(ctx context.Context, req *pb.C
 
 	_, err := as.AuthSubscriptionUsecase.CheckUserExists(req.UserId)
 	if err != nil {
-		if err == usecase.ErrUserNotFound {
+		if err == domain.ErrUserNotFound {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, err
@@ -729,7 +747,7 @@ func (as *AuthSubscriptionServer) FetchUserMetaData(ctx context.Context, req *pb
 	userids = req.UserId
 	resp, err := as.AuthSubscriptionUsecase.FetchUserMetaData(userids)
 	if err != nil {
-		if err == usecase.ErrUserNotFound {
+		if err == domain.ErrUserNotFound {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, err
@@ -754,7 +772,7 @@ func (as *AuthSubscriptionServer) CheckUserListExists(ctx context.Context, req *
 	userids = req.UserId
 	resp, err := as.AuthSubscriptionUsecase.CheckUserListExists(userids)
 	if err != nil {
-		if err == usecase.ErrNoUsersFound {
+		if err == domain.ErrNoUsersFound {
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 		return nil, err

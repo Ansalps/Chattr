@@ -56,18 +56,7 @@ func NewAuthSubscriptionUsecase(repository interfacesRepository.AuthSubscription
 }
 
 var (
-	ErrInvalidCredentials              = errors.New("invalid credentials")
-	ErrUserNotFound                    = errors.New("user not found")
-	ErrUserAlreadyExistsByEmail        = errors.New("user already exists, try again with another email")
-	ErrUserAlreadyExistsByUsername     = errors.New("username already taken, try with another username")
-	ErrOtpExpired                      = errors.New("otp expired")
-	ErrUserNotActive                   = errors.New("Cannot block user, email not verified or user alreday blocked")
-	ErrUserNotBlocked                  = errors.New("Cannnot unblock user, unblock allowed for users who are alreday in blocked state")
-	ErrBlockedLogin                    = errors.New("User account blocked, cannot login")
-	ErrPendingLogin                    = errors.New("Otp Verfication Pending, verfiy otp to login")
-	ErrSubscriptionPlanAlreadyActive   = errors.New("Cannot the activate the subscription plan, subscription plan is already active")
-	ErrSubscriptionPlanAlreadyDeactive = errors.New("Cannot the deactivate the subscription plan, subscription plan is already deactive")
-	ErrNoUsersFound                    = errors.New("No such user id exist")
+	
 	//ErrRazropayApi=errors.New("error calling razorpay api")
 )
 func (as *AuthSubscriptionUsecase)DoesUserExists(userid uint64)(bool,error){
@@ -77,27 +66,28 @@ func (as *AuthSubscriptionUsecase)DoesUserExists(userid uint64)(bool,error){
 	}
 	return resp,nil
 }
-func (as *AuthSubscriptionUsecase) AdminLogin(admin requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse, error) {
-	admins, err := as.AuthSubscriptionRepository.CheckAdminExistsByEmail(admin.Email)
+func (as *AuthSubscriptionUsecase) AdminLogin(ctx context.Context,admin requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse, error) {
+	admins, err := as.AuthSubscriptionRepository.CheckAdminExistsByEmail(ctx,admin.Email)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return responsemodels.AdminLoginResponse{}, ErrUserNotFound
+		if err==domain.ErrDatabaseConnectionTimeOut{
+			return responsemodels.AdminLoginResponse{},err
 		}
-		return responsemodels.AdminLoginResponse{}, fmt.Errorf("database error: %w", err)
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.AdminLoginResponse{}, domain.ErrUserNotFound
+		}
+		return responsemodels.AdminLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	if admin.Password != admins.Password {
-		return responsemodels.AdminLoginResponse{}, ErrInvalidCredentials
+		return responsemodels.AdminLoginResponse{}, domain.ErrInvalidCredentials
 	}
 	adminAccessTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.AdminSecurityKey, uint64(admins.ID), admins.Email, "admin", "access", 24*time.Hour)
 	if err != nil {
-		return responsemodels.AdminLoginResponse{}, fmt.Errorf("Failed to generarate access token for admin: %w", err)
+		return responsemodels.AdminLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrAdminAccessTokenFail, err)
 	}
 	adminRefreshTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.AdminRefreshKey, uint64(admins.ID), admins.Email, "admin", "refresh", 24*7*time.Hour)
 	if err != nil {
-		return responsemodels.AdminLoginResponse{}, fmt.Errorf("Failed to generarate refresh token for admin: %w", err)
+		return responsemodels.AdminLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrAdminRefreshTokenFail, err)
 	}
-	//fmt.Println("sdflksljflsj")
-	//fmt.Println("hi hello", as.TokenSecurityKey.AdminSecurityKey, as.TokenSecurityKey.AdminRefreshKey)
 	return responsemodels.AdminLoginResponse{
 		Admin: responsemodels.AdminDetails{
 			ID:    admins.ID,
@@ -110,14 +100,14 @@ func (as *AuthSubscriptionUsecase) AdminLogin(admin requestmodels.AdminLoginRequ
 
 func (as *AuthSubscriptionUsecase) BlockUser(blockUserReq requestmodels.BlockUserRequest) (responsemodels.BlockUserResponse, error) {
 	if blockUserReq.UserId == 0 {
-		return responsemodels.BlockUserResponse{}, ErrUserNotFound
+		return responsemodels.BlockUserResponse{}, domain.ErrUserNotFound
 	}
 	status, err := as.AuthSubscriptionRepository.CheckUserStatus(blockUserReq.UserId)
 	if err != nil {
 		return responsemodels.BlockUserResponse{}, fmt.Errorf("database error: %w", err)
 	}
 	if status != "active" {
-		return responsemodels.BlockUserResponse{}, ErrUserNotActive
+		return responsemodels.BlockUserResponse{}, domain.ErrUserNotActive
 	}
 	err = as.AuthSubscriptionRepository.ChangeUserStatusToBlockedByUserId(blockUserReq)
 	if err != nil {
@@ -130,14 +120,14 @@ func (as *AuthSubscriptionUsecase) BlockUser(blockUserReq requestmodels.BlockUse
 
 func (as *AuthSubscriptionUsecase) UnblockUser(unblockUserReq requestmodels.UnblockUserRequest) (responsemodels.UnblockUserResponse, error) {
 	if unblockUserReq.UserId == 0 {
-		return responsemodels.UnblockUserResponse{}, ErrUserNotFound
+		return responsemodels.UnblockUserResponse{}, domain.ErrUserNotFound
 	}
 	status, err := as.AuthSubscriptionRepository.CheckUserStatus(unblockUserReq.UserId)
 	if err != nil {
 		return responsemodels.UnblockUserResponse{}, fmt.Errorf("database error: %w", err)
 	}
 	if status != "blocked" {
-		return responsemodels.UnblockUserResponse{}, ErrUserNotBlocked
+		return responsemodels.UnblockUserResponse{}, domain.ErrUserNotBlocked
 	}
 	err = as.AuthSubscriptionRepository.ChangeUserStatusToActiveByUserId(unblockUserReq)
 	if err != nil {
@@ -175,7 +165,7 @@ func (as *AuthSubscriptionUsecase) UserSignUp(userReq requestmodels.UserSignUpRe
 			UserName: user.UserName,
 			Name:     user.Name,
 			Email:    user.Email,
-		}, ErrUserAlreadyExistsByEmail
+		}, domain.ErrUserAlreadyExistsByEmail
 	}
 	usernameAlredayExists, err := as.AuthSubscriptionRepository.CheckUserExistsByUseraname(userReq.UserName)
 	if err != nil {
@@ -189,7 +179,7 @@ func (as *AuthSubscriptionUsecase) UserSignUp(userReq requestmodels.UserSignUpRe
 			UserName: usernameAlredayExists.UserName,
 			Name:     usernameAlredayExists.Name,
 			Email:    usernameAlredayExists.Email,
-		}, ErrUserAlreadyExistsByUsername
+		}, domain.ErrUserAlreadyExistsByUsername
 	}
 	otp := as.RandomUtil.RandomNumber()
 	fmt.Println("Otp is ----", otp)
@@ -233,15 +223,15 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(otpReq requestmodels.OtpRequest) (r
 	otp, err := as.AuthSubscriptionRepository.CheckOtpExistsByEmail(otpReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.OtpVerificationResponse{}, ErrUserNotFound
+			return responsemodels.OtpVerificationResponse{}, domain.ErrUserNotFound
 		}
 		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("database error: %w", err)
 	}
 	if otp.OTP != otpReq.OtpCode {
-		return responsemodels.OtpVerificationResponse{}, ErrInvalidCredentials
+		return responsemodels.OtpVerificationResponse{}, domain.ErrInvalidCredentials
 	}
 	if time.Now().After(otp.Expiration) {
-		return responsemodels.OtpVerificationResponse{}, ErrOtpExpired
+		return responsemodels.OtpVerificationResponse{}, domain.ErrOtpExpired
 	}
 	err = as.AuthSubscriptionRepository.ChangeOtpStatus(otpReq.Email)
 	if err != nil {
@@ -308,13 +298,13 @@ func (as *AuthSubscriptionUsecase) AccessRegenerator(accessRegeneratorReq reques
 	case "admin":
 		adminAccessTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.AdminSecurityKey, uint64(accessRegeneratorReq.ID), accessRegeneratorReq.Email, "admin", "access", 24*time.Hour)
 		if err != nil {
-			return responsemodels.AccessRegeneratorResponse{}, fmt.Errorf("Failed to generarate access token for admin: %w", err)
+			return responsemodels.AccessRegeneratorResponse{}, fmt.Errorf("%w: %v:",domain.ErrAdminAccessTokenFail,err)
 		}
 		accessTokenString = adminAccessTokenString
 	case "user":
 		userAccessTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.UserSecurityKey, uint64(accessRegeneratorReq.ID), accessRegeneratorReq.Email, "user", "access", 24*time.Hour)
 		if err != nil {
-			return responsemodels.AccessRegeneratorResponse{}, fmt.Errorf("Failed to generarate access token for user: %w", err)
+			return responsemodels.AccessRegeneratorResponse{}, fmt.Errorf("%w: %v:",domain.ErrUserAccessTokenFail,err)
 		}
 		accessTokenString = userAccessTokenString
 	}
@@ -330,7 +320,7 @@ func (as *AuthSubscriptionUsecase) ForgotPassword(forgotPasswordReq requestmodel
 	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(forgotPasswordReq.Email)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.ForgotPassordResponse{}, ErrUserNotFound
+			return responsemodels.ForgotPassordResponse{}, domain.ErrUserNotFound
 		} else {
 			return responsemodels.ForgotPassordResponse{}, fmt.Errorf("database error: %w", err)
 		}
@@ -362,7 +352,7 @@ func (as *AuthSubscriptionUsecase) ForgotPassword(forgotPasswordReq requestmodel
 }
 func (as *AuthSubscriptionUsecase) ResetPassword(resetPasswordReq requestmodels.ResetPasswordRequest) (responsemodels.ResetPasswordResponse, error) {
 	if resetPasswordReq.Email == "" {
-		return responsemodels.ResetPasswordResponse{}, ErrUserNotFound
+		return responsemodels.ResetPasswordResponse{}, domain.ErrUserNotFound
 	}
 	hashedPassword := utils.HashPassword(resetPasswordReq.Password)
 	resetPasswordReq.Password = hashedPassword
@@ -379,19 +369,19 @@ func (as *AuthSubscriptionUsecase) UserLogin(userLoginReq requestmodels.UserLogi
 	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(userLoginReq.Email)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.UserLoginResponse{}, ErrUserNotFound
+			return responsemodels.UserLoginResponse{}, domain.ErrUserNotFound
 		}
 		return responsemodels.UserLoginResponse{}, fmt.Errorf("database error: %w", err)
 	}
 	err = utils.CompareWithHashedPassword(user.Password, userLoginReq.Password)
 	if err != nil {
-		return responsemodels.UserLoginResponse{}, ErrInvalidCredentials
+		return responsemodels.UserLoginResponse{}, domain.ErrInvalidCredentials
 	}
 	if user.Status == "blocked" {
-		return responsemodels.UserLoginResponse{}, ErrBlockedLogin
+		return responsemodels.UserLoginResponse{}, domain.ErrBlockedLogin
 	}
 	if user.Status == "pending" {
-		return responsemodels.UserLoginResponse{}, ErrPendingLogin
+		return responsemodels.UserLoginResponse{}, domain.ErrPendingLogin
 	}
 	//fmt.Println("inside user login ", user.ID)
 	userAccessTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.UserSecurityKey, uint64(user.ID), user.Email, "user", "access", 24*time.Hour)
@@ -460,7 +450,7 @@ func (as *AuthSubscriptionUsecase) ActivateSubscriptionPlan(activateSubscription
 		return responsemodels.ActivateSubscriptionPlanResponse{}, fmt.Errorf("database error: %w", err)
 	}
 	if status {
-		return responsemodels.ActivateSubscriptionPlanResponse{}, ErrSubscriptionPlanAlreadyActive
+		return responsemodels.ActivateSubscriptionPlanResponse{}, domain.ErrSubscriptionPlanAlreadyActive
 	}
 	subscriptionPlan, err := as.AuthSubscriptionRepository.ActivateSubscriptionPlan(activateSubscriptionPlanReq)
 	if err != nil {
@@ -490,7 +480,7 @@ func (as *AuthSubscriptionUsecase) DeactivateSubscriptionPlan(deactivateSubscrip
 		return responsemodels.DeactivateSubscriptionPlanResponse{}, fmt.Errorf("database error: %w", err)
 	}
 	if !status {
-		return responsemodels.DeactivateSubscriptionPlanResponse{}, ErrSubscriptionPlanAlreadyDeactive
+		return responsemodels.DeactivateSubscriptionPlanResponse{}, domain.ErrSubscriptionPlanAlreadyDeactive
 	}
 	subscriptionPlan, err := as.AuthSubscriptionRepository.DeactivateSubscriptionPlan(deactivateSubscriptionPlanReq)
 	if err != nil {
@@ -628,7 +618,7 @@ func (as *AuthSubscriptionUsecase)createAndSaveCustomer(userDetail responsemodel
     if err != nil {
         log.Printf("Failed to save customerID %s to DB for user %d: %v", customerID, userDetail.UserID, err)
 		if err==gorm.ErrRecordNotFound{
-			return "",ErrUserNotFound
+			return "",domain.ErrUserNotFound
 		}
         return "", err
     }
@@ -799,7 +789,7 @@ func (as *AuthSubscriptionUsecase) CheckUserExists(userId uint64) (bool, error) 
 		return false, err
 	}
 	if !status {
-		return false, ErrUserNotFound
+		return false, domain.ErrUserNotFound
 	}
 	return status, err
 }
@@ -816,7 +806,7 @@ func (as *AuthSubscriptionUsecase) GetProfileInformation(req requestmodels.GetPr
 	resp, err := as.AuthSubscriptionRepository.GetProfileInformation(req)
 	if err != nil {
 		if err==gorm.ErrRecordNotFound{
-			return responsemodels.GetProfileInformationResponse{},ErrNoUsersFound
+			return responsemodels.GetProfileInformationResponse{},domain.ErrUserNotFound
 		}
 		return responsemodels.GetProfileInformationResponse{}, err
 	}
@@ -834,7 +824,7 @@ func (as *AuthSubscriptionUsecase) ChangePassword(req requestmodels.ChangePasswo
 	password, err := as.AuthSubscriptionRepository.FetchHashedPassword(req)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.ChangePasswordResponse{}, ErrUserNotFound
+			return responsemodels.ChangePasswordResponse{}, domain.ErrUserNotFound
 		}
 		return responsemodels.ChangePasswordResponse{}, err
 	}
@@ -868,7 +858,7 @@ func (as *AuthSubscriptionUsecase) FetchUserMetaData(userids []uint64) (map[uint
 	resp, err := as.AuthSubscriptionRepository.FetchUserMetaData(userids)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, ErrUserNotFound
+			return nil, domain.ErrUserNotFound
 		}
 		return nil, err
 	}
@@ -879,7 +869,7 @@ func (as *AuthSubscriptionUsecase) CheckUserListExists(userids []uint64) ([]uint
 	resp, err := as.AuthSubscriptionRepository.CheckUserListExists(userids)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, ErrNoUsersFound
+			return nil, domain.ErrNoUsersFound
 		}
 		return nil, err
 	}

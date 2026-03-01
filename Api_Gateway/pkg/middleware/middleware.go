@@ -1,10 +1,10 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/Ansalps/Chattr_Api_Gateway/infrastructure/logger"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/responsemodels"
@@ -104,64 +104,64 @@ func NewAuthMiddlware(redisRepo interfacesRepository.RedisRepository) *AuthMiddl
 // 			// Check for an unknown JWT parsing error
 // 			log.Printf("Unexpected error: %v\n", err)
 
-// 			// Any other JWT parsing error
-// 			c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid token", nil))
-// 			// c.JSON(http.StatusUnauthorized, gin.H{
-// 			// 	"message": "Invalid token",
-// 			// })
-// 			c.Abort()
-// 			return
-// 		}
-// 		if !token.Valid {
-// 			c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid token", nil))
-// 			// c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token"})
-// 			c.Abort()
-// 			return
-// 		}
-// 		if jwtClaims.Type != tokenType {
-// 			c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid token type", nil))
-// 			//c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token type"})
-// 			c.Abort()
-// 			return
-// 		}
-// 		jti := jwtClaims.RegisteredClaims.ID
-// 		//exp:=jwtClaims.RegisteredClaims.ExpiresAt.Time
-// 		if jti == "" {
-// 			c.JSON(http.StatusBadRequest, gin.H{"error": "token missing jti"})
-// 			c.Abort()
-// 			return
-// 		}
-// 		blacklisted, err := m.RedisRepo.IsTokenBlacklisted(jti)
-// 		if err != nil {
-// 			log.Printf("redis error: %v", err)
-// 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-// 			c.Abort()
-// 			return
-// 		}
-// 		if blacklisted {
-// 			c.JSON(http.StatusUnauthorized, gin.H{"message": "session logged out,please login again to continue"})
-// 			c.Abort()
-// 			return
-// 		}
-// 		// Role check
-// 		authorized := false
-// 		for _, r := range requiredRoles {
-// 			//fmt.Println("please print roles inside", r)
-// 			if jwtClaims.Role == r {
-// 				authorized = true
-// 				break
-// 			}
-// 		}
-// 		if !authorized {
-// 			c.JSON(http.StatusForbidden, response.ClientResponse(http.StatusForbidden, "Insufficient privileges", nil))
-// 			//c.JSON(http.StatusForbidden, gin.H{"message": "Insufficient privileges"})
-// 			c.Abort()
-// 			return
-// 		}
-// 			c.Set("claims", jwtClaims)
-// 			c.Next()
-// 		}
-// 	}
+//			// Any other JWT parsing error
+//			c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid token", nil))
+//			// c.JSON(http.StatusUnauthorized, gin.H{
+//			// 	"message": "Invalid token",
+//			// })
+//			c.Abort()
+//			return
+//		}
+//		if !token.Valid {
+//			c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid token", nil))
+//			// c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token"})
+//			c.Abort()
+//			return
+//		}
+//		if jwtClaims.Type != tokenType {
+//			c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid token type", nil))
+//			//c.JSON(http.StatusUnauthorized, gin.H{"message": "Invalid token type"})
+//			c.Abort()
+//			return
+//		}
+//		jti := jwtClaims.RegisteredClaims.ID
+//		//exp:=jwtClaims.RegisteredClaims.ExpiresAt.Time
+//		if jti == "" {
+//			c.JSON(http.StatusBadRequest, gin.H{"error": "token missing jti"})
+//			c.Abort()
+//			return
+//		}
+//		blacklisted, err := m.RedisRepo.IsTokenBlacklisted(jti)
+//		if err != nil {
+//			log.Printf("redis error: %v", err)
+//			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+//			c.Abort()
+//			return
+//		}
+//		if blacklisted {
+//			c.JSON(http.StatusUnauthorized, gin.H{"message": "session logged out,please login again to continue"})
+//			c.Abort()
+//			return
+//		}
+//		// Role check
+//		authorized := false
+//		for _, r := range requiredRoles {
+//			//fmt.Println("please print roles inside", r)
+//			if jwtClaims.Role == r {
+//				authorized = true
+//				break
+//			}
+//		}
+//		if !authorized {
+//			c.JSON(http.StatusForbidden, response.ClientResponse(http.StatusForbidden, "Insufficient privileges", nil))
+//			//c.JSON(http.StatusForbidden, gin.H{"message": "Insufficient privileges"})
+//			c.Abort()
+//			return
+//		}
+//			c.Set("claims", jwtClaims)
+//			c.Next()
+//		}
+//	}
 func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tokenSecurityKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -190,13 +190,13 @@ func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tok
 		if err != nil {
 			if errors.Is(err, jwt.ErrTokenExpired) {
 				//log.Warn("token expired")
-				response.AbortWithError(c,http.StatusUnauthorized,"Session expired, repeat the process to get new otp again")
+				response.AbortWithError(c, http.StatusUnauthorized, "Session expired, repeat the process to get new otp again")
 				return
 			}
-			if errors.Is(err,jwt.ErrTokenSignatureInvalid){
+			if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
 				//log.Warn("token signature invalid")
-				response.AbortWithError(c,http.StatusUnauthorized,"token signature invalid")
-				return 
+				response.AbortWithError(c, http.StatusUnauthorized, "token signature invalid")
+				return
 			}
 			// log.Error("jwt parsing failed",
 			// 	logger.Field{Key: "error", Value: err},
@@ -211,7 +211,6 @@ func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tok
 			response.AbortWithError(c, http.StatusUnauthorized, "Invalid token")
 			return
 		}
-
 
 		// Check token type
 		if jwtClaims.Type != tokenType {
@@ -289,7 +288,6 @@ func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tok
 	}
 }
 
-
 const RequestIDKey = "request_id"
 
 func RequestIDMiddleware() gin.HandlerFunc {
@@ -300,76 +298,17 @@ func RequestIDMiddleware() gin.HandlerFunc {
 			requestID = uuid.New().String()
 		}
 
+		// store in standard context (IMPORTANT)
+		ctx := context.WithValue(c.Request.Context(), "request_id", requestID)
+		c.Request = c.Request.WithContext(ctx)
+
 		c.Set(RequestIDKey, requestID)
 		c.Writer.Header().Set("X-Request-ID", requestID)
 
 		c.Next()
 	}
 }
-func LoggerMiddleware(baseLogger logger.Logger) gin.HandlerFunc {
-	return func(c *gin.Context) {
 
-		start := time.Now()
-
-		// 1. Get request_id (set by RequestIDMiddleware)
-		requestID, _ := c.Get(RequestIDKey)
-
-		// type assertion (safe)
-		reqID, _ := requestID.(string)
-
-		// 2. Create child logger with request_id
-		reqLogger := baseLogger.With(
-			logger.Field{Key: "request_id", Value: reqID},
-		)
-
-		// 3. Store logger in context
-		utils.SetLogger(c, reqLogger)
-
-		// 4. Process next middleware / handler
-		c.Next()
-
-		// 5. After request completes → log response
-		latency := time.Since(start)
-		status := c.Writer.Status()
-
-		// Determine log level
-		var logFunc func(string, ...logger.Field)
-
-		switch {
-		case status >= 500:
-			logFunc = reqLogger.Error
-		case status >= 400:
-			logFunc = reqLogger.Warn
-		default:
-			logFunc = reqLogger.Info
-		}
-
-		// Prepare fields
-		fields := []logger.Field{
-			{Key: "method", Value: c.Request.Method},
-			{Key: "path", Value: c.Request.URL.Path},
-			{Key: "status", Value: status},
-			{Key: "latency", Value: latency.String()},
-			{Key: "client_ip", Value: c.ClientIP()},
-		}
-
-		// Add gin errors if any
-		if len(c.Errors) > 0 {
-			fields = append(fields, logger.Field{
-				Key:   "errors",
-				Value: c.Errors.String(),
-			})
-		}
-
-		// Log message
-		message := "request completed"
-		if status >= 500 {
-			message = "request failed"
-		}
-
-		logFunc(message, fields...)
-	}
-}
 // func LoggerMiddleware(baseLogger logger.Logger) gin.HandlerFunc {
 // 	return func(c *gin.Context) {
 
@@ -378,9 +317,12 @@ func LoggerMiddleware(baseLogger logger.Logger) gin.HandlerFunc {
 // 		// 1. Get request_id (set by RequestIDMiddleware)
 // 		requestID, _ := c.Get(RequestIDKey)
 
+// 		// type assertion (safe)
+// 		reqID, _ := requestID.(string)
+
 // 		// 2. Create child logger with request_id
 // 		reqLogger := baseLogger.With(
-// 			logger.Field{Key: "request_id", Value: requestID},
+// 			logger.Field{Key: "request_id", Value: reqID},
 // 		)
 
 // 		// 3. Store logger in context
@@ -391,12 +333,73 @@ func LoggerMiddleware(baseLogger logger.Logger) gin.HandlerFunc {
 
 // 		// 5. After request completes → log response
 // 		latency := time.Since(start)
+// 		status := c.Writer.Status()
 
-// 		reqLogger.Info("request completed",
-// 			logger.Field{Key: "method", Value: c.Request.Method},
-// 			logger.Field{Key: "path", Value: c.Request.URL.Path},
-// 			logger.Field{Key: "status", Value: c.Writer.Status()},
-// 			logger.Field{Key: "latency", Value: latency.String()},
-// 		)
-// 	}
-// }
+// 		// Determine log level
+// 		var logFunc func(string, ...logger.Field)
+
+// 		switch {
+// 		case status >= 500:
+// 			logFunc = reqLogger.Error
+// 		case status >= 400:
+// 			logFunc = reqLogger.Warn
+// 		default:
+// 			logFunc = reqLogger.Info
+// 		}
+
+// 		// Prepare fields
+// 		fields := []logger.Field{
+// 			{Key: "method", Value: c.Request.Method},
+// 			{Key: "path", Value: c.Request.URL.Path},
+// 			{Key: "status", Value: status},
+// 			{Key: "latency", Value: latency.String()},
+// 			{Key: "client_ip", Value: c.ClientIP()},
+// 		}
+
+// 		// Add gin errors if any
+// 		if len(c.Errors) > 0 {
+// 			fields = append(fields, logger.Field{
+// 				Key:   "errors",
+// 				Value: c.Errors.String(),
+// 			})
+// 		}
+
+// 		// Log message
+// 		message := "request completed"
+// 		if status >= 500 {
+// 			message = "request failed"
+// 		}
+
+//			logFunc(message, fields...)
+//		}
+//	}
+func LoggerMiddleware(baseLogger logger.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		//start := time.Now()
+
+		// 1. Get request_id (set by RequestIDMiddleware)
+		requestID, _ := c.Get(RequestIDKey)
+
+		// 2. Create child logger with request_id
+		reqLogger := baseLogger.With(
+			logger.Field{Key: "request_id", Value: requestID},
+		)
+
+		// 3. Store logger in context
+		utils.SetLogger(c, reqLogger)
+
+		// 4. Process next middleware / handler
+		c.Next()
+
+		// 5. After request completes → log response
+		// latency := time.Since(start)
+
+		// reqLogger.Info("request completed",
+		// 	logger.Field{Key: "method", Value: c.Request.Method},
+		// 	logger.Field{Key: "path", Value: c.Request.URL.Path},
+		// 	logger.Field{Key: "status", Value: c.Writer.Status()},
+		// 	logger.Field{Key: "latency", Value: latency.String()},
+		// )
+	}
+}

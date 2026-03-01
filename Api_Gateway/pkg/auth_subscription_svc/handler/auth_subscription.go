@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Ansalps/Chattr_Api_Gateway/infrastructure/logger"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/client"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/client/interfaces"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/requestmodels"
@@ -53,8 +54,10 @@ func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
 		return
 	}
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
 	//fmt.Println("is call reaching here")
-	admin, err := as.GPPC_Client.AdminLogin(adminDetails)
+	admin, err := as.GPPC_Client.AdminLogin(ctx,adminDetails)
 	//fmt.Println("what about here")
 	if err != nil {
 		var obj response.Response
@@ -62,9 +65,9 @@ func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
 		if st, ok := status.FromError(err); ok {
 			switch st.Code() {
 			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusUnauthorized, "Invalide Email or Password", nil)
+				obj = response.ClientResponse(http.StatusUnauthorized, "Invalid Email or Password", nil)
 			case codes.Unauthenticated:
-				obj = response.ClientResponse(http.StatusUnauthorized, "Invalide Email or Password", nil)
+				obj = response.ClientResponse(http.StatusUnauthorized, "Invalid Email or Password", nil)
 			default:
 				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
 			}
@@ -205,7 +208,7 @@ func (as *AuthSubscriptionHandler) ResendOtp(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
-	//log := utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
@@ -225,24 +228,13 @@ func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
 
 	accessRegeneratorResponse, err := as.GPPC_Client.AccessRegenerator(accessRegenerator)
 	if err != nil {
-		// log.Error("grpc access regenerator call failed",
-		// 	logger.Field{Key: "error", Value: err},
-		// 	logger.Field{Key: "user_id", Value: accessRegenerator.ID},
-		// 	logger.Field{Key: "email", Value: accessRegenerator.Email},
-		// )
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			satuscode,err1:=utils.GRPCtoHTTP(err)
-			switch st.Code() {
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
-		}
-		c.JSON(obj.StatusCode, obj)
+		log.Error("grpc access regenerator call failed",
+			logger.Field{Key: "error", Value: err},
+			logger.Field{Key: "user_id", Value: accessRegenerator.ID},
+			logger.Field{Key: "email", Value: accessRegenerator.Email},
+		)
+		code, msg := utils.GRPCtoHTTP(err)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "New Access token generated", accessRegeneratorResponse)

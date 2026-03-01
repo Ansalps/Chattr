@@ -1,6 +1,7 @@
 package interfacesRepository
 
 import (
+	"context"
 	"time"
 
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/domain"
@@ -11,7 +12,7 @@ import (
 
 type AuthSubscriptionRepository interface {
 	//AdminLogin(admin requestmodels.AdminLoginRequest)(domain.Admin,error)
-	CheckAdminExistsByEmail(email string) (*domain.Admin, error)
+	CheckAdminExistsByEmail(ctx context.Context,email string) (*domain.Admin, error)
 	DeletePendingUser(email string)(error)
 	CheckUserExistsByEmail(email string) (*domain.User, error)
 	CheckUserExistsByUseraname(username string) (*domain.User, error)
