@@ -44,38 +44,61 @@ func NewAuthSubscriptionHandler(authSubscriptionClient interfaces.AuthSubscripti
 }
 
 func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var adminDetails requestmodels.AdminLoginRequest
 	if err := c.ShouldBindJSON(&adminDetails); err != nil {
 		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
 			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
 			return
 		}
-		log.Printf("Bind error: %v", err)
+		log.Warn("Bind error:",
+		logger.Field{Key: "error",Value: err.Error()})
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
 		return
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
-	//fmt.Println("is call reaching here")
+	
 	admin, err := as.GPPC_Client.AdminLogin(ctx,adminDetails)
-	//fmt.Println("what about here")
+	
 	if err != nil {
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusUnauthorized, "Invalid Email or Password", nil)
-			case codes.Unauthenticated:
-				obj = response.ClientResponse(http.StatusUnauthorized, "Invalid Email or Password", nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
+		// var obj response.Response
+		// // Check if it’s a gRPC status error
+		// if st, ok := status.FromError(err); ok {
+		// 	switch st.Code() {
+		// 	case codes.NotFound:
+		// 		obj = response.ClientResponse(http.StatusUnauthorized, "Invalid Email or Password", nil)
+		// 	case codes.Unauthenticated:
+		// 		obj = response.ClientResponse(http.StatusUnauthorized, "Invalid Email or Password", nil)
+		// 	default:
+		// 		obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
+		// 	}
+		// } else {
+		// 	// Unexpected non-gRPC error
+		// 	obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
+		// }
+		// c.JSON(obj.StatusCode, obj)
+		// return
+		// log.Error("grpc admin login call failed",
+		// 	logger.Field{Key: "error", Value: err},
+		// 	logger.Field{Key: "user_email", Value: adminDetails.Email},
+		// )
+		code, msg := utils.GRPCtoHTTP(err)
+		// Log 4xx errors as WARN
+        if code >= 400 && code < 500 {
+            log.Warn("Client-side error in Login", 
+                logger.Field{Key: "email", Value: adminDetails.Email},
+                logger.Field{Key: "http_code", Value: code},
+                logger.Field{Key: "msg", Value: msg},
+            )
+        } else if code>=500{
+			log.Error("Server Error in Admin Login:",
+			logger.Field{Key: "email",Value: adminDetails.Email},
+			logger.Field{Key: "http_code", Value: code},
+			logger.Field{Key: "msg", Value: msg},
+			)
 		}
-		c.JSON(obj.StatusCode, obj)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Admin authenticated successfully", admin)

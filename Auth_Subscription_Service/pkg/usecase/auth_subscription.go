@@ -69,13 +69,14 @@ func (as *AuthSubscriptionUsecase)DoesUserExists(userid uint64)(bool,error){
 func (as *AuthSubscriptionUsecase) AdminLogin(ctx context.Context,admin requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse, error) {
 	admins, err := as.AuthSubscriptionRepository.CheckAdminExistsByEmail(ctx,admin.Email)
 	if err != nil {
-		if err==domain.ErrDatabaseConnectionTimeOut{
+		switch{
+		case errors.Is(err,domain.ErrDatabaseConnectionTimeOut):
 			return responsemodels.AdminLoginResponse{},err
-		}
-		if err == gorm.ErrRecordNotFound {
+		case errors.Is(err,gorm.ErrRecordNotFound):
 			return responsemodels.AdminLoginResponse{}, domain.ErrUserNotFound
+		default:
+			return responsemodels.AdminLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 		}
-		return responsemodels.AdminLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	if admin.Password != admins.Password {
 		return responsemodels.AdminLoginResponse{}, domain.ErrInvalidCredentials

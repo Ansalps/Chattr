@@ -36,9 +36,6 @@ func (ad *AuthSubscriptionRepository) CheckAdminExistsByEmail(ctx context.Contex
 		}
 		return nil, res.Error
 	}
-	if res.RowsAffected == 0 {
-		return nil, gorm.ErrRecordNotFound
-	}
 	return &admin, nil
 }
 func (ad *AuthSubscriptionRepository) DeletePendingUser(email string) error {

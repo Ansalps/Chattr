@@ -12,6 +12,10 @@ func GRPCtoHTTP(err error) (int, string) {
 	if st, ok := status.FromError(err); ok {
 		//fmt.Println("code printing",st.Code())
 		switch st.Code() {
+		case codes.Internal:
+			return http.StatusInternalServerError,st.Message()
+		case codes.Unauthenticated:
+			return http.StatusUnauthorized,st.Message()
 		case codes.DeadlineExceeded:
 			return http.StatusGatewayTimeout,"Gateway timed out"
 		case codes.Unavailable:
