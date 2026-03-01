@@ -16,3 +16,12 @@ func GetLogger(c *gin.Context) logger.Logger {
 	}
 	return log.(logger.Logger)
 }
+
+func WarnValidation(log logger.Logger, validationErrors []string) {
+	log.Warn("Validation error:",
+		logger.Field{Key: "error", Value: validationErrors})
+}
+func WarnBind(log logger.Logger, err error) {
+	log.Warn("Bind error:",
+		logger.Field{Key: "error", Value: err.Error()})
+}

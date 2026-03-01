@@ -46,14 +46,22 @@ func NewAuthSubscriptionHandler(authSubscriptionClient interfaces.AuthSubscripti
 func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
 	log:=utils.GetLogger(c)
 	var adminDetails requestmodels.AdminLoginRequest
-	if err := c.ShouldBindJSON(&adminDetails); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Warn("Bind error:",
-		logger.Field{Key: "error",Value: err.Error()})
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	// if err := c.ShouldBindJSON(&adminDetails); err != nil {
+	// 	if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
+	// 		// log.Warn("Validation error:",
+	// 		// logger.Field{Key: "error",Value: validationErrors})
+	// 		utils.WarnValidation(log,validationErrors)
+	// 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
+	// 		return
+	// 	}
+	// 	// log.Warn("Bind error:",
+	// 	// logger.Field{Key: "error",Value: err.Error()})
+	// 	utils.WarnBind(log,err)
+	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	// 	return
+	// }
+	err:=utils.BindingJson(c,&adminDetails,log)
+	if err!=nil{
 		return
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
@@ -106,23 +114,33 @@ func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) UserSignUp(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var userSignup requestmodels.UserSignUpRequest
-	if err := c.ShouldBindJSON(&userSignup); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	// if err := c.ShouldBindJSON(&userSignup); err != nil {
+	// 	if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
+	// 		utils.WarnValidation(log,validationErrors)
+	// 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
+	// 		return
+	// 	}
+	// 	utils.WarnBind(log,err)
+	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	// 	return
+	// }
+	err:=utils.BindingJson(c,&userSignup,log)
+	if err!=nil{
 		return
 	}
 	validUserName, msg1 := utils.IsValidUsername(userSignup.UserName)
 	if !validUserName {
+		log.Warn("Client side error on sign up",
+		logger.Field{Key: "error",Value: "username validation failed"})
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", msg1))
 		return
 	}
 	validPassword, msg2 := utils.IsValidPassword(userSignup.ConfirmPassword)
 	if !validPassword {
+		log.Warn("Client side error on sign up",
+		logger.Field{Key: "error",Value: "password validation failed"})
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", msg2))
 		return
 	}
