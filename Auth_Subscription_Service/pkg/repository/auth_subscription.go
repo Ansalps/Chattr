@@ -73,11 +73,14 @@ func (ad *AuthSubscriptionRepository) CheckUserExistsByUseraname(ctx context.Con
 	return &user, nil
 }
 
-func (ad *AuthSubscriptionRepository) TemporarySavingUserOtp(otp int, userEmail string, expiration time.Time) error {
+func (ad *AuthSubscriptionRepository) TemporarySavingUserOtp(ctx context.Context,otp int, userEmail string, expiration time.Time) error {
 
 	query := `INSERT INTO otps (email, otp, expiration) VALUES ($1, $2, $3)`
-	err := ad.DB.Exec(query, userEmail, otp, expiration).Error
+	err := ad.DB.WithContext(ctx).Exec(query, userEmail, otp, expiration).Error
 	if err != nil {
+		if errors.Is(err,context.DeadlineExceeded){
+			return fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,err)
+		}
 		return err
 	}
 	return nil
@@ -128,12 +131,12 @@ func (ad *AuthSubscriptionRepository) ChangeOtpStatus(email string) error {
 	return nil
 }
 
-func (ad *AuthSubscriptionRepository) DeleteOtpByEmail(email string) error {
+func (ad *AuthSubscriptionRepository) DeleteOtpByEmail(ctx context.Context,email string) error {
 	query := `DELETE from otps where email=?`
-	err := ad.DB.Exec(query, email).Error
+	err := ad.DB.WithContext(ctx).Exec(query, email).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,err) // This happens if the 10s limit is hit
 		}
 		return err
 	}

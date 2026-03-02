@@ -18,7 +18,6 @@ import (
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/usecase/interfacesUsecase"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils/jwt/interfacesJwt"
-	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils/randomNumber/interfacesRandomNumber"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils/smtp/interfacesSmtp"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
@@ -31,7 +30,7 @@ import (
 type AuthSubscriptionUsecase struct {
 	SmtpUtil                   interfacesSmtp.Smtp
 	AuthSubscriptionRepository interfacesRepository.AuthSubscriptionRepository
-	Config           *config.Config
+	Config                     *config.Config
 	JwtUtil                    interfacesJwt.Jwt
 	//RazorpayCredentials	*config.Razorpay
 	RazorpayGateway *razorpaygateway.RazorpayGateway
@@ -44,36 +43,37 @@ func NewAuthSubscriptionUsecase(repository interfacesRepository.AuthSubscription
 	return &AuthSubscriptionUsecase{
 		AuthSubscriptionRepository: repository,
 		SmtpUtil:                   smtpUtil,
-		Config:           config,
+		Config:                     config,
 		JwtUtil:                    jwtUtil,
 		//RazorpayCredentials: razorpayCredentials,
 		RazorpayGateway: razorpayGateway,
-		AwsS3Client:    awsS3Client,
-		AwsBucket:      awsBucket,
+		AwsS3Client:     awsS3Client,
+		AwsBucket:       awsBucket,
 	}
 }
 
 var (
-	
-	//ErrRazropayApi=errors.New("error calling razorpay api")
+
+// ErrRazropayApi=errors.New("error calling razorpay api")
 )
-func (as *AuthSubscriptionUsecase)DoesUserExists(userid uint64)(bool,error){
-	resp,err:=as.AuthSubscriptionRepository.DoesUserExists(userid)
-	if err!=nil{
-		return false,err
-	}
-	return resp,nil
-}
-func (as *AuthSubscriptionUsecase) AdminLogin(ctx context.Context,admin requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse, error) {
-	admins, err := as.AuthSubscriptionRepository.CheckAdminExistsByEmail(ctx,admin.Email)
+
+func (as *AuthSubscriptionUsecase) DoesUserExists(userid uint64) (bool, error) {
+	resp, err := as.AuthSubscriptionRepository.DoesUserExists(userid)
 	if err != nil {
-		switch{
-		case errors.Is(err,domain.ErrDatabaseConnectionTimeOut):
-			return responsemodels.AdminLoginResponse{},err
-		case errors.Is(err,gorm.ErrRecordNotFound):
+		return false, err
+	}
+	return resp, nil
+}
+func (as *AuthSubscriptionUsecase) AdminLogin(ctx context.Context, admin requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse, error) {
+	admins, err := as.AuthSubscriptionRepository.CheckAdminExistsByEmail(ctx, admin.Email)
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrDatabaseConnectionTimeOut):
+			return responsemodels.AdminLoginResponse{}, err
+		case errors.Is(err, gorm.ErrRecordNotFound):
 			return responsemodels.AdminLoginResponse{}, domain.ErrUserNotFound
 		default:
-			return responsemodels.AdminLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+			return responsemodels.AdminLoginResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 		}
 	}
 	if admin.Password != admins.Password {
@@ -81,11 +81,11 @@ func (as *AuthSubscriptionUsecase) AdminLogin(ctx context.Context,admin requestm
 	}
 	adminAccessTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.AdminSecurityKey, uint64(admins.ID), admins.Email, "admin", "access", 24*time.Hour)
 	if err != nil {
-		return responsemodels.AdminLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrAdminAccessTokenFail, err)
+		return responsemodels.AdminLoginResponse{}, fmt.Errorf("%w: %v:", domain.ErrAdminAccessTokenFail, err)
 	}
 	adminRefreshTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.AdminRefreshKey, uint64(admins.ID), admins.Email, "admin", "refresh", 24*7*time.Hour)
 	if err != nil {
-		return responsemodels.AdminLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrAdminRefreshTokenFail, err)
+		return responsemodels.AdminLoginResponse{}, fmt.Errorf("%w: %v:", domain.ErrAdminRefreshTokenFail, err)
 	}
 	return responsemodels.AdminLoginResponse{
 		Admin: responsemodels.AdminDetails{
@@ -147,21 +147,21 @@ func (as *AuthSubscriptionUsecase) GetAllUsers(getAllUsersReq requestmodels.GetA
 	}, nil
 }
 
-func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context,userReq requestmodels.UserSignUpRequest) (responsemodels.UserSignupResponse, error) {
-	err := as.AuthSubscriptionRepository.DeletePendingUser(ctx,userReq.Email)
+func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq requestmodels.UserSignUpRequest) (responsemodels.UserSignupResponse, error) {
+	err := as.AuthSubscriptionRepository.DeletePendingUser(ctx, userReq.Email)
 	if err != nil {
-		if errors.Is(err,domain.ErrDatabaseConnectionTimeOut){
-			return responsemodels.UserSignupResponse{},err
+		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
+			return responsemodels.UserSignupResponse{}, err
 		}
-		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
-	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(ctx,userReq.Email)
+	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(ctx, userReq.Email)
 	if err != nil {
-		if errors.Is(err,domain.ErrDatabaseConnectionTimeOut){
-			return responsemodels.UserSignupResponse{},err
+		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
+			return responsemodels.UserSignupResponse{}, err
 		}
 		if err != gorm.ErrRecordNotFound {
-			return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+			return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 		}
 	}
 	if user != nil {
@@ -172,13 +172,13 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context,userReq reques
 			Email:    user.Email,
 		}, domain.ErrUserAlreadyExistsByEmail
 	}
-	usernameAlredayExists, err := as.AuthSubscriptionRepository.CheckUserExistsByUseraname(ctx,userReq.UserName)
+	usernameAlredayExists, err := as.AuthSubscriptionRepository.CheckUserExistsByUseraname(ctx, userReq.UserName)
 	if err != nil {
-		if errors.Is(err,domain.ErrDatabaseConnectionTimeOut){
-			return responsemodels.UserSignupResponse{},err
+		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
+			return responsemodels.UserSignupResponse{}, err
 		}
 		if err != gorm.ErrRecordNotFound {
-			return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+			return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 		}
 	}
 	if usernameAlredayExists != nil {
@@ -189,18 +189,24 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context,userReq reques
 			Email:    usernameAlredayExists.Email,
 		}, domain.ErrUserAlreadyExistsByUsername
 	}
-	otp := as.RandomUtil.RandomNumber()
-	fmt.Println("Otp is ----", otp)
-	err = as.AuthSubscriptionRepository.DeleteOtpByEmail(userReq.Email)
+	err = as.AuthSubscriptionRepository.DeleteOtpByEmail(ctx,userReq.Email)
 	if err != nil {
-		return responsemodels.UserSignupResponse{}, fmt.Errorf("database error: %w", err)
+		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
+			return responsemodels.UserSignupResponse{}, err
+		}
+		if err!=gorm.ErrRecordNotFound{
+			return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		}
 	}
-
+	otp := utils.RandomNumber()
+	fmt.Println("Otp is ----", otp)
 	expiration := time.Now().Add(5 * time.Minute)
-	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(otp, userReq.Email, expiration)
+	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(ctx,otp, userReq.Email, expiration)
 	if err != nil {
-		log.Println("cannont save otp in db")
-		return responsemodels.UserSignupResponse{}, fmt.Errorf("database error: %w", err)
+		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
+			return responsemodels.UserSignupResponse{}, err
+		}
+		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	err = as.SmtpUtil.SendVerifcationEmailWithOtp(otp, userReq.Email, userReq.Name)
 	if err != nil {
@@ -284,7 +290,7 @@ func (as *AuthSubscriptionUsecase) ResendOtp(resendOtpReq requestmodels.ResendOt
 	if err != nil {
 		return responsemodels.ResendOtpResponse{}, fmt.Errorf("database error: %w", err)
 	}
-	otp := as.RandomUtil.RandomNumber()
+	otp := utils.RandomNumber()
 	expiration := time.Now().Add(5 * time.Minute)
 	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(otp, resendOtpReq.Email, expiration)
 	if err != nil {
@@ -306,13 +312,13 @@ func (as *AuthSubscriptionUsecase) AccessRegenerator(accessRegeneratorReq reques
 	case "admin":
 		adminAccessTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.AdminSecurityKey, uint64(accessRegeneratorReq.ID), accessRegeneratorReq.Email, "admin", "access", 24*time.Hour)
 		if err != nil {
-			return responsemodels.AccessRegeneratorResponse{}, fmt.Errorf("%w: %v:",domain.ErrAdminAccessTokenFail,err)
+			return responsemodels.AccessRegeneratorResponse{}, fmt.Errorf("%w: %v:", domain.ErrAdminAccessTokenFail, err)
 		}
 		accessTokenString = adminAccessTokenString
 	case "user":
 		userAccessTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.UserSecurityKey, uint64(accessRegeneratorReq.ID), accessRegeneratorReq.Email, "user", "access", 24*time.Hour)
 		if err != nil {
-			return responsemodels.AccessRegeneratorResponse{}, fmt.Errorf("%w: %v:",domain.ErrUserAccessTokenFail,err)
+			return responsemodels.AccessRegeneratorResponse{}, fmt.Errorf("%w: %v:", domain.ErrUserAccessTokenFail, err)
 		}
 		accessTokenString = userAccessTokenString
 	}
@@ -333,7 +339,7 @@ func (as *AuthSubscriptionUsecase) ForgotPassword(forgotPasswordReq requestmodel
 			return responsemodels.ForgotPassordResponse{}, fmt.Errorf("database error: %w", err)
 		}
 	}
-	otp := as.RandomUtil.RandomNumber()
+	otp := utils.RandomNumber()
 	err = as.AuthSubscriptionRepository.DeleteOtpByEmail(user.Email)
 	if err != nil {
 		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("database error: %w", err)
@@ -452,8 +458,8 @@ func (as *AuthSubscriptionUsecase) CreateSubscriptionPlan(createSubscriptionPlan
 func (as *AuthSubscriptionUsecase) ActivateSubscriptionPlan(activateSubscriptionPlanReq requestmodels.ActivateSubscriptionPlanRequest) (responsemodels.ActivateSubscriptionPlanResponse, error) {
 	status, err := as.AuthSubscriptionRepository.FetchStatusFromSubcriptionPlan(activateSubscriptionPlanReq.ID)
 	if err != nil {
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.ActivateSubscriptionPlanResponse{},domain.ErrSubPlanNotFound
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.ActivateSubscriptionPlanResponse{}, domain.ErrSubPlanNotFound
 		}
 		return responsemodels.ActivateSubscriptionPlanResponse{}, fmt.Errorf("database error: %w", err)
 	}
@@ -482,8 +488,8 @@ func (as *AuthSubscriptionUsecase) ActivateSubscriptionPlan(activateSubscription
 func (as *AuthSubscriptionUsecase) DeactivateSubscriptionPlan(deactivateSubscriptionPlanReq requestmodels.DeactivateSubscriptionPlanRequest) (responsemodels.DeactivateSubscriptionPlanResponse, error) {
 	status, err := as.AuthSubscriptionRepository.FetchStatusFromSubcriptionPlan(deactivateSubscriptionPlanReq.ID)
 	if err != nil {
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.DeactivateSubscriptionPlanResponse{},domain.ErrSubPlanNotFound
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.DeactivateSubscriptionPlanResponse{}, domain.ErrSubPlanNotFound
 		}
 		return responsemodels.DeactivateSubscriptionPlanResponse{}, fmt.Errorf("database error: %w", err)
 	}
@@ -532,20 +538,20 @@ func (as *AuthSubscriptionUsecase) GetAllActiveSubscriptionPlans(getAllActiveSub
 func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.SubscribeRequest) (responsemodels.SubscribeResponse, error) {
 	razorpayPlanId, err := as.AuthSubscriptionRepository.FetchRazorpayPlanIdFromId(subscribeReq.PlanId)
 	if err != nil {
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.SubscribeResponse{},domain.ErrSubPlanNotFound
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.SubscribeResponse{}, domain.ErrSubPlanNotFound
 		}
 		return responsemodels.SubscribeResponse{}, fmt.Errorf("plan lookup failed: %w", err)
 	}
 	//fmt.Println("RazorpayPlanId", razorpayPlanId)
 
-	eligible,err:=as.AuthSubscriptionRepository.IsEligibleForSubsciption(subscribeReq)
-	if err!=nil{
+	eligible, err := as.AuthSubscriptionRepository.IsEligibleForSubsciption(subscribeReq)
+	if err != nil {
 		log.Println(err)
-		return responsemodels.SubscribeResponse{},err
+		return responsemodels.SubscribeResponse{}, err
 	}
-	if !eligible{
-		return responsemodels.SubscribeResponse{},domain.ErrNotEligible
+	if !eligible {
+		return responsemodels.SubscribeResponse{}, domain.ErrNotEligible
 	}
 
 	userDetail, err := as.AuthSubscriptionRepository.FetchUserPublicData(subscribeReq.UserId)
@@ -554,18 +560,18 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 	}
 	//fmt.Println("userDetail", userDetail)
 	//return responsemodels.SubscribeResponse{},nil
-	if userDetail.RazorpayCustomerID==""{
-		userDetail.RazorpayCustomerID,err=as.createAndSaveCustomer(userDetail,subscribeReq.UserEmail)
-		if err!=nil{
-			return responsemodels.SubscribeResponse{},err
+	if userDetail.RazorpayCustomerID == "" {
+		userDetail.RazorpayCustomerID, err = as.createAndSaveCustomer(userDetail, subscribeReq.UserEmail)
+		if err != nil {
+			return responsemodels.SubscribeResponse{}, err
 		}
 	}
 
 	//razorpayClient:=utils.NewRazorpayClient(as.RazorpayCredentials.KeyId,as.RazorpayCredentials.KeySecret)
 	subscriptionData := map[string]interface{}{
-		"plan_id":         razorpayPlanId,
-		"total_count":     subscribeReq.TotalCount,
-		"customer_id":     userDetail.RazorpayCustomerID, // Use the ID instead of the "customer" map
+		"plan_id":     razorpayPlanId,
+		"total_count": subscribeReq.TotalCount,
+		"customer_id": userDetail.RazorpayCustomerID, // Use the ID instead of the "customer" map
 		//"quantity":        1,
 		//"customer_notify": 1,
 
@@ -583,7 +589,7 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 			"user_name": userDetail.UserName,
 		},
 	}
-	subscription, err :=as.RazorpayGateway.CreateSubscription(subscriptionData)
+	subscription, err := as.RazorpayGateway.CreateSubscription(subscriptionData)
 	if err != nil {
 		log.Println("error on subscribing", err)
 		return responsemodels.SubscribeResponse{}, fmt.Errorf("provider error: %w", err)
@@ -598,40 +604,40 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 	return subcribeRes, nil
 }
 
-func (as *AuthSubscriptionUsecase)createAndSaveCustomer(userDetail responsemodels.UserPublicDataResponse,email string)(string,error){
+func (as *AuthSubscriptionUsecase) createAndSaveCustomer(userDetail responsemodels.UserPublicDataResponse, email string) (string, error) {
 	// 1. Prepare Customer Data for Razorpay
-    customerParams := map[string]interface{}{
-        "name":    userDetail.UserName,
-        "email":   email,
-        "contact": userDetail.Phone, // Ensure this is in your user model
-        "fail_existing": 0,               // 0 means if email exists, it returns the existing customer instead of erroring
-    }
+	customerParams := map[string]interface{}{
+		"name":          userDetail.UserName,
+		"email":         email,
+		"contact":       userDetail.Phone, // Ensure this is in your user model
+		"fail_existing": 0,                // 0 means if email exists, it returns the existing customer instead of erroring
+	}
 	// 2. Call Razorpay API
-    // Assuming as.RazorpayGateway is your initialized razorpay client
-    res, err := as.RazorpayGateway.Client.Customer.Create(customerParams, nil)
-    if err != nil {
-        log.Printf("Failed to create Razorpay customer: %v", err)
-        return "", err
-    }
+	// Assuming as.RazorpayGateway is your initialized razorpay client
+	res, err := as.RazorpayGateway.Client.Customer.Create(customerParams, nil)
+	if err != nil {
+		log.Printf("Failed to create Razorpay customer: %v", err)
+		return "", err
+	}
 	// 3. Extract the ID from the response
-    // res is usually a map[string]interface{} or a specific struct depending on your SDK wrapper
-    customerID, ok := res["id"].(string)
-    if !ok {
-        return "", fmt.Errorf("invalid response format from Razorpay")
-    }
+	// res is usually a map[string]interface{} or a specific struct depending on your SDK wrapper
+	customerID, ok := res["id"].(string)
+	if !ok {
+		return "", fmt.Errorf("invalid response format from Razorpay")
+	}
 
-    // 4. Update your local database
-    // This links your internal UserID to the Razorpay CustomerID forever
-    err = as.AuthSubscriptionRepository.UpdateUserRazorpayCustomerID(userDetail.UserID, customerID)
-    if err != nil {
-        log.Printf("Failed to save customerID %s to DB for user %d: %v", customerID, userDetail.UserID, err)
-		if err==gorm.ErrRecordNotFound{
-			return "",domain.ErrUserNotFound
+	// 4. Update your local database
+	// This links your internal UserID to the Razorpay CustomerID forever
+	err = as.AuthSubscriptionRepository.UpdateUserRazorpayCustomerID(userDetail.UserID, customerID)
+	if err != nil {
+		log.Printf("Failed to save customerID %s to DB for user %d: %v", customerID, userDetail.UserID, err)
+		if err == gorm.ErrRecordNotFound {
+			return "", domain.ErrUserNotFound
 		}
-        return "", err
-    }
+		return "", err
+	}
 
-    return customerID, nil
+	return customerID, nil
 }
 
 // func (as *AuthSubscriptionUsecase) VerifySubscriptionPayment(verifySubscriptionPaymentReq requestmodels.VerifySubscriptionPaymentRequest) (responsemodels.VerifySubscriptionPaymentResponse, error) {
@@ -701,39 +707,39 @@ func (as *AuthSubscriptionUsecase)createAndSaveCustomer(userDetail responsemodel
 func (as *AuthSubscriptionUsecase) Unsubscribe(unsubscribeReq requestmodels.UnsubscribeRequest) (responsemodels.UnsubscribeResponse, error) {
 	razorpaySubscritpionId, err := as.AuthSubscriptionRepository.FetchRazorpaySubscriptionIdFromUserId(unsubscribeReq.UserID)
 	if err != nil {
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.UnsubscribeResponse{},domain.ErrNoActiveSubscription
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.UnsubscribeResponse{}, domain.ErrNoActiveSubscription
 		}
-		return responsemodels.UnsubscribeResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.UnsubscribeResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
-	unsubscribeReq.RazorpaySubId=razorpaySubscritpionId
+	unsubscribeReq.RazorpaySubId = razorpaySubscritpionId
 	//fmt.Println("is it actually nil,???", unsubscribeReq.RazorpaySubId)
-	
-	status,err:=as.AuthSubscriptionRepository.FetchUserSubscription(unsubscribeReq.RazorpaySubId)
-	if err!=nil{
+
+	status, err := as.AuthSubscriptionRepository.FetchUserSubscription(unsubscribeReq.RazorpaySubId)
+	if err != nil {
 		log.Println(err)
-		return responsemodels.UnsubscribeResponse{},fmt.Errorf("%w: %v: %v:",domain.ErrDatabase,err,"fetching subscription from database failed")
+		return responsemodels.UnsubscribeResponse{}, fmt.Errorf("%w: %v: %v:", domain.ErrDatabase, err, "fetching subscription from database failed")
 	}
-	if status=="completed"{
-		return responsemodels.UnsubscribeResponse{},domain.ErrSubCompleted
+	if status == "completed" {
+		return responsemodels.UnsubscribeResponse{}, domain.ErrSubCompleted
 	}
-	if status=="cancelled"{
-		return responsemodels.UnsubscribeResponse{},domain.ErrSubCancelled
+	if status == "cancelled" {
+		return responsemodels.UnsubscribeResponse{}, domain.ErrSubCancelled
 	}
 	data := map[string]interface{}{
 		"cancel_at_cycle_end": unsubscribeReq.CancelAtCycleEnd,
 	}
-	
+
 	_, err = as.RazorpayGateway.Client.Subscription.Cancel(razorpaySubscritpionId, data, nil)
 	if err != nil {
 		log.Println("print the error on cancellation razorpay api call", err)
 		return responsemodels.UnsubscribeResponse{},
-		fmt.Errorf("%w: %v", domain.ErrRazorpayCancel, err)
+			fmt.Errorf("%w: %v", domain.ErrRazorpayCancel, err)
 	}
-	
+
 	unsubscibeRes, err := as.AuthSubscriptionRepository.SetCancelReason(unsubscribeReq)
 	if err != nil {
-		return responsemodels.UnsubscribeResponse{}, fmt.Errorf("%w: %v: %v:",domain.ErrDatabase,err,"cancel reason failed to update in db")
+		return responsemodels.UnsubscribeResponse{}, fmt.Errorf("%w: %v: %v:", domain.ErrDatabase, err, "cancel reason failed to update in db")
 	}
 	// userid, err := as.AuthSubscriptionRepository.FetchUserIdFromSubscriptionId(razorpaySubscritpionId)
 	// if err != nil {
@@ -802,19 +808,19 @@ func (as *AuthSubscriptionUsecase) CheckUserExists(userId uint64) (bool, error) 
 	return status, err
 }
 
-func (as *AuthSubscriptionUsecase)CheckAllUsersExists(users []uint64)([]uint64,error){
-	resp,err:=as.AuthSubscriptionRepository.CheckAllUsersExists(users)
-	if err!=nil{
-		return nil,err
+func (as *AuthSubscriptionUsecase) CheckAllUsersExists(users []uint64) ([]uint64, error) {
+	resp, err := as.AuthSubscriptionRepository.CheckAllUsersExists(users)
+	if err != nil {
+		return nil, err
 	}
-	return resp,err
+	return resp, err
 }
 
 func (as *AuthSubscriptionUsecase) GetProfileInformation(req requestmodels.GetProfileInformationRequest) (responsemodels.GetProfileInformationResponse, error) {
 	resp, err := as.AuthSubscriptionRepository.GetProfileInformation(req)
 	if err != nil {
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.GetProfileInformationResponse{},domain.ErrUserNotFound
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.GetProfileInformationResponse{}, domain.ErrUserNotFound
 		}
 		return responsemodels.GetProfileInformationResponse{}, err
 	}
@@ -888,148 +894,146 @@ func (as *AuthSubscriptionUsecase) GetSubscriptionDetails(req requestmodels.GetS
 	resp, err := as.AuthSubscriptionRepository.GetSubscriptionDetails(req)
 	if err != nil {
 		log.Println(err)
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.GetSubscriptionDetails{},domain.ErrNoSubscription
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.GetSubscriptionDetails{}, domain.ErrNoSubscription
 		}
 		return responsemodels.GetSubscriptionDetails{}, err
 	}
 	return resp, nil
 }
 
-func (as *AuthSubscriptionUsecase)WebhookSubscriptionActivated(req requestmodels.WebhookSubscriptionActivatedRequest)(responsemodels.WebhookSubscriptionActivatedResponse,error){
-	status,err:=as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
-	if err!=nil{
+func (as *AuthSubscriptionUsecase) WebhookSubscriptionActivated(req requestmodels.WebhookSubscriptionActivatedRequest) (responsemodels.WebhookSubscriptionActivatedResponse, error) {
+	status, err := as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
+	if err != nil {
 		log.Println(err)
-		return responsemodels.WebhookSubscriptionActivatedResponse{},err
+		return responsemodels.WebhookSubscriptionActivatedResponse{}, err
 	}
-	if status=="completed"||status=="cancelled"{
-		return responsemodels.WebhookSubscriptionActivatedResponse{},errors.New("subscription already in cancelled or completed state")
+	if status == "completed" || status == "cancelled" {
+		return responsemodels.WebhookSubscriptionActivatedResponse{}, errors.New("subscription already in cancelled or completed state")
 	}
-	if req.Status=="active"{
-		err:=as.AuthSubscriptionRepository.TurnBlueTickTrueForUserId(req.UserID)
-		if err!=nil{
-			log.Printf("failed to trun on blue tick for user id %d\n",req.UserID)
+	if req.Status == "active" {
+		err := as.AuthSubscriptionRepository.TurnBlueTickTrueForUserId(req.UserID)
+		if err != nil {
+			log.Printf("failed to trun on blue tick for user id %d\n", req.UserID)
 		}
 	}
-	resp,err:=as.AuthSubscriptionRepository.UpddateActivatedSubscription(req)
-	if err!=nil{
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.WebhookSubscriptionActivatedResponse{},domain.RazorpaySubscriptionIdNotFound
+	resp, err := as.AuthSubscriptionRepository.UpddateActivatedSubscription(req)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.WebhookSubscriptionActivatedResponse{}, domain.RazorpaySubscriptionIdNotFound
 		}
-		return responsemodels.WebhookSubscriptionActivatedResponse{},err
+		return responsemodels.WebhookSubscriptionActivatedResponse{}, err
 	}
-	return resp,nil
+	return resp, nil
 }
 
-func (as *AuthSubscriptionUsecase)WebhookSubscriptionCharged(req requestmodels.WebhookSubscriptionChargedRequest)(responsemodels.WebhookSubscriptionChargedResponse,error){
-	status,err:=as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
-	if err!=nil{
+func (as *AuthSubscriptionUsecase) WebhookSubscriptionCharged(req requestmodels.WebhookSubscriptionChargedRequest) (responsemodels.WebhookSubscriptionChargedResponse, error) {
+	status, err := as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
+	if err != nil {
 		log.Println(err)
-		return responsemodels.WebhookSubscriptionChargedResponse{},err
+		return responsemodels.WebhookSubscriptionChargedResponse{}, err
 	}
 	//fmt.Println("is it coming here",req.RazorpaySubscriptionId)
-	err=as.AuthSubscriptionRepository.UpdateNextChargeAt(req.NextChargeAt,req.RazorpaySubscriptionId)
-	if err!=nil{
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.WebhookSubscriptionChargedResponse{},domain.RazorpaySubscriptionIdNotFound
+	err = as.AuthSubscriptionRepository.UpdateNextChargeAt(req.NextChargeAt, req.RazorpaySubscriptionId)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.WebhookSubscriptionChargedResponse{}, domain.RazorpaySubscriptionIdNotFound
 		}
 	}
-	err=as.AuthSubscriptionRepository.UpdateCount(req)
+	err = as.AuthSubscriptionRepository.UpdateCount(req)
 
-	resp,err:=as.AuthSubscriptionRepository.UpdatePayment(req)
-	if err!=nil{
-		return responsemodels.WebhookSubscriptionChargedResponse{},err
+	resp, err := as.AuthSubscriptionRepository.UpdatePayment(req)
+	if err != nil {
+		return responsemodels.WebhookSubscriptionChargedResponse{}, err
 	}
 
-	if status=="completed"||status=="cancelled"{
-		return responsemodels.WebhookSubscriptionChargedResponse{},errors.New("subscription already in cancelled or completed state")
+	if status == "completed" || status == "cancelled" {
+		return responsemodels.WebhookSubscriptionChargedResponse{}, errors.New("subscription already in cancelled or completed state")
 	}
-	
-	
-	
-	err=as.AuthSubscriptionRepository.UpdateStatusToActive(req.RazorpaySubscriptionId)
-		if err!=nil{
-			if err==gorm.ErrRecordNotFound{
-				return responsemodels.WebhookSubscriptionChargedResponse{},domain.RazorpaySubscriptionIdNotFound
-			}
+
+	err = as.AuthSubscriptionRepository.UpdateStatusToActive(req.RazorpaySubscriptionId)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.WebhookSubscriptionChargedResponse{}, domain.RazorpaySubscriptionIdNotFound
 		}
-	
+	}
+
 	//fmt.Println("request in charged",req)
 	//if req.Status=="active"{
-		err=as.AuthSubscriptionRepository.TurnBlueTickTrueForUserId(req.UserID)
-		if err!=nil{
-			log.Printf("failed to trun on blue tick for user id %d\n",req.UserID)
-		}
+	err = as.AuthSubscriptionRepository.TurnBlueTickTrueForUserId(req.UserID)
+	if err != nil {
+		log.Printf("failed to trun on blue tick for user id %d\n", req.UserID)
+	}
 	//}
-	
-	return resp,nil
+
+	return resp, nil
 }
-func (as *AuthSubscriptionUsecase)WebhookSubscriptionHalted(req requestmodels.WebhookSubscriptionHaltedRequest)(responsemodels.WebhookSubscriptionHaltedResponse,error){
-	status,err:=as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
-	if err!=nil{
+func (as *AuthSubscriptionUsecase) WebhookSubscriptionHalted(req requestmodels.WebhookSubscriptionHaltedRequest) (responsemodels.WebhookSubscriptionHaltedResponse, error) {
+	status, err := as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
+	if err != nil {
 		log.Println(err)
-		return responsemodels.WebhookSubscriptionHaltedResponse{},err
+		return responsemodels.WebhookSubscriptionHaltedResponse{}, err
 	}
-	if status=="completed"||status=="cancelled"{
-		return responsemodels.WebhookSubscriptionHaltedResponse{},errors.New("subscription already in cancelled or completed state")
+	if status == "completed" || status == "cancelled" {
+		return responsemodels.WebhookSubscriptionHaltedResponse{}, errors.New("subscription already in cancelled or completed state")
 	}
-	err=as.AuthSubscriptionRepository.UpdateStatusHalted(req)
-	if err!=nil{
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.WebhookSubscriptionHaltedResponse{},domain.RazorpaySubscriptionIdNotFound
+	err = as.AuthSubscriptionRepository.UpdateStatusHalted(req)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.WebhookSubscriptionHaltedResponse{}, domain.RazorpaySubscriptionIdNotFound
 		}
-		return responsemodels.WebhookSubscriptionHaltedResponse{},err
+		return responsemodels.WebhookSubscriptionHaltedResponse{}, err
 	}
-	err=as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(req.UserId)
-	if err!=nil{
-		return responsemodels.WebhookSubscriptionHaltedResponse{},err
+	err = as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(req.UserId)
+	if err != nil {
+		return responsemodels.WebhookSubscriptionHaltedResponse{}, err
 	}
 	return responsemodels.WebhookSubscriptionHaltedResponse{
 		RazorpaySubcriptionId: req.RazorpaySubscriptionId,
-	},nil
+	}, nil
 }
 
-func (as *AuthSubscriptionUsecase)WebhookSubscriptionCancelled(req requestmodels.WebhookSubscriptionCancelledRequest)(responsemodels.WebhookSubscriptionCancelledResponse,error){
-	status,err:=as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
-	if err!=nil{
+func (as *AuthSubscriptionUsecase) WebhookSubscriptionCancelled(req requestmodels.WebhookSubscriptionCancelledRequest) (responsemodels.WebhookSubscriptionCancelledResponse, error) {
+	status, err := as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
+	if err != nil {
 		log.Println(err)
-		return responsemodels.WebhookSubscriptionCancelledResponse{},err
+		return responsemodels.WebhookSubscriptionCancelledResponse{}, err
 	}
-	if status=="completed"||status=="cancelled"{
-		return responsemodels.WebhookSubscriptionCancelledResponse{},errors.New("subscription already in cancelled or completed state")
+	if status == "completed" || status == "cancelled" {
+		return responsemodels.WebhookSubscriptionCancelledResponse{}, errors.New("subscription already in cancelled or completed state")
 	}
-	resp,err:=as.AuthSubscriptionRepository.UpdateSubscriptionCancelled(req)
-	if err!=nil{
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.WebhookSubscriptionCancelledResponse{},domain.RazorpaySubscriptionIdNotFound
+	resp, err := as.AuthSubscriptionRepository.UpdateSubscriptionCancelled(req)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.WebhookSubscriptionCancelledResponse{}, domain.RazorpaySubscriptionIdNotFound
 		}
-		return responsemodels.WebhookSubscriptionCancelledResponse{},err
+		return responsemodels.WebhookSubscriptionCancelledResponse{}, err
 	}
-	err=as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(req.UserId)
-	if err!=nil{
-		log.Printf("failed to turn off blue tick for user id:%d\n",req.UserId)
-		return responsemodels.WebhookSubscriptionCancelledResponse{},err
+	err = as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(req.UserId)
+	if err != nil {
+		log.Printf("failed to turn off blue tick for user id:%d\n", req.UserId)
+		return responsemodels.WebhookSubscriptionCancelledResponse{}, err
 	}
-	return resp,nil
+	return resp, nil
 }
-	
-func (as *AuthSubscriptionUsecase)WebhookSubscriptionCompleted(req requestmodels.WebhookSubscriptionCompletedRequest)(responsemodels.WebhookSubscriptionCompletedResponse,error){
-//	fmt.Println("why not coming in completed")
+
+func (as *AuthSubscriptionUsecase) WebhookSubscriptionCompleted(req requestmodels.WebhookSubscriptionCompletedRequest) (responsemodels.WebhookSubscriptionCompletedResponse, error) {
+	//	fmt.Println("why not coming in completed")
 	//fmt.Println("complete usecase req",req)
-	resp,err:=as.AuthSubscriptionRepository.UpdateSubscripionCompleted(req)
-	if err!=nil{
-		log.Println("error while updating to completed",err)
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.WebhookSubscriptionCompletedResponse{},domain.RazorpaySubscriptionIdNotFound
+	resp, err := as.AuthSubscriptionRepository.UpdateSubscripionCompleted(req)
+	if err != nil {
+		log.Println("error while updating to completed", err)
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.WebhookSubscriptionCompletedResponse{}, domain.RazorpaySubscriptionIdNotFound
 		}
-		return responsemodels.WebhookSubscriptionCompletedResponse{},err
+		return responsemodels.WebhookSubscriptionCompletedResponse{}, err
 	}
-	err=as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(req.UserId)
-	if err!=nil{
-		log.Printf("failed to turn off blue tick for user id:%d\n",req.UserId)
-		return responsemodels.WebhookSubscriptionCompletedResponse{},err
+	err = as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(req.UserId)
+	if err != nil {
+		log.Printf("failed to turn off blue tick for user id:%d\n", req.UserId)
+		return responsemodels.WebhookSubscriptionCompletedResponse{}, err
 	}
-	return resp,nil
+	return resp, nil
 }
 
 func (as *AuthSubscriptionUsecase) Webhook(webhookReq requestmodels.RazorpayEvent) (responsemodels.WebhookResponse, error) {
