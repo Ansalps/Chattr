@@ -11,6 +11,7 @@ import (
 
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/domain"
+	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/infrastructure/jwt"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/infrastructure/razorpaygateway"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/infrastructure/smtp"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
@@ -31,7 +32,7 @@ type AuthSubscriptionUsecase struct {
 	SmtpProvider               *smtp.SmtpCredentials
 	AuthSubscriptionRepository interfacesRepository.AuthSubscriptionRepository
 	Config                     *config.Config
-	JwtUtil                    interfacesJwt.Jwt
+	JwtProvider                *jwt.JwtProvider
 	//RazorpayCredentials	*config.Razorpay
 	RazorpayGateway *razorpaygateway.RazorpayGateway
 	AwsS3Client     *s3.Client
@@ -39,12 +40,12 @@ type AuthSubscriptionUsecase struct {
 }
 
 func NewAuthSubscriptionUsecase(repository interfacesRepository.AuthSubscriptionRepository,
-	smtpProvider *smtp.SmtpCredentials, config *config.Config, jwtUtil interfacesJwt.Jwt /*razorpayCredentials *config.Razorpay,*/, razorpayGateway *razorpaygateway.RazorpayGateway, awsS3Client *s3.Client, awsBucket string) interfacesUsecase.AuthSubscriptionUsecase {
+	smtpProvider *smtp.SmtpCredentials, config *config.Config, jwtProvider *jwt.JwtProvider /*razorpayCredentials *config.Razorpay,*/, razorpayGateway *razorpaygateway.RazorpayGateway, awsS3Client *s3.Client, awsBucket string) interfacesUsecase.AuthSubscriptionUsecase {
 	return &AuthSubscriptionUsecase{
 		AuthSubscriptionRepository: repository,
 		SmtpProvider:               smtpProvider,
 		Config:                     config,
-		JwtUtil:                    jwtUtil,
+		JwtProvider:                    jwtProvider,
 		//RazorpayCredentials: razorpayCredentials,
 		RazorpayGateway: razorpayGateway,
 		AwsS3Client:     awsS3Client,
@@ -79,11 +80,11 @@ func (as *AuthSubscriptionUsecase) AdminLogin(ctx context.Context, admin request
 	if admin.Password != admins.Password {
 		return responsemodels.AdminLoginResponse{}, domain.ErrInvalidCredentials
 	}
-	adminAccessTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.AdminSecurityKey, uint64(admins.ID), admins.Email, "admin", "access", 24*time.Hour)
+	adminAccessTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.AdminSecurityKey, uint64(admins.ID), admins.Email, "admin", "access", 24*time.Hour)
 	if err != nil {
 		return responsemodels.AdminLoginResponse{}, fmt.Errorf("%w: %v:", domain.ErrAdminAccessTokenFail, err)
 	}
-	adminRefreshTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.AdminRefreshKey, uint64(admins.ID), admins.Email, "admin", "refresh", 24*7*time.Hour)
+	adminRefreshTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.AdminRefreshKey, uint64(admins.ID), admins.Email, "admin", "refresh", 24*7*time.Hour)
 	if err != nil {
 		return responsemodels.AdminLoginResponse{}, fmt.Errorf("%w: %v:", domain.ErrAdminRefreshTokenFail, err)
 	}
@@ -210,22 +211,22 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 	}
 	err = as.SmtpProvider.SendVerifcationEmailWithOtp(otp, userReq.Email, userReq.Name)
 	if err != nil {
-		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrSendVerifyOtpToEmail, err)
+		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrSendVerifyOtpToEmail, err)
 	}
 	hashedPassword := utils.HashPassword(userReq.ConfirmPassword)
 	userReq.Password = hashedPassword
 
-	userRes, err := as.AuthSubscriptionRepository.CreateUser(ctx,&userReq)
+	userRes, err := as.AuthSubscriptionRepository.CreateUser(ctx, &userReq)
 	if err != nil {
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
 			return responsemodels.UserSignupResponse{}, err
 		}
-		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	//fmt.Println("userRes.ID is ", userRes.ID)
-	otpVerificationToken, err := as.JwtUtil.GenerateToken(as.Config.Token.OtpVerificationSecurityKey, uint64(userRes.ID), userRes.Email, "otpverification", "access", 5*time.Minute)
+	otpVerificationToken, err := as.JwtProvider.GenerateToken(as.Config.Token.OtpVerificationSecurityKey, uint64(userRes.ID), userRes.Email, "otpverification", "access", 5*time.Minute)
 	if err != nil {
-		return responsemodels.UserSignupResponse{}, fmt.Errorf("Failed to generarate token for otp verfication: %w", err)
+		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrVerifyOtpTokenFail, err)
 	}
 	return responsemodels.UserSignupResponse{
 		ID:                   userRes.ID,
@@ -259,7 +260,7 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(otpReq requestmodels.OtpRequest) (r
 		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("database error: %w", err)
 	}
 	if otpReq.Purpose == "user-forgot-password" {
-		resetPasswordToken, err := as.JwtUtil.GenerateToken(as.Config.Token.ResetPasswordSecurityKey, uint64(otpReq.UserId), otp.Email, "resetpassword", "access", 5*time.Minute)
+		resetPasswordToken, err := as.JwtProvider.GenerateToken(as.Config.Token.ResetPasswordSecurityKey, uint64(otpReq.UserId), otp.Email, "resetpassword", "access", 5*time.Minute)
 		if err != nil {
 			return responsemodels.OtpVerificationResponse{}, fmt.Errorf("Failed to generarate token for otp verfication: %w", err)
 		}
@@ -270,11 +271,11 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(otpReq requestmodels.OtpRequest) (r
 		}, nil
 	}
 	//fmt.Println("in verify otp usercase --", otpReq.UserId)
-	userAccessTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.UserSecurityKey, uint64(otpReq.UserId), otp.Email, "user", "access", 24*time.Hour)
+	userAccessTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.UserSecurityKey, uint64(otpReq.UserId), otp.Email, "user", "access", 24*time.Hour)
 	if err != nil {
 		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("Failed to generarate access token for user: %w", err)
 	}
-	userRefreshTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.UserRefreshKey, uint64(otpReq.UserId), otp.Email, "user", "refresh", 24*7*time.Hour)
+	userRefreshTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.UserRefreshKey, uint64(otpReq.UserId), otp.Email, "user", "refresh", 24*7*time.Hour)
 	if err != nil {
 		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("Failed to generarate refresh token for user: %w", err)
 	}
@@ -313,13 +314,13 @@ func (as *AuthSubscriptionUsecase) AccessRegenerator(accessRegeneratorReq reques
 	var accessTokenString string
 	switch accessRegeneratorReq.Role {
 	case "admin":
-		adminAccessTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.AdminSecurityKey, uint64(accessRegeneratorReq.ID), accessRegeneratorReq.Email, "admin", "access", 24*time.Hour)
+		adminAccessTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.AdminSecurityKey, uint64(accessRegeneratorReq.ID), accessRegeneratorReq.Email, "admin", "access", 24*time.Hour)
 		if err != nil {
 			return responsemodels.AccessRegeneratorResponse{}, fmt.Errorf("%w: %v:", domain.ErrAdminAccessTokenFail, err)
 		}
 		accessTokenString = adminAccessTokenString
 	case "user":
-		userAccessTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.UserSecurityKey, uint64(accessRegeneratorReq.ID), accessRegeneratorReq.Email, "user", "access", 24*time.Hour)
+		userAccessTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.UserSecurityKey, uint64(accessRegeneratorReq.ID), accessRegeneratorReq.Email, "user", "access", 24*time.Hour)
 		if err != nil {
 			return responsemodels.AccessRegeneratorResponse{}, fmt.Errorf("%w: %v:", domain.ErrUserAccessTokenFail, err)
 		}
@@ -358,7 +359,7 @@ func (as *AuthSubscriptionUsecase) ForgotPassword(forgotPasswordReq requestmodel
 	if err != nil {
 		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("Error in sending otp to email address: %w", err)
 	}
-	otpVerificationToken, err := as.JwtUtil.GenerateToken(as.Config.Token.OtpVerificationSecurityKey, uint64(user.ID), user.Email, "otpverification", "access", 5*time.Minute)
+	otpVerificationToken, err := as.JwtProvider.GenerateToken(as.Config.Token.OtpVerificationSecurityKey, uint64(user.ID), user.Email, "otpverification", "access", 5*time.Minute)
 	if err != nil {
 		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("Failed to generarate token for otp verfication: %w", err)
 	}
@@ -401,11 +402,11 @@ func (as *AuthSubscriptionUsecase) UserLogin(userLoginReq requestmodels.UserLogi
 		return responsemodels.UserLoginResponse{}, domain.ErrPendingLogin
 	}
 	//fmt.Println("inside user login ", user.ID)
-	userAccessTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.UserSecurityKey, uint64(user.ID), user.Email, "user", "access", 24*time.Hour)
+	userAccessTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.UserSecurityKey, uint64(user.ID), user.Email, "user", "access", 24*time.Hour)
 	if err != nil {
 		return responsemodels.UserLoginResponse{}, fmt.Errorf("Failed to generarate access token for user: %w", err)
 	}
-	userRefreshTokenString, err := as.JwtUtil.GenerateToken(as.Config.Token.UserRefreshKey, uint64(user.ID), user.Email, "user", "refresh", 24*7*time.Hour)
+	userRefreshTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.UserRefreshKey, uint64(user.ID), user.Email, "user", "refresh", 24*7*time.Hour)
 	if err != nil {
 		return responsemodels.UserLoginResponse{}, fmt.Errorf("Failed to generarate refresh token for user: %w", err)
 	}

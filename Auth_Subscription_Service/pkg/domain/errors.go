@@ -34,4 +34,5 @@ var (
 
 	ErrDatabaseConnectionTimeOut=errors.New("Database connection time out")
 	ErrSendVerifyOtpToEmail=errors.New("Failed to send verification otp to email address")
+	ErrVerifyOtpTokenFail=errors.New("Failed to generarate token for otp verfication")
 )

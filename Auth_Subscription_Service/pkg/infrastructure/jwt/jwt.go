@@ -4,18 +4,17 @@ import (
 	"time"
 
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
-	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils/jwt/interfacesJwt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
-type JwtUtil struct{}
+type JwtProvider struct{}
 
-func NewJwtUtil() interfacesJwt.Jwt {
-	return &JwtUtil{}
+func NewJwtProvider() *JwtProvider {
+	return &JwtProvider{}
 }
 
-func (ju *JwtUtil) GenerateToken(securityKey string, id uint64, email, role string, tokenType string, duration time.Duration) (string, error) {
+func (ju *JwtProvider) GenerateToken(securityKey string, id uint64, email, role string, tokenType string, duration time.Duration) (string, error) {
 	jti := uuid.NewString() // secure unique token id
 	claims := &requestmodels.JwtClaims{
 		ID:    id,
