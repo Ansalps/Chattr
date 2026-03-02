@@ -257,7 +257,7 @@ func (as *AuthSubscriptionServer) ForgetPassword(ctx context.Context, req *pb.Fo
 	forgotPasswordReq := requestmodels.ForgotPasswordRequest{
 		Email: req.Email,
 	}
-	forgotPasswordRes, err := as.AuthSubscriptionUsecase.ForgotPassword(forgotPasswordReq)
+	forgotPasswordRes, err := as.AuthSubscriptionUsecase.ForgotPassword(ctx,forgotPasswordReq)
 	if err != nil {
 		log.Printf("OTP Forgot Password failed for email %s (reason: mismatch): %v", forgotPasswordReq.Email, err)
 		switch {

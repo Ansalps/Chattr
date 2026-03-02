@@ -347,26 +347,35 @@ func (as *AuthSubscriptionUsecase) AccessRegenerator(accessRegeneratorReq reques
 		NewAccessToken: accessTokenString,
 	}, nil
 }
-func (as *AuthSubscriptionUsecase) ForgotPassword(forgotPasswordReq requestmodels.ForgotPasswordRequest) (responsemodels.ForgotPassordResponse, error) {
-	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(forgotPasswordReq.Email)
+func (as *AuthSubscriptionUsecase) ForgotPassword(ctx context.Context,forgotPasswordReq requestmodels.ForgotPasswordRequest) (responsemodels.ForgotPassordResponse, error) {
+	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(ctx,forgotPasswordReq.Email)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return responsemodels.ForgotPassordResponse{}, domain.ErrUserNotFound
-		} else {
-			return responsemodels.ForgotPassordResponse{}, fmt.Errorf("database error: %w", err)
+		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
+			return responsemodels.ForgotPassordResponse{}, err
 		}
+		if err == gorm.ErrRecordNotFound {
+			return  responsemodels.ForgotPassordResponse{}, domain.ErrUserNotFound
+		}
+		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	otp := utils.RandomNumber()
-	err = as.AuthSubscriptionRepository.DeleteOtpByEmail(user.Email)
+	err = as.AuthSubscriptionRepository.DeleteOtpByEmail(ctx,user.Email)
 	if err != nil {
-		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("database error: %w", err)
+		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
+			return responsemodels.ForgotPassordResponse{}, err
+		}
+		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 
 	expiration := time.Now().Add(5 * time.Minute)
-	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(otp, user.Email, expiration)
+	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(ctx,otp, user.Email, expiration)
 	if err != nil {
-		log.Println("cannont save otp in db")
-		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("database error: %w", err)
+		//log.Println("cannont save otp in db")
+		//return responsemodels.ForgotPassordResponse{}, fmt.Errorf("database error: %w", err)
+		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
+			return responsemodels.ForgotPassordResponse{}, err
+		}
+		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	err = as.SmtpProvider.SendResetPasswordEmailOtp(otp, user.Email)
 	if err != nil {

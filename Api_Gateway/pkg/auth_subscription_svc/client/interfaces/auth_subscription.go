@@ -22,7 +22,7 @@ type AuthSubscriptionClientInterface interface{
 	VerifyOtp(requestmodels.OtpRequest)(responsemodels.OtpVerificationResponse,error)
 	ResendOtp(ctx context.Context,resendOtpReq requestmodels.ResendOtpRequest)(responsemodels.ResendOtpResponse,error)
 	AccessRegenerator(requestmodels.AccessRegeneratorRequest)(responsemodels.AccessRegeneratorResponse,error)
-	ForgotPassword(requestmodels.ForgotPasswordRequest)(responsemodels.ForgetPassordResponse,error)
+	ForgotPassword(ctx context.Context,forgetPasswordReq requestmodels.ForgotPasswordRequest)(responsemodels.ForgetPassordResponse,error)
 	ResetPassword(requestmodels.ResetPasswordRequest)(responsemodels.ResetPasswordResponse,error)
 	UserLogin(requestmodels.UserLoginRequest)(responsemodels.UserLoginResponse,error)
 	GetAllActiveSubscriptionPlans(requestmodels.GetAllActiveSubscriptionPlansRequest,int)(responsemodels.GetAllActiveSubscriptionPlansResponse,error)

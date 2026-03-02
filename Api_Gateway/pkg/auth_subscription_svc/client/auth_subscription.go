@@ -130,8 +130,8 @@ func (as *AuthSubscriptionClient) AccessRegenerator(accessRegeneratorReq request
 	}, nil
 }
 
-func (as *AuthSubscriptionClient) ForgotPassword(forgetPasswordReq requestmodels.ForgotPasswordRequest) (responsemodels.ForgetPassordResponse, error) {
-	resp, err := as.Client.ForgetPassword(context.Background(), &auth_subscription.ForgotPasswordRequest{
+func (as *AuthSubscriptionClient) ForgotPassword(ctx context.Context,forgetPasswordReq requestmodels.ForgotPasswordRequest) (responsemodels.ForgetPassordResponse, error) {
+	resp, err := as.Client.ForgetPassword(ctx, &auth_subscription.ForgotPasswordRequest{
 		Email: forgetPasswordReq.Email,
 	})
 	if err != nil {

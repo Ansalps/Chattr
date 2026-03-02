@@ -236,18 +236,16 @@ func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
 	c.JSON(success.StatusCode, success)
 }
 
-func (as *AuthSubscriptionHandler) ForgotPassord(c *gin.Context) {
+func (as *AuthSubscriptionHandler) ForgotPassword(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var forgetPasswordReq requestmodels.ForgotPasswordRequest
-	if err := c.ShouldBindJSON(&forgetPasswordReq); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	err:=utils.BindingJson(c,&forgetPasswordReq,log)
+	if err!=nil{
 		return
 	}
-	forgotPasswordRes, err := as.GPPC_Client.ForgotPassword(forgetPasswordReq)
+	ctx,cancel:=context.WithTimeout(c.Request.Context(),10*time.Second)
+	defer cancel()
+	forgotPasswordRes, err := as.GPPC_Client.ForgotPassword(ctx,forgetPasswordReq)
 	if err != nil {
 
 	}

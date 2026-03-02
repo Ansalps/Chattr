@@ -21,7 +21,7 @@ type AuthSubscriptionUsecase interface{
 	VerifyOtp(requestmodels.OtpRequest)(responsemodels.OtpVerificationResponse,error)
 	ResendOtp(ctx context.Context,resendOtpReq requestmodels.ResendOtpRequest)(responsemodels.ResendOtpResponse,error)
 	AccessRegenerator(requestmodels.AccessRegeneratorRequest)(responsemodels.AccessRegeneratorResponse,error)
-	ForgotPassword(requestmodels.ForgotPasswordRequest)(responsemodels.ForgotPassordResponse,error)
+	ForgotPassword(ctx context.Context,req requestmodels.ForgotPasswordRequest)(responsemodels.ForgotPassordResponse,error)
 	ResetPassword(requestmodels.ResetPasswordRequest)(responsemodels.ResetPasswordResponse,error)
 	UserLogin(requestmodels.UserLoginRequest)(responsemodels.UserLoginResponse,error)
 	GetAllActiveSubscriptionPlans(requestmodels.GetAllActiveSubscriptionPlansRequest)(responsemodels.GetAllActiveSubscriptionPlansResponse,error)
