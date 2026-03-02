@@ -174,17 +174,15 @@ func (as *AuthSubscriptionHandler) VerifyOtp(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) ResendOtp(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var resendOtpReq requestmodels.ResendOtpRequest
-	if err := c.ShouldBindJSON(&resendOtpReq); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	err:=utils.BindingJson(c,&resendOtpReq,log)
+	if err!=nil{
 		return
 	}
-	resendOtpResponse, err := as.GPPC_Client.ResendOtp(resendOtpReq)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+	resendOtpResponse, err := as.GPPC_Client.ResendOtp(ctx,resendOtpReq)
 	if err != nil {
 		var obj response.Response
 		// Check if it’s a gRPC status error

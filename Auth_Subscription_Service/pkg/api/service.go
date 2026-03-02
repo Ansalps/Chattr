@@ -210,7 +210,7 @@ func (as *AuthSubscriptionServer) ResendOtp(ctx context.Context, req *pb.ResendO
 	resendOtpReq := requestmodels.ResendOtpRequest{
 		Email: req.Email,
 	}
-	resendOtpResponse, err := as.AuthSubscriptionUsecase.ResendOtp(resendOtpReq)
+	resendOtpResponse, err := as.AuthSubscriptionUsecase.ResendOtp(ctx,resendOtpReq)
 	if err != nil {
 		log.Printf("Resend otp failed for email %s : %v", resendOtpReq.Email, err)
 		switch {

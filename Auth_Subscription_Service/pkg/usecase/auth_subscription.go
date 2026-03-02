@@ -19,7 +19,6 @@ import (
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/repository/interfacesRepository"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/usecase/interfacesUsecase"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils"
-	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils/jwt/interfacesJwt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -45,7 +44,7 @@ func NewAuthSubscriptionUsecase(repository interfacesRepository.AuthSubscription
 		AuthSubscriptionRepository: repository,
 		SmtpProvider:               smtpProvider,
 		Config:                     config,
-		JwtProvider:                    jwtProvider,
+		JwtProvider:                jwtProvider,
 		//RazorpayCredentials: razorpayCredentials,
 		RazorpayGateway: razorpayGateway,
 		AwsS3Client:     awsS3Client,
@@ -209,7 +208,7 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 		}
 		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
-	go func(){
+	go func() {
 		err = as.SmtpProvider.SendVerifcationEmailWithOtp(otp, userReq.Email, userReq.Name)
 		if err != nil {
 			//return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrSendVerifyOtpToEmail, err)
@@ -229,7 +228,7 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 	//fmt.Println("userRes.ID is ", userRes.ID)
 	otpVerificationToken, err := as.JwtProvider.GenerateToken(as.Config.Token.OtpVerificationSecurityKey, uint64(userRes.ID), userRes.Email, "otpverification", "access", 5*time.Minute)
 	if err != nil {
-		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrVerifyOtpTokenFail, err)
+		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrVerifyOtpTokenFail, err)
 	}
 	return responsemodels.UserSignupResponse{
 		ID:                   userRes.ID,
@@ -292,22 +291,33 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(otpReq requestmodels.OtpRequest) (r
 	}, nil
 }
 
-func (as *AuthSubscriptionUsecase) ResendOtp(resendOtpReq requestmodels.ResendOtpRequest) (responsemodels.ResendOtpResponse, error) {
-	err := as.AuthSubscriptionRepository.DeleteOtpByEmail(resendOtpReq.Email)
+func (as *AuthSubscriptionUsecase) ResendOtp(ctx context.Context,resendOtpReq requestmodels.ResendOtpRequest) (responsemodels.ResendOtpResponse, error) {
+	err := as.AuthSubscriptionRepository.DeleteOtpByEmail(ctx,resendOtpReq.Email)
 	if err != nil {
-		return responsemodels.ResendOtpResponse{}, fmt.Errorf("database error: %w", err)
+		//return responsemodels.ResendOtpResponse{}, fmt.Errorf("database error: %w", err)
+		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
+			return responsemodels.ResendOtpResponse{}, err
+		}
+		return responsemodels.ResendOtpResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	otp := utils.RandomNumber()
 	expiration := time.Now().Add(5 * time.Minute)
-	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(otp, resendOtpReq.Email, expiration)
+	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(ctx,otp, resendOtpReq.Email, expiration)
 	if err != nil {
-		//fmt.Println("cannont save otp in db")
-		return responsemodels.ResendOtpResponse{}, fmt.Errorf("database error: %w", err)
+		//return responsemodels.ResendOtpResponse{}, fmt.Errorf("database error: %w", err)
+		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
+			return responsemodels.ResendOtpResponse{}, err
+		}
+		return responsemodels.ResendOtpResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	err = as.SmtpProvider.SendVerifcationEmailWithOtp(otp, resendOtpReq.Email, resendOtpReq.Name)
-	if err != nil {
-		return responsemodels.ResendOtpResponse{}, fmt.Errorf("Error in sending otp to email address: %w", err)
-	}
+	go func(){
+		if err != nil {
+			//return responsemodels.ResendOtpResponse{}, fmt.Errorf("Error in sending otp to email address: %w", err)
+			//return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrSendVerifyOtpToEmail, err)
+			log.Printf("Failed to send email to %s: %v", resendOtpReq.Email, err)
+		}
+	}()
 	return responsemodels.ResendOtpResponse{
 		Email: resendOtpReq.Email,
 	}, nil

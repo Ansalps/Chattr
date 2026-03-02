@@ -96,13 +96,12 @@ func (as *AuthSubscriptionClient) VerifyOtp(otpReq requestmodels.OtpRequest) (re
 	}, nil
 }
 
-func (as *AuthSubscriptionClient) ResendOtp(resendOtpReq requestmodels.ResendOtpRequest) (responsemodels.ResendOtpResponse, error) {
-	resp, err := as.Client.ResendOtp(context.Background(), &auth_subscription.ResendOtpRequest{
+func (as *AuthSubscriptionClient) ResendOtp(ctx context.Context,resendOtpReq requestmodels.ResendOtpRequest) (responsemodels.ResendOtpResponse, error) {
+	resp, err := as.Client.ResendOtp(ctx, &auth_subscription.ResendOtpRequest{
 		Name:  resendOtpReq.Email,
 		Email: resendOtpReq.Email,
 	})
 	if err != nil {
-		log.Printf("grpc resend otp call failed :%v", err)
 		return responsemodels.ResendOtpResponse{}, err
 	}
 	return responsemodels.ResendOtpResponse{
