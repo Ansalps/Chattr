@@ -12,13 +12,13 @@ import (
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/infrastructure/razorpaygateway"
+	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/infrastructure/smtp"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/responsemodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/repository/interfacesRepository"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/usecase/interfacesUsecase"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils/jwt/interfacesJwt"
-	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils/smtp/interfacesSmtp"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -28,7 +28,7 @@ import (
 )
 
 type AuthSubscriptionUsecase struct {
-	SmtpUtil                   interfacesSmtp.Smtp
+	SmtpProvider               *smtp.SmtpCredentials
 	AuthSubscriptionRepository interfacesRepository.AuthSubscriptionRepository
 	Config                     *config.Config
 	JwtUtil                    interfacesJwt.Jwt
@@ -39,10 +39,10 @@ type AuthSubscriptionUsecase struct {
 }
 
 func NewAuthSubscriptionUsecase(repository interfacesRepository.AuthSubscriptionRepository,
-	smtpUtil interfacesSmtp.Smtp, config *config.Config, jwtUtil interfacesJwt.Jwt /*razorpayCredentials *config.Razorpay,*/, razorpayGateway *razorpaygateway.RazorpayGateway, awsS3Client *s3.Client, awsBucket string) interfacesUsecase.AuthSubscriptionUsecase {
+	smtpProvider *smtp.SmtpCredentials, config *config.Config, jwtUtil interfacesJwt.Jwt /*razorpayCredentials *config.Razorpay,*/, razorpayGateway *razorpaygateway.RazorpayGateway, awsS3Client *s3.Client, awsBucket string) interfacesUsecase.AuthSubscriptionUsecase {
 	return &AuthSubscriptionUsecase{
 		AuthSubscriptionRepository: repository,
-		SmtpUtil:                   smtpUtil,
+		SmtpProvider:               smtpProvider,
 		Config:                     config,
 		JwtUtil:                    jwtUtil,
 		//RazorpayCredentials: razorpayCredentials,
@@ -189,35 +189,38 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 			Email:    usernameAlredayExists.Email,
 		}, domain.ErrUserAlreadyExistsByUsername
 	}
-	err = as.AuthSubscriptionRepository.DeleteOtpByEmail(ctx,userReq.Email)
+	err = as.AuthSubscriptionRepository.DeleteOtpByEmail(ctx, userReq.Email)
 	if err != nil {
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
 			return responsemodels.UserSignupResponse{}, err
 		}
-		if err!=gorm.ErrRecordNotFound{
-			return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		if err != gorm.ErrRecordNotFound {
+			return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 		}
 	}
 	otp := utils.RandomNumber()
 	fmt.Println("Otp is ----", otp)
 	expiration := time.Now().Add(5 * time.Minute)
-	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(ctx,otp, userReq.Email, expiration)
+	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(ctx, otp, userReq.Email, expiration)
+	if err != nil {
+		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
+			return responsemodels.UserSignupResponse{}, err
+		}
+		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
+	}
+	err = as.SmtpProvider.SendVerifcationEmailWithOtp(otp, userReq.Email, userReq.Name)
+	if err != nil {
+		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrSendVerifyOtpToEmail, err)
+	}
+	hashedPassword := utils.HashPassword(userReq.ConfirmPassword)
+	userReq.Password = hashedPassword
+
+	userRes, err := as.AuthSubscriptionRepository.CreateUser(ctx,&userReq)
 	if err != nil {
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
 			return responsemodels.UserSignupResponse{}, err
 		}
 		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
-	}
-	err = as.SmtpUtil.SendVerifcationEmailWithOtp(otp, userReq.Email, userReq.Name)
-	if err != nil {
-		return responsemodels.UserSignupResponse{}, fmt.Errorf("Error in sending otp to email address: %w", err)
-	}
-	hashedPassword := utils.HashPassword(userReq.ConfirmPassword)
-	userReq.Password = hashedPassword
-
-	userRes, err := as.AuthSubscriptionRepository.CreateUser(&userReq)
-	if err != nil {
-		return responsemodels.UserSignupResponse{}, fmt.Errorf("database error: %w", err)
 	}
 	//fmt.Println("userRes.ID is ", userRes.ID)
 	otpVerificationToken, err := as.JwtUtil.GenerateToken(as.Config.Token.OtpVerificationSecurityKey, uint64(userRes.ID), userRes.Email, "otpverification", "access", 5*time.Minute)
@@ -297,7 +300,7 @@ func (as *AuthSubscriptionUsecase) ResendOtp(resendOtpReq requestmodels.ResendOt
 		//fmt.Println("cannont save otp in db")
 		return responsemodels.ResendOtpResponse{}, fmt.Errorf("database error: %w", err)
 	}
-	err = as.SmtpUtil.SendVerifcationEmailWithOtp(otp, resendOtpReq.Email, resendOtpReq.Name)
+	err = as.SmtpProvider.SendVerifcationEmailWithOtp(otp, resendOtpReq.Email, resendOtpReq.Name)
 	if err != nil {
 		return responsemodels.ResendOtpResponse{}, fmt.Errorf("Error in sending otp to email address: %w", err)
 	}
@@ -351,7 +354,7 @@ func (as *AuthSubscriptionUsecase) ForgotPassword(forgotPasswordReq requestmodel
 		log.Println("cannont save otp in db")
 		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("database error: %w", err)
 	}
-	err = as.SmtpUtil.SendResetPasswordEmailOtp(otp, user.Email)
+	err = as.SmtpProvider.SendResetPasswordEmailOtp(otp, user.Email)
 	if err != nil {
 		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("Error in sending otp to email address: %w", err)
 	}
@@ -1048,7 +1051,7 @@ func (as *AuthSubscriptionUsecase) Webhook(webhookReq requestmodels.RazorpayEven
 	// }
 	//fmt.Println("updated Subscription Data is ", updatedSubscriptionData)
 
-	resp, err := as.SmtpUtil.SendNotificationEmailForResubscribing(webhookReq)
+	resp, err := as.SmtpProvider.SendNotificationEmailForResubscribing(webhookReq)
 	if err != nil {
 		return responsemodels.WebhookResponse{}, err
 	}

@@ -86,14 +86,7 @@ func (ad *AuthSubscriptionRepository) TemporarySavingUserOtp(ctx context.Context
 	return nil
 }
 
-func (ad *AuthSubscriptionRepository) CreateUser(userData *requestmodels.UserSignUpRequest) (*responsemodels.UserSignupResponse, error) {
-	// var user responsemodels.UserSignupResponse
-	// query := "INSERT INTO users (name,user_name, email, password) VALUES($1, $2, $3, $4) RETURNING id, user_name, name, email"
-	// err := ad.DB.Raw(query, userData.Name, userData.UserName, userData.Email, userData.Password).Scan(&user).Error
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// return &user, nil
+func (ad *AuthSubscriptionRepository) CreateUser(ctx context.Context,userData *requestmodels.UserSignUpRequest) (*responsemodels.UserSignupResponse, error) {
 	user := domain.User{
 		Name:     userData.Name,
 		UserName: userData.UserName,
@@ -101,7 +94,10 @@ func (ad *AuthSubscriptionRepository) CreateUser(userData *requestmodels.UserSig
 		Password: userData.Password,
 		Phone:    userData.Phone,
 	}
-	if err := ad.DB.Create(&user).Error; err != nil {
+	if err := ad.DB.WithContext(ctx).Create(&user).Error; err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,err) // This happens if the 10s limit is hit
+		}
 		return nil, err
 	}
 	userRes := responsemodels.UserSignupResponse{

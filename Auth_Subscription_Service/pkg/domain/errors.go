@@ -33,4 +33,5 @@ var (
 	ErrNoUsersFound                    = errors.New("No such user ids in the list exist")
 
 	ErrDatabaseConnectionTimeOut=errors.New("Database connection time out")
+	ErrSendVerifyOtpToEmail=errors.New("Failed to send verification otp to email address")
 )

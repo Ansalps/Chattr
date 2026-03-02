@@ -9,14 +9,13 @@ import (
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/responsemodels"
-	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils/smtp/interfacesSmtp"
 )
 
 type SmtpCredentials struct {
 	SmtpConfig *config.Smtp
 }
 
-func NewSmtpUtil(smtpConfigs *config.Smtp) interfacesSmtp.Smtp {
+func NewSmtpProvider(smtpConfigs *config.Smtp) *SmtpCredentials {
 	return &SmtpCredentials{
 		SmtpConfig: smtpConfigs,
 	}
@@ -37,11 +36,9 @@ func (sc *SmtpCredentials) SendVerifcationEmailWithOtp(otp int, recieverEmail st
 
 	// Create authentication
 	auth := smtp.PlainAuth("", from, password, smtpHost)
-
 	// Send actual message
 	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, message)
 	if err != nil {
-		//fmt.Println("-----", err)
 		return err
 	}
 	return nil

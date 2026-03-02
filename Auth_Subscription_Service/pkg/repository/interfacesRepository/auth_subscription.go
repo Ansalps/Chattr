@@ -18,7 +18,7 @@ type AuthSubscriptionRepository interface {
 	CheckUserExistsByUseraname(ctx context.Context,username string) (*domain.User, error)
 	DeleteOtpByEmail(ctx context.Context,email string)(error)
 	TemporarySavingUserOtp(ctx context.Context,otp int, userEmail string, expiration time.Time) error
-	CreateUser(userData *requestmodels.UserSignUpRequest) (*responsemodels.UserSignupResponse,error)
+	CreateUser(ctx context.Context,userData *requestmodels.UserSignUpRequest) (*responsemodels.UserSignupResponse,error)
 	CheckOtpExistsByEmail(requestmodels.OtpRequest)(*domain.Otp,error)
 	ChangeOtpStatus(email string)error
 	ChangeUserStatusByEmail(email string)error
