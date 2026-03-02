@@ -184,13 +184,12 @@ func (as *AuthSubscriptionClient) UnblockUser(unblockUserReq requestmodels.Unblo
 	}, nil
 }
 
-func (as *AuthSubscriptionClient) UserLogin(userLoginReq requestmodels.UserLoginRequest) (responsemodels.UserLoginResponse, error) {
-	resp, err := as.Client.UserLogin(context.Background(), &auth_subscription.UserLoginRequest{
+func (as *AuthSubscriptionClient) UserLogin(ctx context.Context,userLoginReq requestmodels.UserLoginRequest) (responsemodels.UserLoginResponse, error) {
+	resp, err := as.Client.UserLogin(ctx, &auth_subscription.UserLoginRequest{
 		Email:    userLoginReq.Email,
 		Password: userLoginReq.Password,
 	})
 	if err != nil {
-		log.Printf("grpc user login call failed :%v", err)
 		return responsemodels.UserLoginResponse{}, err
 	}
 	return responsemodels.UserLoginResponse{

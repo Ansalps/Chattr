@@ -373,17 +373,15 @@ func (as *AuthSubscriptionHandler) UnblockUser(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) UserLogin(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var userLogin requestmodels.UserLoginRequest
-	if err := c.ShouldBindJSON(&userLogin); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	err:=utils.BindingJson(c,&userLogin,log)
+	if err!=nil{
 		return
 	}
-	user, err := as.GPPC_Client.UserLogin(userLogin)
+	ctx,cancel:=context.WithTimeout(c.Request.Context(),10*time.Second)
+	defer cancel()
+	user, err := as.GPPC_Client.UserLogin(ctx,userLogin)
 	if err != nil {
 		var obj response.Response
 		// Check if it’s a gRPC status error

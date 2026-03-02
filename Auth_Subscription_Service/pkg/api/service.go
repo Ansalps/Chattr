@@ -297,7 +297,7 @@ func (as *AuthSubscriptionServer) UserLogin(ctx context.Context, req *pb.UserLog
 		Email:    req.Email,
 		Password: req.Password,
 	}
-	user, err := as.AuthSubscriptionUsecase.UserLogin(userLoginReq)
+	user, err := as.AuthSubscriptionUsecase.UserLogin(ctx,userLoginReq)
 	if err != nil {
 		log.Printf("User Login failed for email=%s: %v", req.Email, err)
 		switch {

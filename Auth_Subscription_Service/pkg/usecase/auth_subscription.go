@@ -310,8 +310,8 @@ func (as *AuthSubscriptionUsecase) ResendOtp(ctx context.Context,resendOtpReq re
 		}
 		return responsemodels.ResendOtpResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
-	err = as.SmtpProvider.SendVerifcationEmailWithOtp(otp, resendOtpReq.Email, resendOtpReq.Name)
 	go func(){
+		err = as.SmtpProvider.SendVerifcationEmailWithOtp(otp, resendOtpReq.Email, resendOtpReq.Name)
 		if err != nil {
 			//return responsemodels.ResendOtpResponse{}, fmt.Errorf("Error in sending otp to email address: %w", err)
 			//return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrSendVerifyOtpToEmail, err)
@@ -377,10 +377,13 @@ func (as *AuthSubscriptionUsecase) ForgotPassword(ctx context.Context,forgotPass
 		}
 		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
+	go func(){
 	err = as.SmtpProvider.SendResetPasswordEmailOtp(otp, user.Email)
 	if err != nil {
-		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("Error in sending otp to email address: %w", err)
+		//return responsemodels.ForgotPassordResponse{}, fmt.Errorf("Error in sending otp to email address: %w", err)
+		log.Printf("Failed to send email to %s: %v", forgotPasswordReq.Email, err)
 	}
+	}()
 	otpVerificationToken, err := as.JwtProvider.GenerateToken(as.Config.Token.OtpVerificationSecurityKey, uint64(user.ID), user.Email, "otpverification", "access", 5*time.Minute)
 	if err != nil {
 		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("Failed to generarate token for otp verfication: %w", err)
@@ -405,8 +408,8 @@ func (as *AuthSubscriptionUsecase) ResetPassword(resetPasswordReq requestmodels.
 	}, nil
 }
 
-func (as *AuthSubscriptionUsecase) UserLogin(userLoginReq requestmodels.UserLoginRequest) (responsemodels.UserLoginResponse, error) {
-	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(userLoginReq.Email)
+func (as *AuthSubscriptionUsecase) UserLogin(ctx context.Context,userLoginReq requestmodels.UserLoginRequest) (responsemodels.UserLoginResponse, error) {
+	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(ctx,userLoginReq.Email)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.UserLoginResponse{}, domain.ErrUserNotFound

@@ -23,7 +23,7 @@ type AuthSubscriptionUsecase interface{
 	AccessRegenerator(requestmodels.AccessRegeneratorRequest)(responsemodels.AccessRegeneratorResponse,error)
 	ForgotPassword(ctx context.Context,req requestmodels.ForgotPasswordRequest)(responsemodels.ForgotPassordResponse,error)
 	ResetPassword(requestmodels.ResetPasswordRequest)(responsemodels.ResetPasswordResponse,error)
-	UserLogin(requestmodels.UserLoginRequest)(responsemodels.UserLoginResponse,error)
+	UserLogin(ctx context.Context,req requestmodels.UserLoginRequest)(responsemodels.UserLoginResponse,error)
 	GetAllActiveSubscriptionPlans(requestmodels.GetAllActiveSubscriptionPlansRequest)(responsemodels.GetAllActiveSubscriptionPlansResponse,error)
 	Subscribe(requestmodels.SubscribeRequest)(responsemodels.SubscribeResponse,error)
 	//VerifySubscriptionPayment(requestmodels.VerifySubscriptionPaymentRequest)(responsemodels.VerifySubscriptionPaymentResponse,error)

@@ -24,7 +24,7 @@ type AuthSubscriptionClientInterface interface{
 	AccessRegenerator(requestmodels.AccessRegeneratorRequest)(responsemodels.AccessRegeneratorResponse,error)
 	ForgotPassword(ctx context.Context,forgetPasswordReq requestmodels.ForgotPasswordRequest)(responsemodels.ForgetPassordResponse,error)
 	ResetPassword(requestmodels.ResetPasswordRequest)(responsemodels.ResetPasswordResponse,error)
-	UserLogin(requestmodels.UserLoginRequest)(responsemodels.UserLoginResponse,error)
+	UserLogin(ctx context.Context,req requestmodels.UserLoginRequest)(responsemodels.UserLoginResponse,error)
 	GetAllActiveSubscriptionPlans(requestmodels.GetAllActiveSubscriptionPlansRequest,int)(responsemodels.GetAllActiveSubscriptionPlansResponse,error)
 	Subscribe(requestmodels.SubscribeRequest)(responsemodels.SubscribeResponse,error)
 	VerifySubscriptionPayment(requestmodels.VerifySubscriptionPaymentRequest)(responsemodels.VerifySubscriptionPaymentResponse,error)
