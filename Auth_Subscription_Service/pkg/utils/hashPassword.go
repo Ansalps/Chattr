@@ -10,10 +10,8 @@ func HashPassword(password string) string {
 
 	HashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		//fmt.Println(err, "problem at hashing ")
 		return ""
 	}
-	//fmt.Println(HashedPassword)
 	return string(HashedPassword)
 }
 

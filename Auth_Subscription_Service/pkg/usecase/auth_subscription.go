@@ -209,10 +209,13 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 		}
 		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
-	err = as.SmtpProvider.SendVerifcationEmailWithOtp(otp, userReq.Email, userReq.Name)
-	if err != nil {
-		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrSendVerifyOtpToEmail, err)
-	}
+	go func(){
+		err = as.SmtpProvider.SendVerifcationEmailWithOtp(otp, userReq.Email, userReq.Name)
+		if err != nil {
+			//return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:", domain.ErrSendVerifyOtpToEmail, err)
+			log.Printf("Failed to send email to %s: %v", userReq.Email, err)
+		}
+	}()
 	hashedPassword := utils.HashPassword(userReq.ConfirmPassword)
 	userReq.Password = hashedPassword
 
