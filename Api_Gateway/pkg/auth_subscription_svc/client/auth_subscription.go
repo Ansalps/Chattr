@@ -29,24 +29,18 @@ func NewAuthSubscriptionClient(cfg *config.Config) interfaces.AuthSubscriptionCl
 	if err != nil {
 		log.Fatalf("could not connect: %v", err)
 	}
-	//fmt.Println("grpc connection ---", grpcConnection)
 	grpcClient := auth_subscription.NewAuthSubscriptionServiceClient(grpcConnection)
 	return &AuthSubscriptionClient{
 		Client: grpcClient,
 	}
-	//return grpcClient
-
 }
 
 func (as *AuthSubscriptionClient) AdminLogin(ctx context.Context,adminDetails requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse, error) {
-	
 	resp, err := as.Client.AdminLogin(ctx, &auth_subscription.AdminLoginRequest{
 		Email:    adminDetails.Email,
 		Password: adminDetails.Password,
 	})
-
 	if err != nil {
-		log.Printf("grpc admin login call failed :%v", err)
 		return responsemodels.AdminLoginResponse{}, err
 	}
 	return responsemodels.AdminLoginResponse{
@@ -59,8 +53,8 @@ func (as *AuthSubscriptionClient) AdminLogin(ctx context.Context,adminDetails re
 	}, nil
 }
 
-func (as *AuthSubscriptionClient) UserSignUp(user requestmodels.UserSignUpRequest) (responsemodels.UserSignupResponse, error) {
-	resp, err := as.Client.UserSignUp(context.Background(), &auth_subscription.UserSignUpRequest{
+func (as *AuthSubscriptionClient) UserSignUp(ctx context.Context,user requestmodels.UserSignUpRequest) (responsemodels.UserSignupResponse, error) {
+	resp, err := as.Client.UserSignUp(ctx, &auth_subscription.UserSignUpRequest{
 		UserName:        user.UserName,
 		Name:            user.Name,
 		Email:           user.Email,
@@ -69,7 +63,6 @@ func (as *AuthSubscriptionClient) UserSignUp(user requestmodels.UserSignUpReques
 		Phone:           user.Phone,
 	})
 	if err != nil {
-		log.Printf("grpc user signup call failed :%v", err)
 		return responsemodels.UserSignupResponse{}, err
 	}
 	return responsemodels.UserSignupResponse{

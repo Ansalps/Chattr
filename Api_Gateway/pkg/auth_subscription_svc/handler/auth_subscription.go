@@ -46,51 +46,14 @@ func NewAuthSubscriptionHandler(authSubscriptionClient interfaces.AuthSubscripti
 func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
 	log:=utils.GetLogger(c)
 	var adminDetails requestmodels.AdminLoginRequest
-	// if err := c.ShouldBindJSON(&adminDetails); err != nil {
-	// 	if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-	// 		// log.Warn("Validation error:",
-	// 		// logger.Field{Key: "error",Value: validationErrors})
-	// 		utils.WarnValidation(log,validationErrors)
-	// 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-	// 		return
-	// 	}
-	// 	// log.Warn("Bind error:",
-	// 	// logger.Field{Key: "error",Value: err.Error()})
-	// 	utils.WarnBind(log,err)
-	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
-	// 	return
-	// }
 	err:=utils.BindingJson(c,&adminDetails,log)
 	if err!=nil{
 		return
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
-	
 	admin, err := as.GPPC_Client.AdminLogin(ctx,adminDetails)
-	
 	if err != nil {
-		// var obj response.Response
-		// // Check if it’s a gRPC status error
-		// if st, ok := status.FromError(err); ok {
-		// 	switch st.Code() {
-		// 	case codes.NotFound:
-		// 		obj = response.ClientResponse(http.StatusUnauthorized, "Invalid Email or Password", nil)
-		// 	case codes.Unauthenticated:
-		// 		obj = response.ClientResponse(http.StatusUnauthorized, "Invalid Email or Password", nil)
-		// 	default:
-		// 		obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-		// 	}
-		// } else {
-		// 	// Unexpected non-gRPC error
-		// 	obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
-		// }
-		// c.JSON(obj.StatusCode, obj)
-		// return
-		// log.Error("grpc admin login call failed",
-		// 	logger.Field{Key: "error", Value: err},
-		// 	logger.Field{Key: "user_email", Value: adminDetails.Email},
-		// )
 		code, msg := utils.GRPCtoHTTP(err)
 		// Log 4xx errors as WARN
         if code >= 400 && code < 500 {
@@ -116,16 +79,7 @@ func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
 func (as *AuthSubscriptionHandler) UserSignUp(c *gin.Context) {
 	log:=utils.GetLogger(c)
 	var userSignup requestmodels.UserSignUpRequest
-	// if err := c.ShouldBindJSON(&userSignup); err != nil {
-	// 	if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-	// 		utils.WarnValidation(log,validationErrors)
-	// 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-	// 		return
-	// 	}
-	// 	utils.WarnBind(log,err)
-	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
-	// 	return
-	// }
+	
 	err:=utils.BindingJson(c,&userSignup,log)
 	if err!=nil{
 		return
@@ -144,7 +98,9 @@ func (as *AuthSubscriptionHandler) UserSignUp(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", msg2))
 		return
 	}
-	userResponse, err := as.GPPC_Client.UserSignUp(userSignup)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+	userResponse, err := as.GPPC_Client.UserSignUp(ctx,userSignup)
 	if err != nil {
 		var obj response.Response
 		// Check if it’s a gRPC status error

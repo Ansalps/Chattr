@@ -31,7 +31,6 @@ import (
 type AuthSubscriptionUsecase struct {
 	SmtpUtil                   interfacesSmtp.Smtp
 	AuthSubscriptionRepository interfacesRepository.AuthSubscriptionRepository
-	RandomUtil                 interfacesRandomNumber.RandomNumber
 	Config           *config.Config
 	JwtUtil                    interfacesJwt.Jwt
 	//RazorpayCredentials	*config.Razorpay
@@ -40,12 +39,11 @@ type AuthSubscriptionUsecase struct {
 	AwsBucket       string
 }
 
-func NewAuthSubscriptionUsecase(repository interfacesRepository.AuthSubscriptionRepository, randomUtil interfacesRandomNumber.RandomNumber,
+func NewAuthSubscriptionUsecase(repository interfacesRepository.AuthSubscriptionRepository,
 	smtpUtil interfacesSmtp.Smtp, config *config.Config, jwtUtil interfacesJwt.Jwt /*razorpayCredentials *config.Razorpay,*/, razorpayGateway *razorpaygateway.RazorpayGateway, awsS3Client *s3.Client, awsBucket string) interfacesUsecase.AuthSubscriptionUsecase {
 	return &AuthSubscriptionUsecase{
 		AuthSubscriptionRepository: repository,
 		SmtpUtil:                   smtpUtil,
-		RandomUtil:                 randomUtil,
 		Config:           config,
 		JwtUtil:                    jwtUtil,
 		//RazorpayCredentials: razorpayCredentials,
@@ -149,15 +147,21 @@ func (as *AuthSubscriptionUsecase) GetAllUsers(getAllUsersReq requestmodels.GetA
 	}, nil
 }
 
-func (as *AuthSubscriptionUsecase) UserSignUp(userReq requestmodels.UserSignUpRequest) (responsemodels.UserSignupResponse, error) {
-	err := as.AuthSubscriptionRepository.DeletePendingUser(userReq.Email)
+func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context,userReq requestmodels.UserSignUpRequest) (responsemodels.UserSignupResponse, error) {
+	err := as.AuthSubscriptionRepository.DeletePendingUser(ctx,userReq.Email)
 	if err != nil {
-		return responsemodels.UserSignupResponse{}, fmt.Errorf("database error: %w", err)
+		if errors.Is(err,domain.ErrDatabaseConnectionTimeOut){
+			return responsemodels.UserSignupResponse{},err
+		}
+		return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
-	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(userReq.Email)
+	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(ctx,userReq.Email)
 	if err != nil {
+		if errors.Is(err,domain.ErrDatabaseConnectionTimeOut){
+			return responsemodels.UserSignupResponse{},err
+		}
 		if err != gorm.ErrRecordNotFound {
-			return responsemodels.UserSignupResponse{}, fmt.Errorf("database error: %w", err)
+			return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 		}
 	}
 	if user != nil {
@@ -168,10 +172,13 @@ func (as *AuthSubscriptionUsecase) UserSignUp(userReq requestmodels.UserSignUpRe
 			Email:    user.Email,
 		}, domain.ErrUserAlreadyExistsByEmail
 	}
-	usernameAlredayExists, err := as.AuthSubscriptionRepository.CheckUserExistsByUseraname(userReq.UserName)
+	usernameAlredayExists, err := as.AuthSubscriptionRepository.CheckUserExistsByUseraname(ctx,userReq.UserName)
 	if err != nil {
+		if errors.Is(err,domain.ErrDatabaseConnectionTimeOut){
+			return responsemodels.UserSignupResponse{},err
+		}
 		if err != gorm.ErrRecordNotFound {
-			return responsemodels.UserSignupResponse{}, fmt.Errorf("database error: %w", err)
+			return responsemodels.UserSignupResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 		}
 	}
 	if usernameAlredayExists != nil {

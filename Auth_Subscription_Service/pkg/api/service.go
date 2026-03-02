@@ -48,35 +48,14 @@ func (as *AuthSubscriptionServer) DoesUserExists(ctx context.Context, req *pb.Do
 	}, nil
 }
 func (as *AuthSubscriptionServer) AdminLogin(ctx context.Context, req *pb.AdminLoginRequest) (*pb.AdminLoginResponse, error) {
-	// log:=utils.GetLogger(ctx)
-	// log.Info("access regenerator called",
-	// 	logger.Field{Key: "user_email", Value: req.Email},
-	// )
 	adminLogin := requestmodels.AdminLoginRequest{
 		Email:    req.Email,
 		Password: req.Password,
 	}
 	admin, err := as.AuthSubscriptionUsecase.AdminLogin(ctx,adminLogin)
 	if err != nil {
-		// //log.Printf("AdminLogin failed for email=%s: %v", req.Email, err)
-		// log.Error("failed to process request",
-		// 	logger.Field{Key: "error", Value: err.Error()},
-		// )
-		// switch {
-		// case errors.Is(err,domain.ErrDatabaseConnectionTimeOut):
-		// 	return nil,status.Error(codes.Unavailable,domain.ErrDatabaseConnectionTimeOut.Error())
-		// case errors.Is(err, domain.ErrUserNotFound):
-		// 	return nil, status.Error(codes.NotFound, "user not found")
-		// case errors.Is(err,domain.ErrDatabase):
-		// 	return nil,status.Error(codes.Internal,domain.ErrDatabase.Error())
-		// case errors.Is(err, domain.ErrInvalidCredentials):
-		// 	return nil, status.Error(codes.Unauthenticated, "invalid credentials")
-		// default:
-		// 	return nil, status.Error(codes.Internal, "interanal server error")
-		// }
-
-		// One line handles mapping and conditional logging of 5xx
-        return nil,err /*utils.MapAndLogInternalError(ctx, err)*/
+		// interceptor handles errors
+        return nil,err
 	}
 	adminDetails := &pb.AdminDetails{
 		Id:    uint64(admin.Admin.ID),
@@ -171,7 +150,7 @@ func (as *AuthSubscriptionServer) UserSignUp(ctx context.Context, req *pb.UserSi
 		ConfirmPassword: req.ConfirmPassword,
 		Phone:           req.Phone,
 	}
-	userResponse, err := as.AuthSubscriptionUsecase.UserSignUp(userSignup)
+	userResponse, err := as.AuthSubscriptionUsecase.UserSignUp(ctx,userSignup)
 	if err != nil {
 		log.Printf("UsersignUp failed for email=%s and username=%s: %v", req.Email, req.UserName, err)
 		switch {

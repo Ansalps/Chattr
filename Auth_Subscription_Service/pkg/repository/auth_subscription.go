@@ -38,27 +38,36 @@ func (ad *AuthSubscriptionRepository) CheckAdminExistsByEmail(ctx context.Contex
 	}
 	return &admin, nil
 }
-func (ad *AuthSubscriptionRepository) DeletePendingUser(email string) error {
+func (ad *AuthSubscriptionRepository) DeletePendingUser(ctx context.Context,email string) error {
 	query := `DELETE FROM users WHERE email=? and status='pending'`
-	if err := ad.DB.Exec(query, email).Error; err != nil {
+	if err := ad.DB.WithContext(ctx).Exec(query, email).Error; err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,err) // This happens if the 10s limit is hit
+		}
 		return err
 	}
 	return nil
 }
 
-func (ad *AuthSubscriptionRepository) CheckUserExistsByEmail(email string) (*domain.User, error) {
+func (ad *AuthSubscriptionRepository) CheckUserExistsByEmail(ctx context.Context,email string) (*domain.User, error) {
 	var user domain.User
-	res := ad.DB.Where("email=?", email).First(&user)
+	res := ad.DB.WithContext(ctx).Where("email=?", email).First(&user)
 	if res.Error != nil {
+		if errors.Is(res.Error,context.DeadlineExceeded){
+			return nil,fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,res.Error)
+		}
 		return nil, res.Error
 	}
 	return &user, nil
 }
 
-func (ad *AuthSubscriptionRepository) CheckUserExistsByUseraname(username string) (*domain.User, error) {
+func (ad *AuthSubscriptionRepository) CheckUserExistsByUseraname(ctx context.Context,username string) (*domain.User, error) {
 	var user domain.User
-	res := ad.DB.Where("user_name=?", username).First(&user)
+	res := ad.DB.WithContext(ctx).Where("user_name=?", username).First(&user)
 	if res.Error != nil {
+		if errors.Is(res.Error,context.DeadlineExceeded){
+			return nil,fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,res.Error)
+		}
 		return nil, res.Error
 	}
 	return &user, nil

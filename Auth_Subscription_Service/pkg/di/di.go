@@ -23,7 +23,7 @@ func DependencyIndjection(cfg *config.Config) (*services.AuthSubscriptionServer,
 	AuthSubscriptionRepository := repository.NewAuthSubscriptionRepository(gormDB)
 	SmtpUtil := smtp.NewSmtpUtil(&cfg.Smtp)
 	JwtUtil := jwt.NewJwtUtil()
-	RandomUtil := randomnumber.NewRandomNumberUtil()
+	//RandomUtil := randomnumber.NewRandomNumberUtil()
 	AwsS3Client, err := AwsS3.NewS3Client(cfg.Aws.AwsAccessKey, cfg.Aws.AwsSecretAccessKey, cfg.Aws.AwsRegion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize s3 client: %w", err)
@@ -31,7 +31,7 @@ func DependencyIndjection(cfg *config.Config) (*services.AuthSubscriptionServer,
 	//razorpayClient := utils.NewRazorpayClient(cfg.Razorpay.KeyId, cfg.Razorpay.KeySecret)
 	razorpayGateway := razorpaygateway.NewRazorpayGateway(cfg.Razorpay.KeyId, cfg.Razorpay.KeySecret)
 	AuthSubscriptionUsecase := usecase.NewAuthSubscriptionUsecase(AuthSubscriptionRepository,
-		RandomUtil, SmtpUtil, cfg, JwtUtil, razorpayGateway, AwsS3Client, cfg.Aws.AwsBucket)
+		 SmtpUtil, cfg, JwtUtil, razorpayGateway, AwsS3Client, cfg.Aws.AwsBucket)
 	AuthSubscriptionServiceServer := services.NewAuthSubscriptionServer(AuthSubscriptionUsecase)
 
 	return AuthSubscriptionServiceServer, nil

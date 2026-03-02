@@ -13,9 +13,9 @@ import (
 type AuthSubscriptionRepository interface {
 	//AdminLogin(admin requestmodels.AdminLoginRequest)(domain.Admin,error)
 	CheckAdminExistsByEmail(ctx context.Context,email string) (*domain.Admin, error)
-	DeletePendingUser(email string)(error)
-	CheckUserExistsByEmail(email string) (*domain.User, error)
-	CheckUserExistsByUseraname(username string) (*domain.User, error)
+	DeletePendingUser(ctx context.Context,email string)(error)
+	CheckUserExistsByEmail(ctx context.Context,email string) (*domain.User, error)
+	CheckUserExistsByUseraname(ctx context.Context,username string) (*domain.User, error)
 	DeleteOtpByEmail(email string)(error)
 	TemporarySavingUserOtp(otp int, userEmail string, expiration time.Time) error
 	CreateUser(userData *requestmodels.UserSignUpRequest) (*responsemodels.UserSignupResponse,error)
