@@ -152,16 +152,16 @@ func (as *AuthSubscriptionServer) UserSignUp(ctx context.Context, req *pb.UserSi
 	}
 	userResponse, err := as.AuthSubscriptionUsecase.UserSignUp(ctx,userSignup)
 	if err != nil {
-		log.Printf("UsersignUp failed for email=%s and username=%s: %v", req.Email, req.UserName, err)
-		switch {
-		case errors.Is(err, domain.ErrUserAlreadyExistsByEmail):
-			return nil, status.Errorf(codes.AlreadyExists, "user with email=%s already exist", req.Email)
-		case errors.Is(err, domain.ErrUserAlreadyExistsByUsername):
-			return nil, status.Errorf(codes.AlreadyExists, "username %s is already taken", req.UserName)
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
-
+		// log.Printf("UsersignUp failed for email=%s and username=%s: %v", req.Email, req.UserName, err)
+		// switch {
+		// case errors.Is(err, domain.ErrUserAlreadyExistsByEmail):
+		// 	return nil, status.Errorf(codes.AlreadyExists, "user with email=%s already exist", req.Email)
+		// case errors.Is(err, domain.ErrUserAlreadyExistsByUsername):
+		// 	return nil, status.Errorf(codes.AlreadyExists, "username %s is already taken", req.UserName)
+		// default:
+		// 	return nil, status.Error(codes.Internal, "interanal server error")
+		// }
+		return nil,err
 	}
 	return &pb.UserSignUpResponse{
 		Id:                   uint64(userResponse.ID),

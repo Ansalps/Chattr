@@ -102,20 +102,22 @@ func (as *AuthSubscriptionHandler) UserSignUp(c *gin.Context) {
 	defer cancel()
 	userResponse, err := as.GPPC_Client.UserSignUp(ctx,userSignup)
 	if err != nil {
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.AlreadyExists:
-				obj = response.ClientResponse(http.StatusConflict, st.Message(), nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
+		code,msg:=utils.GRPCtoHTTP(err)
+		// Log 4xx errors as WARN
+        if code >= 400 && code < 500 {
+            log.Warn("Client-side error in Login", 
+                logger.Field{Key: "email", Value: userSignup.Email},
+                logger.Field{Key: "http_code", Value: code},
+                logger.Field{Key: "msg", Value: msg},
+            )
+        } else if code>=500{
+			log.Error("Server Error in Admin Login:",
+			logger.Field{Key: "email",Value: userSignup.Email},
+			logger.Field{Key: "http_code", Value: code},
+			logger.Field{Key: "msg", Value: msg},
+			)
 		}
-		c.JSON(obj.StatusCode, obj)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Otp Sent Successfully to email address provided, verify your otp within 5 minutes before getting expired", userResponse)

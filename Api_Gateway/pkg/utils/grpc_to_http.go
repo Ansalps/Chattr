@@ -12,6 +12,8 @@ func GRPCtoHTTP(err error) (int, string) {
 	if st, ok := status.FromError(err); ok {
 		//fmt.Println("code printing",st.Code())
 		switch st.Code() {
+		case codes.AlreadyExists:
+			return http.StatusConflict,st.Message()
 		case codes.Internal:
 			return http.StatusInternalServerError,st.Message()
 		case codes.Unauthenticated:

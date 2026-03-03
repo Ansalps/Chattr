@@ -68,7 +68,12 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 
 			case errors.Is(err, domain.ErrInvalidCredentials):
 				return nil, status.Error(codes.Unauthenticated, "invalid credentials")
-
+			case errors.Is(err,domain.ErrUserAlreadyExistsByEmail):
+				return nil,status.Error(codes.AlreadyExists,domain.ErrUserAlreadyExistsByEmail.Error())
+			case errors.Is(err,domain.ErrUserAlreadyExistsByUsername):
+				return nil,status.Error(codes.AlreadyExists,domain.ErrUserAlreadyExistsByUsername.Error())
+			case errors.Is(err,domain.ErrVerifyOtpTokenFail):
+				return nil,status.Error(codes.Internal,domain.ErrVerifyOtpTokenFail.Error())
 			case errors.Is(err, domain.ErrDatabase):
 				log.Error("Database Error", logger.Field{Key: "details", Value: err.Error()})
 				return nil, status.Error(codes.Internal, "internal database error")
