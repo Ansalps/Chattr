@@ -31,8 +31,12 @@ func GRPCtoHTTP(err error) (int, string) {
 				return http.StatusGone, st.Message() // 410
 			} else if strings.Contains(st.Message(),"Cannot block user, email not verified or user alreday blocked"){
 				return http.StatusConflict,st.Message()
+			} else if strings.Contains(st.Message(),"Cannnot unblock user, unblock allowed for users who are alreday in blocked state"){
+				return http.StatusConflict, st.Message()
 			}
 			return http.StatusPreconditionFailed, st.Message()
+		case codes.PermissionDenied:
+			return http.StatusConflict,st.Message()
 		case codes.InvalidArgument:
 			return http.StatusBadRequest, st.Message()
 		}

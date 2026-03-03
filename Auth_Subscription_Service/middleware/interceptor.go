@@ -84,9 +84,19 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 
 			case errors.Is(err,domain.ErrAdminAccessTokenFail):
 				return nil,status.Error(codes.Internal,domain.ErrAdminAccessTokenFail.Error())
+			case errors.Is(err,domain.ErrAdminRefreshTokenFail):
+				return nil,status.Error(codes.Internal,domain.ErrAdminRefreshTokenFail.Error())
 
 			case errors.Is(err,domain.ErrUserNotActive):
 				return nil,status.Error(codes.FailedPrecondition,domain.ErrUserNotActive.Error())
+
+			case errors.Is(err,domain.ErrUserNotBlocked):
+				return nil,status.Error(codes.FailedPrecondition,domain.ErrUserNotBlocked.Error())
+
+			case errors.Is(err,domain.ErrBlockedLogin):
+				return nil,status.Error(codes.PermissionDenied,domain.ErrBlockedLogin.Error())
+			case errors.Is(err,domain.ErrPendingLogin):
+				return nil,status.Error(codes.PermissionDenied,domain.ErrPendingLogin.Error())
 			
 
 			case errors.Is(err, domain.ErrDatabase):

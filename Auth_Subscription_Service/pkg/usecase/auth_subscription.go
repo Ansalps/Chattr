@@ -126,7 +126,10 @@ func (as *AuthSubscriptionUsecase) UnblockUser(unblockUserReq requestmodels.Unbl
 	}
 	status, err := as.AuthSubscriptionRepository.CheckUserStatus(unblockUserReq.UserId)
 	if err != nil {
-		return responsemodels.UnblockUserResponse{}, fmt.Errorf("database error: %w", err)
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.UnblockUserResponse{},domain.ErrUserNotFound
+		}
+		return responsemodels.UnblockUserResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	if status != "blocked" {
 		return responsemodels.UnblockUserResponse{}, domain.ErrUserNotBlocked
@@ -415,7 +418,7 @@ func (as *AuthSubscriptionUsecase) UserLogin(ctx context.Context,userLoginReq re
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.UserLoginResponse{}, domain.ErrUserNotFound
 		}
-		return responsemodels.UserLoginResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.UserLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	err = utils.CompareWithHashedPassword(user.Password, userLoginReq.Password)
 	if err != nil {
@@ -430,11 +433,11 @@ func (as *AuthSubscriptionUsecase) UserLogin(ctx context.Context,userLoginReq re
 	//fmt.Println("inside user login ", user.ID)
 	userAccessTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.UserSecurityKey, uint64(user.ID), user.Email, "user", "access", 24*time.Hour)
 	if err != nil {
-		return responsemodels.UserLoginResponse{}, fmt.Errorf("Failed to generarate access token for user: %w", err)
+		return responsemodels.UserLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrUserAccessTokenFail, err)
 	}
 	userRefreshTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.UserRefreshKey, uint64(user.ID), user.Email, "user", "refresh", 24*7*time.Hour)
 	if err != nil {
-		return responsemodels.UserLoginResponse{}, fmt.Errorf("Failed to generarate refresh token for user: %w", err)
+		return responsemodels.UserLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrUserRefreshTokenFail, err)
 	}
 	return responsemodels.UserLoginResponse{
 		User: responsemodels.UserDetailsResponse{

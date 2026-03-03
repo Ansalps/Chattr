@@ -86,15 +86,7 @@ func (as *AuthSubscriptionServer) UnblockUser(ctx context.Context, req *pb.Unblo
 	}
 	unblockUserResponse, err := as.AuthSubscriptionUsecase.UnblockUser(unblockUserReq)
 	if err != nil {
-		log.Printf("Unblock user failed for user id %d : %v", unblockUserReq.UserId, err)
-		switch {
-		case errors.Is(err, domain.ErrUserNotBlocked):
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case errors.Is(err, domain.ErrUserNotFound):
-			return nil, status.Errorf(codes.NotFound, "user not found for user id: %v", unblockUserReq.UserId)
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil,err
 	}
 	return &pb.UnblockUserResponse{
 		UserId: unblockUserResponse.UserId,
@@ -245,19 +237,7 @@ func (as *AuthSubscriptionServer) UserLogin(ctx context.Context, req *pb.UserLog
 	}
 	user, err := as.AuthSubscriptionUsecase.UserLogin(ctx, userLoginReq)
 	if err != nil {
-		log.Printf("User Login failed for email=%s: %v", req.Email, err)
-		switch {
-		case errors.Is(err, domain.ErrUserNotFound):
-			return nil, status.Error(codes.NotFound, "user not found")
-		case errors.Is(err, domain.ErrInvalidCredentials):
-			return nil, status.Error(codes.Unauthenticated, "invalid credentials")
-		case errors.Is(err, domain.ErrBlockedLogin):
-			return nil, status.Error(codes.PermissionDenied, "user account is blocked by admin, cannot login")
-		case errors.Is(err, domain.ErrPendingLogin):
-			return nil, status.Error(codes.FailedPrecondition, "email verification pending")
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil,err
 	}
 	userDetails := &pb.UserDetails{
 		Id:       user.User.Id,

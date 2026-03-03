@@ -276,22 +276,9 @@ func (as *AuthSubscriptionHandler) UnblockUser(c *gin.Context) {
 	}
 	unblockUserResponse, err := as.GPPC_Client.UnblockUser(unblockUser)
 	if err != nil {
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.FailedPrecondition:
-				obj = response.ClientResponse(http.StatusUnauthorized, st.Message(), nil)
-			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusUnauthorized, st.Message(), nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
-		}
-		c.JSON(obj.StatusCode, obj)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Unblock user by user id successful ", unblockUserResponse)
@@ -309,26 +296,9 @@ func (as *AuthSubscriptionHandler) UserLogin(c *gin.Context) {
 	defer cancel()
 	user, err := as.GPPC_Client.UserLogin(ctx,userLogin)
 	if err != nil {
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusUnauthorized, "Invalid Email or Password", nil)
-			case codes.Unauthenticated:
-				obj = response.ClientResponse(http.StatusUnauthorized, "Invalid Email or Password", nil)
-			case codes.PermissionDenied:
-				obj = response.ClientResponse(http.StatusForbidden, st.Message(), nil)
-			case codes.FailedPrecondition:
-				obj = response.ClientResponse(http.StatusPreconditionFailed, st.Message(), nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
-		}
-		c.JSON(obj.StatusCode, obj)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogPublicApiError(log,userLogin.Email,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "User authenticated successfully", user)
