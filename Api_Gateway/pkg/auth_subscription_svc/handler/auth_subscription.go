@@ -203,55 +203,46 @@ func (as *AuthSubscriptionHandler) ForgotPassword(c *gin.Context) {
 	defer cancel()
 	forgotPasswordRes, err := as.GPPC_Client.ForgotPassword(ctx,forgetPasswordReq)
 	if err != nil {
-
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogPublicApiError(log,forgetPasswordReq.Email,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
+		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Otp code sent successully to the email provided", forgotPasswordRes)
 	c.JSON(success.StatusCode, success)
 }
 
 func (as *AuthSubscriptionHandler) ResetPassword(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var resetPassword requestmodels.ResetPasswordRequest
-	if err := c.ShouldBindJSON(&resetPassword); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	err:=utils.BindingJson(c,&resetPassword,log)
+	if err!=nil{
 		return
 	}
 	validPassword, msg2 := utils.IsValidPassword(resetPassword.ConfirmPassword)
 	if !validPassword {
+		utils.LogPublicApiError(log,resetPassword.Email,400,"vailidation failed:"+msg2)
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", msg2))
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogPublicApiError(log,resetPassword.Email,401,"Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
+		utils.LogPublicApiError(log,resetPassword.Email,401,"Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
 	resetPassword.Email = jwtClaims.Email
 	resetPasswordResponse, err := as.GPPC_Client.ResetPassword(resetPassword)
 	if err != nil {
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusUnauthorized, st.Message(), nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
-		}
-		c.JSON(obj.StatusCode, obj)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogPublicApiError(log,resetPassword.Email,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "password reset successful, please login again with new password", resetPasswordResponse)
@@ -259,14 +250,10 @@ func (as *AuthSubscriptionHandler) ResetPassword(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) BlockUser(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var blockUser requestmodels.BlockUserRequest
-	if err := c.ShouldBindJSON(&blockUser); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	err:=utils.BindingJson(c,&blockUser,log)
+	if err!=nil{
 		return
 	}
 	blockUserResponse, err := as.GPPC_Client.BlockUser(blockUser)

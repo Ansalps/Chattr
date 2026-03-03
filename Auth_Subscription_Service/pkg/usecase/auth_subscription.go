@@ -399,7 +399,7 @@ func (as *AuthSubscriptionUsecase) ResetPassword(resetPasswordReq requestmodels.
 	resetPasswordReq.Password = hashedPassword
 	err := as.AuthSubscriptionRepository.UpdatePassword(resetPasswordReq)
 	if err != nil {
-		return responsemodels.ResetPasswordResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.ResetPasswordResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	return responsemodels.ResetPasswordResponse{
 		Email: resetPasswordReq.Email,

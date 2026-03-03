@@ -239,13 +239,7 @@ func (as *AuthSubscriptionServer) ResetPassword(ctx context.Context, req *pb.Res
 	}
 	resetPasswordResponse, err := as.AuthSubscriptionUsecase.ResetPassword(resetPasswordReq)
 	if err != nil {
-		log.Printf("Reset password failed for email %s : %v", resetPasswordReq.Email, err)
-		switch {
-		case errors.Is(err, domain.ErrUserNotFound):
-			return nil, status.Errorf(codes.NotFound, "user not found")
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil,err
 	}
 	return &pb.ResetPasswordResponse{
 		Email: resetPasswordResponse.Email,
