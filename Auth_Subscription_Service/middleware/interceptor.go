@@ -107,6 +107,11 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 			case errors.Is(err,domain.ErrUnknown):
 				return nil,status.Error(codes.Internal,domain.ErrUnknown.Error())
 
+			case errors.Is(err,domain.ErrSubPlanNotFound):
+				return nil,status.Error(codes.NotFound,domain.ErrSubPlanNotFound.Error())
+			case errors.Is(err,domain.ErrSubscriptionPlanAlreadyActive):
+				return nil,status.Error(codes.FailedPrecondition,domain.ErrSubscriptionPlanAlreadyActive.Error())
+
 			case errors.Is(err, domain.ErrDatabase):
 				log.Error("Database Error", logger.Field{Key: "details", Value: err.Error()})
 				return nil, status.Error(codes.Internal, "internal database error")

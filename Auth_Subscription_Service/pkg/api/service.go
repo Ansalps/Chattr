@@ -283,13 +283,7 @@ func (as *AuthSubscriptionServer) ActivateSubscriptionPlan(ctx context.Context, 
 	}
 	activateSubscriptionPlanResponse, err := as.AuthSubscriptionUsecase.ActivateSubscriptionPlan(activateSubscriptionPlanReq)
 	if err != nil {
-		log.Printf("Actvate Subscription paln failed for subscription paln with id =%d: %v", req.Id, err)
-		switch {
-		case errors.Is(err, domain.ErrSubscriptionPlanAlreadyActive):
-			return nil, status.Error(codes.FailedPrecondition, "subscription plan is already active")
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil,err
 	}
 	return &pb.ActivateSubscriptionPlanResponse{
 		Id:             activateSubscriptionPlanResponse.ID,

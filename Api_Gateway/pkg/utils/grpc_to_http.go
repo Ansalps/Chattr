@@ -34,7 +34,7 @@ func GRPCtoHTTP(err error) (int, string) {
 			} else if strings.Contains(st.Message(),"Cannnot unblock user, unblock allowed for users who are alreday in blocked state"){
 				return http.StatusConflict, st.Message()
 			}
-			return http.StatusPreconditionFailed, st.Message()
+			return http.StatusConflict, st.Message()
 		case codes.PermissionDenied:
 			return http.StatusConflict,st.Message()
 		case codes.InvalidArgument:

@@ -494,14 +494,14 @@ func (as *AuthSubscriptionUsecase) ActivateSubscriptionPlan(activateSubscription
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.ActivateSubscriptionPlanResponse{}, domain.ErrSubPlanNotFound
 		}
-		return responsemodels.ActivateSubscriptionPlanResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.ActivateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	if status {
 		return responsemodels.ActivateSubscriptionPlanResponse{}, domain.ErrSubscriptionPlanAlreadyActive
 	}
 	subscriptionPlan, err := as.AuthSubscriptionRepository.ActivateSubscriptionPlan(activateSubscriptionPlanReq)
 	if err != nil {
-		return responsemodels.ActivateSubscriptionPlanResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.ActivateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	return responsemodels.ActivateSubscriptionPlanResponse{
 		ID:             subscriptionPlan.ID,
