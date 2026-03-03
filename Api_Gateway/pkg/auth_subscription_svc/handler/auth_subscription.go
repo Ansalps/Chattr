@@ -120,28 +120,15 @@ func (as *AuthSubscriptionHandler) VerifyOtp(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
-	
 	otpRequest.Email = jwtClaims.Email
 	otpRequest.UserId = jwtClaims.ID
-	
-	otpResponse, err := as.GPPC_Client.VerifyOtp(otpRequest)
+	ctx,cancel:=context.WithTimeout(c.Request.Context(),10*time.Second)
+	defer cancel()
+	otpResponse, err := as.GPPC_Client.VerifyOtp(ctx,otpRequest)
 	if err != nil {
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.NotFound, codes.InvalidArgument:
-				obj = response.ClientResponse(http.StatusBadRequest, "Invalid otp", nil)
-			case codes.FailedPrecondition:
-				obj = response.ClientResponse(http.StatusPreconditionFailed, "Expired otp", nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
-		}
-		c.JSON(obj.StatusCode, obj)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogPublicApiError(log,otpRequest.Email,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Otp verifeid successfully", otpResponse)
@@ -159,18 +146,9 @@ func (as *AuthSubscriptionHandler) ResendOtp(c *gin.Context) {
 	defer cancel()
 	resendOtpResponse, err := as.GPPC_Client.ResendOtp(ctx,resendOtpReq)
 	if err != nil {
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
-		}
-		c.JSON(obj.StatusCode, obj)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogPublicApiError(log,resendOtpReq.Email,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Otp resend Successfully to email address provided, verify your otp within 5 minutes before getting expired", resendOtpResponse)
@@ -181,12 +159,14 @@ func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
 	log := utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogPublicApiError(log,"",401,"Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
+		utils.LogPublicApiError(log,"",401,"Invlaid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
@@ -198,12 +178,13 @@ func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
 
 	accessRegeneratorResponse, err := as.GPPC_Client.AccessRegenerator(accessRegenerator)
 	if err != nil {
-		log.Error("grpc access regenerator call failed",
-			logger.Field{Key: "error", Value: err},
-			logger.Field{Key: "user_id", Value: accessRegenerator.ID},
-			logger.Field{Key: "email", Value: accessRegenerator.Email},
-		)
+		// log.Error("grpc access regenerator call failed",
+		// 	logger.Field{Key: "error", Value: err},
+		// 	logger.Field{Key: "user_id", Value: accessRegenerator.ID},
+		// 	logger.Field{Key: "email", Value: accessRegenerator.Email},
+		// )
 		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,accessRegenerator.Email,accessRegenerator.ID,code,msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}

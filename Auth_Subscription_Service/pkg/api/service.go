@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/Ansalps/Chattr_Auth_Subscription_Service/logger"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/pb"
@@ -52,10 +51,10 @@ func (as *AuthSubscriptionServer) AdminLogin(ctx context.Context, req *pb.AdminL
 		Email:    req.Email,
 		Password: req.Password,
 	}
-	admin, err := as.AuthSubscriptionUsecase.AdminLogin(ctx,adminLogin)
+	admin, err := as.AuthSubscriptionUsecase.AdminLogin(ctx, adminLogin)
 	if err != nil {
 		// interceptor handles errors
-        return nil,err
+		return nil, err
 	}
 	adminDetails := &pb.AdminDetails{
 		Id:    uint64(admin.Admin.ID),
@@ -150,18 +149,9 @@ func (as *AuthSubscriptionServer) UserSignUp(ctx context.Context, req *pb.UserSi
 		ConfirmPassword: req.ConfirmPassword,
 		Phone:           req.Phone,
 	}
-	userResponse, err := as.AuthSubscriptionUsecase.UserSignUp(ctx,userSignup)
+	userResponse, err := as.AuthSubscriptionUsecase.UserSignUp(ctx, userSignup)
 	if err != nil {
-		// log.Printf("UsersignUp failed for email=%s and username=%s: %v", req.Email, req.UserName, err)
-		// switch {
-		// case errors.Is(err, domain.ErrUserAlreadyExistsByEmail):
-		// 	return nil, status.Errorf(codes.AlreadyExists, "user with email=%s already exist", req.Email)
-		// case errors.Is(err, domain.ErrUserAlreadyExistsByUsername):
-		// 	return nil, status.Errorf(codes.AlreadyExists, "username %s is already taken", req.UserName)
-		// default:
-		// 	return nil, status.Error(codes.Internal, "interanal server error")
-		// }
-		return nil,err
+		return nil, err
 	}
 	return &pb.UserSignUpResponse{
 		Id:                   uint64(userResponse.ID),
@@ -180,23 +170,11 @@ func (as *AuthSubscriptionServer) VerifyOtp(ctx context.Context, req *pb.OtpRequ
 		Email:   req.Email,
 		Purpose: req.Purpose,
 	}
-	otpResponse, err := as.AuthSubscriptionUsecase.VerifyOtp(otpReq)
+	otpResponse, err := as.AuthSubscriptionUsecase.VerifyOtp(ctx, otpReq)
 	if err != nil {
-		log.Printf("OTP verification failed for email %s (reason: mismatch): %v", otpReq.Email, err)
-		switch {
-		case errors.Is(err, domain.ErrUserNotFound):
-			return nil, status.Errorf(codes.NotFound, "user not found")
-		case errors.Is(err, domain.ErrInvalidCredentials):
-			return nil, status.Errorf(codes.InvalidArgument, "invalid otp")
-		case errors.Is(err, domain.ErrOtpExpired):
-			return nil, status.Error(codes.FailedPrecondition, "otp expired")
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil, err
 	}
-	//fmt.Println("in service Access Token", otpResponse.AccessToken)
-	//fmt.Println("in service Refresh Token", otpResponse.RefreshToken)
-	//fmt.Println("in service Temp Token", otpResponse.TempToken)
+
 	return &pb.OtpVerificationResponse{
 		Email:        otpResponse.Email,
 		Status:       otpResponse.Status,
@@ -210,7 +188,7 @@ func (as *AuthSubscriptionServer) ResendOtp(ctx context.Context, req *pb.ResendO
 	resendOtpReq := requestmodels.ResendOtpRequest{
 		Email: req.Email,
 	}
-	resendOtpResponse, err := as.AuthSubscriptionUsecase.ResendOtp(ctx,resendOtpReq)
+	resendOtpResponse, err := as.AuthSubscriptionUsecase.ResendOtp(ctx, resendOtpReq)
 	if err != nil {
 		log.Printf("Resend otp failed for email %s : %v", resendOtpReq.Email, err)
 		switch {
@@ -224,7 +202,6 @@ func (as *AuthSubscriptionServer) ResendOtp(ctx context.Context, req *pb.ResendO
 }
 
 func (as *AuthSubscriptionServer) AccessRegenerator(ctx context.Context, req *pb.AccessRegeneratorRequest) (*pb.AccessRegeneratorResponse, error) {
-	log := utils.GetLogger(ctx)
 	accessRegeneratorReq := requestmodels.AccessRegeneratorRequest{
 		ID:    req.Id,
 		Email: req.Email,
@@ -232,19 +209,7 @@ func (as *AuthSubscriptionServer) AccessRegenerator(ctx context.Context, req *pb
 	}
 	accessRegeneratorResponse, err := as.AuthSubscriptionUsecase.AccessRegenerator(accessRegeneratorReq)
 	if err != nil {
-		//log.Printf("new access regeneration failed for email %s : %v", accessRegeneratorReq.Email, err)
-		log.Error("new access regeneration failed",
-			logger.Field{Key: "error", Value: err.Error()},
-			logger.Field{Key: "user_id", Value: req.Id},
-			logger.Field{Key: "user_email", Value: req.Email})
-		switch {
-		case errors.Is(err, domain.ErrAdminAccessTokenFail):
-			return nil, status.Error(codes.Internal, domain.ErrAdminAccessTokenFail.Error())
-		case errors.Is(err, domain.ErrUserAccessTokenFail):
-			return nil, status.Error(codes.Internal, domain.ErrUserAccessTokenFail.Error())
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil, err
 	}
 	return &pb.AccessRegeneratorResponse{
 		Id:             accessRegeneratorResponse.Id,
@@ -253,19 +218,14 @@ func (as *AuthSubscriptionServer) AccessRegenerator(ctx context.Context, req *pb
 		NewAccessToken: accessRegeneratorResponse.NewAccessToken,
 	}, nil
 }
+
 func (as *AuthSubscriptionServer) ForgetPassword(ctx context.Context, req *pb.ForgotPasswordReqeust) (*pb.ForgotPasswordResponse, error) {
 	forgotPasswordReq := requestmodels.ForgotPasswordRequest{
 		Email: req.Email,
 	}
-	forgotPasswordRes, err := as.AuthSubscriptionUsecase.ForgotPassword(ctx,forgotPasswordReq)
+	forgotPasswordRes, err := as.AuthSubscriptionUsecase.ForgotPassword(ctx, forgotPasswordReq)
 	if err != nil {
-		log.Printf("OTP Forgot Password failed for email %s (reason: mismatch): %v", forgotPasswordReq.Email, err)
-		switch {
-		case errors.Is(err, domain.ErrUserNotFound):
-			return nil, status.Errorf(codes.NotFound, "user not found")
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil,err
 	}
 	return &pb.ForgotPasswordResponse{
 		Email:     forgotPasswordRes.Email,
@@ -297,7 +257,7 @@ func (as *AuthSubscriptionServer) UserLogin(ctx context.Context, req *pb.UserLog
 		Email:    req.Email,
 		Password: req.Password,
 	}
-	user, err := as.AuthSubscriptionUsecase.UserLogin(ctx,userLoginReq)
+	user, err := as.AuthSubscriptionUsecase.UserLogin(ctx, userLoginReq)
 	if err != nil {
 		log.Printf("User Login failed for email=%s: %v", req.Email, err)
 		switch {

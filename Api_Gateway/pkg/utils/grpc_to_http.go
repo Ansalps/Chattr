@@ -2,6 +2,7 @@ package utils
 
 import (
 	"net/http"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -13,18 +14,22 @@ func GRPCtoHTTP(err error) (int, string) {
 		//fmt.Println("code printing",st.Code())
 		switch st.Code() {
 		case codes.AlreadyExists:
-			return http.StatusConflict,st.Message()
+			return http.StatusConflict, st.Message()
 		case codes.Internal:
-			return http.StatusInternalServerError,st.Message()
+			return http.StatusInternalServerError, st.Message()
 		case codes.Unauthenticated:
-			return http.StatusUnauthorized,st.Message()
+			return http.StatusUnauthorized, st.Message()
 		case codes.DeadlineExceeded:
-			return http.StatusGatewayTimeout,"Gateway timed out"
+			return http.StatusGatewayTimeout, "Gateway timed out"
 		case codes.Unavailable:
 			return http.StatusServiceUnavailable, "Service Unavailable"
 		case codes.NotFound:
 			return http.StatusNotFound, st.Message()
 		case codes.FailedPrecondition:
+			// If the message contains "otp expired", we might want to be more specific
+			if strings.Contains(st.Message(), "otp expired") {
+				return http.StatusGone, st.Message() // 410
+			}
 			return http.StatusPreconditionFailed, st.Message()
 		case codes.InvalidArgument:
 			return http.StatusBadRequest, st.Message()

@@ -74,10 +74,22 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 				return nil,status.Error(codes.AlreadyExists,domain.ErrUserAlreadyExistsByUsername.Error())
 			case errors.Is(err,domain.ErrVerifyOtpTokenFail):
 				return nil,status.Error(codes.Internal,domain.ErrVerifyOtpTokenFail.Error())
+
+			case errors.Is(err,domain.ErrOtpExpired):
+				return nil,status.Error(codes.FailedPrecondition,domain.ErrOtpExpired.Error())
+			case errors.Is(err,domain.ErrUserAccessTokenFail):
+				return nil,status.Error(codes.Internal,domain.ErrUserAccessTokenFail.Error())
+			case errors.Is(err,domain.ErrUserRefreshTokenFail):
+				return nil,status.Error(codes.Internal,domain.ErrUserRefreshTokenFail.Error())
+
+			case errors.Is(err,domain.ErrAdminAccessTokenFail):
+				return nil,status.Error(codes.Internal,domain.ErrAdminAccessTokenFail.Error())
+			
+
 			case errors.Is(err, domain.ErrDatabase):
 				log.Error("Database Error", logger.Field{Key: "details", Value: err.Error()})
 				return nil, status.Error(codes.Internal, "internal database error")
-
+		
 			default:
 				log.Error("Unexpected Error", logger.Field{Key: "details", Value: err.Error()})
 				return nil, status.Error(codes.Internal, "internal server error")

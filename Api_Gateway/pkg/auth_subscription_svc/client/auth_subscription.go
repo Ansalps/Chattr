@@ -74,16 +74,14 @@ func (as *AuthSubscriptionClient) UserSignUp(ctx context.Context,user requestmod
 	}, nil
 }
 
-func (as *AuthSubscriptionClient) VerifyOtp(otpReq requestmodels.OtpRequest) (responsemodels.OtpVerificationResponse, error) {
-	//fmt.Print("in client calling server function",otpReq.UserId)
-	resp, err := as.Client.VerifyOtp(context.Background(), &auth_subscription.OtpRequest{
+func (as *AuthSubscriptionClient) VerifyOtp(ctx context.Context,otpReq requestmodels.OtpRequest) (responsemodels.OtpVerificationResponse, error) {
+	resp, err := as.Client.VerifyOtp(ctx, &auth_subscription.OtpRequest{
 		UserId:  otpReq.UserId,
 		OtpCode: otpReq.OtpCode,
 		Email:   otpReq.Email,
 		Purpose: otpReq.Purpose,
 	})
 	if err != nil {
-		log.Printf("grpc verify otp call failed :%v", err)
 		return responsemodels.OtpVerificationResponse{}, err
 	}
 

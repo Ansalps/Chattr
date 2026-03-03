@@ -239,13 +239,13 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 	}, nil
 }
 
-func (as *AuthSubscriptionUsecase) VerifyOtp(otpReq requestmodels.OtpRequest) (responsemodels.OtpVerificationResponse, error) {
+func (as *AuthSubscriptionUsecase) VerifyOtp(ctx context.Context,otpReq requestmodels.OtpRequest) (responsemodels.OtpVerificationResponse, error) {
 	otp, err := as.AuthSubscriptionRepository.CheckOtpExistsByEmail(otpReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.OtpVerificationResponse{}, domain.ErrUserNotFound
 		}
-		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	if otp.OTP != otpReq.OtpCode {
 		return responsemodels.OtpVerificationResponse{}, domain.ErrInvalidCredentials
@@ -255,16 +255,16 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(otpReq requestmodels.OtpRequest) (r
 	}
 	err = as.AuthSubscriptionRepository.ChangeOtpStatus(otpReq.Email)
 	if err != nil {
-		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	err = as.AuthSubscriptionRepository.ChangeUserStatusByEmail(otpReq.Email)
 	if err != nil {
-		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	if otpReq.Purpose == "user-forgot-password" {
 		resetPasswordToken, err := as.JwtProvider.GenerateToken(as.Config.Token.ResetPasswordSecurityKey, uint64(otpReq.UserId), otp.Email, "resetpassword", "access", 5*time.Minute)
 		if err != nil {
-			return responsemodels.OtpVerificationResponse{}, fmt.Errorf("Failed to generarate token for otp verfication: %w", err)
+			return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:",domain.ErrVerifyOtpTokenFail, err)
 		}
 		return responsemodels.OtpVerificationResponse{
 			Email:     otp.Email,
@@ -272,14 +272,13 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(otpReq requestmodels.OtpRequest) (r
 			TempToken: resetPasswordToken,
 		}, nil
 	}
-	//fmt.Println("in verify otp usercase --", otpReq.UserId)
 	userAccessTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.UserSecurityKey, uint64(otpReq.UserId), otp.Email, "user", "access", 24*time.Hour)
 	if err != nil {
-		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("Failed to generarate access token for user: %w", err)
+		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:",domain.ErrUserAccessTokenFail, err)
 	}
 	userRefreshTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.UserRefreshKey, uint64(otpReq.UserId), otp.Email, "user", "refresh", 24*7*time.Hour)
 	if err != nil {
-		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("Failed to generarate refresh token for user: %w", err)
+		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:",domain.ErrUserRefreshTokenFail, err)
 	}
 	//fmt.Println("userAccessTokenSting",userAccessTokenString)
 	//fmt.Println("userRefreshTokenString",userRefreshTokenString)
@@ -294,7 +293,6 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(otpReq requestmodels.OtpRequest) (r
 func (as *AuthSubscriptionUsecase) ResendOtp(ctx context.Context,resendOtpReq requestmodels.ResendOtpRequest) (responsemodels.ResendOtpResponse, error) {
 	err := as.AuthSubscriptionRepository.DeleteOtpByEmail(ctx,resendOtpReq.Email)
 	if err != nil {
-		//return responsemodels.ResendOtpResponse{}, fmt.Errorf("database error: %w", err)
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
 			return responsemodels.ResendOtpResponse{}, err
 		}
@@ -386,7 +384,7 @@ func (as *AuthSubscriptionUsecase) ForgotPassword(ctx context.Context,forgotPass
 	}()
 	otpVerificationToken, err := as.JwtProvider.GenerateToken(as.Config.Token.OtpVerificationSecurityKey, uint64(user.ID), user.Email, "otpverification", "access", 5*time.Minute)
 	if err != nil {
-		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("Failed to generarate token for otp verfication: %w", err)
+		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("%w: %v:",domain.ErrVerifyOtpTokenFail, err)
 	}
 	return responsemodels.ForgotPassordResponse{
 		Email:     user.Email,
