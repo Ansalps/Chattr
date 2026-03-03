@@ -392,28 +392,21 @@ func (as *AuthSubscriptionHandler) ActivateSubscriptionPlan(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) DeactivateSubscriptionPlan(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var deactivateSubscriptionPlanReq requestmodels.DeactivateSubscriptionPlanRequest
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log,400,"Invalid Subscription Plan Id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid Subscription Plan Id", nil))
 		return
 	}
 	deactivateSubscriptionPlanReq.ID = id
 	deactivateSubscriptionPlanResponse, err := as.GPPC_Client.DeactivateSubscriptionPlan(deactivateSubscriptionPlanReq)
 	if err != nil {
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
-		}
-		c.JSON(obj.StatusCode, obj)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Subscritption plan deactivated successfully", deactivateSubscriptionPlanResponse)

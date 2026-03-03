@@ -306,13 +306,7 @@ func (as *AuthSubscriptionServer) DeactivateSubscriptionPlan(ctx context.Context
 	}
 	deactivateSubscriptionPlanResponse, err := as.AuthSubscriptionUsecase.DeactivateSubscriptionPlan(deactivateSubscriptionPlanReq)
 	if err != nil {
-		log.Printf("Actvate Subscription paln failed for subscription paln with id =%d: %v", req.Id, err)
-		switch {
-		case errors.Is(err, domain.ErrSubscriptionPlanAlreadyDeactive):
-			return nil, status.Error(codes.FailedPrecondition, "subscription plan is already deactive")
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil,err
 	}
 	return &pb.DeactivateSubscriptionPlanResponse{
 		Id:             deactivateSubscriptionPlanResponse.ID,

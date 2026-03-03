@@ -524,14 +524,14 @@ func (as *AuthSubscriptionUsecase) DeactivateSubscriptionPlan(deactivateSubscrip
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.DeactivateSubscriptionPlanResponse{}, domain.ErrSubPlanNotFound
 		}
-		return responsemodels.DeactivateSubscriptionPlanResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.DeactivateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	if !status {
 		return responsemodels.DeactivateSubscriptionPlanResponse{}, domain.ErrSubscriptionPlanAlreadyDeactive
 	}
 	subscriptionPlan, err := as.AuthSubscriptionRepository.DeactivateSubscriptionPlan(deactivateSubscriptionPlanReq)
 	if err != nil {
-		return responsemodels.DeactivateSubscriptionPlanResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.DeactivateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	return responsemodels.DeactivateSubscriptionPlanResponse{
 		ID:             subscriptionPlan.ID,
