@@ -56,19 +56,7 @@ func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
 	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
 		// Log 4xx errors as WARN
-        if code >= 400 && code < 500 {
-            log.Warn("Client-side error in Login", 
-                logger.Field{Key: "email", Value: adminDetails.Email},
-                logger.Field{Key: "http_code", Value: code},
-                logger.Field{Key: "msg", Value: msg},
-            )
-        } else if code>=500{
-			log.Error("Server Error in Admin Login:",
-			logger.Field{Key: "email",Value: adminDetails.Email},
-			logger.Field{Key: "http_code", Value: code},
-			logger.Field{Key: "msg", Value: msg},
-			)
-		}
+        utils.LogPublicApiError(log,adminDetails.Email,code,msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
@@ -104,19 +92,7 @@ func (as *AuthSubscriptionHandler) UserSignUp(c *gin.Context) {
 	if err != nil {
 		code,msg:=utils.GRPCtoHTTP(err)
 		// Log 4xx errors as WARN
-        if code >= 400 && code < 500 {
-            log.Warn("Client-side error in Login", 
-                logger.Field{Key: "email", Value: userSignup.Email},
-                logger.Field{Key: "http_code", Value: code},
-                logger.Field{Key: "msg", Value: msg},
-            )
-        } else if code>=500{
-			log.Error("Server Error in Admin Login:",
-			logger.Field{Key: "email",Value: userSignup.Email},
-			logger.Field{Key: "http_code", Value: code},
-			logger.Field{Key: "msg", Value: msg},
-			)
-		}
+        utils.LogPublicApiError(log,userSignup.Email,code,msg)
 		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
@@ -125,32 +101,29 @@ func (as *AuthSubscriptionHandler) UserSignUp(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) VerifyOtp(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var otpRequest requestmodels.OtpRequest
-	if err := c.ShouldBindJSON(&otpRequest); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	err:=utils.BindingJson(c,&otpRequest,log)
+	if err!=nil{
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogPublicApiError(log,otpRequest.Email,401,"Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
+		utils.LogPublicApiError(log,otpRequest.Email,401,"Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
-	//fmt.Println("will call even comes here?????")
+	
 	otpRequest.Email = jwtClaims.Email
 	otpRequest.UserId = jwtClaims.ID
-	//fmt.Println("inside verify otp handler ", jwtClaims.Email, jwtClaims.ID)
-	//fmt.Println("print otp request", otpRequest)
+	
 	otpResponse, err := as.GPPC_Client.VerifyOtp(otpRequest)
 	if err != nil {
 		var obj response.Response

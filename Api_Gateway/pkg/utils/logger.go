@@ -25,3 +25,20 @@ func WarnBind(log logger.Logger, err error) {
 	log.Warn("Bind error:",
 		logger.Field{Key: "error", Value: err.Error()})
 }
+
+func LogPublicApiError(log logger.Logger,email string,code int,msg string){
+	if code >= 400 && code < 500 {
+		log.Warn("Client-side error:", 
+			logger.Field{Key: "email", Value: email},
+			logger.Field{Key: "http_code", Value: code},
+			logger.Field{Key: "msg", Value: msg},
+		)
+	} else if code>=500{
+		log.Error("Server Error:",
+		logger.Field{Key: "email",Value: email},
+		logger.Field{Key: "http_code", Value: code},
+		logger.Field{Key: "msg", Value: msg},
+		)
+	}
+}
+
