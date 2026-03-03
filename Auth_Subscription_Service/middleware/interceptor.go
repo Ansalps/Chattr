@@ -98,6 +98,14 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 			case errors.Is(err,domain.ErrPendingLogin):
 				return nil,status.Error(codes.PermissionDenied,domain.ErrPendingLogin.Error())
 			
+			case errors.Is(err,domain.ErrInvalidRequest):
+				return nil,status.Error(codes.InvalidArgument,domain.ErrInvalidRequest.Error())
+			case errors.Is(err,domain.ErrExternalService):
+				return nil,status.Error(codes.Internal,domain.ErrExternalService.Error())
+			case errors.Is(err,domain.ErrServiceUnavailable):
+				return nil,status.Error(codes.Unavailable,domain.ErrServiceUnavailable.Error())
+			case errors.Is(err,domain.ErrUnknown):
+				return nil,status.Error(codes.Internal,domain.ErrUnknown.Error())
 
 			case errors.Is(err, domain.ErrDatabase):
 				log.Error("Database Error", logger.Field{Key: "details", Value: err.Error()})

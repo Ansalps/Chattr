@@ -35,4 +35,10 @@ var (
 	ErrDatabaseConnectionTimeOut=errors.New("Database connection time out")
 	ErrSendVerifyOtpToEmail=errors.New("Failed to send verification otp to email address")
 	ErrVerifyOtpTokenFail=errors.New("Failed to generarate token for otp verfication")
+
+	// Payment/Plan Errors (for your Razorpay logic)
+    ErrInvalidRequest     = errors.New("the request sent to the payment provider was invalid")
+    ErrExternalService    = errors.New("payment provider encountered an internal error")
+    ErrServiceUnavailable = errors.New("payment provider is temporarily unavailable")
+	ErrUnknown=errors.New("unexpected error from razorpay")
 )

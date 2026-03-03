@@ -352,30 +352,17 @@ func (as *AuthSubscriptionHandler) GetAllUsers(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) CreateSubscriptionPlan(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var creatSubscriptionPlanReq requestmodels.CreateSubscriptionPlanRequest
-	if err := c.ShouldBindJSON(&creatSubscriptionPlanReq); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	err:=utils.BindingJson(c,&creatSubscriptionPlanReq,log)
+	if err!=nil{
 		return
 	}
 	createSubscriptionPlanResponse, err := as.GPPC_Client.CreateSubscriptionPlan(creatSubscriptionPlanReq)
 	if err != nil {
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
-		}
-		c.JSON(obj.StatusCode, obj)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Subscritption plan created successfully", createSubscriptionPlanResponse)

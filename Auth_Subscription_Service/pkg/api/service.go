@@ -261,11 +261,7 @@ func (as *AuthSubscriptionServer) CreateSubscriptionPlan(ctx context.Context, re
 	}
 	createSubscriptionPlanResponse, err := as.AuthSubscriptionUsecase.CreateSubscriptionPlan(createSubscriptionPlanReq)
 	if err != nil {
-		log.Printf("Create Subscription paln failed for subscription paln =%s: %v", req.Name, err)
-		switch {
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil,err
 	}
 	return &pb.CreateSubscriptionPlanResponse{
 		Id:          createSubscriptionPlanResponse.ID,

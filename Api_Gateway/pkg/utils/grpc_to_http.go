@@ -22,7 +22,7 @@ func GRPCtoHTTP(err error) (int, string) {
 		case codes.DeadlineExceeded:
 			return http.StatusGatewayTimeout, "Gateway timed out"
 		case codes.Unavailable:
-			return http.StatusServiceUnavailable, "Service Unavailable"
+			return http.StatusServiceUnavailable, st.Message()
 		case codes.NotFound:
 			return http.StatusNotFound, st.Message()
 		case codes.FailedPrecondition:

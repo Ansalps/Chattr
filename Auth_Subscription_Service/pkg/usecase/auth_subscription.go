@@ -472,7 +472,7 @@ func (as *AuthSubscriptionUsecase) CreateSubscriptionPlan(createSubscriptionPlan
 	}
 	subscriptionPlanRes, err := as.AuthSubscriptionRepository.CreateSubscriptionPlan(plan)
 	if err != nil {
-		return responsemodels.CreateSubscriptionPlanResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.CreateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	return responsemodels.CreateSubscriptionPlanResponse{
 		ID:          subscriptionPlanRes.ID,

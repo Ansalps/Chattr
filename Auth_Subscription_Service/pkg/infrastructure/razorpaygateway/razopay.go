@@ -1,6 +1,7 @@
 package razorpaygateway
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -21,7 +22,7 @@ func NewRazorpayGateway(keyID, secret string) *RazorpayGateway {
 func (r *RazorpayGateway) CreatePlan(planData map[string]interface{}) (*domain.CreatedPlanDTO, error) {
 	plan, err := r.Client.Plan.Create(planData, nil)
 	if err != nil {
-		return nil, err
+		return nil, mapRazorpayError(err) // Clean and readable!
 	}
 
 	// Helper to safely extract nested "item" map
@@ -71,26 +72,53 @@ func getBool(m map[string]interface{}, key string) bool {
 	return val
 }
 func (r *RazorpayGateway) CreateSubscription(subData map[string]interface{}) (*domain.CreatedSubscriptionDTO, error) {
-    sub, err := r.Client.Subscription.Create(subData, nil)
-    if err != nil {
-        return nil, err
-    }
-    //fmt.Println(sub)
-    // Standard helper to handle the map[string]interface{} types
-    return &domain.CreatedSubscriptionDTO{
-        ID:             getString(sub, "id"),
-        PlanID:         getString(sub, "plan_id"),
-        Status:         getString(sub, "status"),
-        TotalCount:     int(getFloat(sub, "total_count")),
-        RemainingCount: int(getFloat(sub, "remaining_count")),
-        PaidCount:      int(getFloat(sub, "paid_count")),
-        ShortURL:       getString(sub, "short_url"), // VERY IMPORTANT: Give this to the user!
-    }, nil
+	sub, err := r.Client.Subscription.Create(subData, nil)
+	if err != nil {
+		return nil, err
+	}
+	//fmt.Println(sub)
+	// Standard helper to handle the map[string]interface{} types
+	return &domain.CreatedSubscriptionDTO{
+		ID:             getString(sub, "id"),
+		PlanID:         getString(sub, "plan_id"),
+		Status:         getString(sub, "status"),
+		TotalCount:     int(getFloat(sub, "total_count")),
+		RemainingCount: int(getFloat(sub, "remaining_count")),
+		PaidCount:      int(getFloat(sub, "paid_count")),
+		ShortURL:       getString(sub, "short_url"), // VERY IMPORTANT: Give this to the user!
+	}, nil
 }
-// func (r *RazorpayGateway) CreateSubscription(subData map[string]interface{}) (map[string]interface{}, error) {
-// 	sub, err := r.Client.Subscription.Create(subData, nil)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return sub, nil
-// }
+
+func mapRazorpayError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	// Define the Razorpay error structure
+	type razorpayErrorResponse struct {
+		Error struct {
+			Code        string            `json:"code"`
+			Description string            `json:"description"`
+			Metadata    map[string]string `json:"metadata"`
+		} `json:"error"`
+	}
+
+	var rzErr razorpayErrorResponse
+
+	// Try to unmarshal. If it fails, it's likely a network/string error.
+	if parseErr := json.Unmarshal([]byte(err.Error()), &rzErr); parseErr != nil {
+		return fmt.Errorf("%w: %v", domain.ErrExternalService, err)
+	}
+
+	// Now map the codes
+	switch rzErr.Error.Code {
+	case "BAD_REQUEST_ERROR":
+		return fmt.Errorf("%w: %s", domain.ErrInvalidRequest, rzErr.Error.Description)
+	case "GATEWAY_ERROR":
+		return fmt.Errorf("%w: %s", domain.ErrServiceUnavailable, rzErr.Error.Description)
+	case "SERVER_ERROR":
+		return fmt.Errorf("%w: %s", domain.ErrExternalService, rzErr.Error.Description)
+	default:
+		return fmt.Errorf("%w: %s", domain.ErrUnknown, rzErr.Error.Description)
+	}
+}
