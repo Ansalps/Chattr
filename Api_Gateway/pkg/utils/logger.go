@@ -60,3 +60,17 @@ func LogApiWithUserID(log logger.Logger,email string,userid uint64,code int,msg 
 	}
 }
 
+func LogAdminApi(log logger.Logger,code int,msg string){
+	if code >= 400 && code < 500 {
+		log.Warn("Client-side error:", 
+			logger.Field{Key: "http_code", Value: code},
+			logger.Field{Key: "msg", Value: msg},
+		)
+	} else if code>=500{
+		log.Error("Server Error:",
+		logger.Field{Key: "http_code", Value: code},
+		logger.Field{Key: "msg", Value: msg},
+		)
+	}
+}
+

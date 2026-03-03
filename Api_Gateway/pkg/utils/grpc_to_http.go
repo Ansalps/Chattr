@@ -29,6 +29,8 @@ func GRPCtoHTTP(err error) (int, string) {
 			// If the message contains "otp expired", we might want to be more specific
 			if strings.Contains(st.Message(), "otp expired") {
 				return http.StatusGone, st.Message() // 410
+			} else if strings.Contains(st.Message(),"Cannot block user, email not verified or user alreday blocked"){
+				return http.StatusConflict,st.Message()
 			}
 			return http.StatusPreconditionFailed, st.Message()
 		case codes.InvalidArgument:

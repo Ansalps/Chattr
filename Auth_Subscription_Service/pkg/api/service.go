@@ -73,15 +73,7 @@ func (as *AuthSubscriptionServer) BlockUser(ctx context.Context, req *pb.BlockUs
 	}
 	blockUserResponse, err := as.AuthSubscriptionUsecase.BlockUser(blockUserReq)
 	if err != nil {
-		log.Printf("Block user failed for user id %d : %v", blockUserReq.UserId, err)
-		switch {
-		case errors.Is(err, domain.ErrUserNotActive):
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case errors.Is(err, domain.ErrUserNotFound):
-			return nil, status.Errorf(codes.NotFound, "user not found for user id: %v", blockUserReq.UserId)
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil,err
 	}
 	return &pb.BlockUserResponse{
 		UserId: blockUserResponse.UserId,

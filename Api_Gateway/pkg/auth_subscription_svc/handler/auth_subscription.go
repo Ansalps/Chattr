@@ -258,22 +258,9 @@ func (as *AuthSubscriptionHandler) BlockUser(c *gin.Context) {
 	}
 	blockUserResponse, err := as.GPPC_Client.BlockUser(blockUser)
 	if err != nil {
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.FailedPrecondition:
-				obj = response.ClientResponse(http.StatusUnauthorized, st.Message(), nil)
-			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusUnauthorized, st.Message(), nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
-		}
-		c.JSON(obj.StatusCode, obj)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Block user by user id successful ", blockUserResponse)
@@ -281,14 +268,10 @@ func (as *AuthSubscriptionHandler) BlockUser(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) UnblockUser(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var unblockUser requestmodels.UnblockUserRequest
-	if err := c.ShouldBindJSON(&unblockUser); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	err:=utils.BindingJson(c,&unblockUser,log)
+	if err!=nil{
 		return
 	}
 	unblockUserResponse, err := as.GPPC_Client.UnblockUser(unblockUser)

@@ -103,14 +103,17 @@ func (as *AuthSubscriptionUsecase) BlockUser(blockUserReq requestmodels.BlockUse
 	}
 	status, err := as.AuthSubscriptionRepository.CheckUserStatus(blockUserReq.UserId)
 	if err != nil {
-		return responsemodels.BlockUserResponse{}, fmt.Errorf("database error: %w", err)
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.BlockUserResponse{},domain.ErrUserNotFound
+		}
+		return responsemodels.BlockUserResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	if status != "active" {
 		return responsemodels.BlockUserResponse{}, domain.ErrUserNotActive
 	}
 	err = as.AuthSubscriptionRepository.ChangeUserStatusToBlockedByUserId(blockUserReq)
 	if err != nil {
-		return responsemodels.BlockUserResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.BlockUserResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	return responsemodels.BlockUserResponse{
 		UserId: blockUserReq.UserId,
