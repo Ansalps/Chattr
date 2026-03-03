@@ -146,7 +146,7 @@ func (as *AuthSubscriptionUsecase) UnblockUser(unblockUserReq requestmodels.Unbl
 func (as *AuthSubscriptionUsecase) GetAllUsers(getAllUsersReq requestmodels.GetAllUsersRequest) (responsemodels.GetAllUsersResponse, error) {
 	users, err := as.AuthSubscriptionRepository.GetAllUsers(getAllUsersReq)
 	if err != nil {
-		return responsemodels.GetAllUsersResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.GetAllUsersResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase ,err)
 	}
 	return responsemodels.GetAllUsersResponse{
 		Users: users.Users,

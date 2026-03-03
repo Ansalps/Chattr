@@ -100,11 +100,7 @@ func (as *AuthSubscriptionServer) GetAllUsers(ctx context.Context, req *pb.GetAl
 	}
 	users, err := as.AuthSubscriptionUsecase.GetAllUsers(getAllUsersReq)
 	if err != nil {
-		log.Printf("Get All Users failed : %v", err)
-		switch {
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil,err
 	}
 	pbUsers := make([]*pb.User, len(users.Users))
 	for i, user := range users.Users {

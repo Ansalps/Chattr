@@ -306,47 +306,45 @@ func (as *AuthSubscriptionHandler) UserLogin(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) GetAllUsers(c *gin.Context) {
-	pageStr := c.Query("page")
-	limitStr := c.Query("limit")
+	log:=utils.GetLogger(c)
+	//pageStr := c.Query("page")
+	// limitStr := c.Query("limit")
 
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 1 {
-		if err != nil {
-			log.Printf("Error while string to int conversion(page), error: %v", err)
-		}
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+	// page, err := strconv.Atoi(pageStr)
+	// if err != nil || page < 1 {
+	// 	if err != nil {
+	// 		//log.Printf("Error while string to int conversion(page), error: %v", err)
+	// 		utils.LogAdminApi(log,400,"Error while string to int conversion(page), error:"+err.Error())
+	// 	}
+	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+	// 	return
+	// }
+
+	// limit, err := strconv.Atoi(limitStr)
+
+	// if err != nil || limit < 1 || limit > 100 {
+	// 	if err != nil {
+	// 		//log.Printf("Error while string to int conversion(limit), error: %v", err)
+	// 		utils.LogAdminApi(log,400,"Error while string to int conversion(limit), error:"+err.Error())
+	// 	}
+	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+	// 	return
+	// }
+
+	// offset := (page - 1) * limit
+	limit,offset,page,err:=utils.SetPageLimit(c,log)
+	if err!=nil{
 		return
 	}
-
-	limit, err := strconv.Atoi(limitStr)
-
-	if err != nil || limit < 1 || limit > 100 {
-		if err != nil {
-			log.Printf("Error while string to int conversion(limit), error: %v", err)
-		}
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
-		return
-	}
-
-	offset := (page - 1) * limit
 
 	var getAllUsers requestmodels.GetAllUsersRequest
 	getAllUsers.Limit = uint64(limit)
 	getAllUsers.Offset = uint64(offset)
 	users, err := as.GPPC_Client.GetAllUsers(getAllUsers, page)
 	if err != nil {
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
-		}
-		c.JSON(obj.StatusCode, obj)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Get All users successully", users)
