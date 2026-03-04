@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/domain"
@@ -32,61 +31,61 @@ func (ad *AuthSubscriptionRepository) CheckAdminExistsByEmail(ctx context.Contex
 	res := ad.DB.WithContext(ctx).Where("email = ?", email).First(&admin)
 	if res.Error != nil {
 		if errors.Is(res.Error, context.DeadlineExceeded) {
-			return nil, fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,res.Error) // This happens if the 10s limit is hit
+			return nil, fmt.Errorf("%w: %v:", domain.ErrDatabaseConnectionTimeOut, res.Error) // This happens if the 10s limit is hit
 		}
 		return nil, res.Error
 	}
 	return &admin, nil
 }
-func (ad *AuthSubscriptionRepository) DeletePendingUser(ctx context.Context,email string) error {
+func (ad *AuthSubscriptionRepository) DeletePendingUser(ctx context.Context, email string) error {
 	query := `DELETE FROM users WHERE email=? and status='pending'`
 	if err := ad.DB.WithContext(ctx).Exec(query, email).Error; err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,err) // This happens if the 10s limit is hit
+			return fmt.Errorf("%w: %v:", domain.ErrDatabaseConnectionTimeOut, err) // This happens if the 10s limit is hit
 		}
 		return err
 	}
 	return nil
 }
 
-func (ad *AuthSubscriptionRepository) CheckUserExistsByEmail(ctx context.Context,email string) (*domain.User, error) {
+func (ad *AuthSubscriptionRepository) CheckUserExistsByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var user domain.User
 	res := ad.DB.WithContext(ctx).Where("email=?", email).First(&user)
 	if res.Error != nil {
-		if errors.Is(res.Error,context.DeadlineExceeded){
-			return nil,fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,res.Error)
+		if errors.Is(res.Error, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("%w: %v:", domain.ErrDatabaseConnectionTimeOut, res.Error)
 		}
 		return nil, res.Error
 	}
 	return &user, nil
 }
 
-func (ad *AuthSubscriptionRepository) CheckUserExistsByUseraname(ctx context.Context,username string) (*domain.User, error) {
+func (ad *AuthSubscriptionRepository) CheckUserExistsByUseraname(ctx context.Context, username string) (*domain.User, error) {
 	var user domain.User
 	res := ad.DB.WithContext(ctx).Where("user_name=?", username).First(&user)
 	if res.Error != nil {
-		if errors.Is(res.Error,context.DeadlineExceeded){
-			return nil,fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,res.Error)
+		if errors.Is(res.Error, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("%w: %v:", domain.ErrDatabaseConnectionTimeOut, res.Error)
 		}
 		return nil, res.Error
 	}
 	return &user, nil
 }
 
-func (ad *AuthSubscriptionRepository) TemporarySavingUserOtp(ctx context.Context,otp int, userEmail string, expiration time.Time) error {
+func (ad *AuthSubscriptionRepository) TemporarySavingUserOtp(ctx context.Context, otp int, userEmail string, expiration time.Time) error {
 
 	query := `INSERT INTO otps (email, otp, expiration) VALUES ($1, $2, $3)`
 	err := ad.DB.WithContext(ctx).Exec(query, userEmail, otp, expiration).Error
 	if err != nil {
-		if errors.Is(err,context.DeadlineExceeded){
-			return fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,err)
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%w: %v:", domain.ErrDatabaseConnectionTimeOut, err)
 		}
 		return err
 	}
 	return nil
 }
 
-func (ad *AuthSubscriptionRepository) CreateUser(ctx context.Context,userData *requestmodels.UserSignUpRequest) (*responsemodels.UserSignupResponse, error) {
+func (ad *AuthSubscriptionRepository) CreateUser(ctx context.Context, userData *requestmodels.UserSignUpRequest) (*responsemodels.UserSignupResponse, error) {
 	user := domain.User{
 		Name:     userData.Name,
 		UserName: userData.UserName,
@@ -96,7 +95,7 @@ func (ad *AuthSubscriptionRepository) CreateUser(ctx context.Context,userData *r
 	}
 	if err := ad.DB.WithContext(ctx).Create(&user).Error; err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,err) // This happens if the 10s limit is hit
+			return nil, fmt.Errorf("%w: %v:", domain.ErrDatabaseConnectionTimeOut, err) // This happens if the 10s limit is hit
 		}
 		return nil, err
 	}
@@ -127,12 +126,12 @@ func (ad *AuthSubscriptionRepository) ChangeOtpStatus(email string) error {
 	return nil
 }
 
-func (ad *AuthSubscriptionRepository) DeleteOtpByEmail(ctx context.Context,email string) error {
+func (ad *AuthSubscriptionRepository) DeleteOtpByEmail(ctx context.Context, email string) error {
 	query := `DELETE from otps where email=?`
 	err := ad.DB.WithContext(ctx).Exec(query, email).Error
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return fmt.Errorf("%w: %v:",domain.ErrDatabaseConnectionTimeOut,err) // This happens if the 10s limit is hit
+			return fmt.Errorf("%w: %v:", domain.ErrDatabaseConnectionTimeOut, err) // This happens if the 10s limit is hit
 		}
 		return err
 	}
@@ -812,11 +811,11 @@ func (ad *AuthSubscriptionRepository) UpddateActivatedSubscription(req requestmo
 	query := `UPDATE user_subscriptionS SET status=$1,paid_count=$2,remaining_count=$3,start_at=$4,end_at=$5 WHERE razorpay_subscription_id=$6`
 	result := ad.DB.Exec(query, req.Status, req.PaidCount, req.RemainingCount, req.StartAt, req.EndAt, req.RazorpaySubscriptionId)
 	if result.Error != nil {
-		log.Println("database error", result.Error)
+		//log.Println("database error", result.Error)
 		return responsemodels.WebhookSubscriptionActivatedResponse{}, result.Error
 	}
 	if result.RowsAffected == 0 {
-		log.Println("no rows affected")
+		//log.Println("no rows affected")
 		return responsemodels.WebhookSubscriptionActivatedResponse{}, gorm.ErrRecordNotFound
 	}
 	return responsemodels.WebhookSubscriptionActivatedResponse{

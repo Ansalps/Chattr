@@ -127,8 +127,6 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 				return nil,status.Error(codes.FailedPrecondition,domain.ErrSubCompleted.Error())
 			case errors.Is(err,domain.ErrSubCancelled):
 				return nil,status.Error(codes.FailedPrecondition,domain.ErrSubCancelled.Error())
-			case errors.Is(err,domain.ErrSubCancelled):
-				return nil,status.Error(codes.FailedPrecondition,domain.ErrSubCancelled.Error())
 			case errors.Is(err,domain.ErrRazorpayCancel):
 				return nil,status.Error(codes.Internal,domain.ErrRazorpayCancel.Error())
 
@@ -139,6 +137,9 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 
 			case errors.Is(err,domain.ErrPasswordMismatch):
 				return nil,status.Error(codes.InvalidArgument,domain.ErrPasswordMismatch.Error())
+
+			case errors.Is(err,domain.ErrSubNotFound):
+				return nil,status.Error(codes.NotFound,domain.ErrSubNotFound.Error())
 
 			case errors.Is(err, domain.ErrDatabase):
 				//log.Error("Database Error", logger.Field{Key: "details", Value: err.Error()})

@@ -864,13 +864,16 @@ func (as *AuthSubscriptionHandler) SearchUser(c *gin.Context) {
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "users retrieved successfully", resp1))
 }
 func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
@@ -881,6 +884,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 	}
 	userId, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log,400,"invalid user id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid user id", nil))
 		return
 	}
@@ -953,7 +957,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 		posts = postData.PostCount
 	} else {
 		// Log that the post service is down, but don't stop the request
-		log.Println("Warning: post_relation service unavailable for user", userId)
+		//log.Println("Warning: post_relation service unavailable for user", userId)
 	}
 
 	// 3. Construct the response
@@ -969,13 +973,16 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) Logout(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
@@ -983,12 +990,14 @@ func (as *AuthSubscriptionHandler) Logout(c *gin.Context) {
 	jti := jwtClaims.RegisteredClaims.ID
 	exp := jwtClaims.RegisteredClaims.ExpiresAt.Time
 	if jti == "" {
+		utils.LogAdminApi(log,400,"token missing jti")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "token missing jti"})
 		return
 	}
 	err := as.RedisRepository.BlacklistToken(jti, exp)
 	if err != nil {
 		// Decide your policy here
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,500,"logout failed")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "logout failed"})
 		return
 	}
@@ -1000,13 +1009,7 @@ func (as *AuthSubscriptionHandler) Logout(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
-	// 1. Read the raw body for signature verification
-	// body, err := io.ReadAll(c.Request.Body)
-	// if err != nil {
-	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(400, "Invalid body", nil))
-	// 	return
-	// }
-
+	
 	// 2. Verify Signature
 	// signature := c.GetHeader("X-Razorpay-Signature")
 	// if signature!="postman-bypass"{
@@ -1016,33 +1019,25 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 	// 		return // IMPORTANT: Don't forget to return here!
 	// 	}
 	// }
-
-	// 3. Unmarshal the body we already read
+	log:=utils.GetLogger(c)
 	var webhookReq requestmodels.RazorpayEvent
-	// if err := json.Unmarshal(body, &webhookReq); err != nil {
-	// 	log.Printf("Unmarshal error: %v", err)
-	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(400, "Invalid request JSON", nil))
-	// 	return
-	// }
-	if err := c.ShouldBindJSON(&webhookReq); err != nil {
-		log.Println("error in binding", err)
+	err:=utils.BindingJson(c,&webhookReq,log)
+	if err!=nil{
 		return
 	}
 	//fmt.Printf("Type: %T, Value: %v\n", webhookReq.Payload.Subscription.Entity.Notes["user_id"], webhookReq.Payload.Subscription.Entity.Notes["user_id"])
 	UserIdStr := webhookReq.Payload.Subscription.Entity.Notes["user_id"]
 	UserID, err := strconv.ParseUint(UserIdStr, 10, 64)
 	if err != nil {
-		//fmt.Println("Error converting string to uint64:", err)
+		utils.LogAdminApi(log,500,"error in conver string user id to uint64: "+err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error in conver string user id to uint64"})
 		return
 	}
-	//log.Println("printing webhook event", webhookReq.Event)
-	//log.Println("webhook req", webhookReq)
+	
 	// 4. Validate Event Type
 	var res *auth_subscription.WebhookSubscriptionActivatedResponse
 	switch webhookReq.Event {
 	case "subscription.activated":
-		//fmt.Println("is it coming here man?")
 		res, err = as.DirectClient.Client.WebhookSubscriptionActivated(context.Background(), &auth_subscription.WebhookSubscriptionActivatedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
 			Status:                 webhookReq.Payload.Subscription.Entity.Status,
@@ -1053,7 +1048,9 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 			UserId:                 UserID,
 		})
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, err.Error())
+			code,msg:=utils.GRPCtoHTTP(err)
+			utils.LogApiWithUserID(log,"",UserID,code,msg)
+			c.JSON(code,response.ClientResponse(code,msg,nil))
 			return
 		}
 	case "subscription.charged":

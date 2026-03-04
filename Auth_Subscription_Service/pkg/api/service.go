@@ -710,9 +710,6 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionActivated(ctx context.Conte
 	}
 	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionActivated(webhookReq)
 	if err != nil {
-		if err == domain.RazorpaySubscriptionIdNotFound {
-			return nil, err
-		}
 		return nil, err
 	}
 	return &pb.WebhookSubscriptionActivatedResponse{

@@ -883,7 +883,10 @@ func (as *AuthSubscriptionUsecase) SearchUser(req requestmodels.SearchUser) (res
 func (as *AuthSubscriptionUsecase) FetchUserPublicData(userid uint64) (responsemodels.UserPublicDataResponse, error) {
 	resp, err := as.AuthSubscriptionRepository.FetchUserPublicData(userid)
 	if err != nil {
-		return responsemodels.UserPublicDataResponse{}, err
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.UserPublicDataResponse{},domain.ErrUserNotFound
+		}
+		return responsemodels.UserPublicDataResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	return resp, nil
 }
@@ -924,24 +927,34 @@ func (as *AuthSubscriptionUsecase) GetSubscriptionDetails(req requestmodels.GetS
 func (as *AuthSubscriptionUsecase) WebhookSubscriptionActivated(req requestmodels.WebhookSubscriptionActivatedRequest) (responsemodels.WebhookSubscriptionActivatedResponse, error) {
 	status, err := as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
 	if err != nil {
-		log.Println(err)
-		return responsemodels.WebhookSubscriptionActivatedResponse{}, err
+		//log.Println(err)
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.WebhookSubscriptionActivatedResponse{},domain.ErrSubNotFound
+		}
+		return responsemodels.WebhookSubscriptionActivatedResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
-	if status == "completed" || status == "cancelled" {
-		return responsemodels.WebhookSubscriptionActivatedResponse{}, errors.New("subscription already in cancelled or completed state")
+	if status == "completed" {
+		return responsemodels.WebhookSubscriptionActivatedResponse{}, domain.ErrSubCompleted
+	}
+	if status == "cancelled"{
+		return responsemodels.WebhookSubscriptionActivatedResponse{}, domain.ErrSubCancelled
 	}
 	if req.Status == "active" {
 		err := as.AuthSubscriptionRepository.TurnBlueTickTrueForUserId(req.UserID)
 		if err != nil {
-			log.Printf("failed to trun on blue tick for user id %d\n", req.UserID)
+			if err==gorm.ErrRecordNotFound{
+				return responsemodels.WebhookSubscriptionActivatedResponse{},domain.ErrUserNotFound
+			}
+			//log.Printf("failed to trun on blue tick for user id %d\n", req.UserID)
+			return responsemodels.WebhookSubscriptionActivatedResponse{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 		}
 	}
 	resp, err := as.AuthSubscriptionRepository.UpddateActivatedSubscription(req)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.WebhookSubscriptionActivatedResponse{}, domain.RazorpaySubscriptionIdNotFound
+			return responsemodels.WebhookSubscriptionActivatedResponse{}, domain.ErrSubNotFound
 		}
-		return responsemodels.WebhookSubscriptionActivatedResponse{}, err
+		return responsemodels.WebhookSubscriptionActivatedResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	return resp, nil
 }
