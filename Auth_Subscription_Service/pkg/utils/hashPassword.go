@@ -1,8 +1,7 @@
 package utils
 
 import (
-	"errors"
-
+	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/domain"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -18,7 +17,7 @@ func HashPassword(password string) string {
 func CompareWithHashedPassword(hashedPassword string, plainPassword string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plainPassword))
 	if err != nil {
-		return errors.New("passwords does not match")
+		return domain.ErrPasswordMismatch
 	}
 	return nil
 }

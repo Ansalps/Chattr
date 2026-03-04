@@ -137,6 +137,9 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 			case errors.Is(err,domain.ErrS3UploadFail):
 				return nil,status.Error(codes.Internal,domain.ErrS3UploadFail.Error())
 
+			case errors.Is(err,domain.ErrPasswordMismatch):
+				return nil,status.Error(codes.InvalidArgument,domain.ErrPasswordMismatch.Error())
+
 			case errors.Is(err, domain.ErrDatabase):
 				//log.Error("Database Error", logger.Field{Key: "details", Value: err.Error()})
 				return nil, status.Error(codes.Internal, "internal database error")

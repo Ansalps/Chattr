@@ -759,28 +759,28 @@ func (as *AuthSubscriptionHandler) EditProfileInformation(c *gin.Context) {
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "edited profile information successfully", resp))
 }
 func (as *AuthSubscriptionHandler) ChangePassword(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
 	var req requestmodels.ChangePassword
 	req.UserID = jwtClaims.ID
-	if err := c.ShouldBindJSON(&req); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", validationErrors))
-			return
-		}
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "bind error", err))
+	err:=utils.BindingJson(c,&req,log)
+	if err!=nil{
 		return
 	}
 	validPassword, msg2 := utils.IsValidPassword(req.ConfirmNewPassword)
 	if !validPassword {
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,400,"validation failed"+msg2)
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", msg2))
 		return
 	}
@@ -791,7 +791,9 @@ func (as *AuthSubscriptionHandler) ChangePassword(c *gin.Context) {
 		ConfirmNewPassword: req.ConfirmNewPassword,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err.Error())
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "changed password successfully", resp))

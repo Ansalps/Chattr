@@ -865,7 +865,10 @@ func (as *AuthSubscriptionUsecase) ChangePassword(req requestmodels.ChangePasswo
 	passwordHash := utils.HashPassword(req.ConfirmNewPassword)
 	resp, err := as.AuthSubscriptionRepository.ChangePassword(req, passwordHash)
 	if err != nil {
-		return responsemodels.ChangePasswordResponse{}, err
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.ChangePasswordResponse{}, domain.ErrUserNotFound
+		}
+		return responsemodels.ChangePasswordResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	return resp, nil
 }

@@ -45,4 +45,6 @@ var (
 
 	ErrContentTypeNil=errors.New("Content type is nil")
 	ErrS3UploadFail=errors.New("profile image updload failed")
+
+	ErrPasswordMismatch=errors.New("passwords does not match")
 )
