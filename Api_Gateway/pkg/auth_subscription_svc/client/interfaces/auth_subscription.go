@@ -33,5 +33,4 @@ type AuthSubscriptionClientInterface interface{
 
 	GetProfileInformation(requestmodels.GetProfileInformationRequest)(responsemodels.GetProfileInformationResponse,error)
 
-	WebhookSubsciptionCompleted(requestmodels.RazorpayEvent)(responsemodels.WebhookResponse,error)
 }

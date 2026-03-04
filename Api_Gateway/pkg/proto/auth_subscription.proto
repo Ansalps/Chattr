@@ -24,7 +24,6 @@ service AuthSubscriptionService{
     rpc VerifySubscriptionPayment(VerifySubscriptionPaymentRequest) returns (VerifySubscriptionPaymentResponse);
     rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
     rpc SetProfileImage(SetProfileImageRequest) returns (SetProfileImageResponse);
-    rpc Webhook(WebhookRequest) returns (WebhookResponse);
 
     rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
 
@@ -201,22 +200,7 @@ message ProfileInfoRes{
     bool BlueTick=8;
     string Phone=9;
 }
-message WebhookRequest {
-    string event = 1;
-    Payload payload = 2;
-}
-message Payload {
-    Subscription subscription = 1;
-}
-message Subscription {
-    string id = 1;
-    string email = 2; // Add this to identify the user
-}
 
-message WebhookResponse{
-    string Event=1;
-    string RazorpaySubscriptionId=2;
-}
 message SetProfileImageRequest{
     uint64 UserId=1;
     string ContentType=2;

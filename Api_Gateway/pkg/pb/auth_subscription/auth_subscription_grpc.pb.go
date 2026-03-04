@@ -39,7 +39,6 @@ const (
 	AuthSubscriptionService_VerifySubscriptionPayment_FullMethodName     = "/auth_subscription.AuthSubscriptionService/VerifySubscriptionPayment"
 	AuthSubscriptionService_Unsubscribe_FullMethodName                   = "/auth_subscription.AuthSubscriptionService/Unsubscribe"
 	AuthSubscriptionService_SetProfileImage_FullMethodName               = "/auth_subscription.AuthSubscriptionService/SetProfileImage"
-	AuthSubscriptionService_Webhook_FullMethodName                       = "/auth_subscription.AuthSubscriptionService/Webhook"
 	AuthSubscriptionService_ChangePassword_FullMethodName                = "/auth_subscription.AuthSubscriptionService/ChangePassword"
 	AuthSubscriptionService_GetProfileInformation_FullMethodName         = "/auth_subscription.AuthSubscriptionService/GetProfileInformation"
 	AuthSubscriptionService_EditProfileInfromation_FullMethodName        = "/auth_subscription.AuthSubscriptionService/EditProfileInfromation"
@@ -77,7 +76,6 @@ type AuthSubscriptionServiceClient interface {
 	VerifySubscriptionPayment(ctx context.Context, in *VerifySubscriptionPaymentRequest, opts ...grpc.CallOption) (*VerifySubscriptionPaymentResponse, error)
 	Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error)
 	SetProfileImage(ctx context.Context, in *SetProfileImageRequest, opts ...grpc.CallOption) (*SetProfileImageResponse, error)
-	Webhook(ctx context.Context, in *WebhookRequest, opts ...grpc.CallOption) (*WebhookResponse, error)
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
 	GetProfileInformation(ctx context.Context, in *ProfileInfoReq, opts ...grpc.CallOption) (*ProfileInfoRes, error)
 	EditProfileInfromation(ctx context.Context, in *EditProfileReq, opts ...grpc.CallOption) (*EditProfileRes, error)
@@ -299,16 +297,6 @@ func (c *authSubscriptionServiceClient) SetProfileImage(ctx context.Context, in 
 	return out, nil
 }
 
-func (c *authSubscriptionServiceClient) Webhook(ctx context.Context, in *WebhookRequest, opts ...grpc.CallOption) (*WebhookResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(WebhookResponse)
-	err := c.cc.Invoke(ctx, AuthSubscriptionService_Webhook_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *authSubscriptionServiceClient) ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ChangePasswordResponse)
@@ -443,7 +431,6 @@ type AuthSubscriptionServiceServer interface {
 	VerifySubscriptionPayment(context.Context, *VerifySubscriptionPaymentRequest) (*VerifySubscriptionPaymentResponse, error)
 	Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error)
 	SetProfileImage(context.Context, *SetProfileImageRequest) (*SetProfileImageResponse, error)
-	Webhook(context.Context, *WebhookRequest) (*WebhookResponse, error)
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
 	GetProfileInformation(context.Context, *ProfileInfoReq) (*ProfileInfoRes, error)
 	EditProfileInfromation(context.Context, *EditProfileReq) (*EditProfileRes, error)
@@ -524,9 +511,6 @@ func (UnimplementedAuthSubscriptionServiceServer) Unsubscribe(context.Context, *
 }
 func (UnimplementedAuthSubscriptionServiceServer) SetProfileImage(context.Context, *SetProfileImageRequest) (*SetProfileImageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetProfileImage not implemented")
-}
-func (UnimplementedAuthSubscriptionServiceServer) Webhook(context.Context, *WebhookRequest) (*WebhookResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Webhook not implemented")
 }
 func (UnimplementedAuthSubscriptionServiceServer) ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChangePassword not implemented")
@@ -943,24 +927,6 @@ func _AuthSubscriptionService_SetProfileImage_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthSubscriptionService_Webhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(WebhookRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AuthSubscriptionServiceServer).Webhook(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AuthSubscriptionService_Webhook_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthSubscriptionServiceServer).Webhook(ctx, req.(*WebhookRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _AuthSubscriptionService_ChangePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ChangePasswordRequest)
 	if err := dec(in); err != nil {
@@ -1245,10 +1211,6 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetProfileImage",
 			Handler:    _AuthSubscriptionService_SetProfileImage_Handler,
-		},
-		{
-			MethodName: "Webhook",
-			Handler:    _AuthSubscriptionService_Webhook_Handler,
 		},
 		{
 			MethodName: "ChangePassword",

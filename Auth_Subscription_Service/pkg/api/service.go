@@ -775,8 +775,6 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionCancelled(ctx context.Conte
 	}, nil
 }
 func (as *AuthSubscriptionServer) WebhookSubscriptionCompleted(ctx context.Context, req *pb.WebhookSubscriptionCompletedRequest) (*pb.WebhookSubscriptionCompletedResponse, error) {
-	//fmt.Println("is ti here in webhook completed in service")
-	//fmt.Println("request in service ", req)
 	webhookReq := requestmodels.WebhookSubscriptionCompletedRequest{
 		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
 		Status:                 req.Status,
@@ -784,32 +782,10 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionCompleted(ctx context.Conte
 	}
 	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionCompleted(webhookReq)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 	return &pb.WebhookSubscriptionCompletedResponse{
 		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
 	}, nil
 }
-func (as *AuthSubscriptionServer) Webhook(ctx context.Context, req *pb.WebhookRequest) (*pb.WebhookResponse, error) {
-	webhookRequest := requestmodels.RazorpayEvent{
-		Event: req.Event,
-	}
-	if webhookRequest.Event != "subscription.completed" {
-		//	fmt.Println("please return")
-		return &pb.WebhookResponse{}, nil
-	}
-	//  Prevent nil pointer panic
-	if req.Payload != nil && req.Payload.Subscription != nil {
-		webhookRequest.Payload.Subscription.Entity.ID = req.Payload.Subscription.Id
-	}
-	webhoodRes, err := as.AuthSubscriptionUsecase.Webhook(webhookRequest)
-	if err != nil {
-		//fmt.Print("error in service", err)
-		return &pb.WebhookResponse{}, nil
-	}
-	return &pb.WebhookResponse{
-		Event:                  webhoodRes.Event,
-		RazorpaySubscriptionId: webhoodRes.RazorpaySubscriptionId,
-	}, nil
-}
+

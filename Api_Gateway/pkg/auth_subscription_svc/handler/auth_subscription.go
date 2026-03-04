@@ -1104,34 +1104,21 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 			return
 		}
 	case "subscription.completed":
-		//fmt.Println("is it here in completed")
 		_, err := as.DirectClient.Client.WebhookSubscriptionCompleted(context.Background(), &auth_subscription.WebhookSubscriptionCompletedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
 			Status:                 webhookReq.Payload.Subscription.Entity.Status,
 			UserId:                 UserID,
 		})
-		//fmt.Println("resp", resp)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, err.Error())
+			code,msg:=utils.GRPCtoHTTP(err)
+			utils.LogApiWithUserID(log,"",UserID,code,msg)
+			c.JSON(code,response.ClientResponse(code,msg,nil))
 			return
 		}
 	default:
+		utils.LogApiWithUserID(log,"",UserID,200,webhookReq.Event+"ignored event")
 		c.JSON(http.StatusOK, "ignored event")
 	}
-
-	// if webhookReq.Event != "subscription.completed" {
-	// 	c.JSON(http.StatusOK, response.ClientResponse(200, "Event ignored", nil)) // Better to return 200 for ignored events
-	// 	return
-	// }
-
-	// 5. Logic execution (gRPC or Usecase)
-	// WebhookResponse, err := as.GPPC_Client.WebhookSubsciptionCompleted(webhookReq)
-	// if err != nil {
-	// 	log.Printf("Internal processing error: %v", err)
-	// 	c.JSON(http.StatusInternalServerError, response.ClientResponse(500, "Internal error", nil))
-	// 	return
-	// }
-
 	c.JSON(http.StatusOK, res)
 }
 
@@ -1143,13 +1130,16 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 	// 	c.JSON(500,gin.H{"error":"internal error in conversion of string to uint"})
 	// 	return
 	// }
+	log:=utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
@@ -1161,7 +1151,7 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 		//SubId: req.SubId,
 	})
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
 		if st, ok := status.FromError(err); ok {
 			switch st.Code() {
 			case codes.NotFound:

@@ -55,7 +55,6 @@ type AuthSubscriptionUsecase interface{
 	WebhookSubscriptionCancelled(requestmodels.WebhookSubscriptionCancelledRequest)(responsemodels.WebhookSubscriptionCancelledResponse,error)
 
 	WebhookSubscriptionCompleted(requestmodels.WebhookSubscriptionCompletedRequest)(responsemodels.WebhookSubscriptionCompletedResponse,error)
-	Webhook(requestmodels.RazorpayEvent)(responsemodels.WebhookResponse,error)
 
 	DoesUserExists(userid uint64)(bool,error)
 

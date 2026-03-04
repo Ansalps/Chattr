@@ -37,7 +37,6 @@ service AuthSubscriptionService{
     rpc FetchUserMetaData(UserDataReq) returns (BatchUserMetadataResponse);
     rpc CheckUserListExists(UserDataReq) returns (BatchUserExistResponse);
 
-    rpc Webhook(WebhookRequest) returns (WebhookResponse);
 
     rpc GetSubscriptionDetails(GetSubscriptionDetailsRequest) returns (GetSubscriptionDetailsResponse);
 
@@ -237,22 +236,8 @@ message CheckUserExistsRequest{
 message CheckUserExistsResponse{
     uint64 UserId=1;
 }
-message WebhookRequest {
-    string event = 1;
-    Payload payload = 2;
-}
-message Payload {
-    Subscription subscription = 1;
-}
-message Subscription {
-    string id = 1;
-    string email = 2; // Add this to identify the user
-}
 
-message WebhookResponse{
-    string Event=1;
-    string RazorpaySubscriptionId=2;
-}
+
 message SetProfileImageRequest{
     uint64 UserId=1;
     string ContentType=2;

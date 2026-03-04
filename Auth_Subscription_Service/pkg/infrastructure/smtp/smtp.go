@@ -2,13 +2,9 @@ package smtp
 
 import (
 	"fmt"
-	"log"
 	"net/smtp"
-	"time"
 
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/config"
-	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
-	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/responsemodels"
 )
 
 type SmtpCredentials struct {
@@ -67,65 +63,4 @@ func (sc *SmtpCredentials) SendResetPasswordEmailOtp(otp int, recieverEmail stri
 		return err
 	}
 	return nil
-}
-
-func (sc *SmtpCredentials) SendNotificationEmailForResubscribing(webhookReq requestmodels.RazorpayEvent) (responsemodels.WebhookResponse, error) {
-	from := sc.SmtpConfig.SmtpSender
-	password := sc.SmtpConfig.SmtpPassword
-	userEmail := webhookReq.Payload.Subscription.Entity.Notes["email"]
-	to := []string{userEmail}
-	smtpHost := sc.SmtpConfig.SmtpHost
-	smtpPort := sc.SmtpConfig.SmtpPort
-	userName := webhookReq.Payload.Subscription.Entity.Notes["user_name"]
-
-	// 1. Convert Unix timestamps to readable dates
-	// Razorpay usually sends EndedAt as 0 if the webhook is 'subscription.completed'
-	// because the period just finished. You might want to use CurrentEnd if EndedAt is 0.
-	expiryTime := webhookReq.Payload.Subscription.Entity.EndedAt
-	if expiryTime == 0 {
-		expiryTime = webhookReq.Payload.Subscription.Entity.CurrentEnd
-	}
-
-	expiryDate := time.Unix(expiryTime, 0).Format("January 02, 2026")
-	deadlineDate := time.Unix(expiryTime+604800, 0).Format("January 02, 2026")
-
-	subject := "Action Required: Renew your Blue Tick Verification"
-
-	// 2. Build a cleaner message with proper RFC 822 headers
-	header := make(map[string]string)
-	header["From"] = from
-	header["To"] = userEmail
-	header["Subject"] = subject
-	header["MIME-Version"] = "1.0"
-	header["Content-Type"] = "text/plain; charset=\"utf-8\""
-
-	var msgBody string
-	for k, v := range header {
-		msgBody += fmt.Sprintf("%s: %s\r\n", k, v)
-	}
-
-	body := fmt.Sprintf(
-		"Hello %s,\n\n"+
-			"Your blue tick verification subscription ended on %s.\n\n"+
-			"To maintain your verified status and keep your blue tick active, please re-subscribe by %s.\n\n"+
-			"If you have any questions, reach out to us at support@chattr.com.\n\n"+
-			"Best regards,\n"+
-			"The Chattr Team",
-		userName, expiryDate, deadlineDate,
-	)
-
-	fullMessage := []byte(msgBody + "\r\n" + body)
-
-	// Authenticate and Send
-	auth := smtp.PlainAuth("", from, password, smtpHost)
-	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, fullMessage)
-	if err != nil {
-		log.Printf("SMTP Error: %v", err)
-		return responsemodels.WebhookResponse{}, err
-	}
-
-	return responsemodels.WebhookResponse{
-		Event:                  webhookReq.Event,
-		RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
-	}, nil
 }

@@ -35,7 +35,7 @@ func NewAuthSubscriptionClient(cfg *config.Config) interfaces.AuthSubscriptionCl
 	}
 }
 
-func (as *AuthSubscriptionClient) AdminLogin(ctx context.Context,adminDetails requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse, error) {
+func (as *AuthSubscriptionClient) AdminLogin(ctx context.Context, adminDetails requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse, error) {
 	resp, err := as.Client.AdminLogin(ctx, &auth_subscription.AdminLoginRequest{
 		Email:    adminDetails.Email,
 		Password: adminDetails.Password,
@@ -53,7 +53,7 @@ func (as *AuthSubscriptionClient) AdminLogin(ctx context.Context,adminDetails re
 	}, nil
 }
 
-func (as *AuthSubscriptionClient) UserSignUp(ctx context.Context,user requestmodels.UserSignUpRequest) (responsemodels.UserSignupResponse, error) {
+func (as *AuthSubscriptionClient) UserSignUp(ctx context.Context, user requestmodels.UserSignUpRequest) (responsemodels.UserSignupResponse, error) {
 	resp, err := as.Client.UserSignUp(ctx, &auth_subscription.UserSignUpRequest{
 		UserName:        user.UserName,
 		Name:            user.Name,
@@ -74,7 +74,7 @@ func (as *AuthSubscriptionClient) UserSignUp(ctx context.Context,user requestmod
 	}, nil
 }
 
-func (as *AuthSubscriptionClient) VerifyOtp(ctx context.Context,otpReq requestmodels.OtpRequest) (responsemodels.OtpVerificationResponse, error) {
+func (as *AuthSubscriptionClient) VerifyOtp(ctx context.Context, otpReq requestmodels.OtpRequest) (responsemodels.OtpVerificationResponse, error) {
 	resp, err := as.Client.VerifyOtp(ctx, &auth_subscription.OtpRequest{
 		UserId:  otpReq.UserId,
 		OtpCode: otpReq.OtpCode,
@@ -94,7 +94,7 @@ func (as *AuthSubscriptionClient) VerifyOtp(ctx context.Context,otpReq requestmo
 	}, nil
 }
 
-func (as *AuthSubscriptionClient) ResendOtp(ctx context.Context,resendOtpReq requestmodels.ResendOtpRequest) (responsemodels.ResendOtpResponse, error) {
+func (as *AuthSubscriptionClient) ResendOtp(ctx context.Context, resendOtpReq requestmodels.ResendOtpRequest) (responsemodels.ResendOtpResponse, error) {
 	resp, err := as.Client.ResendOtp(ctx, &auth_subscription.ResendOtpRequest{
 		Name:  resendOtpReq.Email,
 		Email: resendOtpReq.Email,
@@ -128,7 +128,7 @@ func (as *AuthSubscriptionClient) AccessRegenerator(accessRegeneratorReq request
 	}, nil
 }
 
-func (as *AuthSubscriptionClient) ForgotPassword(ctx context.Context,forgetPasswordReq requestmodels.ForgotPasswordRequest) (responsemodels.ForgetPassordResponse, error) {
+func (as *AuthSubscriptionClient) ForgotPassword(ctx context.Context, forgetPasswordReq requestmodels.ForgotPasswordRequest) (responsemodels.ForgetPassordResponse, error) {
 	resp, err := as.Client.ForgetPassword(ctx, &auth_subscription.ForgotPasswordRequest{
 		Email: forgetPasswordReq.Email,
 	})
@@ -182,7 +182,7 @@ func (as *AuthSubscriptionClient) UnblockUser(unblockUserReq requestmodels.Unblo
 	}, nil
 }
 
-func (as *AuthSubscriptionClient) UserLogin(ctx context.Context,userLoginReq requestmodels.UserLoginRequest) (responsemodels.UserLoginResponse, error) {
+func (as *AuthSubscriptionClient) UserLogin(ctx context.Context, userLoginReq requestmodels.UserLoginRequest) (responsemodels.UserLoginResponse, error) {
 	resp, err := as.Client.UserLogin(ctx, &auth_subscription.UserLoginRequest{
 		Email:    userLoginReq.Email,
 		Password: userLoginReq.Password,
@@ -480,32 +480,5 @@ func (as *AuthSubscriptionClient) GetProfileInformation(req requestmodels.GetPro
 		Links:         resp.Links,
 		BlueTick:      resp.BlueTick,
 		Phone:         resp.Phone,
-	}, nil
-}
-
-func (as *AuthSubscriptionClient) WebhookSubsciptionCompleted(req requestmodels.RazorpayEvent) (responsemodels.WebhookResponse, error) {
-	// 1. Correctly drill down into the nested payload
-	subscriptionID := req.Payload.Subscription.Entity.ID
-	userEmail := req.Payload.Subscription.Entity.Notes["email"]
-
-	resp, err := as.Client.Webhook(context.Background(), &auth_subscription.WebhookRequest{
-		Event: req.Event,
-		Payload: &auth_subscription.Payload{
-			Subscription: &auth_subscription.Subscription{
-				Id:    subscriptionID,
-				Email: userEmail, // Assuming you updated your proto
-			},
-		},
-	})
-
-	if err != nil {
-		//log.Printf("gRPC Call Failed: %v", err)
-		return responsemodels.WebhookResponse{}, err // Return the error so the handler knows it failed
-	}
-
-	return responsemodels.WebhookResponse{
-		Event:                  resp.Event,
-		RazorpaySubscriptionId: resp.RazorpaySubscriptionId,
-		Message:                "Webhook processed successfully",
 	}, nil
 }
