@@ -875,7 +875,7 @@ func (as *AuthSubscriptionUsecase) ChangePassword(req requestmodels.ChangePasswo
 func (as *AuthSubscriptionUsecase) SearchUser(req requestmodels.SearchUser) (responsemodels.SearchUserResponse, error) {
 	resp, err := as.AuthSubscriptionRepository.SearchUser(req)
 	if err != nil {
-		return responsemodels.SearchUserResponse{}, err
+		return responsemodels.SearchUserResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	return resp, nil
 }

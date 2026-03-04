@@ -799,29 +799,34 @@ func (as *AuthSubscriptionHandler) ChangePassword(c *gin.Context) {
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "changed password successfully", resp))
 }
 func (as *AuthSubscriptionHandler) SearchUser(c *gin.Context) {
-	pageStr := c.Query("page")
-	limitStr := c.Query("limit")
+	// pageStr := c.Query("page")
+	// limitStr := c.Query("limit")
 
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 1 {
-		if err != nil {
-			log.Printf("Error while string to int conversion(page), error: %v", err)
-		}
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+	// page, err := strconv.Atoi(pageStr)
+	// if err != nil || page < 1 {
+	// 	if err != nil {
+	// 		log.Printf("Error while string to int conversion(page), error: %v", err)
+	// 	}
+	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+	// 	return
+	// }
+
+	// limit, err := strconv.Atoi(limitStr)
+
+	// if err != nil || limit < 1 || limit > 100 {
+	// 	if err != nil {
+	// 		log.Printf("Error while string to int conversion(limit), error: %v", err)
+	// 	}
+	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+	// 	return
+	// }
+
+	// offset := (page - 1) * limit
+	log:=utils.GetLogger(c)
+	limit,offset,page,err:=utils.SetPageLimit(c,log)
+	if err!=nil{
 		return
 	}
-
-	limit, err := strconv.Atoi(limitStr)
-
-	if err != nil || limit < 1 || limit > 100 {
-		if err != nil {
-			log.Printf("Error while string to int conversion(limit), error: %v", err)
-		}
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
-		return
-	}
-
-	offset := (page - 1) * limit
 
 	var req requestmodels.SearchUser
 	req.Limit = limit
@@ -836,7 +841,10 @@ func (as *AuthSubscriptionHandler) SearchUser(c *gin.Context) {
 		Offset:     int64(req.Offset),
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err.Error())
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
+		return
 	}
 	resp2 := make([]responsemodels.UserMetaData, len(resp.UserMetaData))
 	//var resp1 responsemodels.SearchUserResponse
