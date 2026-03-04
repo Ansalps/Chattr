@@ -551,7 +551,7 @@ func (as *AuthSubscriptionUsecase) DeactivateSubscriptionPlan(deactivateSubscrip
 func (as *AuthSubscriptionUsecase) GetAllSubscriptionPlans(getAllSubscripionPlansReq requestmodels.GetAllSubscriptionPlansRequest) (responsemodels.GetAllSubscriptionPlansResponse, error) {
 	subscriptionPlans, err := as.AuthSubscriptionRepository.GetAllSubscriptionPlans(getAllSubscripionPlansReq)
 	if err != nil {
-		return responsemodels.GetAllSubscriptionPlansResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.GetAllSubscriptionPlansResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	return responsemodels.GetAllSubscriptionPlansResponse{
 		SubscriptionPlans: subscriptionPlans.SubscriptionPlans,
@@ -561,7 +561,7 @@ func (as *AuthSubscriptionUsecase) GetAllSubscriptionPlans(getAllSubscripionPlan
 func (as *AuthSubscriptionUsecase) GetAllActiveSubscriptionPlans(getAllActiveSubscriptionPlansReq requestmodels.GetAllActiveSubscriptionPlansRequest) (responsemodels.GetAllActiveSubscriptionPlansResponse, error) {
 	subscriptionPlans, err := as.AuthSubscriptionRepository.GetAllActiveSubscriptionPlans(getAllActiveSubscriptionPlansReq)
 	if err != nil {
-		return responsemodels.GetAllActiveSubscriptionPlansResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.GetAllActiveSubscriptionPlansResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	return responsemodels.GetAllActiveSubscriptionPlansResponse{
 		SubscriptionPlans: subscriptionPlans.SubscriptionPlans,

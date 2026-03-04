@@ -330,11 +330,7 @@ func (as *AuthSubscriptionServer) GetAllSubscriptionPlans(ctx context.Context, r
 	}
 	subscriptionPlans, err := as.AuthSubscriptionUsecase.GetAllSubscriptionPlans(getAllSubscriptionPlanReq)
 	if err != nil {
-		log.Printf("Get All Subscription Plans failed : %v", err)
-		switch {
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil,err
 	}
 	pbSubscriptionPlans := make([]*pb.SubscriptioPlan, len(subscriptionPlans.SubscriptionPlans))
 	for i, subscriptionPlan := range subscriptionPlans.SubscriptionPlans {
@@ -364,11 +360,7 @@ func (as *AuthSubscriptionServer) GetAllActiveSubscriptionPlans(ctx context.Cont
 	}
 	subscriptionPlans, err := as.AuthSubscriptionUsecase.GetAllActiveSubscriptionPlans(getAllActiveSubscriptionPlansReq)
 	if err != nil {
-		log.Printf("Get All Active Subscription Plans failed : %v", err)
-		switch {
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil,err
 	}
 	pbSubscriptionPlans := make([]*pb.SubscriptioPlan, len(subscriptionPlans.SubscriptionPlans))
 	for i, subscriptionPlan := range subscriptionPlans.SubscriptionPlans {

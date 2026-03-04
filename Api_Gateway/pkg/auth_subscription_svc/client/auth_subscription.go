@@ -347,7 +347,6 @@ func (as *AuthSubscriptionClient) GetAllActiveSubscriptionPlans(getAllActiveSubs
 		Offset: getAllActiveSubscriptionPlansReq.Offset,
 	})
 	if err != nil {
-		log.Printf("grpc get all active subscription plans call failed: %v", err)
 		return responsemodels.GetAllActiveSubscriptionPlansResponse{}, err
 	}
 	subscriptionPlans := make([]responsemodels.SubscriptionPlan, len(resp.SubscriptioPlans))
