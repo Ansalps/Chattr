@@ -649,11 +649,6 @@ func (as *AuthSubscriptionServer) GetSubscriptionDetails(ctx context.Context, re
 	}
 	resp, err := as.AuthSubscriptionUsecase.GetSubscriptionDetails(getSubcripitonReq)
 	if err != nil {
-		log.Println(err)
-		if err == domain.ErrNoSubscription {
-			//fmt.Println("hi here")
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
 		return nil, err
 	}
 	//	fmt.Println("resp.cancelled at",*resp.CancelledAt)

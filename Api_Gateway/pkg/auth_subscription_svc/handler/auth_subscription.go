@@ -21,8 +21,6 @@ import (
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/response"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/utils"
 	"github.com/gin-gonic/gin"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type AuthSubscriptionHandler struct {
@@ -732,13 +730,13 @@ func (as *AuthSubscriptionHandler) EditProfileInformation(c *gin.Context) {
 		return
 	}
 	var editProfile requestmodels.EditProfile
-	err:=utils.BindingJson(c,&editProfile,log)
-	if err!=nil{
+	err := utils.BindingJson(c, &editProfile, log)
+	if err != nil {
 		return
 	}
-	
+
 	if editProfile.Bio == nil && editProfile.Links == nil && editProfile.Name == nil {
-		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,400,"Need any one data to update")
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, 400, "Need any one data to update")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Need any one data to update", nil))
 		return
 	}
@@ -751,36 +749,36 @@ func (as *AuthSubscriptionHandler) EditProfileInformation(c *gin.Context) {
 	})
 	if err != nil {
 		//log.Println("error from grpc calling editp profile information,error: ", err)
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "edited profile information successfully", resp))
 }
 func (as *AuthSubscriptionHandler) ChangePassword(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
-		utils.LogAdminApi(log,401,"Claims not found")
+		utils.LogAdminApi(log, 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
-		utils.LogAdminApi(log,401,"invalid claims")
+		utils.LogAdminApi(log, 401, "invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
 	var req requestmodels.ChangePassword
 	req.UserID = jwtClaims.ID
-	err:=utils.BindingJson(c,&req,log)
-	if err!=nil{
+	err := utils.BindingJson(c, &req, log)
+	if err != nil {
 		return
 	}
 	validPassword, msg2 := utils.IsValidPassword(req.ConfirmNewPassword)
 	if !validPassword {
-		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,400,"validation failed"+msg2)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, 400, "validation failed"+msg2)
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", msg2))
 		return
 	}
@@ -791,9 +789,9 @@ func (as *AuthSubscriptionHandler) ChangePassword(c *gin.Context) {
 		ConfirmNewPassword: req.ConfirmNewPassword,
 	})
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "changed password successfully", resp))
@@ -822,9 +820,9 @@ func (as *AuthSubscriptionHandler) SearchUser(c *gin.Context) {
 	// }
 
 	// offset := (page - 1) * limit
-	log:=utils.GetLogger(c)
-	limit,offset,page,err:=utils.SetPageLimit(c,log)
-	if err!=nil{
+	log := utils.GetLogger(c)
+	limit, offset, page, err := utils.SetPageLimit(c, log)
+	if err != nil {
 		return
 	}
 
@@ -841,9 +839,9 @@ func (as *AuthSubscriptionHandler) SearchUser(c *gin.Context) {
 		Offset:     int64(req.Offset),
 	})
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogAdminApi(log,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	resp2 := make([]responsemodels.UserMetaData, len(resp.UserMetaData))
@@ -864,16 +862,16 @@ func (as *AuthSubscriptionHandler) SearchUser(c *gin.Context) {
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "users retrieved successfully", resp1))
 }
 func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
-		utils.LogAdminApi(log,401,"claims not found")
+		utils.LogAdminApi(log, 401, "claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
-		utils.LogAdminApi(log,401,"invalid claims")
+		utils.LogAdminApi(log, 401, "invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
@@ -884,7 +882,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 	}
 	userId, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
-		utils.LogAdminApi(log,400,"invalid user id")
+		utils.LogAdminApi(log, 400, "invalid user id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid user id", nil))
 		return
 	}
@@ -973,16 +971,16 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) Logout(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
-		utils.LogAdminApi(log,401,"claims not found")
+		utils.LogAdminApi(log, 401, "claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
-		utils.LogAdminApi(log,401,"invalid claims")
+		utils.LogAdminApi(log, 401, "invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
@@ -990,14 +988,14 @@ func (as *AuthSubscriptionHandler) Logout(c *gin.Context) {
 	jti := jwtClaims.RegisteredClaims.ID
 	exp := jwtClaims.RegisteredClaims.ExpiresAt.Time
 	if jti == "" {
-		utils.LogAdminApi(log,400,"token missing jti")
+		utils.LogAdminApi(log, 400, "token missing jti")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "token missing jti"})
 		return
 	}
 	err := as.RedisRepository.BlacklistToken(jti, exp)
 	if err != nil {
 		// Decide your policy here
-		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,500,"logout failed")
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, 500, "logout failed")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "logout failed"})
 		return
 	}
@@ -1009,7 +1007,7 @@ func (as *AuthSubscriptionHandler) Logout(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
-	
+
 	// 2. Verify Signature
 	// signature := c.GetHeader("X-Razorpay-Signature")
 	// if signature!="postman-bypass"{
@@ -1019,21 +1017,21 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 	// 		return // IMPORTANT: Don't forget to return here!
 	// 	}
 	// }
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var webhookReq requestmodels.RazorpayEvent
-	err:=utils.BindingJson(c,&webhookReq,log)
-	if err!=nil{
+	err := utils.BindingJson(c, &webhookReq, log)
+	if err != nil {
 		return
 	}
 	//fmt.Printf("Type: %T, Value: %v\n", webhookReq.Payload.Subscription.Entity.Notes["user_id"], webhookReq.Payload.Subscription.Entity.Notes["user_id"])
 	UserIdStr := webhookReq.Payload.Subscription.Entity.Notes["user_id"]
 	UserID, err := strconv.ParseUint(UserIdStr, 10, 64)
 	if err != nil {
-		utils.LogAdminApi(log,500,"error in conver string user id to uint64: "+err.Error())
+		utils.LogAdminApi(log, 500, "error in conver string user id to uint64: "+err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error in conver string user id to uint64"})
 		return
 	}
-	
+
 	// 4. Validate Event Type
 	var res *auth_subscription.WebhookSubscriptionActivatedResponse
 	switch webhookReq.Event {
@@ -1048,9 +1046,9 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 			UserId:                 UserID,
 		})
 		if err != nil {
-			code,msg:=utils.GRPCtoHTTP(err)
-			utils.LogApiWithUserID(log,"",UserID,code,msg)
-			c.JSON(code,response.ClientResponse(code,msg,nil))
+			code, msg := utils.GRPCtoHTTP(err)
+			utils.LogApiWithUserID(log, "", UserID, code, msg)
+			c.JSON(code, response.ClientResponse(code, msg, nil))
 			return
 		}
 	case "subscription.charged":
@@ -1072,9 +1070,9 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 		})
 		//fmt.Println("res", res)
 		if err != nil {
-			code,msg:=utils.GRPCtoHTTP(err)
-			utils.LogApiWithUserID(log,"",UserID,code,msg)
-			c.JSON(code,response.ClientResponse(code,msg,nil))
+			code, msg := utils.GRPCtoHTTP(err)
+			utils.LogApiWithUserID(log, "", UserID, code, msg)
+			c.JSON(code, response.ClientResponse(code, msg, nil))
 			return
 		}
 	case "subscription.halted":
@@ -1084,9 +1082,9 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 			UserId:                 UserID,
 		})
 		if err != nil {
-			code,msg:=utils.GRPCtoHTTP(err)
-			utils.LogApiWithUserID(log,"",UserID,code,msg)
-			c.JSON(code,response.ClientResponse(code,msg,nil))
+			code, msg := utils.GRPCtoHTTP(err)
+			utils.LogApiWithUserID(log, "", UserID, code, msg)
+			c.JSON(code, response.ClientResponse(code, msg, nil))
 			return
 		}
 	case "subscription.cancelled":
@@ -1098,9 +1096,9 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 		})
 		//fmt.Println("resp", resp)
 		if err != nil {
-			code,msg:=utils.GRPCtoHTTP(err)
-			utils.LogApiWithUserID(log,"",UserID,code,msg)
-			c.JSON(code,response.ClientResponse(code,msg,nil))
+			code, msg := utils.GRPCtoHTTP(err)
+			utils.LogApiWithUserID(log, "", UserID, code, msg)
+			c.JSON(code, response.ClientResponse(code, msg, nil))
 			return
 		}
 	case "subscription.completed":
@@ -1110,13 +1108,13 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 			UserId:                 UserID,
 		})
 		if err != nil {
-			code,msg:=utils.GRPCtoHTTP(err)
-			utils.LogApiWithUserID(log,"",UserID,code,msg)
-			c.JSON(code,response.ClientResponse(code,msg,nil))
+			code, msg := utils.GRPCtoHTTP(err)
+			utils.LogApiWithUserID(log, "", UserID, code, msg)
+			c.JSON(code, response.ClientResponse(code, msg, nil))
 			return
 		}
 	default:
-		utils.LogApiWithUserID(log,"",UserID,200,webhookReq.Event+"ignored event")
+		utils.LogApiWithUserID(log, "", UserID, 200, webhookReq.Event+"ignored event")
 		c.JSON(http.StatusOK, "ignored event")
 	}
 	c.JSON(http.StatusOK, res)
@@ -1130,16 +1128,16 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 	// 	c.JSON(500,gin.H{"error":"internal error in conversion of string to uint"})
 	// 	return
 	// }
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
-		utils.LogAdminApi(log,401,"Claims not found")
+		utils.LogAdminApi(log, 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
-		utils.LogAdminApi(log,401,"invalid claims")
+		utils.LogAdminApi(log, 401, "invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
@@ -1151,20 +1149,9 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 		//SubId: req.SubId,
 	})
 	if err != nil {
-		//log.Println(err)
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.NotFound:
-				c.JSON(http.StatusNotFound, gin.H{"error": st.Message()})
-				return
-			default:
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				return
-			}
-
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "unexpected error"})
-		}
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	resp2 := responsemodels.SubscriptionPlan{
