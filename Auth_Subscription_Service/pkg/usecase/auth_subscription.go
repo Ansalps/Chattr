@@ -836,9 +836,8 @@ func (as *AuthSubscriptionUsecase) GetProfileInformation(req requestmodels.GetPr
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.GetProfileInformationResponse{}, domain.ErrUserNotFound
 		}
-		return responsemodels.GetProfileInformationResponse{}, err
+		return responsemodels.GetProfileInformationResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
-	//fmt.Println("resp in usecase", resp)
 	return resp, nil
 }
 func (as *AuthSubscriptionUsecase) EditProfileInformation(userId uint64, updateData map[string]interface{}) (responsemodels.EditProfile, error) {

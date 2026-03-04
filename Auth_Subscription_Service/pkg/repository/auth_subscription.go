@@ -656,7 +656,6 @@ func (ad *AuthSubscriptionRepository) GetProfileInformation(req requestmodels.Ge
 	if result.RowsAffected == 0 {
 		return responsemodels.GetProfileInformationResponse{}, gorm.ErrRecordNotFound
 	}
-	//fmt.Println("resp in repo", resp, resp.UserID)
 	return resp, nil
 }
 func (ad *AuthSubscriptionRepository) EditProfileInformation(userId uint64, updateData map[string]interface{}) (responsemodels.EditProfile, error) {

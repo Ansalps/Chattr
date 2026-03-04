@@ -690,13 +690,16 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) GetProfileInformation(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
@@ -704,10 +707,12 @@ func (as *AuthSubscriptionHandler) GetProfileInformation(c *gin.Context) {
 	req.UserId = jwtClaims.ID
 	res, err := as.GPPC_Client.GetProfileInformation(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,res.Email,req.UserId,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
-	//fmt.Println("resp in api gateway", res)
+
 	c.JSON(http.StatusOK, res)
 
 }

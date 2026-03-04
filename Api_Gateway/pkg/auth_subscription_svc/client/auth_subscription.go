@@ -147,7 +147,7 @@ func (as *AuthSubscriptionClient) ResetPassword(resetPasswordReq requestmodels.R
 		Password: resetPasswordReq.Password,
 	})
 	if err != nil {
-		log.Printf("grpc reset password call failed :%v", err)
+		//log.Printf("grpc reset password call failed :%v", err)
 		return responsemodels.ResetPasswordResponse{}, err
 	}
 	return responsemodels.ResetPasswordResponse{
@@ -160,7 +160,7 @@ func (as *AuthSubscriptionClient) BlockUser(blockUserReq requestmodels.BlockUser
 		UserId: blockUserReq.UserId,
 	})
 	if err != nil {
-		log.Printf("grpc block user call failed :%v", err)
+		//log.Printf("grpc block user call failed :%v", err)
 		return responsemodels.BlockUserResponse{}, err
 	}
 	return responsemodels.BlockUserResponse{
@@ -173,7 +173,7 @@ func (as *AuthSubscriptionClient) UnblockUser(unblockUserReq requestmodels.Unblo
 		UserId: unblockUserReq.UserId,
 	})
 	if err != nil {
-		log.Printf("grpc unblock user call failed :%v", err)
+		//log.Printf("grpc unblock user call failed :%v", err)
 		return responsemodels.UnblockUserResponse{}, err
 	}
 	//fmt.Println("see if we get back user id in unblock user in client function",resp.UserId)
@@ -210,7 +210,7 @@ func (as *AuthSubscriptionClient) GetAllUsers(getAllUsersReq requestmodels.GetAl
 		Offset: getAllUsersReq.Offset,
 	})
 	if err != nil {
-		log.Printf("grpc Get All Users call failed: %v", err)
+		//log.Printf("grpc Get All Users call failed: %v", err)
 		return responsemodels.GetAllUsersResponse{}, err
 	}
 	users := make([]responsemodels.User, len(resp.Users))
@@ -246,7 +246,7 @@ func (as *AuthSubscriptionClient) CreateSubscriptionPlan(createSubscriptionPlanR
 		Description: createSubscriptionPlanReq.Description,
 	})
 	if err != nil {
-		log.Printf("grpc create subscription plan call failed :%v", err)
+		//log.Printf("grpc create subscription plan call failed :%v", err)
 		return responsemodels.CreateSubscriptionPlanResponse{}, err
 	}
 	return responsemodels.CreateSubscriptionPlanResponse{
@@ -268,7 +268,7 @@ func (as *AuthSubscriptionClient) ActivateSubscriptionPlan(activateSubscriptionP
 		Id: activateSubscriptionPlanReq.ID,
 	})
 	if err != nil {
-		log.Printf("grpc activate subscription plan call failed: %v", err)
+		//log.Printf("grpc activate subscription plan call failed: %v", err)
 		return responsemodels.ActivateSubscriptionPlanResponse{}, err
 	}
 	return responsemodels.ActivateSubscriptionPlanResponse{
@@ -290,7 +290,7 @@ func (as *AuthSubscriptionClient) DeactivateSubscriptionPlan(deactivateSubscript
 		Id: deactivateSubscriptionPlanReq.ID,
 	})
 	if err != nil {
-		log.Printf("grpc deactivate subscription plan call failed: %v", err)
+		//log.Printf("grpc deactivate subscription plan call failed: %v", err)
 		return responsemodels.DeactivateSubscriptionPlanResponse{}, err
 	}
 	return responsemodels.DeactivateSubscriptionPlanResponse{
@@ -313,7 +313,7 @@ func (as *AuthSubscriptionClient) GetAllSubscriptionPlans(getAllSubscritpionPlan
 		Offset: getAllSubscritpionPlansReq.Offset,
 	})
 	if err != nil {
-		log.Printf("grpc get all subscription plans call failed: %v", err)
+		//log.Printf("grpc get all subscription plans call failed: %v", err)
 		return responsemodels.GetAllSubscriptionPlansResponse{}, err
 	}
 	subscriptionPlans := make([]responsemodels.SubscriptionPlan, len(resp.SubscriptioPlans))
@@ -454,7 +454,7 @@ func (as *AuthSubscriptionClient) SetProfileImage(setProfileImgReq requestmodels
 		Image:       setProfileImgReq.Image,
 	})
 	if err != nil {
-		log.Println("print in client error", err)
+		//log.Println("print in client error", err)
 		return responsemodels.SetProfileImageResponse{}, err
 	}
 	//fmt.Println("if no error pint  image url",resp.ImageUrl)
@@ -468,7 +468,6 @@ func (as *AuthSubscriptionClient) GetProfileInformation(req requestmodels.GetPro
 		UserId: req.UserId,
 	})
 	if err != nil {
-		log.Println("error from grpc", err)
 		return responsemodels.GetProfileInformationResponse{}, err
 	}
 	return responsemodels.GetProfileInformationResponse{
@@ -500,7 +499,7 @@ func (as *AuthSubscriptionClient) WebhookSubsciptionCompleted(req requestmodels.
 	})
 
 	if err != nil {
-		log.Printf("gRPC Call Failed: %v", err)
+		//log.Printf("gRPC Call Failed: %v", err)
 		return responsemodels.WebhookResponse{}, err // Return the error so the handler knows it failed
 	}
 
