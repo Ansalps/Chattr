@@ -41,4 +41,8 @@ var (
     ErrExternalService    = errors.New("payment provider encountered an internal error")
     ErrServiceUnavailable = errors.New("payment provider is temporarily unavailable")
 	ErrUnknown=errors.New("unexpected error from razorpay")
+	ErrInvalidResponseRazorpay=errors.New("Invalide response format from razorpay")
+
+	ErrContentTypeNil=errors.New("Content type is nil")
+	ErrS3UploadFail=errors.New("profile image updload failed")
 )

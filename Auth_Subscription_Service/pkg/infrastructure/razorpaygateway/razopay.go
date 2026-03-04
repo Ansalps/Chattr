@@ -28,7 +28,7 @@ func (r *RazorpayGateway) CreatePlan(planData map[string]interface{}) (*domain.C
 	// Helper to safely extract nested "item" map
 	item, ok := plan["item"].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("invalid response: item block missing")
+		return nil, fmt.Errorf("%w: %v",domain.ErrInvalidResponseRazorpay,"item block plan missing or different type")
 	}
 
 	// Full Mapping Logic
@@ -74,7 +74,7 @@ func getBool(m map[string]interface{}, key string) bool {
 func (r *RazorpayGateway) CreateSubscription(subData map[string]interface{}) (*domain.CreatedSubscriptionDTO, error) {
 	sub, err := r.Client.Subscription.Create(subData, nil)
 	if err != nil {
-		return nil, err
+		return nil, utils.MapRazorpayError(err)
 	}
 	//fmt.Println(sub)
 	// Standard helper to handle the map[string]interface{} types

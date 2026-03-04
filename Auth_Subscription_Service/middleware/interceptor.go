@@ -58,6 +58,7 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 		// 	)
 		// }
 		log := utils.GetLogger(ctx)
+		log.Error("Client/server Error", logger.Field{Key: "details", Value: err.Error()})
 		if err != nil {
 			switch {
 			case errors.Is(err, domain.ErrDatabaseConnectionTimeOut):
@@ -111,6 +112,8 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 				return nil,status.Error(codes.NotFound,domain.ErrSubPlanNotFound.Error())
 			case errors.Is(err,domain.ErrSubscriptionPlanAlreadyActive):
 				return nil,status.Error(codes.FailedPrecondition,domain.ErrSubscriptionPlanAlreadyActive.Error())
+			case errors.Is(err,domain.ErrInvalidResponseRazorpay):
+				return nil,status.Error(codes.InvalidArgument,domain.ErrInvalidResponseRazorpay.Error())
 
 			case errors.Is(err,domain.ErrSubscriptionPlanAlreadyDeactive):
 				return nil,status.Error(codes.FailedPrecondition,domain.ErrSubscriptionPlanAlreadyDeactive.Error())
@@ -118,12 +121,28 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 			case errors.Is(err,domain.ErrNotEligible):
 				return nil,status.Error(codes.FailedPrecondition,domain.ErrNotEligible.Error())
 
+			case errors.Is(err,domain.ErrNoActiveSubscription):
+				return nil,status.Error(codes.FailedPrecondition,domain.ErrNoActiveSubscription.Error())
+			case errors.Is(err,domain.ErrSubCompleted):
+				return nil,status.Error(codes.FailedPrecondition,domain.ErrSubCompleted.Error())
+			case errors.Is(err,domain.ErrSubCancelled):
+				return nil,status.Error(codes.FailedPrecondition,domain.ErrSubCancelled.Error())
+			case errors.Is(err,domain.ErrSubCancelled):
+				return nil,status.Error(codes.FailedPrecondition,domain.ErrSubCancelled.Error())
+			case errors.Is(err,domain.ErrRazorpayCancel):
+				return nil,status.Error(codes.Internal,domain.ErrRazorpayCancel.Error())
+
+			case errors.Is(err,domain.ErrContentTypeNil):
+				return nil,status.Error(codes.Internal,domain.ErrContentTypeNil.Error())
+			case errors.Is(err,domain.ErrS3UploadFail):
+				return nil,status.Error(codes.Internal,domain.ErrS3UploadFail.Error())
+
 			case errors.Is(err, domain.ErrDatabase):
-				log.Error("Database Error", logger.Field{Key: "details", Value: err.Error()})
+				//log.Error("Database Error", logger.Field{Key: "details", Value: err.Error()})
 				return nil, status.Error(codes.Internal, "internal database error")
 		
 			default:
-				log.Error("Unexpected Error", logger.Field{Key: "details", Value: err.Error()})
+				//log.Error("Unexpected Error", logger.Field{Key: "details", Value: err.Error()})
 				return nil, status.Error(codes.Internal, "internal server error")
 			}
 		}

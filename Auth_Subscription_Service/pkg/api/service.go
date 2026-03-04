@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"log"
 	"time"
 
@@ -73,7 +72,7 @@ func (as *AuthSubscriptionServer) BlockUser(ctx context.Context, req *pb.BlockUs
 	}
 	blockUserResponse, err := as.AuthSubscriptionUsecase.BlockUser(blockUserReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return &pb.BlockUserResponse{
 		UserId: blockUserResponse.UserId,
@@ -86,7 +85,7 @@ func (as *AuthSubscriptionServer) UnblockUser(ctx context.Context, req *pb.Unblo
 	}
 	unblockUserResponse, err := as.AuthSubscriptionUsecase.UnblockUser(unblockUserReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return &pb.UnblockUserResponse{
 		UserId: unblockUserResponse.UserId,
@@ -100,7 +99,7 @@ func (as *AuthSubscriptionServer) GetAllUsers(ctx context.Context, req *pb.GetAl
 	}
 	users, err := as.AuthSubscriptionUsecase.GetAllUsers(getAllUsersReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	pbUsers := make([]*pb.User, len(users.Users))
 	for i, user := range users.Users {
@@ -205,7 +204,7 @@ func (as *AuthSubscriptionServer) ForgetPassword(ctx context.Context, req *pb.Fo
 	}
 	forgotPasswordRes, err := as.AuthSubscriptionUsecase.ForgotPassword(ctx, forgotPasswordReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return &pb.ForgotPasswordResponse{
 		Email:     forgotPasswordRes.Email,
@@ -219,7 +218,7 @@ func (as *AuthSubscriptionServer) ResetPassword(ctx context.Context, req *pb.Res
 	}
 	resetPasswordResponse, err := as.AuthSubscriptionUsecase.ResetPassword(resetPasswordReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return &pb.ResetPasswordResponse{
 		Email: resetPasswordResponse.Email,
@@ -233,7 +232,7 @@ func (as *AuthSubscriptionServer) UserLogin(ctx context.Context, req *pb.UserLog
 	}
 	user, err := as.AuthSubscriptionUsecase.UserLogin(ctx, userLoginReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	userDetails := &pb.UserDetails{
 		Id:       user.User.Id,
@@ -261,7 +260,7 @@ func (as *AuthSubscriptionServer) CreateSubscriptionPlan(ctx context.Context, re
 	}
 	createSubscriptionPlanResponse, err := as.AuthSubscriptionUsecase.CreateSubscriptionPlan(createSubscriptionPlanReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return &pb.CreateSubscriptionPlanResponse{
 		Id:          createSubscriptionPlanResponse.ID,
@@ -283,7 +282,7 @@ func (as *AuthSubscriptionServer) ActivateSubscriptionPlan(ctx context.Context, 
 	}
 	activateSubscriptionPlanResponse, err := as.AuthSubscriptionUsecase.ActivateSubscriptionPlan(activateSubscriptionPlanReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return &pb.ActivateSubscriptionPlanResponse{
 		Id:             activateSubscriptionPlanResponse.ID,
@@ -306,7 +305,7 @@ func (as *AuthSubscriptionServer) DeactivateSubscriptionPlan(ctx context.Context
 	}
 	deactivateSubscriptionPlanResponse, err := as.AuthSubscriptionUsecase.DeactivateSubscriptionPlan(deactivateSubscriptionPlanReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return &pb.DeactivateSubscriptionPlanResponse{
 		Id:             deactivateSubscriptionPlanResponse.ID,
@@ -330,7 +329,7 @@ func (as *AuthSubscriptionServer) GetAllSubscriptionPlans(ctx context.Context, r
 	}
 	subscriptionPlans, err := as.AuthSubscriptionUsecase.GetAllSubscriptionPlans(getAllSubscriptionPlanReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	pbSubscriptionPlans := make([]*pb.SubscriptioPlan, len(subscriptionPlans.SubscriptionPlans))
 	for i, subscriptionPlan := range subscriptionPlans.SubscriptionPlans {
@@ -360,7 +359,7 @@ func (as *AuthSubscriptionServer) GetAllActiveSubscriptionPlans(ctx context.Cont
 	}
 	subscriptionPlans, err := as.AuthSubscriptionUsecase.GetAllActiveSubscriptionPlans(getAllActiveSubscriptionPlansReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	pbSubscriptionPlans := make([]*pb.SubscriptioPlan, len(subscriptionPlans.SubscriptionPlans))
 	for i, subscriptionPlan := range subscriptionPlans.SubscriptionPlans {
@@ -392,14 +391,7 @@ func (as *AuthSubscriptionServer) Subscribe(ctx context.Context, req *pb.Subscri
 	}
 	subscribeRes, err := as.AuthSubscriptionUsecase.Subscribe(subscribeReq)
 	if err != nil {
-		switch err {
-		case domain.ErrNotEligible:
-			return nil, status.Error(codes.AlreadyExists, err.Error())
-		case domain.ErrSubPlanNotFound:
-			return nil, status.Error(codes.NotFound, err.Error())
-		default:
-			return nil, status.Errorf(codes.Internal, "status internal server error")
-		}
+		return nil, err
 	}
 	return &pb.SubscribeResponse{
 		Id:        subscribeRes.ID,
@@ -460,21 +452,7 @@ func (as *AuthSubscriptionServer) Unsubscribe(ctx context.Context, req *pb.Unsub
 	}
 	unsubscribeRes, err := as.AuthSubscriptionUsecase.Unsubscribe(unsubscribeReq)
 	if err != nil {
-		log.Println(err.Error())
-		switch {
-		case errors.Is(err, domain.ErrNoActiveSubscription):
-			return nil, status.Error(codes.NotFound, err.Error())
-		case errors.Is(err, domain.ErrDatabase):
-			return nil, status.Error(codes.Internal, err.Error())
-		case errors.Is(err, domain.ErrSubCompleted):
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case errors.Is(err, domain.ErrSubCancelled):
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case errors.Is(err, domain.ErrRazorpayCancel):
-			return nil, status.Error(codes.Internal, err.Error())
-		default:
-			return nil, status.Error(codes.Internal, "status internal server error")
-		}
+		return nil, err
 	}
 	return &pb.UnsubscribeResponse{
 		SubId: unsubscribeRes.SubId,
@@ -490,7 +468,7 @@ func (as *AuthSubscriptionServer) SetProfileImage(ctx context.Context, req *pb.S
 	}
 	setProfileImageRes, err := as.AuthSubscriptionUsecase.SetProfileImage(setProfileImageReq)
 	if err != nil {
-		log.Println("is there any error from usercase", err)
+		return nil,err
 	}
 	//fmt.Println("in service printing image url", setProfileImageRes.ImageUrl)
 	return &pb.SetProfileImageResponse{

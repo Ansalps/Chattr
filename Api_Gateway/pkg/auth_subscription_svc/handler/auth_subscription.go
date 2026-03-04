@@ -511,22 +511,9 @@ func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
 
 	subscribeResponse, err := as.GPPC_Client.Subscribe(subscribeReq)
 	if err != nil {
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusUnauthorized, "Invalide Email or Password", nil)
-			case codes.AlreadyExists:
-				obj = response.ClientResponse(http.StatusPreconditionFailed, st.Message(), nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
-		}
-		c.JSON(obj.StatusCode, obj)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,subscribeReq.UserEmail,subscribeReq.UserId,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 
@@ -570,25 +557,23 @@ func (as *AuthSubscriptionHandler) VerifySubscriptionPayment(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) Unsubscribe(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"Calims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
 	var unsubscribeReq requestmodels.UnsubscribeRequest
 	unsubscribeReq.UserID = jwtClaims.ID
-	if err := c.ShouldBindJSON(&unsubscribeReq); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	err:=utils.BindingJson(c,&unsubscribeReq,log)
+	if err!=nil{
 		return
 	}
 	// subIdStr := c.Param("sub_id")
@@ -601,45 +586,33 @@ func (as *AuthSubscriptionHandler) Unsubscribe(c *gin.Context) {
 
 	unsubscribeResponse, err := as.GPPC_Client.Unsubscribe(unsubscribeReq)
 	if err != nil {
-		var obj response.Response
-		// Check if it’s a gRPC status error
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.FailedPrecondition:
-				obj = response.ClientResponse(http.StatusUnauthorized, st.Message(), nil)
-			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusNotFound, st.Message(), nil)
-			case codes.Internal:
-				obj = response.ClientResponse(http.StatusInternalServerError, st.Message(), nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		} else {
-			// Unexpected non-gRPC error
-			obj = response.ClientResponse(http.StatusInternalServerError, "Unexpected Error", nil)
-		}
-		c.JSON(obj.StatusCode, obj)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,"",unsubscribeReq.UserID,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "unsubscribed successully", unsubscribeResponse)
 	c.JSON(success.StatusCode, success)
 }
 func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var setProfileImageReq requestmodels.SetProfileImageRequest
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
 	setProfileImageReq.UserId = jwtClaims.ID
 	file, err := c.FormFile("image")
 	if err != nil {
-		log.Println(err)
+		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,400,"Image is required"+err.Error())
 		c.JSON(400, gin.H{"error": "Image is required"})
 		return
 	}
@@ -647,17 +620,19 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	num, err := strconv.Atoi(str) // returns (int, error)
 	if err != nil {
 		//fmt.Println("Error:", err)
+		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,500,"error in converting prorile image size from string to int"+err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error in converting prorile image size from string to int"})
 		return
 	}
 	// Check file size < 2 MB
 	if file.Size > int64(num)*1024*1024 {
+		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,500,"Image must be less than 2MB")
 		c.JSON(400, gin.H{"error": "Image must be less than 2MB"})
 		return
 	}
 	src, err := file.Open()
 	if err != nil {
-		log.Println(err)
+		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,500,"Cannot open image"+err.Error())
 		c.JSON(500, gin.H{"error": "Cannot open image"})
 		return
 	}
@@ -667,7 +642,8 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	buf := make([]byte, 512)
 	_, err = src.Read(buf)
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
+		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,400,"Invalid image"+err.Error())
 		c.JSON(400, gin.H{"error": "Invalid image"})
 		return
 	}
@@ -684,6 +660,7 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	}
 
 	if !allowed[contentType] {
+		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,400,"Only JPG, PNG, or WebP images are allowed")
 		c.JSON(400, gin.H{"error": "Only JPG, PNG, or WebP images are allowed"})
 		return
 	}
@@ -694,7 +671,8 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	// Read full bytes
 	data, err := io.ReadAll(src)
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
+		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,500,"Cannot read image"+err.Error())
 		c.JSON(500, gin.H{"error": "Cannot read image"})
 		return
 
@@ -703,8 +681,9 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	setProfileImageReq.ContentType = contentType
 	setProfileImageResponse, err := as.GPPC_Client.SetProfileImage(setProfileImageReq)
 	if err != nil {
-		log.Println(err)
-		c.JSON(http.StatusBadRequest, gin.H{"message": "error in resonse"})
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	c.JSON(http.StatusOK, setProfileImageResponse)

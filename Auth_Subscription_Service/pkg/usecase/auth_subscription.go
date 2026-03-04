@@ -22,8 +22,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 )
 
@@ -103,17 +101,17 @@ func (as *AuthSubscriptionUsecase) BlockUser(blockUserReq requestmodels.BlockUse
 	}
 	status, err := as.AuthSubscriptionRepository.CheckUserStatus(blockUserReq.UserId)
 	if err != nil {
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.BlockUserResponse{},domain.ErrUserNotFound
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.BlockUserResponse{}, domain.ErrUserNotFound
 		}
-		return responsemodels.BlockUserResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.BlockUserResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	if status != "active" {
 		return responsemodels.BlockUserResponse{}, domain.ErrUserNotActive
 	}
 	err = as.AuthSubscriptionRepository.ChangeUserStatusToBlockedByUserId(blockUserReq)
 	if err != nil {
-		return responsemodels.BlockUserResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.BlockUserResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	return responsemodels.BlockUserResponse{
 		UserId: blockUserReq.UserId,
@@ -126,10 +124,10 @@ func (as *AuthSubscriptionUsecase) UnblockUser(unblockUserReq requestmodels.Unbl
 	}
 	status, err := as.AuthSubscriptionRepository.CheckUserStatus(unblockUserReq.UserId)
 	if err != nil {
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.UnblockUserResponse{},domain.ErrUserNotFound
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.UnblockUserResponse{}, domain.ErrUserNotFound
 		}
-		return responsemodels.UnblockUserResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.UnblockUserResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	if status != "blocked" {
 		return responsemodels.UnblockUserResponse{}, domain.ErrUserNotBlocked
@@ -146,7 +144,7 @@ func (as *AuthSubscriptionUsecase) UnblockUser(unblockUserReq requestmodels.Unbl
 func (as *AuthSubscriptionUsecase) GetAllUsers(getAllUsersReq requestmodels.GetAllUsersRequest) (responsemodels.GetAllUsersResponse, error) {
 	users, err := as.AuthSubscriptionRepository.GetAllUsers(getAllUsersReq)
 	if err != nil {
-		return responsemodels.GetAllUsersResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase ,err)
+		return responsemodels.GetAllUsersResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	return responsemodels.GetAllUsersResponse{
 		Users: users.Users,
@@ -245,13 +243,13 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 	}, nil
 }
 
-func (as *AuthSubscriptionUsecase) VerifyOtp(ctx context.Context,otpReq requestmodels.OtpRequest) (responsemodels.OtpVerificationResponse, error) {
+func (as *AuthSubscriptionUsecase) VerifyOtp(ctx context.Context, otpReq requestmodels.OtpRequest) (responsemodels.OtpVerificationResponse, error) {
 	otp, err := as.AuthSubscriptionRepository.CheckOtpExistsByEmail(otpReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.OtpVerificationResponse{}, domain.ErrUserNotFound
 		}
-		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	if otp.OTP != otpReq.OtpCode {
 		return responsemodels.OtpVerificationResponse{}, domain.ErrInvalidCredentials
@@ -261,16 +259,16 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(ctx context.Context,otpReq requestm
 	}
 	err = as.AuthSubscriptionRepository.ChangeOtpStatus(otpReq.Email)
 	if err != nil {
-		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	err = as.AuthSubscriptionRepository.ChangeUserStatusByEmail(otpReq.Email)
 	if err != nil {
-		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	if otpReq.Purpose == "user-forgot-password" {
 		resetPasswordToken, err := as.JwtProvider.GenerateToken(as.Config.Token.ResetPasswordSecurityKey, uint64(otpReq.UserId), otp.Email, "resetpassword", "access", 5*time.Minute)
 		if err != nil {
-			return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:",domain.ErrVerifyOtpTokenFail, err)
+			return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:", domain.ErrVerifyOtpTokenFail, err)
 		}
 		return responsemodels.OtpVerificationResponse{
 			Email:     otp.Email,
@@ -280,11 +278,11 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(ctx context.Context,otpReq requestm
 	}
 	userAccessTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.UserSecurityKey, uint64(otpReq.UserId), otp.Email, "user", "access", 24*time.Hour)
 	if err != nil {
-		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:",domain.ErrUserAccessTokenFail, err)
+		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:", domain.ErrUserAccessTokenFail, err)
 	}
 	userRefreshTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.UserRefreshKey, uint64(otpReq.UserId), otp.Email, "user", "refresh", 24*7*time.Hour)
 	if err != nil {
-		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:",domain.ErrUserRefreshTokenFail, err)
+		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:", domain.ErrUserRefreshTokenFail, err)
 	}
 	//fmt.Println("userAccessTokenSting",userAccessTokenString)
 	//fmt.Println("userRefreshTokenString",userRefreshTokenString)
@@ -296,8 +294,8 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(ctx context.Context,otpReq requestm
 	}, nil
 }
 
-func (as *AuthSubscriptionUsecase) ResendOtp(ctx context.Context,resendOtpReq requestmodels.ResendOtpRequest) (responsemodels.ResendOtpResponse, error) {
-	err := as.AuthSubscriptionRepository.DeleteOtpByEmail(ctx,resendOtpReq.Email)
+func (as *AuthSubscriptionUsecase) ResendOtp(ctx context.Context, resendOtpReq requestmodels.ResendOtpRequest) (responsemodels.ResendOtpResponse, error) {
+	err := as.AuthSubscriptionRepository.DeleteOtpByEmail(ctx, resendOtpReq.Email)
 	if err != nil {
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
 			return responsemodels.ResendOtpResponse{}, err
@@ -306,7 +304,7 @@ func (as *AuthSubscriptionUsecase) ResendOtp(ctx context.Context,resendOtpReq re
 	}
 	otp := utils.RandomNumber()
 	expiration := time.Now().Add(5 * time.Minute)
-	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(ctx,otp, resendOtpReq.Email, expiration)
+	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(ctx, otp, resendOtpReq.Email, expiration)
 	if err != nil {
 		//return responsemodels.ResendOtpResponse{}, fmt.Errorf("database error: %w", err)
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
@@ -314,7 +312,7 @@ func (as *AuthSubscriptionUsecase) ResendOtp(ctx context.Context,resendOtpReq re
 		}
 		return responsemodels.ResendOtpResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
-	go func(){
+	go func() {
 		err = as.SmtpProvider.SendVerifcationEmailWithOtp(otp, resendOtpReq.Email, resendOtpReq.Name)
 		if err != nil {
 			//return responsemodels.ResendOtpResponse{}, fmt.Errorf("Error in sending otp to email address: %w", err)
@@ -351,19 +349,19 @@ func (as *AuthSubscriptionUsecase) AccessRegenerator(accessRegeneratorReq reques
 		NewAccessToken: accessTokenString,
 	}, nil
 }
-func (as *AuthSubscriptionUsecase) ForgotPassword(ctx context.Context,forgotPasswordReq requestmodels.ForgotPasswordRequest) (responsemodels.ForgotPassordResponse, error) {
-	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(ctx,forgotPasswordReq.Email)
+func (as *AuthSubscriptionUsecase) ForgotPassword(ctx context.Context, forgotPasswordReq requestmodels.ForgotPasswordRequest) (responsemodels.ForgotPassordResponse, error) {
+	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(ctx, forgotPasswordReq.Email)
 	if err != nil {
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
 			return responsemodels.ForgotPassordResponse{}, err
 		}
 		if err == gorm.ErrRecordNotFound {
-			return  responsemodels.ForgotPassordResponse{}, domain.ErrUserNotFound
+			return responsemodels.ForgotPassordResponse{}, domain.ErrUserNotFound
 		}
 		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	otp := utils.RandomNumber()
-	err = as.AuthSubscriptionRepository.DeleteOtpByEmail(ctx,user.Email)
+	err = as.AuthSubscriptionRepository.DeleteOtpByEmail(ctx, user.Email)
 	if err != nil {
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
 			return responsemodels.ForgotPassordResponse{}, err
@@ -372,7 +370,7 @@ func (as *AuthSubscriptionUsecase) ForgotPassword(ctx context.Context,forgotPass
 	}
 
 	expiration := time.Now().Add(5 * time.Minute)
-	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(ctx,otp, user.Email, expiration)
+	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(ctx, otp, user.Email, expiration)
 	if err != nil {
 		//log.Println("cannont save otp in db")
 		//return responsemodels.ForgotPassordResponse{}, fmt.Errorf("database error: %w", err)
@@ -381,16 +379,16 @@ func (as *AuthSubscriptionUsecase) ForgotPassword(ctx context.Context,forgotPass
 		}
 		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
-	go func(){
-	err = as.SmtpProvider.SendResetPasswordEmailOtp(otp, user.Email)
-	if err != nil {
-		//return responsemodels.ForgotPassordResponse{}, fmt.Errorf("Error in sending otp to email address: %w", err)
-		log.Printf("Failed to send email to %s: %v", forgotPasswordReq.Email, err)
-	}
+	go func() {
+		err = as.SmtpProvider.SendResetPasswordEmailOtp(otp, user.Email)
+		if err != nil {
+			//return responsemodels.ForgotPassordResponse{}, fmt.Errorf("Error in sending otp to email address: %w", err)
+			log.Printf("Failed to send email to %s: %v", forgotPasswordReq.Email, err)
+		}
 	}()
 	otpVerificationToken, err := as.JwtProvider.GenerateToken(as.Config.Token.OtpVerificationSecurityKey, uint64(user.ID), user.Email, "otpverification", "access", 5*time.Minute)
 	if err != nil {
-		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("%w: %v:",domain.ErrVerifyOtpTokenFail, err)
+		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("%w: %v:", domain.ErrVerifyOtpTokenFail, err)
 	}
 	return responsemodels.ForgotPassordResponse{
 		Email:     user.Email,
@@ -405,20 +403,20 @@ func (as *AuthSubscriptionUsecase) ResetPassword(resetPasswordReq requestmodels.
 	resetPasswordReq.Password = hashedPassword
 	err := as.AuthSubscriptionRepository.UpdatePassword(resetPasswordReq)
 	if err != nil {
-		return responsemodels.ResetPasswordResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.ResetPasswordResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	return responsemodels.ResetPasswordResponse{
 		Email: resetPasswordReq.Email,
 	}, nil
 }
 
-func (as *AuthSubscriptionUsecase) UserLogin(ctx context.Context,userLoginReq requestmodels.UserLoginRequest) (responsemodels.UserLoginResponse, error) {
-	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(ctx,userLoginReq.Email)
+func (as *AuthSubscriptionUsecase) UserLogin(ctx context.Context, userLoginReq requestmodels.UserLoginRequest) (responsemodels.UserLoginResponse, error) {
+	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(ctx, userLoginReq.Email)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.UserLoginResponse{}, domain.ErrUserNotFound
 		}
-		return responsemodels.UserLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.UserLoginResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	err = utils.CompareWithHashedPassword(user.Password, userLoginReq.Password)
 	if err != nil {
@@ -433,11 +431,11 @@ func (as *AuthSubscriptionUsecase) UserLogin(ctx context.Context,userLoginReq re
 	//fmt.Println("inside user login ", user.ID)
 	userAccessTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.UserSecurityKey, uint64(user.ID), user.Email, "user", "access", 24*time.Hour)
 	if err != nil {
-		return responsemodels.UserLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrUserAccessTokenFail, err)
+		return responsemodels.UserLoginResponse{}, fmt.Errorf("%w: %v:", domain.ErrUserAccessTokenFail, err)
 	}
 	userRefreshTokenString, err := as.JwtProvider.GenerateToken(as.Config.Token.UserRefreshKey, uint64(user.ID), user.Email, "user", "refresh", 24*7*time.Hour)
 	if err != nil {
-		return responsemodels.UserLoginResponse{}, fmt.Errorf("%w: %v:",domain.ErrUserRefreshTokenFail, err)
+		return responsemodels.UserLoginResponse{}, fmt.Errorf("%w: %v:", domain.ErrUserRefreshTokenFail, err)
 	}
 	return responsemodels.UserLoginResponse{
 		User: responsemodels.UserDetailsResponse{
@@ -472,7 +470,7 @@ func (as *AuthSubscriptionUsecase) CreateSubscriptionPlan(createSubscriptionPlan
 	}
 	subscriptionPlanRes, err := as.AuthSubscriptionRepository.CreateSubscriptionPlan(plan)
 	if err != nil {
-		return responsemodels.CreateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.CreateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	return responsemodels.CreateSubscriptionPlanResponse{
 		ID:          subscriptionPlanRes.ID,
@@ -494,14 +492,14 @@ func (as *AuthSubscriptionUsecase) ActivateSubscriptionPlan(activateSubscription
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.ActivateSubscriptionPlanResponse{}, domain.ErrSubPlanNotFound
 		}
-		return responsemodels.ActivateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.ActivateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	if status {
 		return responsemodels.ActivateSubscriptionPlanResponse{}, domain.ErrSubscriptionPlanAlreadyActive
 	}
 	subscriptionPlan, err := as.AuthSubscriptionRepository.ActivateSubscriptionPlan(activateSubscriptionPlanReq)
 	if err != nil {
-		return responsemodels.ActivateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.ActivateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	return responsemodels.ActivateSubscriptionPlanResponse{
 		ID:             subscriptionPlan.ID,
@@ -524,14 +522,14 @@ func (as *AuthSubscriptionUsecase) DeactivateSubscriptionPlan(deactivateSubscrip
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.DeactivateSubscriptionPlanResponse{}, domain.ErrSubPlanNotFound
 		}
-		return responsemodels.DeactivateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.DeactivateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	if !status {
 		return responsemodels.DeactivateSubscriptionPlanResponse{}, domain.ErrSubscriptionPlanAlreadyDeactive
 	}
 	subscriptionPlan, err := as.AuthSubscriptionRepository.DeactivateSubscriptionPlan(deactivateSubscriptionPlanReq)
 	if err != nil {
-		return responsemodels.DeactivateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.DeactivateSubscriptionPlanResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	return responsemodels.DeactivateSubscriptionPlanResponse{
 		ID:             subscriptionPlan.ID,
@@ -551,7 +549,7 @@ func (as *AuthSubscriptionUsecase) DeactivateSubscriptionPlan(deactivateSubscrip
 func (as *AuthSubscriptionUsecase) GetAllSubscriptionPlans(getAllSubscripionPlansReq requestmodels.GetAllSubscriptionPlansRequest) (responsemodels.GetAllSubscriptionPlansResponse, error) {
 	subscriptionPlans, err := as.AuthSubscriptionRepository.GetAllSubscriptionPlans(getAllSubscripionPlansReq)
 	if err != nil {
-		return responsemodels.GetAllSubscriptionPlansResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.GetAllSubscriptionPlansResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	return responsemodels.GetAllSubscriptionPlansResponse{
 		SubscriptionPlans: subscriptionPlans.SubscriptionPlans,
@@ -561,7 +559,7 @@ func (as *AuthSubscriptionUsecase) GetAllSubscriptionPlans(getAllSubscripionPlan
 func (as *AuthSubscriptionUsecase) GetAllActiveSubscriptionPlans(getAllActiveSubscriptionPlansReq requestmodels.GetAllActiveSubscriptionPlansRequest) (responsemodels.GetAllActiveSubscriptionPlansResponse, error) {
 	subscriptionPlans, err := as.AuthSubscriptionRepository.GetAllActiveSubscriptionPlans(getAllActiveSubscriptionPlansReq)
 	if err != nil {
-		return responsemodels.GetAllActiveSubscriptionPlansResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.GetAllActiveSubscriptionPlansResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	return responsemodels.GetAllActiveSubscriptionPlansResponse{
 		SubscriptionPlans: subscriptionPlans.SubscriptionPlans,
@@ -574,7 +572,7 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.SubscribeResponse{}, domain.ErrSubPlanNotFound
 		}
-		return responsemodels.SubscribeResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
+		return responsemodels.SubscribeResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	//fmt.Println("RazorpayPlanId", razorpayPlanId)
 
@@ -589,9 +587,9 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 
 	userDetail, err := as.AuthSubscriptionRepository.FetchUserPublicData(subscribeReq.UserId)
 	if err != nil {
-		return responsemodels.SubscribeResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase,err)
+		return responsemodels.SubscribeResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
-	
+
 	if userDetail.RazorpayCustomerID == "" {
 		userDetail.RazorpayCustomerID, err = as.createAndSaveCustomer(userDetail, subscribeReq.UserEmail)
 		if err != nil {
@@ -623,14 +621,12 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 	}
 	subscription, err := as.RazorpayGateway.CreateSubscription(subscriptionData)
 	if err != nil {
-		log.Println("error on subscribing", err)
-		return responsemodels.SubscribeResponse{}, fmt.Errorf("provider error: %w", err)
+		return responsemodels.SubscribeResponse{}, fmt.Errorf("payment gateway provider error: %w", err)
 	}
 	//fmt.Println(subscription)
 	subcribeRes, err := as.AuthSubscriptionRepository.CreateSubscription(subscribeReq, subscription)
 	if err != nil {
-		log.Printf("is there any error returning after createSubscripion %v", err)
-		return responsemodels.SubscribeResponse{}, err
+		return responsemodels.SubscribeResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 	//fmt.Println("subscribeRes",subcribeRes)
 	return subcribeRes, nil
@@ -648,14 +644,13 @@ func (as *AuthSubscriptionUsecase) createAndSaveCustomer(userDetail responsemode
 	// Assuming as.RazorpayGateway is your initialized razorpay client
 	res, err := as.RazorpayGateway.Client.Customer.Create(customerParams, nil)
 	if err != nil {
-		log.Printf("Failed to create Razorpay customer: %v", err)
-		return "", err
+		return "", utils.MapRazorpayError(err)
 	}
 	// 3. Extract the ID from the response
 	// res is usually a map[string]interface{} or a specific struct depending on your SDK wrapper
 	customerID, ok := res["id"].(string)
 	if !ok {
-		return "", fmt.Errorf("invalid response format from Razorpay")
+		return "", domain.ErrInvalidResponseRazorpay
 	}
 
 	// 4. Update your local database
@@ -666,7 +661,7 @@ func (as *AuthSubscriptionUsecase) createAndSaveCustomer(userDetail responsemode
 		if err == gorm.ErrRecordNotFound {
 			return "", domain.ErrUserNotFound
 		}
-		return "", fmt.Errorf("%w: %v:",domain.ErrDatabase,err)
+		return "", fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 
 	return customerID, nil
@@ -773,22 +768,7 @@ func (as *AuthSubscriptionUsecase) Unsubscribe(unsubscribeReq requestmodels.Unsu
 	if err != nil {
 		return responsemodels.UnsubscribeResponse{}, fmt.Errorf("%w: %v: %v:", domain.ErrDatabase, err, "cancel reason failed to update in db")
 	}
-	// userid, err := as.AuthSubscriptionRepository.FetchUserIdFromSubscriptionId(razorpaySubscritpionId)
-	// if err != nil {
-	// 	return responsemodels.UnsubscribeResponse{}, err
-	// }
-	// nextChargeAt, err := as.AuthSubscriptionRepository.FetchNextChargeAtFromUserSubcription(razorpaySubscritpionId)
-	// if err != nil {
-	// 	return responsemodels.UnsubscribeResponse{}, err
-	// }
-	// delay := time.Until(nextChargeAt)
-	// go func() {
-	// 	<-time.After(delay)
-	// 	err := as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(userid)
-	// 	if err != nil {
-	// 		fmt.Println("error while turning off blue tick", err)
-	// 	}
-	// }()
+
 	return unsubscibeRes, nil
 }
 
@@ -802,7 +782,7 @@ func (as *AuthSubscriptionUsecase) SetProfileImage(setProfileImageReq requestmod
 	key := "profiles/" + filename
 	//fmt.Println("inside usecase type", setProfileImageReq.ContentType)
 	if setProfileImageReq.ContentType == "" {
-		return responsemodels.SetProfileImageResponse{}, fmt.Errorf("content type is nil")
+		return responsemodels.SetProfileImageResponse{}, domain.ErrContentTypeNil
 	}
 	//fmt.Println("hi hello",aws.String(as.AwsBucket),aws.String(key),as.AwsBucket,key)
 	uploader := manager.NewUploader(as.AwsS3Client)
@@ -813,15 +793,17 @@ func (as *AuthSubscriptionUsecase) SetProfileImage(setProfileImageReq requestmod
 		ContentType: aws.String(setProfileImageReq.ContentType),
 	})
 	if err != nil {
-		//fmt.Println("is it here")
-		return responsemodels.SetProfileImageResponse{}, status.Errorf(codes.Internal, "upload failed: %v", err)
+		return responsemodels.SetProfileImageResponse{}, fmt.Errorf("%w: %v", domain.ErrS3UploadFail, err)
 	}
 	// Construct URL
 	imageURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", as.AwsBucket, as.Config.Aws.AwsRegion, key)
 	// Save to DB
 	err = as.AuthSubscriptionRepository.UpdateProfileImage(setProfileImageReq.UserId, imageURL)
 	if err != nil {
-		return responsemodels.SetProfileImageResponse{}, status.Errorf(codes.Internal, "db update failed: %v", err)
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.SetProfileImageResponse{}, domain.ErrUserNotFound
+		}
+		return responsemodels.SetProfileImageResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 
 	return responsemodels.SetProfileImageResponse{
