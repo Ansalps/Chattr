@@ -736,7 +736,6 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionCharged(ctx context.Context
 	}
 	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionCharged(webhookReq)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 	return &pb.WebhookSubscriptionChargedResponse{
@@ -752,7 +751,6 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionHalted(ctx context.Context,
 	}
 	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionHalted(webhookreq)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 	return &pb.WebhookSubscriptionHaltedResponse{

@@ -1072,20 +1072,21 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 		})
 		//fmt.Println("res", res)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, err.Error())
+			code,msg:=utils.GRPCtoHTTP(err)
+			utils.LogApiWithUserID(log,"",UserID,code,msg)
+			c.JSON(code,response.ClientResponse(code,msg,nil))
 			return
 		}
 	case "subscription.halted":
-		//fmt.Println("user id ",UserID)
-		//fmt.Printf("The type of UserID is: %T\n", UserID)
 		_, err := as.DirectClient.Client.WebhookSubscriptionHalted(context.Background(), &auth_subscription.WebhookSubscriptionHaltedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
 			Status:                 webhookReq.Payload.Subscription.Entity.Status,
 			UserId:                 UserID,
 		})
-		//fmt.Println("resp", resp)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, err.Error())
+			code,msg:=utils.GRPCtoHTTP(err)
+			utils.LogApiWithUserID(log,"",UserID,code,msg)
+			c.JSON(code,response.ClientResponse(code,msg,nil))
 			return
 		}
 	case "subscription.cancelled":

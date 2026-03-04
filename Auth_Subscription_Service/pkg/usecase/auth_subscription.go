@@ -962,63 +962,83 @@ func (as *AuthSubscriptionUsecase) WebhookSubscriptionActivated(req requestmodel
 func (as *AuthSubscriptionUsecase) WebhookSubscriptionCharged(req requestmodels.WebhookSubscriptionChargedRequest) (responsemodels.WebhookSubscriptionChargedResponse, error) {
 	status, err := as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
 	if err != nil {
-		log.Println(err)
-		return responsemodels.WebhookSubscriptionChargedResponse{}, err
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.WebhookSubscriptionChargedResponse{},domain.ErrSubNotFound
+		}
+		return responsemodels.WebhookSubscriptionChargedResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	//fmt.Println("is it coming here",req.RazorpaySubscriptionId)
 	err = as.AuthSubscriptionRepository.UpdateNextChargeAt(req.NextChargeAt, req.RazorpaySubscriptionId)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.WebhookSubscriptionChargedResponse{}, domain.RazorpaySubscriptionIdNotFound
+			return responsemodels.WebhookSubscriptionChargedResponse{}, domain.ErrSubNotFound
 		}
+		return responsemodels.WebhookSubscriptionChargedResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	err = as.AuthSubscriptionRepository.UpdateCount(req)
-
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.WebhookSubscriptionChargedResponse{}, domain.ErrSubNotFound
+		}
+		return responsemodels.WebhookSubscriptionChargedResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+	}
 	resp, err := as.AuthSubscriptionRepository.UpdatePayment(req)
 	if err != nil {
-		return responsemodels.WebhookSubscriptionChargedResponse{}, err
+		return responsemodels.WebhookSubscriptionChargedResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 
-	if status == "completed" || status == "cancelled" {
-		return responsemodels.WebhookSubscriptionChargedResponse{}, errors.New("subscription already in cancelled or completed state")
+	if status == "completed" {
+		return responsemodels.WebhookSubscriptionChargedResponse{}, domain.ErrSubCompleted
+	}
+	if status == "cancelled"{
+		return responsemodels.WebhookSubscriptionChargedResponse{}, domain.ErrSubCancelled
 	}
 
 	err = as.AuthSubscriptionRepository.UpdateStatusToActive(req.RazorpaySubscriptionId)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.WebhookSubscriptionChargedResponse{}, domain.RazorpaySubscriptionIdNotFound
+			return responsemodels.WebhookSubscriptionChargedResponse{}, domain.ErrSubNotFound
 		}
+		return responsemodels.WebhookSubscriptionChargedResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 
-	//fmt.Println("request in charged",req)
-	//if req.Status=="active"{
 	err = as.AuthSubscriptionRepository.TurnBlueTickTrueForUserId(req.UserID)
 	if err != nil {
-		log.Printf("failed to trun on blue tick for user id %d\n", req.UserID)
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.WebhookSubscriptionChargedResponse{},domain.ErrUserNotFound
+		}
+		return responsemodels.WebhookSubscriptionChargedResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
-	//}
 
 	return resp, nil
 }
 func (as *AuthSubscriptionUsecase) WebhookSubscriptionHalted(req requestmodels.WebhookSubscriptionHaltedRequest) (responsemodels.WebhookSubscriptionHaltedResponse, error) {
 	status, err := as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
 	if err != nil {
-		log.Println(err)
-		return responsemodels.WebhookSubscriptionHaltedResponse{}, err
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.WebhookSubscriptionHaltedResponse{},domain.ErrSubNotFound
+		}
+		return responsemodels.WebhookSubscriptionHaltedResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
-	if status == "completed" || status == "cancelled" {
-		return responsemodels.WebhookSubscriptionHaltedResponse{}, errors.New("subscription already in cancelled or completed state")
+	if status == "completed" {
+		return responsemodels.WebhookSubscriptionHaltedResponse{}, domain.ErrSubCompleted
+	}
+	if status == "cancelled"{
+		return responsemodels.WebhookSubscriptionHaltedResponse{}, domain.ErrSubCancelled
 	}
 	err = as.AuthSubscriptionRepository.UpdateStatusHalted(req)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.WebhookSubscriptionHaltedResponse{}, domain.RazorpaySubscriptionIdNotFound
+			return responsemodels.WebhookSubscriptionHaltedResponse{}, domain.ErrSubNotFound
 		}
-		return responsemodels.WebhookSubscriptionHaltedResponse{}, err
+		return responsemodels.WebhookSubscriptionHaltedResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	err = as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(req.UserId)
 	if err != nil {
-		return responsemodels.WebhookSubscriptionHaltedResponse{}, err
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.WebhookSubscriptionHaltedResponse{},domain.ErrUserNotFound
+		}
+		return responsemodels.WebhookSubscriptionHaltedResponse{},  fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	return responsemodels.WebhookSubscriptionHaltedResponse{
 		RazorpaySubcriptionId: req.RazorpaySubscriptionId,
