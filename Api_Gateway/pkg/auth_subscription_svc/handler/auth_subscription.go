@@ -478,39 +478,37 @@ func (as *AuthSubscriptionHandler) GetAllActiveSubscriptionPlans(c *gin.Context)
 }
 
 func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var subscribeReq requestmodels.SubscribeRequest
 	//planID:=c.Param("plan_id")
 	PlanIdStr := c.Param("plan_id")
 	planID, err := strconv.ParseUint(PlanIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log,400,"Invalid Subscription Plan Id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid Subscription Plan Id", nil))
 		return
 	}
 	subscribeReq.PlanId = planID
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
 	//fmt.Println("jwt claims", jwtClaims)
 	subscribeReq.UserId = jwtClaims.ID
 	subscribeReq.UserEmail = jwtClaims.Email
-	if err := c.ShouldBindJSON(&subscribeReq); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
+	err=utils.BindingJson(c,&subscribeReq,log)
+	if err!=nil{
 		return
 	}
 
-	//fmt.Println("user id", subscribeReq.UserId)
 	subscribeResponse, err := as.GPPC_Client.Subscribe(subscribeReq)
 	if err != nil {
 		var obj response.Response

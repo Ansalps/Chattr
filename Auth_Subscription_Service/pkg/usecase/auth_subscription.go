@@ -574,7 +574,7 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.SubscribeResponse{}, domain.ErrSubPlanNotFound
 		}
-		return responsemodels.SubscribeResponse{}, fmt.Errorf("plan lookup failed: %w", err)
+		return responsemodels.SubscribeResponse{}, fmt.Errorf("%w: %v:",domain.ErrDatabase, err)
 	}
 	//fmt.Println("RazorpayPlanId", razorpayPlanId)
 
@@ -589,10 +589,9 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 
 	userDetail, err := as.AuthSubscriptionRepository.FetchUserPublicData(subscribeReq.UserId)
 	if err != nil {
-		return responsemodels.SubscribeResponse{}, fmt.Errorf("database error: %w", err)
+		return responsemodels.SubscribeResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase,err)
 	}
-	//fmt.Println("userDetail", userDetail)
-	//return responsemodels.SubscribeResponse{},nil
+	
 	if userDetail.RazorpayCustomerID == "" {
 		userDetail.RazorpayCustomerID, err = as.createAndSaveCustomer(userDetail, subscribeReq.UserEmail)
 		if err != nil {
@@ -663,11 +662,11 @@ func (as *AuthSubscriptionUsecase) createAndSaveCustomer(userDetail responsemode
 	// This links your internal UserID to the Razorpay CustomerID forever
 	err = as.AuthSubscriptionRepository.UpdateUserRazorpayCustomerID(userDetail.UserID, customerID)
 	if err != nil {
-		log.Printf("Failed to save customerID %s to DB for user %d: %v", customerID, userDetail.UserID, err)
+		//log.Printf("Failed to save customerID %s to DB for user %d: %v", customerID, userDetail.UserID, err)
 		if err == gorm.ErrRecordNotFound {
 			return "", domain.ErrUserNotFound
 		}
-		return "", err
+		return "", fmt.Errorf("%w: %v:",domain.ErrDatabase,err)
 	}
 
 	return customerID, nil

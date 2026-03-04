@@ -382,7 +382,6 @@ func (as *AuthSubscriptionClient) Subscribe(subscribeReq requestmodels.Subscribe
 		TotalCount: subscribeReq.TotalCount,
 	})
 	if err != nil {
-		log.Printf("grpc subscribe call failed: %v", err)
 		return responsemodels.SubscribeResponse{}, err
 	}
 	return responsemodels.SubscribeResponse{

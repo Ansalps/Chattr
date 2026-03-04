@@ -1,11 +1,11 @@
 package razorpaygateway
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/domain"
+	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils"
 	"github.com/razorpay/razorpay-go"
 )
 
@@ -22,7 +22,7 @@ func NewRazorpayGateway(keyID, secret string) *RazorpayGateway {
 func (r *RazorpayGateway) CreatePlan(planData map[string]interface{}) (*domain.CreatedPlanDTO, error) {
 	plan, err := r.Client.Plan.Create(planData, nil)
 	if err != nil {
-		return nil, mapRazorpayError(err) // Clean and readable!
+		return nil, utils.MapRazorpayError(err) // Clean and readable!
 	}
 
 	// Helper to safely extract nested "item" map
@@ -87,38 +87,4 @@ func (r *RazorpayGateway) CreateSubscription(subData map[string]interface{}) (*d
 		PaidCount:      int(getFloat(sub, "paid_count")),
 		ShortURL:       getString(sub, "short_url"), // VERY IMPORTANT: Give this to the user!
 	}, nil
-}
-
-func mapRazorpayError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	// Define the Razorpay error structure
-	type razorpayErrorResponse struct {
-		Error struct {
-			Code        string            `json:"code"`
-			Description string            `json:"description"`
-			Metadata    map[string]string `json:"metadata"`
-		} `json:"error"`
-	}
-
-	var rzErr razorpayErrorResponse
-
-	// Try to unmarshal. If it fails, it's likely a network/string error.
-	if parseErr := json.Unmarshal([]byte(err.Error()), &rzErr); parseErr != nil {
-		return fmt.Errorf("%w: %v", domain.ErrExternalService, err)
-	}
-
-	// Now map the codes
-	switch rzErr.Error.Code {
-	case "BAD_REQUEST_ERROR":
-		return fmt.Errorf("%w: %s", domain.ErrInvalidRequest, rzErr.Error.Description)
-	case "GATEWAY_ERROR":
-		return fmt.Errorf("%w: %s", domain.ErrServiceUnavailable, rzErr.Error.Description)
-	case "SERVER_ERROR":
-		return fmt.Errorf("%w: %s", domain.ErrExternalService, rzErr.Error.Description)
-	default:
-		return fmt.Errorf("%w: %s", domain.ErrUnknown, rzErr.Error.Description)
-	}
 }
