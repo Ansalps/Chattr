@@ -768,7 +768,6 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionCancelled(ctx context.Conte
 	}
 	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionCancelled(webhookreq)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 	return &pb.WebhookSubscriptionCancelledResponse{

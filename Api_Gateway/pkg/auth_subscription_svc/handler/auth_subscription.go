@@ -1098,7 +1098,9 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 		})
 		//fmt.Println("resp", resp)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, err.Error())
+			code,msg:=utils.GRPCtoHTTP(err)
+			utils.LogApiWithUserID(log,"",UserID,code,msg)
+			c.JSON(code,response.ClientResponse(code,msg,nil))
 			return
 		}
 	case "subscription.completed":

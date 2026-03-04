@@ -1048,23 +1048,30 @@ func (as *AuthSubscriptionUsecase) WebhookSubscriptionHalted(req requestmodels.W
 func (as *AuthSubscriptionUsecase) WebhookSubscriptionCancelled(req requestmodels.WebhookSubscriptionCancelledRequest) (responsemodels.WebhookSubscriptionCancelledResponse, error) {
 	status, err := as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
 	if err != nil {
-		log.Println(err)
-		return responsemodels.WebhookSubscriptionCancelledResponse{}, err
+		if err==gorm.ErrRecordNotFound{
+			return responsemodels.WebhookSubscriptionCancelledResponse{},domain.ErrSubNotFound
+		}
+		return responsemodels.WebhookSubscriptionCancelledResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
-	if status == "completed" || status == "cancelled" {
-		return responsemodels.WebhookSubscriptionCancelledResponse{}, errors.New("subscription already in cancelled or completed state")
+	if status == "completed" {
+		return responsemodels.WebhookSubscriptionCancelledResponse{}, domain.ErrSubCompleted
+	}
+	if status == "cancelled"{
+		return responsemodels.WebhookSubscriptionCancelledResponse{}, domain.ErrSubCancelled
 	}
 	resp, err := as.AuthSubscriptionRepository.UpdateSubscriptionCancelled(req)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.WebhookSubscriptionCancelledResponse{}, domain.RazorpaySubscriptionIdNotFound
+			return responsemodels.WebhookSubscriptionCancelledResponse{}, domain.ErrSubNotFound
 		}
-		return responsemodels.WebhookSubscriptionCancelledResponse{}, err
+		return responsemodels.WebhookSubscriptionCancelledResponse{},  fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	err = as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(req.UserId)
 	if err != nil {
-		log.Printf("failed to turn off blue tick for user id:%d\n", req.UserId)
-		return responsemodels.WebhookSubscriptionCancelledResponse{}, err
+		if err!=gorm.ErrRecordNotFound{
+			return responsemodels.WebhookSubscriptionCancelledResponse{},domain.ErrUserNotFound
+		}
+		return responsemodels.WebhookSubscriptionCancelledResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	return resp, nil
 }
