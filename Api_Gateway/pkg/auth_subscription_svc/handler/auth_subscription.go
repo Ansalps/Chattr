@@ -44,19 +44,19 @@ func NewAuthSubscriptionHandler(authSubscriptionClient interfaces.AuthSubscripti
 }
 
 func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var adminDetails requestmodels.AdminLoginRequest
-	err:=utils.BindingJson(c,&adminDetails,log)
-	if err!=nil{
+	err := utils.BindingJson(c, &adminDetails, log)
+	if err != nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
-	admin, err := as.GPPC_Client.AdminLogin(ctx,adminDetails)
+	admin, err := as.GPPC_Client.AdminLogin(ctx, adminDetails)
 	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
 		// Log 4xx errors as WARN
-        utils.LogPublicApiError(log,adminDetails.Email,code,msg)
+		utils.LogPublicApiError(log, adminDetails.Email, code, msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
@@ -65,35 +65,35 @@ func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) UserSignUp(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var userSignup requestmodels.UserSignUpRequest
-	
-	err:=utils.BindingJson(c,&userSignup,log)
-	if err!=nil{
+
+	err := utils.BindingJson(c, &userSignup, log)
+	if err != nil {
 		return
 	}
 	validUserName, msg1 := utils.IsValidUsername(userSignup.UserName)
 	if !validUserName {
 		log.Warn("Client side error on sign up",
-		logger.Field{Key: "error",Value: "username validation failed"})
+			logger.Field{Key: "error", Value: "username validation failed"})
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", msg1))
 		return
 	}
 	validPassword, msg2 := utils.IsValidPassword(userSignup.ConfirmPassword)
 	if !validPassword {
 		log.Warn("Client side error on sign up",
-		logger.Field{Key: "error",Value: "password validation failed"})
+			logger.Field{Key: "error", Value: "password validation failed"})
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", msg2))
 		return
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
-	userResponse, err := as.GPPC_Client.UserSignUp(ctx,userSignup)
+	userResponse, err := as.GPPC_Client.UserSignUp(ctx, userSignup)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
+		code, msg := utils.GRPCtoHTTP(err)
 		// Log 4xx errors as WARN
-        utils.LogPublicApiError(log,userSignup.Email,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		utils.LogPublicApiError(log, userSignup.Email, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Otp Sent Successfully to email address provided, verify your otp within 5 minutes before getting expired", userResponse)
@@ -101,34 +101,34 @@ func (as *AuthSubscriptionHandler) UserSignUp(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) VerifyOtp(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var otpRequest requestmodels.OtpRequest
-	err:=utils.BindingJson(c,&otpRequest,log)
-	if err!=nil{
+	err := utils.BindingJson(c, &otpRequest, log)
+	if err != nil {
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
-		utils.LogPublicApiError(log,otpRequest.Email,401,"Claims not found")
+		utils.LogPublicApiError(log, otpRequest.Email, 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
-		utils.LogPublicApiError(log,otpRequest.Email,401,"Invalid claims")
+		utils.LogPublicApiError(log, otpRequest.Email, 401, "Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
 	otpRequest.Email = jwtClaims.Email
 	otpRequest.UserId = jwtClaims.ID
-	ctx,cancel:=context.WithTimeout(c.Request.Context(),10*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
-	otpResponse, err := as.GPPC_Client.VerifyOtp(ctx,otpRequest)
+	otpResponse, err := as.GPPC_Client.VerifyOtp(ctx, otpRequest)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogPublicApiError(log,otpRequest.Email,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogPublicApiError(log, otpRequest.Email, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Otp verifeid successfully", otpResponse)
@@ -136,19 +136,19 @@ func (as *AuthSubscriptionHandler) VerifyOtp(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) ResendOtp(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var resendOtpReq requestmodels.ResendOtpRequest
-	err:=utils.BindingJson(c,&resendOtpReq,log)
-	if err!=nil{
+	err := utils.BindingJson(c, &resendOtpReq, log)
+	if err != nil {
 		return
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
-	resendOtpResponse, err := as.GPPC_Client.ResendOtp(ctx,resendOtpReq)
+	resendOtpResponse, err := as.GPPC_Client.ResendOtp(ctx, resendOtpReq)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogPublicApiError(log,resendOtpReq.Email,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogPublicApiError(log, resendOtpReq.Email, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Otp resend Successfully to email address provided, verify your otp within 5 minutes before getting expired", resendOtpResponse)
@@ -159,14 +159,14 @@ func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
 	log := utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
-		utils.LogPublicApiError(log,"",401,"Claims not found")
+		utils.LogPublicApiError(log, "", 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
-		utils.LogPublicApiError(log,"",401,"Invlaid claims")
+		utils.LogPublicApiError(log, "", 401, "Invlaid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
@@ -184,7 +184,7 @@ func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
 		// 	logger.Field{Key: "email", Value: accessRegenerator.Email},
 		// )
 		code, msg := utils.GRPCtoHTTP(err)
-		utils.LogApiWithUserID(log,accessRegenerator.Email,accessRegenerator.ID,code,msg)
+		utils.LogApiWithUserID(log, accessRegenerator.Email, accessRegenerator.ID, code, msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
@@ -193,19 +193,19 @@ func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) ForgotPassword(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var forgetPasswordReq requestmodels.ForgotPasswordRequest
-	err:=utils.BindingJson(c,&forgetPasswordReq,log)
-	if err!=nil{
+	err := utils.BindingJson(c, &forgetPasswordReq, log)
+	if err != nil {
 		return
 	}
-	ctx,cancel:=context.WithTimeout(c.Request.Context(),10*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
-	forgotPasswordRes, err := as.GPPC_Client.ForgotPassword(ctx,forgetPasswordReq)
+	forgotPasswordRes, err := as.GPPC_Client.ForgotPassword(ctx, forgetPasswordReq)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogPublicApiError(log,forgetPasswordReq.Email,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogPublicApiError(log, forgetPasswordReq.Email, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Otp code sent successully to the email provided", forgotPasswordRes)
@@ -213,36 +213,36 @@ func (as *AuthSubscriptionHandler) ForgotPassword(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) ResetPassword(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var resetPassword requestmodels.ResetPasswordRequest
-	err:=utils.BindingJson(c,&resetPassword,log)
-	if err!=nil{
+	err := utils.BindingJson(c, &resetPassword, log)
+	if err != nil {
 		return
 	}
 	validPassword, msg2 := utils.IsValidPassword(resetPassword.ConfirmPassword)
 	if !validPassword {
-		utils.LogPublicApiError(log,resetPassword.Email,400,"vailidation failed:"+msg2)
+		utils.LogPublicApiError(log, resetPassword.Email, 400, "vailidation failed:"+msg2)
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", msg2))
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
-		utils.LogPublicApiError(log,resetPassword.Email,401,"Claims not found")
+		utils.LogPublicApiError(log, resetPassword.Email, 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
-		utils.LogPublicApiError(log,resetPassword.Email,401,"Invalid claims")
+		utils.LogPublicApiError(log, resetPassword.Email, 401, "Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
 	resetPassword.Email = jwtClaims.Email
 	resetPasswordResponse, err := as.GPPC_Client.ResetPassword(resetPassword)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogPublicApiError(log,resetPassword.Email,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogPublicApiError(log, resetPassword.Email, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "password reset successful, please login again with new password", resetPasswordResponse)
@@ -250,17 +250,17 @@ func (as *AuthSubscriptionHandler) ResetPassword(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) BlockUser(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var blockUser requestmodels.BlockUserRequest
-	err:=utils.BindingJson(c,&blockUser,log)
-	if err!=nil{
+	err := utils.BindingJson(c, &blockUser, log)
+	if err != nil {
 		return
 	}
 	blockUserResponse, err := as.GPPC_Client.BlockUser(blockUser)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogAdminApi(log,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Block user by user id successful ", blockUserResponse)
@@ -268,17 +268,17 @@ func (as *AuthSubscriptionHandler) BlockUser(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) UnblockUser(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var unblockUser requestmodels.UnblockUserRequest
-	err:=utils.BindingJson(c,&unblockUser,log)
-	if err!=nil{
+	err := utils.BindingJson(c, &unblockUser, log)
+	if err != nil {
 		return
 	}
 	unblockUserResponse, err := as.GPPC_Client.UnblockUser(unblockUser)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogAdminApi(log,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Unblock user by user id successful ", unblockUserResponse)
@@ -286,19 +286,19 @@ func (as *AuthSubscriptionHandler) UnblockUser(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) UserLogin(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var userLogin requestmodels.UserLoginRequest
-	err:=utils.BindingJson(c,&userLogin,log)
-	if err!=nil{
+	err := utils.BindingJson(c, &userLogin, log)
+	if err != nil {
 		return
 	}
-	ctx,cancel:=context.WithTimeout(c.Request.Context(),10*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
-	user, err := as.GPPC_Client.UserLogin(ctx,userLogin)
+	user, err := as.GPPC_Client.UserLogin(ctx, userLogin)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogPublicApiError(log,userLogin.Email,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogPublicApiError(log, userLogin.Email, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "User authenticated successfully", user)
@@ -306,7 +306,7 @@ func (as *AuthSubscriptionHandler) UserLogin(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) GetAllUsers(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	//pageStr := c.Query("page")
 	// limitStr := c.Query("limit")
 
@@ -332,8 +332,8 @@ func (as *AuthSubscriptionHandler) GetAllUsers(c *gin.Context) {
 	// }
 
 	// offset := (page - 1) * limit
-	limit,offset,page,err:=utils.SetPageLimit(c,log)
-	if err!=nil{
+	limit, offset, page, err := utils.SetPageLimit(c, log)
+	if err != nil {
 		return
 	}
 
@@ -342,9 +342,9 @@ func (as *AuthSubscriptionHandler) GetAllUsers(c *gin.Context) {
 	getAllUsers.Offset = uint64(offset)
 	users, err := as.GPPC_Client.GetAllUsers(getAllUsers, page)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogAdminApi(log,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Get All users successully", users)
@@ -352,17 +352,17 @@ func (as *AuthSubscriptionHandler) GetAllUsers(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) CreateSubscriptionPlan(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var creatSubscriptionPlanReq requestmodels.CreateSubscriptionPlanRequest
-	err:=utils.BindingJson(c,&creatSubscriptionPlanReq,log)
-	if err!=nil{
+	err := utils.BindingJson(c, &creatSubscriptionPlanReq, log)
+	if err != nil {
 		return
 	}
 	createSubscriptionPlanResponse, err := as.GPPC_Client.CreateSubscriptionPlan(creatSubscriptionPlanReq)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogAdminApi(log,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Subscritption plan created successfully", createSubscriptionPlanResponse)
@@ -370,21 +370,21 @@ func (as *AuthSubscriptionHandler) CreateSubscriptionPlan(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) ActivateSubscriptionPlan(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var activateSubscriptionPlanReq requestmodels.ActivateSubscriptionPlanRequest
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		utils.LogAdminApi(log,400,"Invalid Subscription Plan Id")
+		utils.LogAdminApi(log, 400, "Invalid Subscription Plan Id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid Subscription Plan Id", nil))
 		return
 	}
 	activateSubscriptionPlanReq.ID = id
 	activateSubscriptionPlanResponse, err := as.GPPC_Client.ActivateSubscriptionPlan(activateSubscriptionPlanReq)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogAdminApi(log,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Subscritption plan activated successfully", activateSubscriptionPlanResponse)
@@ -392,21 +392,21 @@ func (as *AuthSubscriptionHandler) ActivateSubscriptionPlan(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) DeactivateSubscriptionPlan(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var deactivateSubscriptionPlanReq requestmodels.DeactivateSubscriptionPlanRequest
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		utils.LogAdminApi(log,400,"Invalid Subscription Plan Id")
+		utils.LogAdminApi(log, 400, "Invalid Subscription Plan Id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid Subscription Plan Id", nil))
 		return
 	}
 	deactivateSubscriptionPlanReq.ID = id
 	deactivateSubscriptionPlanResponse, err := as.GPPC_Client.DeactivateSubscriptionPlan(deactivateSubscriptionPlanReq)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogAdminApi(log,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Subscritption plan deactivated successfully", deactivateSubscriptionPlanResponse)
@@ -437,9 +437,9 @@ func (as *AuthSubscriptionHandler) GetAllSubscriptionPlans(c *gin.Context) {
 	// }
 
 	// offset := (page - 1) * limit
-	log:=utils.GetLogger(c)
-	limit,offset,page,err:=utils.SetPageLimit(c,log)
-	if err!=nil{
+	log := utils.GetLogger(c)
+	limit, offset, page, err := utils.SetPageLimit(c, log)
+	if err != nil {
 		return
 	}
 
@@ -448,9 +448,9 @@ func (as *AuthSubscriptionHandler) GetAllSubscriptionPlans(c *gin.Context) {
 	getAllSubscriptionPlans.Offset = uint64(offset)
 	subscriptionPlans, err := as.GPPC_Client.GetAllSubscriptionPlans(getAllSubscriptionPlans, page)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogAdminApi(log,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Get All subscription plans successully", subscriptionPlans)
@@ -458,9 +458,9 @@ func (as *AuthSubscriptionHandler) GetAllSubscriptionPlans(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) GetAllActiveSubscriptionPlans(c *gin.Context) {
-	log:=utils.GetLogger(c) 
-	limit,offset,page,err:=utils.SetPageLimit(c,log)
-	if err!=nil{
+	log := utils.GetLogger(c)
+	limit, offset, page, err := utils.SetPageLimit(c, log)
+	if err != nil {
 		return
 	}
 	var getAllActiveSubscriptionPlans requestmodels.GetAllActiveSubscriptionPlansRequest
@@ -468,9 +468,9 @@ func (as *AuthSubscriptionHandler) GetAllActiveSubscriptionPlans(c *gin.Context)
 	getAllActiveSubscriptionPlans.Offset = uint64(offset)
 	subscriptionPlans, err := as.GPPC_Client.GetAllActiveSubscriptionPlans(getAllActiveSubscriptionPlans, page)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogAdminApi(log,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "Get All Active subscription plans successully", subscriptionPlans)
@@ -478,42 +478,42 @@ func (as *AuthSubscriptionHandler) GetAllActiveSubscriptionPlans(c *gin.Context)
 }
 
 func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var subscribeReq requestmodels.SubscribeRequest
 	//planID:=c.Param("plan_id")
 	PlanIdStr := c.Param("plan_id")
 	planID, err := strconv.ParseUint(PlanIdStr, 10, 64)
 	if err != nil {
-		utils.LogAdminApi(log,400,"Invalid Subscription Plan Id")
+		utils.LogAdminApi(log, 400, "Invalid Subscription Plan Id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid Subscription Plan Id", nil))
 		return
 	}
 	subscribeReq.PlanId = planID
 	claims, exists := c.Get("claims")
 	if !exists {
-		utils.LogAdminApi(log,401,"Claims not found")
+		utils.LogAdminApi(log, 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
-		utils.LogAdminApi(log,401,"Invalid claims")
+		utils.LogAdminApi(log, 401, "Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
 	//fmt.Println("jwt claims", jwtClaims)
 	subscribeReq.UserId = jwtClaims.ID
 	subscribeReq.UserEmail = jwtClaims.Email
-	err=utils.BindingJson(c,&subscribeReq,log)
-	if err!=nil{
+	err = utils.BindingJson(c, &subscribeReq, log)
+	if err != nil {
 		return
 	}
 
 	subscribeResponse, err := as.GPPC_Client.Subscribe(subscribeReq)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogApiWithUserID(log,subscribeReq.UserEmail,subscribeReq.UserId,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, subscribeReq.UserEmail, subscribeReq.UserId, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 
@@ -557,23 +557,23 @@ func (as *AuthSubscriptionHandler) VerifySubscriptionPayment(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) Unsubscribe(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
-		utils.LogAdminApi(log,401,"Calims not found")
+		utils.LogAdminApi(log, 401, "Calims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
-		utils.LogAdminApi(log,401,"Invalid claims")
+		utils.LogAdminApi(log, 401, "Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
 	var unsubscribeReq requestmodels.UnsubscribeRequest
 	unsubscribeReq.UserID = jwtClaims.ID
-	err:=utils.BindingJson(c,&unsubscribeReq,log)
-	if err!=nil{
+	err := utils.BindingJson(c, &unsubscribeReq, log)
+	if err != nil {
 		return
 	}
 	// subIdStr := c.Param("sub_id")
@@ -586,33 +586,33 @@ func (as *AuthSubscriptionHandler) Unsubscribe(c *gin.Context) {
 
 	unsubscribeResponse, err := as.GPPC_Client.Unsubscribe(unsubscribeReq)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogApiWithUserID(log,"",unsubscribeReq.UserID,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, "", unsubscribeReq.UserID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	success := response.ClientResponse(http.StatusOK, "unsubscribed successully", unsubscribeResponse)
 	c.JSON(success.StatusCode, success)
 }
 func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	var setProfileImageReq requestmodels.SetProfileImageRequest
 	claims, exists := c.Get("claims")
 	if !exists {
-		utils.LogAdminApi(log,401,"Claims not found")
+		utils.LogAdminApi(log, 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
-		utils.LogAdminApi(log,401,"Invalid claims")
+		utils.LogAdminApi(log, 401, "Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
 	setProfileImageReq.UserId = jwtClaims.ID
 	file, err := c.FormFile("image")
 	if err != nil {
-		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,400,"Image is required"+err.Error())
+		utils.LogApiWithUserID(log, "", setProfileImageReq.UserId, 400, "Image is required"+err.Error())
 		c.JSON(400, gin.H{"error": "Image is required"})
 		return
 	}
@@ -620,19 +620,19 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	num, err := strconv.Atoi(str) // returns (int, error)
 	if err != nil {
 		//fmt.Println("Error:", err)
-		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,500,"error in converting prorile image size from string to int"+err.Error())
+		utils.LogApiWithUserID(log, "", setProfileImageReq.UserId, 500, "error in converting prorile image size from string to int"+err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error in converting prorile image size from string to int"})
 		return
 	}
 	// Check file size < 2 MB
 	if file.Size > int64(num)*1024*1024 {
-		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,500,"Image must be less than 2MB")
+		utils.LogApiWithUserID(log, "", setProfileImageReq.UserId, 500, "Image must be less than 2MB")
 		c.JSON(400, gin.H{"error": "Image must be less than 2MB"})
 		return
 	}
 	src, err := file.Open()
 	if err != nil {
-		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,500,"Cannot open image"+err.Error())
+		utils.LogApiWithUserID(log, "", setProfileImageReq.UserId, 500, "Cannot open image"+err.Error())
 		c.JSON(500, gin.H{"error": "Cannot open image"})
 		return
 	}
@@ -643,7 +643,7 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	_, err = src.Read(buf)
 	if err != nil {
 		//log.Println(err)
-		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,400,"Invalid image"+err.Error())
+		utils.LogApiWithUserID(log, "", setProfileImageReq.UserId, 400, "Invalid image"+err.Error())
 		c.JSON(400, gin.H{"error": "Invalid image"})
 		return
 	}
@@ -660,7 +660,7 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	}
 
 	if !allowed[contentType] {
-		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,400,"Only JPG, PNG, or WebP images are allowed")
+		utils.LogApiWithUserID(log, "", setProfileImageReq.UserId, 400, "Only JPG, PNG, or WebP images are allowed")
 		c.JSON(400, gin.H{"error": "Only JPG, PNG, or WebP images are allowed"})
 		return
 	}
@@ -672,7 +672,7 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	data, err := io.ReadAll(src)
 	if err != nil {
 		//log.Println(err)
-		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,500,"Cannot read image"+err.Error())
+		utils.LogApiWithUserID(log, "", setProfileImageReq.UserId, 500, "Cannot read image"+err.Error())
 		c.JSON(500, gin.H{"error": "Cannot read image"})
 		return
 
@@ -681,25 +681,25 @@ func (as *AuthSubscriptionHandler) SetProfileImage(c *gin.Context) {
 	setProfileImageReq.ContentType = contentType
 	setProfileImageResponse, err := as.GPPC_Client.SetProfileImage(setProfileImageReq)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogApiWithUserID(log,"",setProfileImageReq.UserId,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, "", setProfileImageReq.UserId, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	c.JSON(http.StatusOK, setProfileImageResponse)
 }
 
 func (as *AuthSubscriptionHandler) GetProfileInformation(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
-		utils.LogAdminApi(log,401,"Claims not found")
+		utils.LogAdminApi(log, 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
-		utils.LogAdminApi(log,401,"invalid claims")
+		utils.LogAdminApi(log, 401, "invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
@@ -707,9 +707,9 @@ func (as *AuthSubscriptionHandler) GetProfileInformation(c *gin.Context) {
 	req.UserId = jwtClaims.ID
 	res, err := as.GPPC_Client.GetProfileInformation(req)
 	if err != nil {
-		code,msg:=utils.GRPCtoHTTP(err)
-		utils.LogApiWithUserID(log,res.Email,req.UserId,code,msg)
-		c.JSON(code,response.ClientResponse(code,msg,nil))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, res.Email, req.UserId, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 
@@ -718,26 +718,27 @@ func (as *AuthSubscriptionHandler) GetProfileInformation(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) EditProfileInformation(c *gin.Context) {
+	log := utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log, 401, "claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(responsemodels.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
 	var editProfile requestmodels.EditProfile
-	if err := c.ShouldBindJSON(&editProfile); err != nil {
-		c.JSON(http.StatusBadRequest, err)
+	err:=utils.BindingJson(c,&editProfile,log)
+	if err!=nil{
 		return
 	}
-	//fmt.Println("**",*editProfile.Bio,"&&",*editProfile.Name,"!!",*editProfile.Links)
-	// if editProfile.Links == nil {
-	// 	fmt.Println("just checking on the firs")
-	// }
+	
 	if editProfile.Bio == nil && editProfile.Links == nil && editProfile.Name == nil {
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,400,"Need any one data to update")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Need any one data to update", nil))
 		return
 	}
@@ -749,8 +750,10 @@ func (as *AuthSubscriptionHandler) EditProfileInformation(c *gin.Context) {
 		Phone:  editProfile.Phone,
 	})
 	if err != nil {
-		log.Println("error from grpc calling editp profile information,error: ", err)
-		c.JSON(http.StatusInternalServerError, err)
+		//log.Println("error from grpc calling editp profile information,error: ", err)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "edited profile information successfully", resp))

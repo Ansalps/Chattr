@@ -659,8 +659,6 @@ func (ad *AuthSubscriptionRepository) GetProfileInformation(req requestmodels.Ge
 	return resp, nil
 }
 func (ad *AuthSubscriptionRepository) EditProfileInformation(userId uint64, updateData map[string]interface{}) (responsemodels.EditProfile, error) {
-	//fmt.Println("data in repo", updateData)
-	// 1. Still perform the update
 	if err := ad.DB.Model(&domain.User{}).Where("id = ?", userId).Updates(updateData).Error; err != nil {
 		return responsemodels.EditProfile{}, err
 	}

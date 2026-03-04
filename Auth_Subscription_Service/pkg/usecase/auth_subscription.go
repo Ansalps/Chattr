@@ -843,7 +843,10 @@ func (as *AuthSubscriptionUsecase) GetProfileInformation(req requestmodels.GetPr
 func (as *AuthSubscriptionUsecase) EditProfileInformation(userId uint64, updateData map[string]interface{}) (responsemodels.EditProfile, error) {
 	resp, err := as.AuthSubscriptionRepository.EditProfileInformation(userId, updateData)
 	if err != nil {
-		return responsemodels.EditProfile{}, err
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.EditProfile{}, domain.ErrUserNotFound
+		}
+		return responsemodels.EditProfile{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	return resp, nil
 }
@@ -853,7 +856,7 @@ func (as *AuthSubscriptionUsecase) ChangePassword(req requestmodels.ChangePasswo
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.ChangePasswordResponse{}, domain.ErrUserNotFound
 		}
-		return responsemodels.ChangePasswordResponse{}, err
+		return responsemodels.ChangePasswordResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	err = utils.CompareWithHashedPassword(password, req.OldPassword)
 	if err != nil {
