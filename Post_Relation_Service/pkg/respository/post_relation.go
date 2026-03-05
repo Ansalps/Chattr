@@ -24,7 +24,6 @@ func NewPostRelationRepository(db *gorm.DB) interfacesRepository.PostRelationRep
 }
 
 func (ad *PostRelationRepository) CreatePost(createPostReq requestmodels.CreatePostRequest) (responsemodels.CreatePostResponse, error) {
-	//fmt.Println("if it comes here print list of urls",createPostReq.MediaUrls)
 	var mediaRecords []domain.PostMedia
 	for _, url := range createPostReq.MediaUrls {
 		mediaRecords = append(mediaRecords, domain.PostMedia{MediaUrl: url})
@@ -34,13 +33,8 @@ func (ad *PostRelationRepository) CreatePost(createPostReq requestmodels.CreateP
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 		Caption:   createPostReq.Caption,
-		Media:     mediaRecords, // GORM will see this and handle the insertion
+		Media:     mediaRecords,
 	}
-	// 2. Single call to Create
-	// GORM opens a transaction, inserts Post, gets ID, and batch inserts Media
-	// GORM will start a transaction, save the Post,
-	// grab the new Post.ID, assign it to all mediaRecords.PostID,
-	// and set timestamps for EVERYTHING.
 	err := ad.DB.Create(&newPost).Error
 	if err != nil {
 		return responsemodels.CreatePostResponse{}, err

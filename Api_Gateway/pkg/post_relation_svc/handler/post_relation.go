@@ -45,16 +45,19 @@ func NewPostRelationHandler(postRelationClient interfaces.PostRelationClientInte
 }
 
 func (as *PostRelationHandler) CreatePost(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	var createPostReq requestmodels.CreatePostRequest
 	createPostReq.Caption = c.PostForm("caption")
 
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"Calims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
@@ -62,18 +65,21 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 	// 1. Parse form
 	err := c.Request.ParseMultipartForm(20 << 20) // 20MB max
 	if err != nil {
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,500,"Cannot parse form: "+err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot parse form"})
 		return
 	}
 	str := as.config.MaxFileNumber
     num, err := strconv.Atoi(str) // returns (int, error)
     if err != nil {
-        log.Println("Error:", err)
+        //log.Println("Error:", err)
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,500,"cannot convert max file number from string to int: "+err.Error())
 		c.JSON(http.StatusInternalServerError,gin.H{"error":"cannot convert max file number from string to int"})
         return
     }
 	files := c.Request.MultipartForm.File["media"]
 	if len(files) < 1 || len(files) > num {
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,500,"Files count must be between 1 and 5")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Files count must be between 1 and 5"})
 		return
 	}
@@ -93,17 +99,20 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 	for _, file := range files {
 		// Validate size (<1MB)
 		if file.Size > 5<<20 {
+			utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,400,"Each file must be < 5 MB")
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Each file must be < 5 MB"})
 			return
 		}
 		ext := strings.ToLower(filepath.Ext(file.Filename))
 		if !allowed[ext] {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file format"})
+			utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,400,"Invalid file format, allowed file formats are jpg,jpeg,png,webp")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file format, allowed file formats are jpg,jpeg,png,webp"})
 			return
 		}
 
 		src, err := file.Open()
 		if err != nil {
+			utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,500,"caannot open file: "+err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Cannot open file"})
 			return
 		}
@@ -121,7 +130,8 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 		)
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Cloudinary upload failed"})
+			utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,500,"Cloudinary upload failed: "+err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Post upload failed"})
 			return
 		}
 
@@ -130,7 +140,10 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 	createPostReq.MediaUrls = uploadedUrls
 	createPostResponse, err := as.GPPC_Client.CreatePost(createPostReq)
 	if err != nil {
-
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{

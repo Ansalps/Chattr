@@ -28,15 +28,7 @@ type PostRelationUsecase struct {
 }
 
 var (
-	ErrPostNotFound     = errors.New("Post Not found or user does not have permission")
-	ErrPostLikeNotFound = errors.New("Post Not found or post has never been liked by the user")
-	ErrRecursiveComment = errors.New("can't reply to a comment reply")
-	ErrCommentNotFound  = errors.New("comment doesn't exist or post doesn't exist or user does not have permission")
-	ErrFollowOwn        = errors.New("can't follow yourself")
-	ErrUsertNotFound    = errors.New("User not found")
-	ErrUnfollowOwn      = errors.New("can't unfollow yourself")
-	ErrNoComments       = errors.New("No comments to Fetch for the Post or Post doesn't exist")
-	ErrNoPosts          = errors.New("No Posts to Fetch")
+	
 )
 
 func NewPostRelationUsecase(repository interfacesRepository.PostRelationRepository, authSubClient pb.AuthSubscriptionServiceClient, redisRepository interfacesRepository.RedisRepository,kafkaProducer interfacesUsecase.KafkaProducer) interfacesUsecase.PostRelationUsecase {
@@ -51,7 +43,7 @@ func NewPostRelationUsecase(repository interfacesRepository.PostRelationReposito
 func (as *PostRelationUsecase) CreatePost(createPostReq requestmodels.CreatePostRequest) (responsemodels.CreatePostResponse, error) {
 	createPostRes, err := as.PostRelationRepository.CreatePost(createPostReq)
 	if err != nil {
-		return responsemodels.CreatePostResponse{}, nil
+		return responsemodels.CreatePostResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 
 	//invalidate cach
@@ -126,7 +118,7 @@ func (as *PostRelationUsecase) EditPost(editPostReq requestmodels.EditPostReques
 	editPostRes, err := as.PostRelationRepository.EditPostById(editPostReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.EditPostResponse{}, ErrPostNotFound
+			return responsemodels.EditPostResponse{}, domain.ErrPostNotFound
 		}
 		return responsemodels.EditPostResponse{}, err
 	}
@@ -144,7 +136,7 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 	deletePostRes, err := as.PostRelationRepository.DeletePostById(deletePostReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.DeletePostResponse{}, ErrPostNotFound
+			return responsemodels.DeletePostResponse{}, domain.ErrPostNotFound
 		}
 		return responsemodels.DeletePostResponse{}, err
 	}
@@ -213,7 +205,7 @@ func (as *PostRelationUsecase) LikePost(likePostReq requestmodels.LikePostReques
 	if err!=nil{
 		if err==gorm.ErrRecordNotFound{
 			log.Println("Post Id not found")
-			return responsemodels.LikePostResponse{},ErrPostNotFound
+			return responsemodels.LikePostResponse{},domain.ErrPostNotFound
 		}
 		log.Println(err)
 		return responsemodels.LikePostResponse{},err
@@ -254,7 +246,7 @@ func (as *PostRelationUsecase) UnlikePost(unlikePostReq requestmodels.UnlikePost
 	if err!=nil{
 		if err==gorm.ErrRecordNotFound{
 			log.Println("Post Id not found")
-			return responsemodels.UnlikePostResponse{},ErrPostNotFound
+			return responsemodels.UnlikePostResponse{},domain.ErrPostNotFound
 		}
 		log.Println(err)
 		return responsemodels.UnlikePostResponse{},err
@@ -262,7 +254,7 @@ func (as *PostRelationUsecase) UnlikePost(unlikePostReq requestmodels.UnlikePost
 	unlikePostRes, err := as.PostRelationRepository.UnlikePostById(unlikePostReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.UnlikePostResponse{}, ErrPostLikeNotFound
+			return responsemodels.UnlikePostResponse{}, domain.ErrPostLikeNotFound
 		}
 		return responsemodels.UnlikePostResponse{}, err
 	}
@@ -285,7 +277,7 @@ func (as *PostRelationUsecase) AddComment(addCommentReq requestmodels.AddComment
 		//fmt.Println("print the truth :", isReplytoReply)
 		if isReplytoReply {
 			//fmt.Println("it is true")
-			return responsemodels.AddCommentResponse{}, ErrRecursiveComment
+			return responsemodels.AddCommentResponse{}, domain.ErrRecursiveComment
 			//fmt.Println("here 1")
 		}
 		//fmt.Println("here 2")
@@ -304,7 +296,7 @@ func (as *PostRelationUsecase) AddComment(addCommentReq requestmodels.AddComment
 	if err!=nil{
 		if err==gorm.ErrRecordNotFound{
 			log.Println("Post Id not found")
-			return responsemodels.AddCommentResponse{},ErrPostNotFound
+			return responsemodels.AddCommentResponse{},domain.ErrPostNotFound
 		}
 			log.Println("some database error occured while fetching post owner id by post id")
 		return responsemodels.AddCommentResponse{},err
@@ -334,7 +326,7 @@ func (as *PostRelationUsecase) EditComment(editCommentReq requestmodels.EditComm
 	if err!=nil{
 		if err==gorm.ErrRecordNotFound{
 			log.Println("Post Id not found")
-			return responsemodels.EditCommentResponse{},ErrPostNotFound
+			return responsemodels.EditCommentResponse{},domain.ErrPostNotFound
 		}
 			log.Println("some database error occured while fetching post owner id by post id")
 		return responsemodels.EditCommentResponse{},err
@@ -342,7 +334,7 @@ func (as *PostRelationUsecase) EditComment(editCommentReq requestmodels.EditComm
 	resp, err := as.PostRelationRepository.EditComment(editCommentReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.EditCommentResponse{}, ErrCommentNotFound
+			return responsemodels.EditCommentResponse{}, domain.ErrCommentNotFound
 		}
 		return responsemodels.EditCommentResponse{}, err
 	}
@@ -354,7 +346,7 @@ func (as *PostRelationUsecase) DeleteComment(deleteCommentReq requestmodels.Dele
 	if err!=nil{
 		if err==gorm.ErrRecordNotFound{
 			log.Println("Post Id not found")
-			return responsemodels.DeleteCommentResponse{},ErrPostNotFound
+			return responsemodels.DeleteCommentResponse{},domain.ErrPostNotFound
 		}
 			log.Println("some database error occured while fetching post owner id by post id")
 		return responsemodels.DeleteCommentResponse{},err
@@ -362,7 +354,7 @@ func (as *PostRelationUsecase) DeleteComment(deleteCommentReq requestmodels.Dele
 	deleteCommentRes, err := as.PostRelationRepository.DeleteCommentById(deleteCommentReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.DeleteCommentResponse{}, ErrCommentNotFound
+			return responsemodels.DeleteCommentResponse{}, domain.ErrCommentNotFound
 		}
 		return responsemodels.DeleteCommentResponse{}, err
 	}
@@ -377,14 +369,14 @@ func (as *PostRelationUsecase) DeleteComment(deleteCommentReq requestmodels.Dele
 }
 func (as *PostRelationUsecase) Follow(followReq requestmodels.FollowRequest) (responsemodels.FollowResponse, error) {
 	if followReq.UserID == followReq.FollowingUserID {
-		return responsemodels.FollowResponse{}, ErrFollowOwn
+		return responsemodels.FollowResponse{}, domain.ErrFollowOwn
 	}
 	_, err := as.AuthSubscriptionClient.CheckUserExists(context.Background(), &pb.CheckUserExistsRequest{
 		UserId: followReq.FollowingUserID,
 	})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.FollowResponse{}, ErrUsertNotFound
+			return responsemodels.FollowResponse{}, domain.ErrUsertNotFound
 		}
 		log.Println("inter service call for check user exist failed, error: ", err)
 		return responsemodels.FollowResponse{}, err
@@ -441,14 +433,14 @@ func (as *PostRelationUsecase) Follow(followReq requestmodels.FollowRequest) (re
 
 func (as *PostRelationUsecase) Unfollow(unfollowReq requestmodels.UnfollowRequest) (responsemodels.UnfollowResponse, error) {
 	if unfollowReq.UserID == unfollowReq.UnfollowingUserID {
-		return responsemodels.UnfollowResponse{}, ErrUnfollowOwn
+		return responsemodels.UnfollowResponse{}, domain.ErrUnfollowOwn
 	}
 	_, err := as.AuthSubscriptionClient.CheckUserExists(context.Background(), &pb.CheckUserExistsRequest{
 		UserId: unfollowReq.UnfollowingUserID,
 	})
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.UnfollowResponse{}, ErrUsertNotFound
+			return responsemodels.UnfollowResponse{}, domain.ErrUsertNotFound
 		}
 		log.Println("inter service call for check user exist failed, error: ", err)
 		return responsemodels.UnfollowResponse{}, err
@@ -489,7 +481,7 @@ func (as *PostRelationUsecase) FetchComments(fetchCommentsReq requestmodels.Fetc
 	commentsRes, err := as.PostRelationRepository.FetchCommentsByPostId(fetchCommentsReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.FetchCommentsResponse{}, ErrNoComments
+			return responsemodels.FetchCommentsResponse{}, domain.ErrNoComments
 		}
 		return responsemodels.FetchCommentsResponse{}, err
 	}
@@ -582,7 +574,7 @@ func (as *PostRelationUsecase) FetchAllPosts(req requestmodels.FetchAllPostsReq)
 	resp, err := as.PostRelationRepository.FetchAllPosts(req)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, ErrNoPosts
+			return nil, domain.ErrNoPosts
 		}
 		return nil, err
 	}

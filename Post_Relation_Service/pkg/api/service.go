@@ -34,7 +34,7 @@ func (as *PostRelationServer) CreatePost(ctx context.Context, req *pb.CreatePost
 	}
 	createPostRes, err := as.PostRelationUsecase.CreatePost(createPostReq)
 	if err != nil {
-		return &pb.CreatePostResponse{}, nil
+		return  nil,err
 	}
 	return &pb.CreatePostResponse{
 		PostId: createPostRes.PostID,
