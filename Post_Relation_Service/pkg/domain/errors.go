@@ -30,4 +30,6 @@ var (
 
 	ErrInternal=errors.New("internal server error")
 	ErrUsersNotFound=errors.New("No users are found")
+
+	CelebPostsNotFound=errors.New("Celeb posts not foun")
 )

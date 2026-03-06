@@ -343,9 +343,6 @@ func (as *PostRelationServer) FetchNewsFeed(ctx context.Context, req *pb.FetchNe
 	}
 	resp, err := as.PostRelationUsecase.FetchPostUserDataForNewsFeed(newsfeedReq)
 	if err != nil {
-		if err == domain.ErrNoFollowingNoPost {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
 		return nil, err
 	}
 	c := make([]*pb.PostUserData, len(resp.PostUserData))

@@ -951,7 +951,15 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 	}
 
 	// 3. LIVE INJECTION: Get Celebrity Posts
-	celebIDs, _ := as.PostRelationRepository.GetFollowedCelebrityIDs(newsfeedReq.UserID)
+	celebIDs, err := as.PostRelationRepository.GetFollowedCelebrityIDs(newsfeedReq.UserID)
+	if err!=nil{
+		if err==gorm.ErrRecordNotFound{
+
+		} else{
+			return responsemodels.FetchNewsFeedResponse{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+		}
+
+	}
 	var celebPosts []responsemodels.PostWithStatus
 
 	//var userResp1 *pb.BatchUserMetadataResponse
@@ -960,7 +968,13 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 	if !cacheHit {
 		normalPosts, err := as.PostRelationRepository.FetchNormalPostData(newsfeedReq)
 		if err != nil {
-			log.Println("what is the error in fetching normal posts", err)
+			//log.Println("what is the error in fetching normal posts", err)
+			if err==gorm.ErrRecordNotFound{
+				//return responsemodels.FetchNewsFeedResponse{},domain.ErrNoFollowingNoPost
+			}else{
+				return responsemodels.FetchNewsFeedResponse{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+			}
+			
 		}
 		//fmt.Println("length of normal posts",len(normalPosts))
 		userIDs := make(map[uint64]bool)
@@ -983,8 +997,26 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 		})
 		//fmt.Println("userResp",userResp)
 		if err != nil {
-			log.Println("error calling service auth_subcription", err)
-			return responsemodels.FetchNewsFeedResponse{}, err
+			st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return responsemodels.FetchNewsFeedResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return responsemodels.FetchNewsFeedResponse{}, domain.ErrUsersNotFound
+
+		case codes.Internal:
+			return responsemodels.FetchNewsFeedResponse{},
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return responsemodels.FetchNewsFeedResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
 		}
 		//userResp1=userResp
 		//fmt.Println("**********")
@@ -1028,7 +1060,12 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 		// B. CACHE MISS FALLBACK: If Redis is empty, fetch IDs from SQL
 		if err != nil || len(celebPostIDs) == 0 {
 			log.Printf("Celeb cache miss for user %d, falling back to SQL", newsfeedReq.UserID)
-			celebPostIDs, _ = as.PostRelationRepository.FetchCelebrityPostIDsFromSQL(celebIDs, newsfeedReq.LastID, int(newsfeedReq.Limit))
+			celebPostIDs, err = as.PostRelationRepository.FetchCelebrityPostIDsFromSQL(celebIDs, newsfeedReq.LastID, int(newsfeedReq.Limit))
+			if err==gorm.ErrRecordNotFound{
+
+			}else{
+				return responsemodels.FetchNewsFeedResponse{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+			}
 			if len(celebPostIDs) == 0 {
 				fmt.Println("justp printing to see number of post id is 0")
 			}
@@ -1045,7 +1082,12 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 			fmt.Println("showning response from db, but fecthed post ids though cache")
 			celebPosts, err = as.PostRelationRepository.FetchPostsByIDs(celebPostIDs, newsfeedReq.UserID)
 			if err != nil {
-				log.Println("failed to fetch celeb posts by id")
+				//log.Println("failed to fetch celeb posts by id")
+				if err==gorm.ErrRecordNotFound{
+					return responsemodels.FetchNewsFeedResponse{},domain.CelebPostsNotFound
+				}else{
+					return responsemodels.FetchNewsFeedResponse{},fmt.Errorf("%w:; %v",domain.ErrDatabase,err)
+				}
 			}
 			userIDs := make(map[uint64]bool)
 
@@ -1066,8 +1108,26 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 			})
 			//fmt.Println("userResp",userResp)
 			if err != nil {
-				log.Println("error calling service auth_subcription", err)
-				return responsemodels.FetchNewsFeedResponse{}, err
+				st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return responsemodels.FetchNewsFeedResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return responsemodels.FetchNewsFeedResponse{}, domain.ErrUsersNotFound
+
+		case codes.Internal:
+			return responsemodels.FetchNewsFeedResponse{},
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return responsemodels.FetchNewsFeedResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
 			}
 			for i, v := range celebPosts {
 				uid := uint64(v.UserID)
