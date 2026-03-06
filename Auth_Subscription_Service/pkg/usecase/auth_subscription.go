@@ -814,7 +814,7 @@ func (as *AuthSubscriptionUsecase) SetProfileImage(setProfileImageReq requestmod
 func (as *AuthSubscriptionUsecase) CheckUserExists(userId uint64) (bool, error) {
 	status, err := as.AuthSubscriptionRepository.CheckUserExistsById(userId)
 	if err != nil {
-		return false, err
+		return false,fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	if !status {
 		return false, domain.ErrUserNotFound
@@ -894,9 +894,9 @@ func (as *AuthSubscriptionUsecase) FetchUserMetaData(userids []uint64) (map[uint
 	resp, err := as.AuthSubscriptionRepository.FetchUserMetaData(userids)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, domain.ErrUserNotFound
+			return nil, domain.ErrUsersNotFound
 		}
-		return nil, err
+		return nil, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	return resp, nil
 }

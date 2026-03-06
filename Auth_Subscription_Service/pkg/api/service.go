@@ -478,16 +478,13 @@ func (as *AuthSubscriptionServer) SetProfileImage(ctx context.Context, req *pb.S
 
 func (as *AuthSubscriptionServer) CheckUserExists(ctx context.Context, req *pb.CheckUserExistsRequest) (*pb.CheckUserExistsResponse, error) {
 
-	_, err := as.AuthSubscriptionUsecase.CheckUserExists(req.UserId)
+	exists, err := as.AuthSubscriptionUsecase.CheckUserExists(req.UserId)
 	if err != nil {
-		if err == domain.ErrUserNotFound {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
 		return nil, err
 	}
 
 	return &pb.CheckUserExistsResponse{
-		UserId: req.UserId,
+		Exists: exists,
 	}, nil
 }
 
@@ -605,10 +602,7 @@ func (as *AuthSubscriptionServer) FetchUserMetaData(ctx context.Context, req *pb
 	userids = req.UserId
 	resp, err := as.AuthSubscriptionUsecase.FetchUserMetaData(userids)
 	if err != nil {
-		if err == domain.ErrUserNotFound {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
-		return nil, err
+		return nil,err
 	}
 	pbMap := make(map[uint64]*pb.UserMetaData)
 	for id, r := range resp {

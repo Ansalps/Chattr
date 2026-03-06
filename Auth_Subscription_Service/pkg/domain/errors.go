@@ -21,6 +21,7 @@ var (
 
 	ErrInvalidCredentials              = errors.New("invalid credentials")
 	ErrUserNotFound                    = errors.New("user not found")
+	ErrUsersNotFound                    = errors.New("no users are found")
 	ErrUserAlreadyExistsByEmail        = errors.New("user already exists, try again with another email")
 	ErrUserAlreadyExistsByUsername     = errors.New("username already taken, try with another username")
 	ErrOtpExpired                      = errors.New("otp expired")

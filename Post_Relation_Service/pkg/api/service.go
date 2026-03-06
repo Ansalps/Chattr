@@ -7,7 +7,6 @@ import (
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/pb"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/requestmodels"
-	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase/interfacesUsecase"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/utils"
 	"google.golang.org/grpc/codes"
@@ -34,7 +33,7 @@ func (as *PostRelationServer) CreatePost(ctx context.Context, req *pb.CreatePost
 	}
 	createPostRes, err := as.PostRelationUsecase.CreatePost(createPostReq)
 	if err != nil {
-		return  nil,err
+		return nil, err
 	}
 	return &pb.CreatePostResponse{
 		PostId: createPostRes.PostID,
@@ -49,7 +48,7 @@ func (as *PostRelationServer) EditPost(ctx context.Context, req *pb.EditPostRequ
 	}
 	editPostRes, err := as.PostRelationUsecase.EditPost(editPostReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return &pb.EditPostResponse{
 		Caption: editPostRes.Caption,
@@ -62,7 +61,7 @@ func (as *PostRelationServer) DeletePost(ctx context.Context, req *pb.DeletePost
 	}
 	deletPostRes, err := as.PostRelationUsecase.DeletePost(deletePostReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return &pb.DeletePostResponse{
 		PostId: deletPostRes.PostID,
@@ -96,7 +95,7 @@ func (as *PostRelationServer) UnlikePost(ctx context.Context, req *pb.UnlikePost
 	}
 	unlikePostResponse, err := as.PostRelationUsecase.UnlikePost(unlikePostReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return &pb.UnlikePostResponse{
 		PostId: unlikePostResponse.PostID,
@@ -113,19 +112,7 @@ func (as *PostRelationServer) AddComment(ctx context.Context, req *pb.AddComment
 	//fmt.Println("befor going to usecase")
 	addCommentRes, err := as.PostRelationUsecase.AddComment(addCommentReq)
 	if err != nil {
-		switch err {
-		case usecase.ErrRecursiveComment:
-			return nil, status.Error(codes.FailedPrecondition, "can't reply to a comment reply")
-		case domain.ErrForeignKeyViolationCommentPost:
-			return nil, status.Error(codes.NotFound, err.Error())
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
-		// if err == usecase.ErrRecursiveComment {
-		// 	return nil, status.Error(codes.FailedPrecondition, "can't reply to a comment reply")
-		// } else if err==domain.ErrForeignKeyViolationCommentPost{
-		// 	return nil,status.Error(codes.NotFound,err.Error())
-		// }
+		return nil, err
 	}
 	//fmt.Println("is it reaching here", addCommentRes)
 
@@ -147,13 +134,9 @@ func (as *PostRelationServer) EditComment(ctx context.Context, req *pb.EditComme
 	}
 	editCommentRes, err := as.PostRelationUsecase.EditComment(editCommentReq)
 	if err != nil {
-		log.Println("error in servic :", err)
-		if err == usecase.ErrCommentNotFound {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
 		return nil, err
 	}
-	//fmt.Println("check in api for response", editCommentRes)
+
 	return &pb.EditCommentResponse{
 		PostId:      editCommentReq.PostID,
 		CommentId:   editCommentRes.CommentID,
@@ -161,7 +144,7 @@ func (as *PostRelationServer) EditComment(ctx context.Context, req *pb.EditComme
 	}, nil
 }
 func (as *PostRelationServer) DeleteComment(ctx context.Context, req *pb.DeleteCommentRequest) (*pb.DeleteCommentResponse, error) {
-	//fmt.Println("what is actually the issue?")
+
 	deleteCommentReq := requestmodels.DeleteCommentRequest{
 		UserID:    req.UserId,
 		PostID:    req.PostId,
@@ -169,9 +152,6 @@ func (as *PostRelationServer) DeleteComment(ctx context.Context, req *pb.DeleteC
 	}
 	deleteCommentRes, err := as.PostRelationUsecase.DeleteComment(deleteCommentReq)
 	if err != nil {
-		if err == usecase.ErrCommentNotFound {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
 		return nil, err
 	}
 	return &pb.DeleteCommentResponse{
@@ -186,17 +166,7 @@ func (as *PostRelationServer) Follow(ctx context.Context, req *pb.FollowRequest)
 	}
 	followResponse, err := as.PostRelationUsecase.Follow(followReq)
 	if err != nil {
-		//fmt.Println("hi hwillo")
-		switch err {
-		case domain.ErrAlreadyFollowing:
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case usecase.ErrFollowOwn:
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case usecase.ErrUsertNotFound:
-			return nil, status.Error(codes.NotFound, err.Error())
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil, err
 	}
 	return &pb.FollowResponse{
 		FollowingUserId: followResponse.FollowingUserID,
@@ -209,16 +179,7 @@ func (as *PostRelationServer) Unfollow(ctx context.Context, req *pb.UnfollowRequ
 	}
 	unfollowResponse, err := as.PostRelationUsecase.Unfollow(unfollowReq)
 	if err != nil {
-		switch err {
-		case domain.ErrNoFollower:
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case usecase.ErrUnfollowOwn:
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case usecase.ErrUsertNotFound:
-			return nil, status.Error(codes.NotFound, err.Error())
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil, err
 	}
 	return &pb.UnfollowResponse{
 		UnfollowingUserId: unfollowResponse.UnfollowingUserID,
@@ -232,10 +193,6 @@ func (as *PostRelationServer) FetchComments(ctx context.Context, req *pb.FetchCo
 	}
 	fetchCommentsResponse, err := as.PostRelationUsecase.FetchComments(fetchCommentsReq)
 	if err != nil {
-		if err == usecase.ErrNoComments {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
-		log.Println("error in service", err)
 		return nil, err
 	}
 	comments := make([]*pb.Comment, len(fetchCommentsResponse.Comments))

@@ -61,6 +61,8 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 		log.Error("Client/server Error", logger.Field{Key: "details", Value: err.Error()})
 		if err != nil {
 			switch {
+			case errors.Is(err,domain.ErrUsersNotFound):
+				return nil,status.Error(codes.NotFound,domain.ErrUsersNotFound.Error())
 			case errors.Is(err, domain.ErrDatabaseConnectionTimeOut):
 				return nil, status.Error(codes.Unavailable, "database timeout")
 

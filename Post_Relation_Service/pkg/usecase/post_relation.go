@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"sort"
@@ -17,6 +16,8 @@ import (
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase/interfacesUsecase"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/utils"
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 )
 
@@ -24,26 +25,24 @@ type PostRelationUsecase struct {
 	PostRelationRepository interfacesRepository.PostRelationRepository
 	AuthSubscriptionClient pb.AuthSubscriptionServiceClient
 	RedisRepository        interfacesRepository.RedisRepository
-	KafkaProducer         interfacesUsecase.KafkaProducer // <--- Add this
+	KafkaProducer          interfacesUsecase.KafkaProducer // <--- Add this
 }
 
-var (
-	
-)
+var ()
 
-func NewPostRelationUsecase(repository interfacesRepository.PostRelationRepository, authSubClient pb.AuthSubscriptionServiceClient, redisRepository interfacesRepository.RedisRepository,kafkaProducer interfacesUsecase.KafkaProducer) interfacesUsecase.PostRelationUsecase {
+func NewPostRelationUsecase(repository interfacesRepository.PostRelationRepository, authSubClient pb.AuthSubscriptionServiceClient, redisRepository interfacesRepository.RedisRepository, kafkaProducer interfacesUsecase.KafkaProducer) interfacesUsecase.PostRelationUsecase {
 	return &PostRelationUsecase{
 		PostRelationRepository: repository,
 		AuthSubscriptionClient: authSubClient,
 		RedisRepository:        redisRepository,
-		KafkaProducer:         kafkaProducer,
+		KafkaProducer:          kafkaProducer,
 	}
 }
 
 func (as *PostRelationUsecase) CreatePost(createPostReq requestmodels.CreatePostRequest) (responsemodels.CreatePostResponse, error) {
 	createPostRes, err := as.PostRelationRepository.CreatePost(createPostReq)
 	if err != nil {
-		return responsemodels.CreatePostResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+		return responsemodels.CreatePostResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 
 	//invalidate cach
@@ -115,13 +114,13 @@ func (as *PostRelationUsecase) CreatePost(createPostReq requestmodels.CreatePost
 }
 
 func (as *PostRelationUsecase) EditPost(editPostReq requestmodels.EditPostRequest) (responsemodels.EditPostResponse, error) {
-	
+
 	editPostRes, err := as.PostRelationRepository.EditPostById(editPostReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.EditPostResponse{}, domain.ErrPostNotFound
 		}
-		return responsemodels.EditPostResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+		return responsemodels.EditPostResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 
 	//invalidate cach
@@ -139,7 +138,7 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.DeletePostResponse{}, domain.ErrPostNotFound
 		}
-		return responsemodels.DeletePostResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+		return responsemodels.DeletePostResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 
 	//invalidate cach
@@ -202,13 +201,13 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 }
 
 func (as *PostRelationUsecase) LikePost(likePostReq requestmodels.LikePostRequest) (responsemodels.LikePostResponse, error) {
-	postOwnerId,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(likePostReq.PostID)
-	if err!=nil{
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.LikePostResponse{},domain.ErrPostNotFound
+	postOwnerId, err := as.PostRelationRepository.FetchPostOwnerIdByPostId(likePostReq.PostID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.LikePostResponse{}, domain.ErrPostNotFound
 		}
 		log.Println(err)
-		return responsemodels.LikePostResponse{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+		return responsemodels.LikePostResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 	//fmt.Println("post Owner",postOwnerId)
 
@@ -221,41 +220,41 @@ func (as *PostRelationUsecase) LikePost(likePostReq requestmodels.LikePostReques
 	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
 
 	event := map[string]interface{}{
-		"type":          "POST_LIKE",
-		"actorId":       likePostReq.UserID,     // Person who clicked 'like'
-		"postOwnerId":   postOwnerId,    // Person receiving the notification
-		"postId":        likePostRes.PostID,     // The content being liked
-		"timestamp":     time.Now().Unix(),
+		"type":        "POST_LIKE",
+		"actorId":     likePostReq.UserID, // Person who clicked 'like'
+		"postOwnerId": postOwnerId,        // Person receiving the notification
+		"postId":      likePostRes.PostID, // The content being liked
+		"timestamp":   time.Now().Unix(),
 	}
 
-	 // Convert to JSON and publish to topic "post-events"
-	 err = as.KafkaProducer.PublishEvent("post-events", event)
-	 if err != nil {
-		 // Log the error but don't necessarily fail the request 
-		 // unless real-time notification is critical.
-		 log.Printf("Failed to emit Kafka event: %v", err)
-	 }
-	 
+	// Convert to JSON and publish to topic "post-events"
+	err = as.KafkaProducer.PublishEvent("post-events", event)
+	if err != nil {
+		// Log the error but don't necessarily fail the request
+		// unless real-time notification is critical.
+		log.Printf("Failed to emit Kafka event: %v", err)
+	}
+
 	return responsemodels.LikePostResponse{
 		PostID: likePostRes.PostID,
 	}, nil
 }
 
 func (as *PostRelationUsecase) UnlikePost(unlikePostReq requestmodels.UnlikePostRequest) (responsemodels.UnlikePostResponse, error) {
-	_,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(unlikePostReq.PostID)
-	if err!=nil{
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.UnlikePostResponse{},domain.ErrPostNotFound
+	_, err := as.PostRelationRepository.FetchPostOwnerIdByPostId(unlikePostReq.PostID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.UnlikePostResponse{}, domain.ErrPostNotFound
 		}
 		log.Println(err)
-		return responsemodels.UnlikePostResponse{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+		return responsemodels.UnlikePostResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 	unlikePostRes, err := as.PostRelationRepository.UnlikePostById(unlikePostReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.UnlikePostResponse{}, domain.ErrPostLikeNotFound
 		}
-		return responsemodels.UnlikePostResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+		return responsemodels.UnlikePostResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", unlikePostReq.UserID)
@@ -270,10 +269,10 @@ func (as *PostRelationUsecase) AddComment(addCommentReq requestmodels.AddComment
 	if addCommentReq.ParentCommentId != nil {
 		isReplytoReply, err := as.PostRelationRepository.CheckCommentHieracrchy(addCommentReq.ParentCommentId)
 		if err != nil {
-			if err==gorm.ErrRecordNotFound{
-				return responsemodels.AddCommentResponse{},domain.ErrCommentIdNotFound
+			if err == gorm.ErrRecordNotFound {
+				return responsemodels.AddCommentResponse{}, domain.ErrCommentIdNotFound
 			}
-			return responsemodels.AddCommentResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+			return responsemodels.AddCommentResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 		}
 
 		if isReplytoReply {
@@ -289,68 +288,71 @@ func (as *PostRelationUsecase) AddComment(addCommentReq requestmodels.AddComment
 	versionKey := fmt.Sprintf("user:%d:feed_version", addCommentReq.UserID)
 	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
 
-	postOwnerId,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(addCommentReq.PostID)
-	if err!=nil{
-		if err==gorm.ErrRecordNotFound{
-			return responsemodels.AddCommentResponse{},domain.ErrPostNotFound
+	postOwnerId, err := as.PostRelationRepository.FetchPostOwnerIdByPostId(addCommentReq.PostID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.AddCommentResponse{}, domain.ErrPostNotFound
 		}
-		return responsemodels.AddCommentResponse{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+		return responsemodels.AddCommentResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 
 	event := map[string]interface{}{
-		"type":          "POST_COMMENT",
-		"actorId":       addCommentReq.UserID,     // Person who clicked 'like'
-		"postOwnerId":   postOwnerId,    // Person receiving the notification
-		"postId":        addCommentReq.PostID,     // The content being liked
-		"timestamp":     time.Now().Unix(),
+		"type":        "POST_COMMENT",
+		"actorId":     addCommentReq.UserID, // Person who clicked 'like'
+		"postOwnerId": postOwnerId,          // Person receiving the notification
+		"postId":      addCommentReq.PostID, // The content being liked
+		"timestamp":   time.Now().Unix(),
 	}
 
-	 // Convert to JSON and publish to topic "post-events"
-	 err = as.KafkaProducer.PublishEvent("post-events", event)
-	 if err != nil {
-		 // Log the error but don't necessarily fail the request 
-		 // unless real-time notification is critical.
-		 log.Printf("Failed to emit Kafka event: %v", err)
-	 }
+	// Convert to JSON and publish to topic "post-events"
+	err = as.KafkaProducer.PublishEvent("post-events", event)
+	if err != nil {
+		// Log the error but don't necessarily fail the request
+		// unless real-time notification is critical.
+		log.Printf("Failed to emit Kafka event: %v", err)
+	}
 
 	return addCommentRes, nil
 }
 func (as *PostRelationUsecase) EditComment(editCommentReq requestmodels.EditCommentRequest) (responsemodels.EditCommentResponse, error) {
-	_,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(editCommentReq.PostID)
-	if err!=nil{
-		if err==gorm.ErrRecordNotFound{
-			log.Println("Post Id not found")
-			return responsemodels.EditCommentResponse{},domain.ErrPostNotFound
+	postOwnerId, err := as.PostRelationRepository.FetchPostOwnerIdByPostId(editCommentReq.PostID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.EditCommentResponse{}, domain.ErrPostIdNotFound
 		}
-			log.Println("some database error occured while fetching post owner id by post id")
-		return responsemodels.EditCommentResponse{},err
+		return responsemodels.EditCommentResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+	}
+	if postOwnerId != editCommentReq.UserID {
+		return responsemodels.EditCommentResponse{}, domain.ErrCommentEditDenied
 	}
 	resp, err := as.PostRelationRepository.EditComment(editCommentReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.EditCommentResponse{}, domain.ErrCommentNotFound
 		}
-		return responsemodels.EditCommentResponse{}, err
+		return responsemodels.EditCommentResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 
 	return resp, nil
 }
 func (as *PostRelationUsecase) DeleteComment(deleteCommentReq requestmodels.DeleteCommentRequest) (responsemodels.DeleteCommentResponse, error) {
-	_,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(deleteCommentReq.PostID)
-	if err!=nil{
-		if err==gorm.ErrRecordNotFound{
-			log.Println("Post Id not found")
-			return responsemodels.DeleteCommentResponse{},domain.ErrPostNotFound
+	postOwnerId, err := as.PostRelationRepository.FetchPostOwnerIdByPostId(deleteCommentReq.PostID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return responsemodels.DeleteCommentResponse{}, domain.ErrPostIdNotFound
 		}
-			log.Println("some database error occured while fetching post owner id by post id")
-		return responsemodels.DeleteCommentResponse{},err
+		log.Println("some database error occured while fetching post owner id by post id")
+		return responsemodels.DeleteCommentResponse{}, err
+	}
+	if postOwnerId != deleteCommentReq.UserID {
+		return responsemodels.DeleteCommentResponse{}, domain.ErrCommentDeleteDenied
 	}
 	deleteCommentRes, err := as.PostRelationRepository.DeleteCommentById(deleteCommentReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.DeleteCommentResponse{}, domain.ErrCommentNotFound
 		}
-		return responsemodels.DeleteCommentResponse{}, err
+		return responsemodels.DeleteCommentResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 
 	//invalidate cach
@@ -365,15 +367,33 @@ func (as *PostRelationUsecase) Follow(followReq requestmodels.FollowRequest) (re
 	if followReq.UserID == followReq.FollowingUserID {
 		return responsemodels.FollowResponse{}, domain.ErrFollowOwn
 	}
-	_, err := as.AuthSubscriptionClient.CheckUserExists(context.Background(), &pb.CheckUserExistsRequest{
+	exists, err := as.AuthSubscriptionClient.CheckUserExists(context.Background(), &pb.CheckUserExistsRequest{
 		UserId: followReq.FollowingUserID,
 	})
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return responsemodels.FollowResponse{}, domain.ErrUsertNotFound
+		st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return responsemodels.FollowResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
 		}
-		log.Println("inter service call for check user exist failed, error: ", err)
-		return responsemodels.FollowResponse{}, err
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return responsemodels.FollowResponse{}, domain.ErrUserNotFound
+
+		case codes.Internal:
+			return responsemodels.FollowResponse{},
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return responsemodels.FollowResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+	}
+	if !exists.Exists{
+		return responsemodels.FollowResponse{},domain.ErrUserNotFound
 	}
 	followRes, err := as.PostRelationRepository.Follow(followReq)
 	if err != nil {
@@ -382,7 +402,7 @@ func (as *PostRelationUsecase) Follow(followReq requestmodels.FollowRequest) (re
 			//fmt.Println("is it actually")
 			return responsemodels.FollowResponse{}, domain.ErrAlreadyFollowing
 		}
-		return responsemodels.FollowResponse{}, err
+		return responsemodels.FollowResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 
 	//invalidate cach
@@ -402,23 +422,22 @@ func (as *PostRelationUsecase) Follow(followReq requestmodels.FollowRequest) (re
 			}
 		}
 	}()
-	
-	
+
 	event := map[string]interface{}{
-		"type":          "USER_FOLLOW",
-		"actorId":       followReq.UserID,     // Person who clicked 'like'
-		"followingId":   followReq.FollowingUserID,    // Person receiving the notification
+		"type":        "USER_FOLLOW",
+		"actorId":     followReq.UserID,          // Person who clicked 'like'
+		"followingId": followReq.FollowingUserID, // Person receiving the notification
 		//"postId":        addCommentReq.PostID,     // The content being liked
-		"timestamp":     time.Now().Unix(),
+		"timestamp": time.Now().Unix(),
 	}
 
-	 // Convert to JSON and publish to topic "post-events"
-	 err = as.KafkaProducer.PublishEvent("user-events", event)
-	 if err != nil {
-		 // Log the error but don't necessarily fail the request 
-		 // unless real-time notification is critical.
-		 log.Printf("Failed to emit Kafka event: %v", err)
-	 }
+	// Convert to JSON and publish to topic "post-events"
+	err = as.KafkaProducer.PublishEvent("user-events", event)
+	if err != nil {
+		// Log the error but don't necessarily fail the request
+		// unless real-time notification is critical.
+		log.Printf("Failed to emit Kafka event: %v", err)
+	}
 
 	return responsemodels.FollowResponse{
 		FollowingUserID: followRes.FollowingUserID,
@@ -429,15 +448,33 @@ func (as *PostRelationUsecase) Unfollow(unfollowReq requestmodels.UnfollowReques
 	if unfollowReq.UserID == unfollowReq.UnfollowingUserID {
 		return responsemodels.UnfollowResponse{}, domain.ErrUnfollowOwn
 	}
-	_, err := as.AuthSubscriptionClient.CheckUserExists(context.Background(), &pb.CheckUserExistsRequest{
+	exists, err := as.AuthSubscriptionClient.CheckUserExists(context.Background(), &pb.CheckUserExistsRequest{
 		UserId: unfollowReq.UnfollowingUserID,
 	})
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return responsemodels.UnfollowResponse{}, domain.ErrUsertNotFound
+		st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return responsemodels.UnfollowResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
 		}
-		log.Println("inter service call for check user exist failed, error: ", err)
-		return responsemodels.UnfollowResponse{}, err
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return responsemodels.UnfollowResponse{}, domain.ErrUserNotFound
+
+		case codes.Internal:
+			return responsemodels.UnfollowResponse{},
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return responsemodels.UnfollowResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+	}
+	if !exists.Exists{
+		return responsemodels.UnfollowResponse{},domain.ErrUserNotFound
 	}
 	unfollowRes, err := as.PostRelationRepository.UnfollowUserById(unfollowReq)
 	if err != nil {
@@ -445,7 +482,7 @@ func (as *PostRelationUsecase) Unfollow(unfollowReq requestmodels.UnfollowReques
 			//fmt.Println("is it actually")
 			return responsemodels.UnfollowResponse{}, domain.ErrNoFollower
 		}
-		return responsemodels.UnfollowResponse{}, err
+		return responsemodels.UnfollowResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 
 	//invalidate cach
@@ -475,9 +512,9 @@ func (as *PostRelationUsecase) FetchComments(fetchCommentsReq requestmodels.Fetc
 	commentsRes, err := as.PostRelationRepository.FetchCommentsByPostId(fetchCommentsReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return responsemodels.FetchCommentsResponse{}, domain.ErrNoComments
+			return responsemodels.FetchCommentsResponse{}, domain.ErrPostIdNotFound
 		}
-		return responsemodels.FetchCommentsResponse{}, err
+		return responsemodels.FetchCommentsResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 	userIDs := make(map[uint64]bool)
 	for _, v := range commentsRes {
@@ -494,8 +531,26 @@ func (as *PostRelationUsecase) FetchComments(fetchCommentsReq requestmodels.Fetc
 	})
 	//v:=userResp[userIDs]
 	if err != nil {
-		log.Println("error calling service auth_subcription", err)
-		return responsemodels.FetchCommentsResponse{}, err
+		st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return responsemodels.FetchCommentsResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return responsemodels.FetchCommentsResponse{}, domain.ErrUsersNotFound
+
+		case codes.Internal:
+			return responsemodels.FetchCommentsResponse{},
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return responsemodels.FetchCommentsResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
 	}
 	var comments []responsemodels.Comment
 	for i, v := range commentsRes {
@@ -525,7 +580,7 @@ func (as *PostRelationUsecase) FetchComments(fetchCommentsReq requestmodels.Fetc
 		if commentsRes[i].ParentCommentID != nil {
 			parentIdx, ok := parentIndex[*v.ParentCommentID]
 			if !ok {
-				return responsemodels.FetchCommentsResponse{}, errors.New("invalid parent comment id")
+				return responsemodels.FetchCommentsResponse{}, domain.ErrInvalidParentCommentId
 			}
 
 			comments[parentIdx].ChildComment = append(comments[parentIdx].ChildComment, responsemodels.Comment{
@@ -565,12 +620,40 @@ func (as *PostRelationUsecase) PostFollowCount(userid uint64) (responsemodels.Po
 	return resp, nil
 }
 func (as *PostRelationUsecase) FetchAllPosts(req requestmodels.FetchAllPostsReq) ([]responsemodels.PostWithCounts, error) {
+	exists,err:=as.AuthSubscriptionClient.CheckUserExists(context.Background(),&pb.CheckUserExistsRequest{
+		UserId: req.TargetUserID,
+	})
+	if err!=nil{
+		st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return nil,
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return nil, domain.ErrUserNotFound
+
+		case codes.Internal:
+			return nil,
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return nil,
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+	}
+	if !exists.Exists{
+		return nil,domain.ErrUserNotFound
+	}
 	resp, err := as.PostRelationRepository.FetchAllPosts(req)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, domain.ErrNoPosts
 		}
-		return nil, err
+		return nil, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	for i := range resp {
 		resp[i].Age = utils.CalcuateCommentAge(resp[i].CreatedAt)
@@ -615,7 +698,7 @@ func (as *PostRelationUsecase) FetchFollowers(req requestmodels.FetchFollowersRe
 func (as *PostRelationUsecase) FetchFollowing(req requestmodels.FetchFollowingRequest) (responsemodels.FetchFollowingResponse, error) {
 	resp, err := as.PostRelationRepository.FetchFollowingUserIds(req)
 	if err != nil {
-		log.Println("print the erro in fetch followin",err)
+		log.Println("print the erro in fetch followin", err)
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.FetchFollowingResponse{}, domain.ErrNoFollowing
 		}
@@ -779,100 +862,98 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 	// 3. LIVE INJECTION: Get Celebrity Posts
 	celebIDs, _ := as.PostRelationRepository.GetFollowedCelebrityIDs(newsfeedReq.UserID)
 	var celebPosts []responsemodels.PostWithStatus
-	
+
 	//var userResp1 *pb.BatchUserMetadataResponse
 
 	// 2. IF CACHE MISS: Get Normal Posts from DB
 	if !cacheHit {
 		normalPosts, err := as.PostRelationRepository.FetchNormalPostData(newsfeedReq)
-		if err!=nil{
-			log.Println("what is the error in fetching normal posts",err)
+		if err != nil {
+			log.Println("what is the error in fetching normal posts", err)
 		}
 		//fmt.Println("length of normal posts",len(normalPosts))
-			userIDs := make(map[uint64]bool)
+		userIDs := make(map[uint64]bool)
 
-			for _, v := range normalPosts {
+		for _, v := range normalPosts {
 
-				userIDs[uint64(v.UserID)] = true
-			}
-	
+			userIDs[uint64(v.UserID)] = true
+		}
+
 		userids := make([]uint64, len(userIDs))
 		i := 0
 		for k := range userIDs {
 			userids[i] = k
 			i++
 		}
-		userids=append(userids, celebIDs...)
+		userids = append(userids, celebIDs...)
 
 		userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
-					UserId: userids,
-				})
-				//fmt.Println("userResp",userResp)
+			UserId: userids,
+		})
+		//fmt.Println("userResp",userResp)
 		if err != nil {
 			log.Println("error calling service auth_subcription", err)
 			return responsemodels.FetchNewsFeedResponse{}, err
 		}
 		//userResp1=userResp
 		//fmt.Println("**********")
-			for i, v := range normalPosts {
-				//fmt.Println("is it reaching here in looping normalPostss")
-				uid := uint64(v.UserID)
-				//fmt.Println("uid",uid)
-				// SAFE MAPPING: check if user exists in the map
-				if userData, ok := userResp.Users[uid]; ok {
-					//fmt.Println("what about here",ok,userData,userResp.Users[uid])
-					normalPosts[i].UserDetails = responsemodels.UserMetaData{
-						UserID:        userData.UserId,
-						UserName:      userData.UserName,
-						Name:          userData.Name,
-						ProfileImgUrl: userData.ProfileImgUrl,
-						BlueTick:      userData.BlueTick,
-					}
-					//fmt.Println("normalPosts[i] hi hello hi hello",normalPosts[i])
-				} else {
-					log.Printf("Warning: Metadata for user %d not found in auth service", uid)
+		for i, v := range normalPosts {
+			//fmt.Println("is it reaching here in looping normalPostss")
+			uid := uint64(v.UserID)
+			//fmt.Println("uid",uid)
+			// SAFE MAPPING: check if user exists in the map
+			if userData, ok := userResp.Users[uid]; ok {
+				//fmt.Println("what about here",ok,userData,userResp.Users[uid])
+				normalPosts[i].UserDetails = responsemodels.UserMetaData{
+					UserID:        userData.UserId,
+					UserName:      userData.UserName,
+					Name:          userData.Name,
+					ProfileImgUrl: userData.ProfileImgUrl,
+					BlueTick:      userData.BlueTick,
 				}
-
-				normalPosts[i].Age = utils.CalcuateCommentAge(v.CreatedAt)
+				//fmt.Println("normalPosts[i] hi hello hi hello",normalPosts[i])
+			} else {
+				log.Printf("Warning: Metadata for user %d not found in auth service", uid)
 			}
-			normalPosts1=normalPosts
-			//fmt.Println("normal posts",normalPosts)
+
+			normalPosts[i].Age = utils.CalcuateCommentAge(v.CreatedAt)
+		}
+		normalPosts1 = normalPosts
+		//fmt.Println("normal posts",normalPosts)
 		// Store in cache for 5 minutes
 		data, err := json.Marshal(normalPosts)
-		if err!=nil{
-			log.Println("error in marshalling json",err)
+		if err != nil {
+			log.Println("error in marshalling json", err)
 		}
 		//fmt.Println("data",data)
 		fmt.Println("returning posts of normal users from db")
 		as.RedisRepository.CacheSet(ctx, normalCacheKey, data, 5*time.Minute)
 	}
 
-	
+	if len(celebIDs) > 0 {
+		// A. Try pulling IDs from Redis ZSets
+		celebPostIDs, err := as.RedisRepository.PullCelebPostIDsFromRedis(ctx, celebIDs, newsfeedReq.LastID, int(newsfeedReq.Limit))
 
-	if len(celebIDs) > 0  {
-        // A. Try pulling IDs from Redis ZSets
-        celebPostIDs, err := as.RedisRepository.PullCelebPostIDsFromRedis(ctx, celebIDs, newsfeedReq.LastID, int(newsfeedReq.Limit))
-        
-        // B. CACHE MISS FALLBACK: If Redis is empty, fetch IDs from SQL
-        if err != nil || len(celebPostIDs) == 0 {
-            log.Printf("Celeb cache miss for user %d, falling back to SQL", newsfeedReq.UserID)
-            celebPostIDs, _ = as.PostRelationRepository.FetchCelebrityPostIDsFromSQL(celebIDs, newsfeedReq.LastID, int(newsfeedReq.Limit))
-            if len(celebPostIDs)==0{
+		// B. CACHE MISS FALLBACK: If Redis is empty, fetch IDs from SQL
+		if err != nil || len(celebPostIDs) == 0 {
+			log.Printf("Celeb cache miss for user %d, falling back to SQL", newsfeedReq.UserID)
+			celebPostIDs, _ = as.PostRelationRepository.FetchCelebrityPostIDsFromSQL(celebIDs, newsfeedReq.LastID, int(newsfeedReq.Limit))
+			if len(celebPostIDs) == 0 {
 				fmt.Println("justp printing to see number of post id is 0")
-			}	
-            // OPTIONAL: You could trigger a background job here to re-populate 
-            // the Redis ZSET so the next request is faster.
+			}
+			// OPTIONAL: You could trigger a background job here to re-populate
+			// the Redis ZSET so the next request is faster.
 			// Repopulate in the background
 			if len(celebPostIDs) > 0 {
 				go as.RepopulateCelebrityCache(context.Background(), celebIDs)
 			}
-        } 
-        
-        // C. Hydrate those IDs from SQL (Get full post details, counts, etc.)
-        if len(celebPostIDs) > 0 {
+		}
+
+		// C. Hydrate those IDs from SQL (Get full post details, counts, etc.)
+		if len(celebPostIDs) > 0 {
 			fmt.Println("showning response from db, but fecthed post ids though cache")
-            celebPosts, err = as.PostRelationRepository.FetchPostsByIDs(celebPostIDs, newsfeedReq.UserID)
-			if err!=nil{
+			celebPosts, err = as.PostRelationRepository.FetchPostsByIDs(celebPostIDs, newsfeedReq.UserID)
+			if err != nil {
 				log.Println("failed to fetch celeb posts by id")
 			}
 			userIDs := make(map[uint64]bool)
@@ -882,21 +963,21 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 				userIDs[uint64(v.UserID)] = true
 			}
 			userids := make([]uint64, len(userIDs))
-		i := 0
-		for k := range userIDs {
-			userids[i] = k
-			i++
-		}
-		userids=append(userids, celebIDs...)
+			i := 0
+			for k := range userIDs {
+				userids[i] = k
+				i++
+			}
+			userids = append(userids, celebIDs...)
 
-		userResp2, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
-					UserId: userids,
-				})
-				//fmt.Println("userResp",userResp)
-		if err != nil {
-			log.Println("error calling service auth_subcription", err)
-			return responsemodels.FetchNewsFeedResponse{}, err
-		}
+			userResp2, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+				UserId: userids,
+			})
+			//fmt.Println("userResp",userResp)
+			if err != nil {
+				log.Println("error calling service auth_subcription", err)
+				return responsemodels.FetchNewsFeedResponse{}, err
+			}
 			for i, v := range celebPosts {
 				uid := uint64(v.UserID)
 
@@ -915,8 +996,8 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 
 				celebPosts[i].Age = utils.CalcuateCommentAge(v.CreatedAt)
 			}
-        }
-    }else{
+		}
+	} else {
 		fmt.Println("just printing to see number of celeb id is 0, means no data for celebs")
 	}
 	//fmt.Println("normalPosts*******************************************",normalPosts1)
@@ -931,7 +1012,7 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 	// ... use your existing userResp / AuthSubscriptionClient logic here ...
 
 	//return as.buildFinalResponse(allPosts, newsfeedReq.Limit), nil
-//}
+	//}
 	var nextCursor uint64
 	hasMore := false
 	if len(allPosts) > int(newsfeedReq.Limit) {
@@ -944,55 +1025,55 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 		nextCursor = uint64(allPosts[len(allPosts)-1].ID)
 	}
 
-		finalResponse := responsemodels.FetchNewsFeedResponse{
-			PostUserData: allPosts,
-			NextCursor:   nextCursor,
-			HasMore:      hasMore,
-		}
-		// 3. Store in Redis for future requests (e.g., 5 minutes TTL)
-		// dataToCache, err := json.Marshal(finalResponse)
-		// if err != nil {
-		// 	return responsemodels.FetchNewsFeedResponse{}, err
-		// }
-		// err = as.RedisRepository.CacheSet(context.Background(), cacheKey, dataToCache, 5*time.Minute)
-		// if err != nil {
-		// 	log.Printf("Failed to cache newsfeed for key %s: %v", cacheKey, err)
-		// 	// Note: Usually we don't return an error here because we still have the data
-		// 	// to return to the user; the cache failing shouldn't break the whole app.
-		// }
-		//log.Println("returning sql response")
-		return finalResponse, nil
+	finalResponse := responsemodels.FetchNewsFeedResponse{
+		PostUserData: allPosts,
+		NextCursor:   nextCursor,
+		HasMore:      hasMore,
 	}
+	// 3. Store in Redis for future requests (e.g., 5 minutes TTL)
+	// dataToCache, err := json.Marshal(finalResponse)
+	// if err != nil {
+	// 	return responsemodels.FetchNewsFeedResponse{}, err
+	// }
+	// err = as.RedisRepository.CacheSet(context.Background(), cacheKey, dataToCache, 5*time.Minute)
+	// if err != nil {
+	// 	log.Printf("Failed to cache newsfeed for key %s: %v", cacheKey, err)
+	// 	// Note: Usually we don't return an error here because we still have the data
+	// 	// to return to the user; the cache failing shouldn't break the whole app.
+	// }
+	//log.Println("returning sql response")
+	return finalResponse, nil
+}
 func (as *PostRelationUsecase) RepopulateCelebrityCache(ctx context.Context, celebIDs []uint64) {
-    for _, cID := range celebIDs {
-        // 1. Fetch the latest 50 posts for this specific celebrity from SQL
-        // We do this per celebrity to keep the ZSet clean
-        posts, err := as.PostRelationRepository.FetchLatestPostIDsByUserID(cID, 50)
-        if err != nil || len(posts) == 0 {
-            continue
-        }
+	for _, cID := range celebIDs {
+		// 1. Fetch the latest 50 posts for this specific celebrity from SQL
+		// We do this per celebrity to keep the ZSet clean
+		posts, err := as.PostRelationRepository.FetchLatestPostIDsByUserID(cID, 50)
+		if err != nil || len(posts) == 0 {
+			continue
+		}
 
-        key := fmt.Sprintf("celeb:posts:%d", cID)
-        pipe := as.RedisRepository.Pipeline()
+		key := fmt.Sprintf("celeb:posts:%d", cID)
+		pipe := as.RedisRepository.Pipeline()
 
-        for _, pID := range posts {
-            // Score = PostID for chronological order
-            // Correct way to use ZAdd in a Pipeline
-            pipe.ZAdd(ctx, key, redis.Z{
-                Score:  float64(pID), // The sorting criteria
-                Member: pID,          // The actual value stored
-            })
-        }
+		for _, pID := range posts {
+			// Score = PostID for chronological order
+			// Correct way to use ZAdd in a Pipeline
+			pipe.ZAdd(ctx, key, redis.Z{
+				Score:  float64(pID), // The sorting criteria
+				Member: pID,          // The actual value stored
+			})
+		}
 
-        // 2. Keep only the last 50 and set TTL
-        pipe.ZRemRangeByRank(ctx, key, 0, -51)
-        pipe.Expire(ctx, key, 7*24*time.Hour)
+		// 2. Keep only the last 50 and set TTL
+		pipe.ZRemRangeByRank(ctx, key, 0, -51)
+		pipe.Expire(ctx, key, 7*24*time.Hour)
 
-        _, err = pipe.Exec(ctx)
-        if err != nil {
-            log.Printf("Failed to repopulate cache for celeb %d: %v", cID, err)
-        }
-    }
+		_, err = pipe.Exec(ctx)
+		if err != nil {
+			log.Printf("Failed to repopulate cache for celeb %d: %v", cID, err)
+		}
+	}
 }
 func (as *PostRelationUsecase) getFeedVersion(ctx context.Context, userID uint64) string {
 	versionKey := fmt.Sprintf("user:%d:feed_version", userID)
@@ -1011,14 +1092,14 @@ func (as *PostRelationUsecase) getFeedVersion(ctx context.Context, userID uint64
 	return string(version)
 }
 
-func (as *PostRelationUsecase)FetchGlobalNewsFeed(req requestmodels.GlobalNewsFeedRequest)(responsemodels.FetchGlobalNewsFeedResponse,error){
-	postResp,err:=as.PostRelationRepository.FetchGlobalTrendingSQL(req)
-	if err!=nil{
-		return responsemodels.FetchGlobalNewsFeedResponse{},err
+func (as *PostRelationUsecase) FetchGlobalNewsFeed(req requestmodels.GlobalNewsFeedRequest) (responsemodels.FetchGlobalNewsFeedResponse, error) {
+	postResp, err := as.PostRelationRepository.FetchGlobalTrendingSQL(req)
+	if err != nil {
+		return responsemodels.FetchGlobalNewsFeedResponse{}, err
 	}
 	//fmt.Println("post resp",postResp)
-	if len(postResp)==0{
-		return responsemodels.FetchGlobalNewsFeedResponse{},domain.ErrNoPostGlobally
+	if len(postResp) == 0 {
+		return responsemodels.FetchGlobalNewsFeedResponse{}, domain.ErrNoPostGlobally
 	}
 	userIDs := make(map[uint64]bool)
 
@@ -1060,24 +1141,23 @@ func (as *PostRelationUsecase)FetchGlobalNewsFeed(req requestmodels.GlobalNewsFe
 		postResp[i].Age = utils.CalcuateCommentAge(v.CreatedAt)
 	}
 
+	var nextCursor float64
+	hasMore := false
+	if len(postResp) > int(req.Limit) {
+		hasMore = true
+		// Remove the extra item so the user only gets the 10 they asked for
+		postResp = postResp[:req.Limit]
+	}
+	if len(postResp) > 0 {
+		// The ID of the last item in our result is the cursor for the next request
+		nextCursor = postResp[len(postResp)-1].TrendingScore
+	}
 
-	 	var nextCursor float64
- 		hasMore := false
- 		if len(postResp) > int(req.Limit) {
- 			hasMore = true
- 		// Remove the extra item so the user only gets the 10 they asked for
- 		postResp = postResp[:req.Limit]
- 		}
-	 	if len(postResp) > 0 {
- 		// The ID of the last item in our result is the cursor for the next request
- 		nextCursor = postResp[len(postResp)-1].TrendingScore
- 	}
+	finalResponse := responsemodels.FetchGlobalNewsFeedResponse{
+		PostUserData: postResp,
+		NextCursor:   nextCursor,
+		HasMore:      hasMore,
+	}
 
-		finalResponse := responsemodels.FetchGlobalNewsFeedResponse{
-			PostUserData: postResp,
-			NextCursor:   nextCursor,
-			HasMore:      hasMore,
-		}
-
-		return finalResponse,nil
+	return finalResponse, nil
 }

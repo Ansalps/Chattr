@@ -2030,7 +2030,7 @@ func (x *CheckUserExistsRequest) GetUserId() uint64 {
 
 type CheckUserExistsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	Exists        bool                   `protobuf:"varint,1,opt,name=Exists,proto3" json:"Exists,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2065,11 +2065,11 @@ func (*CheckUserExistsResponse) Descriptor() ([]byte, []int) {
 	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{31}
 }
 
-func (x *CheckUserExistsResponse) GetUserId() uint64 {
+func (x *CheckUserExistsResponse) GetExists() bool {
 	if x != nil {
-		return x.UserId
+		return x.Exists
 	}
-	return 0
+	return false
 }
 
 type SetProfileImageRequest struct {
@@ -5162,7 +5162,7 @@ const file_pkg_pb_auth_subscription_proto_rawDesc = "" +
 	"\x16CheckUserExistsRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"1\n" +
 	"\x17CheckUserExistsResponse\x12\x16\n" +
-	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"h\n" +
+	"\x06Exists\x18\x01 \x01(\bR\x06Exists\"h\n" +
 	"\x16SetProfileImageRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12 \n" +
 	"\vContentType\x18\x02 \x01(\tR\vContentType\x12\x14\n" +
