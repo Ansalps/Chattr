@@ -697,37 +697,19 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 }
 
 func (as *PostRelationHandler) FetchFollowers(c *gin.Context) {
-	pageStr := c.Query("page")
-	limitStr := c.Query("limit")
-
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 1 {
-		if err != nil {
-			log.Printf("Error while string to int conversion(page), error: %v", err)
-		}
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+	log:=utils.GetLogger(c)
+	limit,offset,page,err:=utils.SetPageLimit(c,log)
+	if err!=nil{
 		return
 	}
-
-	limit, err := strconv.Atoi(limitStr)
-
-	if err != nil || limit < 1 || limit > 100 {
-		if err != nil {
-			log.Printf("Error while string to int conversion(limit), error: %v", err)
-		}
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
-		return
-	}
-
-	offset := (page - 1) * limit
 	userIdStr := c.Param("user_id")
 	userId, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log,400,"invalid user id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid user id", nil))
 		return
 	}
-	// var resp *post_relation.FetchFollowersResponse
-	// var r  []*post_relation.UserMetaData
+	
 	resp, err := as.DirectPostClient.Client.FetchFollowers(context.Background(), &post_relation.FetchFollowersRequest{
 		UserId: userId,
 		Limit:  int64(limit),
@@ -735,6 +717,7 @@ func (as *PostRelationHandler) FetchFollowers(c *gin.Context) {
 	})
 	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,"",userId,code,msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}

@@ -661,12 +661,40 @@ func (as *PostRelationUsecase) FetchAllPosts(req requestmodels.FetchAllPostsReq)
 	return resp, nil
 }
 func (as *PostRelationUsecase) FetchFollowers(req requestmodels.FetchFollowersRequest) (responsemodels.FetchFollowersResponse, error) {
+	exists,err:=as.AuthSubscriptionClient.CheckUserExists(context.Background(),&pb.CheckUserExistsRequest{
+		UserId: req.UserID,
+	})
+	if err!=nil{
+		st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return responsemodels.FetchFollowersResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return responsemodels.FetchFollowersResponse{}, domain.ErrUserNotFound
+
+		case codes.Internal:
+			return responsemodels.FetchFollowersResponse{},
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return responsemodels.FetchFollowersResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+	}
+	if !exists.Exists{
+		return responsemodels.FetchFollowersResponse{},domain.ErrUserNotFound
+	}
 	resp, err := as.PostRelationRepository.FetchFollowersUserIds1(req)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.FetchFollowersResponse{}, domain.ErrNoFollowers
 		}
-		return responsemodels.FetchFollowersResponse{}, err
+		return responsemodels.FetchFollowersResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	var userids []uint64
 	for _, v := range resp {
@@ -676,8 +704,26 @@ func (as *PostRelationUsecase) FetchFollowers(req requestmodels.FetchFollowersRe
 		UserId: userids,
 	})
 	if err != nil {
-		log.Println("error calling service auth_subcription", err)
-		return responsemodels.FetchFollowersResponse{}, err
+		st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return responsemodels.FetchFollowersResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return responsemodels.FetchFollowersResponse{}, domain.ErrUsersNotFound
+
+		case codes.Internal:
+			return responsemodels.FetchFollowersResponse{},
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return responsemodels.FetchFollowersResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
 	}
 	var usermetada []responsemodels.UserMetaData
 	for _, v := range userResp.Users {

@@ -293,9 +293,6 @@ func (as *PostRelationServer) FetchFollowers(ctx context.Context, req *pb.FetchF
 	}
 	resp, err := as.PostRelationUsecase.FetchFollowers(fetchFollowersReq)
 	if err != nil {
-		if err == domain.ErrNoFollowers {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
 		return nil, err
 	}
 	c := make([]*pb.UserMetaData, len(resp.Followers))
