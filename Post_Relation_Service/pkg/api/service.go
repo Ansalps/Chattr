@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"log"
 
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/pb"
@@ -387,10 +386,6 @@ func (as *PostRelationServer) FetchGlobalNewsFeed(ctx context.Context, req *pb.F
 	}
 	resp, err := as.PostRelationUsecase.FetchGlobalNewsFeed(newsfeedReq)
 	if err != nil {
-		log.Println(err)
-		if err == domain.ErrNoPostGlobally {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
 		return nil, err
 	}
 	c := make([]*pb.PostUserDataWithTrendingScore, len(resp.PostUserData))

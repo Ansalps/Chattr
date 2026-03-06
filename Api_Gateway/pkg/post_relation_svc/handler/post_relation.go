@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -697,19 +696,19 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 }
 
 func (as *PostRelationHandler) FetchFollowers(c *gin.Context) {
-	log:=utils.GetLogger(c)
-	limit,offset,page,err:=utils.SetPageLimit(c,log)
-	if err!=nil{
+	log := utils.GetLogger(c)
+	limit, offset, page, err := utils.SetPageLimit(c, log)
+	if err != nil {
 		return
 	}
 	userIdStr := c.Param("user_id")
 	userId, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
-		utils.LogAdminApi(log,400,"invalid user id")
+		utils.LogAdminApi(log, 400, "invalid user id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid user id", nil))
 		return
 	}
-	
+
 	resp, err := as.DirectPostClient.Client.FetchFollowers(context.Background(), &post_relation.FetchFollowersRequest{
 		UserId: userId,
 		Limit:  int64(limit),
@@ -717,7 +716,7 @@ func (as *PostRelationHandler) FetchFollowers(c *gin.Context) {
 	})
 	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
-		utils.LogApiWithUserID(log,"",userId,code,msg)
+		utils.LogApiWithUserID(log, "", userId, code, msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
@@ -739,15 +738,15 @@ func (as *PostRelationHandler) FetchFollowers(c *gin.Context) {
 	c.JSON(http.StatusOK, resp1)
 }
 func (as *PostRelationHandler) FetchFollowing(c *gin.Context) {
-	log:=utils.GetLogger(c)
-	limit,offset,page,err:=utils.SetPageLimit(c,log)
-	if err!=nil{
+	log := utils.GetLogger(c)
+	limit, offset, page, err := utils.SetPageLimit(c, log)
+	if err != nil {
 		return
 	}
 	userIdStr := c.Param("user_id")
 	userId, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
-		utils.LogAdminApi(log,400,"invalid user id")
+		utils.LogAdminApi(log, 400, "invalid user id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid user id", nil))
 		return
 	}
@@ -759,7 +758,7 @@ func (as *PostRelationHandler) FetchFollowing(c *gin.Context) {
 	})
 	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
-		utils.LogApiWithUserID(log,"",userId,code,msg)
+		utils.LogApiWithUserID(log, "", userId, code, msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
@@ -784,7 +783,7 @@ func (as *PostRelationHandler) FetchFollowing(c *gin.Context) {
 }
 
 func (as *PostRelationHandler) FetchNewsFeed(c *gin.Context) {
-	log:=utils.GetLogger(c)
+	log := utils.GetLogger(c)
 	refreshStr := c.Query("refresh")
 	lastIdStr := c.Query("last_id")
 
@@ -794,13 +793,13 @@ func (as *PostRelationHandler) FetchNewsFeed(c *gin.Context) {
 	req.LastID = lastID
 	claims, exists := c.Get("claims")
 	if !exists {
-		utils.LogAdminApi(log,401,"Claims not found")
+		utils.LogAdminApi(log, 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
-		utils.LogAdminApi(log,401,"invalid claims")
+		utils.LogAdminApi(log, 401, "invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
 		return
 	}
@@ -813,7 +812,7 @@ func (as *PostRelationHandler) FetchNewsFeed(c *gin.Context) {
 	if err != nil || limit < 1 || limit > 100 {
 		if err != nil {
 			//log.Printf("Error while string to int conversion(limit), error: %v", err)
-			utils.LogAdminApi(log,400,"Error while string to int conversion(limit): "+err.Error())
+			utils.LogAdminApi(log, 400, "Error while string to int conversion(limit): "+err.Error())
 		}
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
 		return
@@ -837,7 +836,7 @@ func (as *PostRelationHandler) FetchNewsFeed(c *gin.Context) {
 	})
 	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
-		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,code,msg)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
@@ -889,40 +888,47 @@ func (as *PostRelationHandler) FetchNewsFeed(c *gin.Context) {
 }
 
 func (as *PostRelationHandler) FetchGlobalNewseed(c *gin.Context) {
-	pageStr := c.Query("page")
-	limitStr := c.Query("limit")
+	// pageStr := c.Query("page")
+	// limitStr := c.Query("limit")
 
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 1 {
-		if err != nil {
-			log.Printf("Error while string to int conversion(page), error: %v", err)
-		}
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+	// page, err := strconv.Atoi(pageStr)
+	// if err != nil || page < 1 {
+	// 	if err != nil {
+	// 		log.Printf("Error while string to int conversion(page), error: %v", err)
+	// 	}
+	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+	// 	return
+	// }
+
+	// limit, err := strconv.Atoi(limitStr)
+
+	// if err != nil || limit < 1 || limit > 100 {
+	// 	if err != nil {
+	// 		log.Printf("Error while string to int conversion(limit), error: %v", err)
+	// 	}
+	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+	// 	return
+	// }
+
+	// offset := (page - 1) * limit
+	log := utils.GetLogger(c)
+	limit, offset, page, err := utils.SetPageLimit(c, log)
+	if err != nil {
 		return
 	}
-
-	limit, err := strconv.Atoi(limitStr)
-
-	if err != nil || limit < 1 || limit > 100 {
-		if err != nil {
-			log.Printf("Error while string to int conversion(limit), error: %v", err)
-		}
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
-		return
-	}
-
-	offset := (page - 1) * limit
 	var req requestmodels.GlobalNewsFeedRequest
 	//lastIdStr:=c.Query("last_id")
 	//lastScoreStr:=c.Query("last_score")
 
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log, 401, "claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
 		return
 	}
@@ -953,13 +959,16 @@ func (as *PostRelationHandler) FetchGlobalNewseed(c *gin.Context) {
 		Offset: int64(req.Offset),
 	})
 	if err != nil {
-
-	}
-	//fmt.Println("resp",resp)
-	if resp == nil {
-		c.JSON(500, "internal server error")
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
+	//fmt.Println("resp",resp)
+	// if resp == nil {
+	// 	c.JSON(500, "internal server error")
+	// 	return
+	// }
 	var finalResp []responsemodels.PostDataWithTrendingScore
 	for _, v := range resp.PostUserDataWithTrendingScore {
 		var s1 []string
