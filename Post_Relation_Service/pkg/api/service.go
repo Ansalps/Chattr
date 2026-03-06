@@ -318,12 +318,8 @@ func (as *PostRelationServer) FetchFollowing(ctx context.Context, req *pb.FetchF
 	}
 	resp, err := as.PostRelationUsecase.FetchFollowing(fetchFollowingReq)
 	if err != nil {
-		if err == domain.ErrNoFollowing {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
 		return nil, err
 	}
-	//fmt.Println("following",resp)
 	c := make([]*pb.UserMetaData, len(resp.Following))
 	for i, v := range resp.Following {
 		c[i] = &pb.UserMetaData{
@@ -334,7 +330,6 @@ func (as *PostRelationServer) FetchFollowing(ctx context.Context, req *pb.FetchF
 			BlueTick:      v.BlueTick,
 		}
 	}
-	//fmt.Println("user metadata slice",c)
 	return &pb.FetchFollowingResponse{
 		UserMetaData: c,
 	}, nil

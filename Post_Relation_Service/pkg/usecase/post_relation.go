@@ -742,13 +742,40 @@ func (as *PostRelationUsecase) FetchFollowers(req requestmodels.FetchFollowersRe
 	}, nil
 }
 func (as *PostRelationUsecase) FetchFollowing(req requestmodels.FetchFollowingRequest) (responsemodels.FetchFollowingResponse, error) {
+	exists,err:=as.AuthSubscriptionClient.CheckUserExists(context.Background(),&pb.CheckUserExistsRequest{
+		UserId: req.UserID,
+	})
+	if err!=nil{
+		st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return responsemodels.FetchFollowingResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return responsemodels.FetchFollowingResponse{}, domain.ErrUserNotFound
+
+		case codes.Internal:
+			return responsemodels.FetchFollowingResponse{},
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return responsemodels.FetchFollowingResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+	}
+	if !exists.Exists{
+		return responsemodels.FetchFollowingResponse{},domain.ErrUserNotFound
+	}
 	resp, err := as.PostRelationRepository.FetchFollowingUserIds(req)
 	if err != nil {
-		log.Println("print the erro in fetch followin", err)
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.FetchFollowingResponse{}, domain.ErrNoFollowing
 		}
-		return responsemodels.FetchFollowingResponse{}, err
+		return responsemodels.FetchFollowingResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	var userids []uint64
 	for _, v := range resp {
@@ -758,8 +785,26 @@ func (as *PostRelationUsecase) FetchFollowing(req requestmodels.FetchFollowingRe
 		UserId: userids,
 	})
 	if err != nil {
-		log.Println("error calling service auth_subcription", err)
-		return responsemodels.FetchFollowingResponse{}, err
+		st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return responsemodels.FetchFollowingResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return responsemodels.FetchFollowingResponse{}, domain.ErrUsersNotFound
+
+		case codes.Internal:
+			return responsemodels.FetchFollowingResponse{},
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return responsemodels.FetchFollowingResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
 	}
 	var usermetada []responsemodels.UserMetaData
 	for _, v := range userResp.Users {
