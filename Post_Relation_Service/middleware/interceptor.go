@@ -61,7 +61,20 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 		log.Error("Client/server Error", logger.Field{Key: "details", Value: err.Error()})
 		if err != nil {
 			switch{
-				
+			case errors.Is(err,domain.ErrForeignKeyViolationCommentPost):
+				return nil,status.Error(codes.NotFound,domain.ErrForeignKeyViolationCommentPost.Error())
+			case errors.Is(err,domain.ErrRecursiveComment):
+				return nil,status.Error(codes.PermissionDenied,domain.ErrRecursiveComment.Error())
+			case errors.Is(err,domain.ErrCommentIdNotFound):
+				return nil,status.Error(codes.NotFound,domain.ErrCommentIdNotFound.Error())
+			case errors.Is(err,domain.ErrPostLikeNotFound):
+				return nil,status.Error(codes.NotFound,domain.ErrPostLikeNotFound.Error())
+			case errors.Is(err, domain.ErrForeignKeyViolationCommentPost):
+				return nil,status.Error(codes.NotFound,domain.ErrForeignKeyViolationCommentPost.Error())
+			case errors.Is(err,domain.ErrPostNotFound):
+				return nil,status.Error(codes.NotFound,domain.ErrPostNotFound.Error())
+			case errors.Is(err,domain.ErrUsertNotFound):
+				return nil,status.Error(codes.NotFound,domain.ErrUsertNotFound.Error())
 			case errors.Is(err,domain.ErrDatabase):
 				return nil,status.Error(codes.Internal,domain.ErrDatabase.Error())
 			}

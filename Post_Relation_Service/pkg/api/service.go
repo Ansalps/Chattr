@@ -49,13 +49,7 @@ func (as *PostRelationServer) EditPost(ctx context.Context, req *pb.EditPostRequ
 	}
 	editPostRes, err := as.PostRelationUsecase.EditPost(editPostReq)
 	if err != nil {
-		//fmt.Println("print error")
-		if err == usecase.ErrPostNotFound {
-			//fmt.Println("is in here")
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
-		//fmt.Println("means here")
-		return nil, status.Error(codes.Internal, "internal server error")
+		return nil,err
 	}
 	return &pb.EditPostResponse{
 		Caption: editPostRes.Caption,
@@ -68,10 +62,7 @@ func (as *PostRelationServer) DeletePost(ctx context.Context, req *pb.DeletePost
 	}
 	deletPostRes, err := as.PostRelationUsecase.DeletePost(deletePostReq)
 	if err != nil {
-		if err == usecase.ErrPostNotFound {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
-		return nil, status.Error(codes.Internal, "internal server error")
+		return nil,err
 	}
 	return &pb.DeletePostResponse{
 		PostId: deletPostRes.PostID,
@@ -105,11 +96,7 @@ func (as *PostRelationServer) UnlikePost(ctx context.Context, req *pb.UnlikePost
 	}
 	unlikePostResponse, err := as.PostRelationUsecase.UnlikePost(unlikePostReq)
 	if err != nil {
-		if err == usecase.ErrPostLikeNotFound {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
-		log.Println("error in service", err)
-		return nil, status.Error(codes.Internal, "internal server error")
+		return nil,err
 	}
 	return &pb.UnlikePostResponse{
 		PostId: unlikePostResponse.PostID,

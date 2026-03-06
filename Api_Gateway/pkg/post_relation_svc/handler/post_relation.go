@@ -154,26 +154,29 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 }
 
 func (as *PostRelationHandler) EditPost(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log,400,"invalid post id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post id", nil))
 		return
 	}
 	var editPostRequest requestmodels.EditPostRequest
 	editPostRequest.PostID = postId
-	if err := c.ShouldBindJSON(&editPostRequest); err != nil {
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid Request Body", nil))
+	err=utils.BindingJson(c,&editPostRequest,log)
+	if err!=nil{
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims Not Found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid Claims", nil))
 		return
 	}
@@ -182,6 +185,7 @@ func (as *PostRelationHandler) EditPost(c *gin.Context) {
 	if err != nil {
 		//fmt.Println("will it reach inside")
 		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,code,msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
@@ -189,21 +193,24 @@ func (as *PostRelationHandler) EditPost(c *gin.Context) {
 }
 
 func (as *PostRelationHandler) DeletePost(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log,400,"Invalid post id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post id", nil))
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims Not Found", nil))
 		return
 	}
-	//fmt.Println("print claims", claims)
-	//fmt.Printf("claims type = %T\n", claims)
+
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
@@ -212,35 +219,32 @@ func (as *PostRelationHandler) DeletePost(c *gin.Context) {
 	deletePostReq.PostID = postId
 	deletePostResponse, err := as.GPPC_Client.DeletePost(deletePostReq)
 	if err != nil {
-		var obj response.Response
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusPreconditionFailed, st.Message(), nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		}
-		c.JSON(obj.StatusCode, obj)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "post deleted successfully", deletePostResponse))
 }
 
 func (as *PostRelationHandler) LikePost(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log,400,"Invalid post id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post id", nil))
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"Invalid calims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
@@ -250,6 +254,7 @@ func (as *PostRelationHandler) LikePost(c *gin.Context) {
 	likePostResponse, err := as.GPPC_Client.LikePost(likePostReq)
 	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,code,msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
@@ -257,19 +262,23 @@ func (as *PostRelationHandler) LikePost(c *gin.Context) {
 }
 
 func (as *PostRelationHandler) UnlikePost(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log,400,"Invalid post id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalide post id", nil))
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
@@ -279,6 +288,7 @@ func (as *PostRelationHandler) UnlikePost(c *gin.Context) {
 	unlikePostResponse, err := as.GPPC_Client.UnlikePost(unlikePostReq)
 	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,code,msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
@@ -286,48 +296,38 @@ func (as *PostRelationHandler) UnlikePost(c *gin.Context) {
 }
 
 func (as *PostRelationHandler) AddComment(c *gin.Context) {
+	log:=utils.GetLogger(c)
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log,400,"Invalid post id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid Post id", nil))
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log,401,"Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log,401,"Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
 	var addCommentRequest requestmodels.AddCommentRequest
 	addCommentRequest.UserID = jwtClaims.ID
 	addCommentRequest.PostID = postId
-	if err := c.ShouldBindJSON(&addCommentRequest); err != nil {
-		if validateioErrors := utils.FormatValidationError(err); validateioErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", validateioErrors))
-			return
-		}
-		log.Println("Bind Error: ", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", err))
+	err=utils.BindingJson(c,&addCommentRequest,log)
+	if err!=nil{
 		return
 	}
 	addCommentResponse, err := as.GPPC_Client.AddComment(addCommentRequest)
 	if err != nil {
-		var obj response.Response
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusNotFound, st.Message(), nil)
-			case codes.FailedPrecondition:
-				obj = response.ClientResponse(http.StatusPreconditionFailed, st.Message(), nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		}
-		c.JSON(obj.StatusCode, obj)
+		code,msg:=utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,code,msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comment added succesfully", addCommentResponse))

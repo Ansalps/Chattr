@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -78,10 +79,9 @@ func (ad *PostRelationRepository) LikePostById(likePostReq requestmodels.LikePos
 	if result.Error != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(result.Error, &pgErr) && pgErr.Code == "23503" {
-			//fmt.Println("is it reaching in postgres err", result.Error)
 			return responsemodels.LikePostResponse{}, domain.ErrForeignKeyViolationCommentPost
 		}
-		return responsemodels.LikePostResponse{}, result.Error
+		return responsemodels.LikePostResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,result.Error)
 	}
 	return responsemodels.LikePostResponse{
 		PostID: likePostReq.PostID,
@@ -118,8 +118,12 @@ func (ad *PostRelationRepository) UnlikePostById(unlikePostReq requestmodels.Unl
 func (ad *PostRelationRepository) CheckCommentHieracrchy(commentId *uint64) (bool, error) {
 	var parentId *uint64
 	query := `SELECT parent_comment_id FROM comments WHERE id=?`
-	if err := ad.DB.Raw(query, commentId).Scan(&parentId).Error; err != nil {
-		return false, err
+	res := ad.DB.Raw(query, commentId).Scan(&parentId)
+	if res.Error!= nil {
+		return false, res.Error
+	}
+	if res.RowsAffected==0{
+		return false,gorm.ErrRecordNotFound
 	}
 	if parentId == nil {
 		return false, nil
@@ -131,17 +135,12 @@ func (ad *PostRelationRepository) AddComment(addCommentReq requestmodels.AddComm
 	query := `INSERT INTO comments (created_at,updated_at,user_id,post_id,comment_text,parent_comment_id) VALUES ($1,$2,$3,$4,$5,$6) returning id`
 	result := ad.DB.Raw(query, time.Now(), time.Now(), addCommentReq.UserID, addCommentReq.PostID, addCommentReq.CommentText, addCommentReq.ParentCommentId).Scan(&commetId)
 	if result.Error != nil {
-		//fmt.Println("heelllo at least here")
-		//fmt.Printf("Error Type: %T\n", result.Error)
 		var pgErr *pgconn.PgError
 		if errors.As(result.Error, &pgErr) && pgErr.Code == "23503" {
-			//fmt.Println("is it reaching in postgres err", result.Error)
 			return responsemodels.AddCommentResponse{}, domain.ErrForeignKeyViolationCommentPost
 		}
-
-		return responsemodels.AddCommentResponse{}, result.Error
+		return responsemodels.AddCommentResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,result.Error)
 	}
-	//fmt.Println("is comment id printed",commetId)
 	return responsemodels.AddCommentResponse{
 		UserID:          addCommentReq.UserID,
 		PostID:          addCommentReq.PostID,

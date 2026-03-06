@@ -115,12 +115,13 @@ func (as *PostRelationUsecase) CreatePost(createPostReq requestmodels.CreatePost
 }
 
 func (as *PostRelationUsecase) EditPost(editPostReq requestmodels.EditPostRequest) (responsemodels.EditPostResponse, error) {
+	
 	editPostRes, err := as.PostRelationRepository.EditPostById(editPostReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.EditPostResponse{}, domain.ErrPostNotFound
 		}
-		return responsemodels.EditPostResponse{}, err
+		return responsemodels.EditPostResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 
 	//invalidate cach
@@ -138,7 +139,7 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.DeletePostResponse{}, domain.ErrPostNotFound
 		}
-		return responsemodels.DeletePostResponse{}, err
+		return responsemodels.DeletePostResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 
 	//invalidate cach
@@ -204,11 +205,10 @@ func (as *PostRelationUsecase) LikePost(likePostReq requestmodels.LikePostReques
 	postOwnerId,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(likePostReq.PostID)
 	if err!=nil{
 		if err==gorm.ErrRecordNotFound{
-			log.Println("Post Id not found")
 			return responsemodels.LikePostResponse{},domain.ErrPostNotFound
 		}
 		log.Println(err)
-		return responsemodels.LikePostResponse{},err
+		return responsemodels.LikePostResponse{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	//fmt.Println("post Owner",postOwnerId)
 
@@ -245,18 +245,17 @@ func (as *PostRelationUsecase) UnlikePost(unlikePostReq requestmodels.UnlikePost
 	_,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(unlikePostReq.PostID)
 	if err!=nil{
 		if err==gorm.ErrRecordNotFound{
-			log.Println("Post Id not found")
 			return responsemodels.UnlikePostResponse{},domain.ErrPostNotFound
 		}
 		log.Println(err)
-		return responsemodels.UnlikePostResponse{},err
+		return responsemodels.UnlikePostResponse{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	unlikePostRes, err := as.PostRelationRepository.UnlikePostById(unlikePostReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.UnlikePostResponse{}, domain.ErrPostLikeNotFound
 		}
-		return responsemodels.UnlikePostResponse{}, err
+		return responsemodels.UnlikePostResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", unlikePostReq.UserID)
@@ -269,20 +268,18 @@ func (as *PostRelationUsecase) UnlikePost(unlikePostReq requestmodels.UnlikePost
 
 func (as *PostRelationUsecase) AddComment(addCommentReq requestmodels.AddCommentRequest) (responsemodels.AddCommentResponse, error) {
 	if addCommentReq.ParentCommentId != nil {
-		//fmt.Println("is reaching in here in add comment where parent comment Id not nil")
 		isReplytoReply, err := as.PostRelationRepository.CheckCommentHieracrchy(addCommentReq.ParentCommentId)
 		if err != nil {
-			return responsemodels.AddCommentResponse{}, err
+			if err==gorm.ErrRecordNotFound{
+				return responsemodels.AddCommentResponse{},domain.ErrCommentIdNotFound
+			}
+			return responsemodels.AddCommentResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 		}
-		//fmt.Println("print the truth :", isReplytoReply)
+
 		if isReplytoReply {
-			//fmt.Println("it is true")
 			return responsemodels.AddCommentResponse{}, domain.ErrRecursiveComment
-			//fmt.Println("here 1")
 		}
-		//fmt.Println("here 2")
 	}
-	//fmt.Println("here 3")
 	addCommentRes, err := as.PostRelationRepository.AddComment(addCommentReq)
 	if err != nil {
 		return responsemodels.AddCommentResponse{}, err
@@ -295,13 +292,10 @@ func (as *PostRelationUsecase) AddComment(addCommentReq requestmodels.AddComment
 	postOwnerId,err:=as.PostRelationRepository.FetchPostOwnerIdByPostId(addCommentReq.PostID)
 	if err!=nil{
 		if err==gorm.ErrRecordNotFound{
-			log.Println("Post Id not found")
 			return responsemodels.AddCommentResponse{},domain.ErrPostNotFound
 		}
-			log.Println("some database error occured while fetching post owner id by post id")
-		return responsemodels.AddCommentResponse{},err
+		return responsemodels.AddCommentResponse{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 	}
-	//fmt.Println("post Owner",postOwnerId)
 
 	event := map[string]interface{}{
 		"type":          "POST_COMMENT",

@@ -15,6 +15,7 @@ var (
 	ErrPostLikeNotFound = errors.New("Post Not found or post has never been liked by the user")
 	ErrRecursiveComment = errors.New("can't reply to a comment reply")
 	ErrCommentNotFound  = errors.New("comment doesn't exist or post doesn't exist or user does not have permission")
+	ErrCommentIdNotFound=errors.New("comment not found")
 	ErrFollowOwn        = errors.New("can't follow yourself")
 	ErrUsertNotFound    = errors.New("User not found")
 	ErrUnfollowOwn      = errors.New("can't unfollow yourself")
