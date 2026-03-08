@@ -73,11 +73,11 @@ func (ad *ChatRepository) CreateGroup(req requestmodels.CreateGroupRequest) (res
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := groupCollection.InsertOne(ctx, req)
+	a, err := groupCollection.InsertOne(ctx, req)
 	if err != nil {
 		return responsemodels.CreateGroupResponse{}, err
 	}
-
+	fmt.Println("a",a)
 	return responsemodels.CreateGroupResponse{
 		GroupID: req.GroupID,
 	}, nil

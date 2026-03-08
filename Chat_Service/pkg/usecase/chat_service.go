@@ -179,28 +179,28 @@ func (as *ChatUsecase) CreateGroup(req requestmodels.CreateGroupRequest) (respon
 		UserId: req.GroupMembers,
 	})
 	if err != nil {
-		return responsemodels.CreateGroupResponse{}, err
+		return responsemodels.CreateGroupResponse{}, fmt.Errorf("%w: %v: %v",domain.ErrInternal,"failed internal service call on auth service",err)
 	}
 	if len(allUsersNotExists.UserId) != 0 {
 		return responsemodels.CreateGroupResponse{}, &domain.NonExistingUsersError{
 			UserIDs: allUsersNotExists.UserId,
 		}
 	}
-	resp1, err := as.AuthClient.CheckUserListExists(context.Background(), &pb.UserDataReq{
-		UserId: req.GroupMembers,
-	})
-	if err != nil {
-		log.Println(err)
-		return responsemodels.CreateGroupResponse{}, err
-	}
-	if len(resp1.UserId) == 0 {
-		return responsemodels.CreateGroupResponse{}, domain.ErrNoUsersFound
-	}
-	req.GroupMembers = resp1.UserId
+	// resp1, err := as.AuthClient.CheckUserListExists(context.Background(), &pb.UserDataReq{
+	// 	UserId: req.GroupMembers,
+	// })
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return responsemodels.CreateGroupResponse{}, err
+	// }
+	// if len(resp1.UserId) == 0 {
+	// 	return responsemodels.CreateGroupResponse{}, domain.ErrNoUsersFound
+	// }
+	//req.GroupMembers = resp1.UserId
 	// 1. Create the Group entry in the 'groups' collection
 	resp, err := as.ChatRepository.CreateGroup(req)
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
 		return responsemodels.CreateGroupResponse{}, err
 	}
 
@@ -220,7 +220,8 @@ func (as *ChatUsecase) CreateGroup(req requestmodels.CreateGroupRequest) (respon
 	_, err = as.ChatRepository.StoreOrUpdateGroupChatInConversation(conversationStruct)
 	if err != nil {
 		// We log the error but still return the GroupID because the group was created
-		log.Printf("Warning: Group %s created but conversation sync failed: %v", resp.GroupID, err)
+		//log.Printf("Warning: Group %s created but conversation sync failed: %v", resp.GroupID, err)
+		return responsemodels.CreateGroupResponse{}, err
 	}
 
 	return responsemodels.CreateGroupResponse{

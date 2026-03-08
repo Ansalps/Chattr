@@ -108,6 +108,7 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 }
 
 func (as *ChatHandler) CreateGroup(c *gin.Context) {
+	requestID := c.GetString("request_id")
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
 	var req requestmodels.CreateGroupRequest
@@ -140,11 +141,10 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 	httpReq.Header.Del("Authorization")
 	// Identity headers
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
-	//httpReq.Header.Set("X-User-Role", claims.Role)
-	//httpReq.Header.Set("X-User-Email", claims.Email)
-	//httpReq.Header.Set("X-Internal-Secret", "internalSecret")
 	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
-
+	if requestID != "" {
+		httpReq.Header.Set("X-Request-ID", requestID)
+	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 5 * time.Second}
@@ -160,6 +160,7 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 }
 
 func (as *ChatHandler)SetGroupProfileImage(c *gin.Context){
+	requestID := c.GetString("request_id")
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 	groupIdStr := c.Param("group_id")
 	if groupIdStr == "" {
@@ -251,7 +252,9 @@ func (as *ChatHandler)SetGroupProfileImage(c *gin.Context){
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
 	
 	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
-
+	if requestID != "" {
+		httpReq.Header.Set("X-Request-ID", requestID)
+	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 5 * time.Second}
@@ -267,6 +270,7 @@ func (as *ChatHandler)SetGroupProfileImage(c *gin.Context){
 }
 
 func (as *ChatHandler) AddMembers(c *gin.Context) {
+	requestID := c.GetString("request_id")
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
 	groupIdStr := c.Param("group_id")
@@ -306,7 +310,9 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
 	
 	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
-
+	if requestID != "" {
+		httpReq.Header.Set("X-Request-ID", requestID)
+	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 5 * time.Second}
@@ -322,6 +328,7 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 }
 
 func (as *ChatHandler) RemoveMember(c *gin.Context) {
+	requestID := c.GetString("request_id")
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
 	groupIdStr := c.Param("group_id")
@@ -368,7 +375,9 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
 	
 	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
-
+	if requestID != "" {
+		httpReq.Header.Set("X-Request-ID", requestID)
+	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 5 * time.Second}
@@ -385,6 +394,7 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 }
 
 func (as *ChatHandler)GetGroupMembers(c *gin.Context){
+	requestID := c.GetString("request_id")
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
 	groupIdStr := c.Param("group_id")
@@ -417,7 +427,9 @@ func (as *ChatHandler)GetGroupMembers(c *gin.Context){
 	httpReq.Header.Del("Authorization")
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
 	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
-
+	if requestID != "" {
+		httpReq.Header.Set("X-Request-ID", requestID)
+	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(httpReq)
@@ -433,6 +445,7 @@ func (as *ChatHandler)GetGroupMembers(c *gin.Context){
 }
 
 func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
+	requestID := c.GetString("request_id")
 	// 1. Parse Pagination
     page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
     limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
@@ -450,9 +463,6 @@ func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
 
 	fullURL := fmt.Sprintf("http://localhost:50053/user/get-recent-chat-profiles?limit=%d&offset=%d", limit, offset)
 	httpReq, err := http.NewRequest("GET", fullURL, nil)
-	//url := "http://localhost:50053/user/get-recent-chat-profiles"
-
-	//httpReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Printf("Failed to create request: %v", err)
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -462,11 +472,10 @@ func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
 	httpReq.Header.Del("Authorization")
 	// Identity headers
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
-	//httpReq.Header.Set("X-User-Role", claims.Role)
-	//httpReq.Header.Set("X-User-Email", claims.Email)
-	//httpReq.Header.Set("X-Internal-Secret", "internalSecret")
 	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
-
+	if requestID != "" {
+		httpReq.Header.Set("X-Request-ID", requestID)
+	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 5 * time.Second}
@@ -483,6 +492,7 @@ func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
 }
 
 func (as *ChatHandler)GetChat(c *gin.Context){
+	requestID := c.GetString("request_id")
 	convIdStr := c.Param("conv_id")
 	if convIdStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "group id missing"})
@@ -499,15 +509,10 @@ func (as *ChatHandler)GetChat(c *gin.Context){
 
 	offset := (page - 1) * limit
 	
-
-
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
 	fullURL := fmt.Sprintf("http://localhost:50053/user/chat/%s?limit=%d&offset=%d",convIdStr, limit, offset)
 	httpReq, err := http.NewRequest("GET", fullURL, nil)
-	//url := "http://localhost:50053/user/get-recent-chat-profiles"
-
-	//httpReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Printf("Failed to create request: %v", err)
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -517,11 +522,10 @@ func (as *ChatHandler)GetChat(c *gin.Context){
 	httpReq.Header.Del("Authorization")
 	// Identity headers
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
-	//httpReq.Header.Set("X-User-Role", claims.Role)
-	//httpReq.Header.Set("X-User-Email", claims.Email)
-	//httpReq.Header.Set("X-Internal-Secret", "internalSecret")
 	httpReq.Header.Set("X-Auth-Source", as.config.AuthSource)
-
+	if requestID != "" {
+		httpReq.Header.Set("X-Request-ID", requestID)
+	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 5 * time.Second}

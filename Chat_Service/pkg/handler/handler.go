@@ -450,20 +450,29 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 }
 
 func (as *ChatHandler) CreateGroup(c *gin.Context) {
+	requestID := c.GetHeader("X-Request-ID")
+	log := as.Log.With(
+		logger.Field{Key: "request_id", Value: requestID},
+	)
 	var req requestmodels.CreateGroupRequest
 
 	creatorIdStr := c.GetHeader("X-User-Id")
 	CreatorID, err := strconv.ParseUint(creatorIdStr, 10, 64)
 	if err != nil {
+		log.Error("failed to parse user id",
+			logger.Field{Key: "user_id", Value: creatorIdStr},
+			logger.Field{Key: "error", Value: err},
+		)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user identity"})
 		return
 	}
 	authSource := c.GetHeader("X-Auth-Source")
 
-	//log.Println("Headers:", c.Request.Header)
-	//log.Println("User ID:", CreatorID)
-
 	if creatorIdStr == "" || authSource != as.Config.AuthSource {
+		log.Warn("unauthorized websocket request",
+			logger.Field{Key: "user_id", Value: creatorIdStr},
+			logger.Field{Key: "auth_source", Value: authSource},
+		)
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "unauthorized websocket request",
 		})
@@ -471,7 +480,8 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 	}
 	// 2. Bind JSON body
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Println("error binding request:", err)
+		log.Warn("error binding request:",
+		logger.Field{Key: "error",Value: err})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
@@ -501,10 +511,13 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 	// c.JSON(http.StatusOK, resp)
 	resp, err := as.ChatUsecase.CreateGroup(req)
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
 
 		var userErr *domain.NonExistingUsersError
 		if errors.As(err, &userErr) {
+			log.Warn("some users do not exist",
+		logger.Field{Key: "missing_user_ids",Value: userErr.UserIDs},
+		logger.Field{Key: "error",Value: err})
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error":            "some users do not exist",
 				"missing_user_ids": userErr.UserIDs,
@@ -518,7 +531,8 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 			})
 			return
 		}
-
+		log.Error("internal server errot",
+			logger.Field{Key: "error",Value: err})
 		// ✅ fallback (VERY IMPORTANT)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "internal server error",

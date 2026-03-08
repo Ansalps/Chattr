@@ -973,7 +973,7 @@ func (ad *AuthSubscriptionRepository) CheckAllUsersExists(userIDs []uint64) ([]u
 	if err != nil {
 		return nil, err
 	}
-
+	
 	existingMap := make(map[uint64]struct{})
 	for _, id := range existingIDs {
 		existingMap[id] = struct{}{}
