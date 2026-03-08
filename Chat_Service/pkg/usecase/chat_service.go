@@ -3,6 +3,7 @@ package usecase
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"slices"
@@ -179,7 +180,7 @@ func (as *ChatUsecase) CreateGroup(req requestmodels.CreateGroupRequest) (respon
 		UserId: req.GroupMembers,
 	})
 	if err != nil {
-		return responsemodels.CreateGroupResponse{}, fmt.Errorf("%w: %v: %v",domain.ErrInternal,"failed internal service call on auth service",err)
+		return responsemodels.CreateGroupResponse{}, fmt.Errorf("%w: %v: %v", domain.ErrInternal, "failed internal service call on auth service", err)
 	}
 	if len(allUsersNotExists.UserId) != 0 {
 		return responsemodels.CreateGroupResponse{}, &domain.NonExistingUsersError{
@@ -201,7 +202,11 @@ func (as *ChatUsecase) CreateGroup(req requestmodels.CreateGroupRequest) (respon
 	resp, err := as.ChatRepository.CreateGroup(req)
 	if err != nil {
 		//log.Println(err)
-		return responsemodels.CreateGroupResponse{}, err
+		if errors.Is(err, context.DeadlineExceeded) {
+			return responsemodels.CreateGroupResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		}
+
+		return responsemodels.CreateGroupResponse{}, fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 
 	// 2. Initialize the Conversation record
@@ -397,7 +402,7 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 
 	if err != nil {
 		log.Println("error fetching group names")
-		return []responsemodels.ChatProfileResponse{},err
+		return []responsemodels.ChatProfileResponse{}, err
 	}
 
 	// 3. Batch Call to Auth Service

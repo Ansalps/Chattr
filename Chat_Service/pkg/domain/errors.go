@@ -18,6 +18,7 @@ var (
 	ErrInternal=errors.New("internal server error")
 	ErrUserNotFound    = errors.New("User not found")
 	ErrDatabase=errors.New("Database error: ")
+	ErrDatabaseTimeout=errors.New("Mongodb Database Connection time out")
 )
 
 type NonExistingUsersError struct {

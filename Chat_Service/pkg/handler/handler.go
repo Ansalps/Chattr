@@ -16,6 +16,7 @@ import (
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/requestmodels"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/responsemodels"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/usecase/interfacesUsecase"
+	"github.com/Ansalps/Chattr_Chat_Service/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -525,12 +526,26 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 			return
 		}
 
-		if errors.Is(err, domain.ErrNoUsersFound) {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "no users found",
-			})
+		// if errors.Is(err, domain.ErrNoUsersFound) {
+		// 	c.JSON(http.StatusNotFound, gin.H{
+		// 		"error": "no users found",
+		// 	})
+		// 	return
+		// }
+		if errors.Is(err,domain.ErrDatabaseTimeout){
+			log.Error("Database Connection timed out",
+			logger.Field{Key: "error",Value: err})
+			c.JSON(500,utils.ClientResponse(500,domain.ErrDatabaseTimeout.Error(),nil))
 			return
 		}
+
+		if errors.Is(err,domain.ErrInternal){
+			log.Error("Internal server error",
+			logger.Field{Key: "error",Value: err})
+			c.JSON(500,utils.ClientResponse(500,domain.ErrInternal.Error(),nil))
+			return
+		}
+
 		log.Error("internal server errot",
 			logger.Field{Key: "error",Value: err})
 		// ✅ fallback (VERY IMPORTANT)
