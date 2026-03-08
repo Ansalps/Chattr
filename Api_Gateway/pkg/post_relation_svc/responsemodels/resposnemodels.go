@@ -110,7 +110,7 @@ type PostData struct{
 	PostAge       string
 	IsLiked bool
 	UserData UserMetaData
-	Pagination PagingationDetails
+	Pagination *PagingationDetails `json:"pagination,omitempty"`
 }
 
 

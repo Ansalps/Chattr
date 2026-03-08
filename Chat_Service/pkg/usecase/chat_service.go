@@ -138,12 +138,30 @@ func (as *ChatUsecase) GetGroupMembers(req requestmodels.GetGroupMembersRequest)
 	return resp, nil
 }
 func (as *ChatUsecase) DoesUserExist(userid uint64) (bool, error) {
-	resp, err := as.AuthClient.DoesUserExists(context.Background(), &pb.DoesUserExistsRequest{
+	resp, err := as.AuthClient.CheckUserExists(context.Background(), &pb.CheckUserExistsRequest{
 		UserId: userid,
 	})
 	if err != nil {
-		log.Println(err)
-		return false, err
+		st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return false,
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return false, domain.ErrUserNotFound
+
+		case codes.Internal:
+			return false,
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return false,
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
 	}
 	return resp.Exists, nil
 }

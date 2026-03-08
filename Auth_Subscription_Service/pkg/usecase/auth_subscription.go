@@ -50,18 +50,7 @@ func NewAuthSubscriptionUsecase(repository interfacesRepository.AuthSubscription
 	}
 }
 
-var (
 
-// ErrRazropayApi=errors.New("error calling razorpay api")
-)
-
-func (as *AuthSubscriptionUsecase) DoesUserExists(userid uint64) (bool, error) {
-	resp, err := as.AuthSubscriptionRepository.DoesUserExists(userid)
-	if err != nil {
-		return false, err
-	}
-	return resp, nil
-}
 func (as *AuthSubscriptionUsecase) AdminLogin(ctx context.Context, admin requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse, error) {
 	admins, err := as.AuthSubscriptionRepository.CheckAdminExistsByEmail(ctx, admin.Email)
 	if err != nil {
@@ -809,6 +798,17 @@ func (as *AuthSubscriptionUsecase) SetProfileImage(setProfileImageReq requestmod
 	return responsemodels.SetProfileImageResponse{
 		ImageUrl: imageURL,
 	}, nil
+}
+
+func (as *AuthSubscriptionUsecase) DoesUserExists(userid uint64) (bool, error) {
+	resp, err := as.AuthSubscriptionRepository.DoesUserExists(userid)
+	if err != nil {
+		if err==gorm.ErrRecordNotFound{
+			return false,domain.ErrUserNotFound
+		}
+		return false, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+	}
+	return resp, nil
 }
 
 func (as *AuthSubscriptionUsecase) CheckUserExists(userId uint64) (bool, error) {

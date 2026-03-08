@@ -432,29 +432,58 @@ func (ad *PostRelationRepository) DepromoteToNormalUser(userid uint64) error {
 func (ad *PostRelationRepository) FetchGlobalTrendingSQL(req requestmodels.GlobalNewsFeedRequest) ([]responsemodels.PostWithStatusWithTrendingScore, error) {
 	var posts []responsemodels.PostWithStatusWithTrendingScore
 
-	err := ad.DB.Model(&domain.Post{}).
-		// 1. Select all post fields + Subqueries for counts
-		Select("posts.*, "+
-			"(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count, "+
-			"(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count, "+
-			"("+
-			"  ("+
-			"    (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) + "+
-			"    (SELECT COUNT(*) FROM comments   WHERE comments.post_id   = posts.id) "+
-			"  ) / "+
-			"  (EXTRACT(EPOCH FROM (NOW() - posts.created_at)) / 3600 + 1) "+
-			") AS trending_score, "+
-			// "Is Liked" Subquery (Returns true if record exists)
-			"EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked",
-			req.UserID). // Pass the logged-in user's ID here).
-		// 2. Filter by User
-		//Where("user_id = ?", req.TargetUserID).
-		// 3. Still Preload your Media slice
-		Preload("Media").
-		Order("trending_score DESC").
-		Limit(req.Limit).
-		Offset(int(req.Offset)).
-		Find(&posts).Error
+	// err := ad.DB.Model(&domain.Post{}).
+	// 	// 1. Select all post fields + Subqueries for counts
+	// 	Select("posts.*, "+
+	// 		"(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count, "+
+	// 		"(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count, "+
+	// 		"("+
+	// 		"  ("+
+	// 		"    (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) + "+
+	// 		"    (SELECT COUNT(*) FROM comments   WHERE comments.post_id   = posts.id) "+
+	// 		"  ) / "+
+	// 		"  (EXTRACT(EPOCH FROM (NOW() - posts.created_at)) / 3600 + 1) "+
+	// 		") AS trending_score, "+
+	// 		// "Is Liked" Subquery (Returns true if record exists)
+	// 		"EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked",
+	// 		req.UserID). // Pass the logged-in user's ID here).
+	// 	// 2. Filter by User
+	// 	//Where("user_id = ?", req.TargetUserID).
+	// 	// 3. Still Preload your Media slice
+	// 	Preload("Media").
+	// 	Order("trending_score DESC").
+	// 	Limit(req.Limit).
+	// 	Offset(int(req.Offset)).
+	// 	Find(&posts).Error
+
+	err := ad.DB.Raw(`
+    WITH CalculatedStats AS (
+        SELECT 
+            p.id as post_id,
+            COUNT(DISTINCT pl.user_id) as l_count,
+            COUNT(DISTINCT c.id) as c_count,
+            EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = ?) as is_liked
+        FROM posts p
+        LEFT JOIN post_likes pl ON pl.post_id = p.id
+        LEFT JOIN comments c ON c.post_id = p.id
+        GROUP BY p.id
+    )
+    SELECT 
+        posts.*, 
+        cs.l_count as likes_count, 
+        cs.c_count as comments_count, 
+        cs.is_liked,
+        ( 
+			(CAST(cs.l_count AS FLOAT) + CAST(cs.c_count AS FLOAT)) / 
+			(EXTRACT(EPOCH FROM (NOW() - posts.created_at)) / 3600 + 1) 
+		  ) as trending_score
+    FROM posts
+    JOIN CalculatedStats cs ON cs.post_id = posts.id
+    ORDER BY trending_score DESC
+    LIMIT ? OFFSET ?
+`, req.UserID, req.Limit, req.Offset).
+Preload("Media"). // GORM can still Preload as long as we SELECT posts.*
+Find(&posts).Error
 
 	if err != nil {
 		log.Println("database error in global newsfeed", err)

@@ -997,26 +997,7 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 		})
 		//fmt.Println("userResp",userResp)
 		if err != nil {
-			st, ok := status.FromError(err)
-		if !ok {
-			// Not a gRPC error
-			return responsemodels.FetchNewsFeedResponse{},
-				fmt.Errorf("%w: %v", domain.ErrInternal, err)
-		}
-
-		switch st.Code() {
-
-		case codes.NotFound:
-			return responsemodels.FetchNewsFeedResponse{}, domain.ErrUsersNotFound
-
-		case codes.Internal:
-			return responsemodels.FetchNewsFeedResponse{},
-				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
-
-		default:
-			return responsemodels.FetchNewsFeedResponse{},
-				fmt.Errorf("%w: %v", domain.ErrInternal, err)
-		}
+			
 		}
 		//userResp1=userResp
 		//fmt.Println("**********")
@@ -1108,26 +1089,7 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 			})
 			//fmt.Println("userResp",userResp)
 			if err != nil {
-				st, ok := status.FromError(err)
-		if !ok {
-			// Not a gRPC error
-			return responsemodels.FetchNewsFeedResponse{},
-				fmt.Errorf("%w: %v", domain.ErrInternal, err)
-		}
-
-		switch st.Code() {
-
-		case codes.NotFound:
-			return responsemodels.FetchNewsFeedResponse{}, domain.ErrUsersNotFound
-
-		case codes.Internal:
-			return responsemodels.FetchNewsFeedResponse{},
-				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
-
-		default:
-			return responsemodels.FetchNewsFeedResponse{},
-				fmt.Errorf("%w: %v", domain.ErrInternal, err)
-		}
+				
 			}
 			for i, v := range celebPosts {
 				uid := uint64(v.UserID)
@@ -1174,6 +1136,8 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 	if len(allPosts) > 0 {
 		// The ID of the last item in our result is the cursor for the next request
 		nextCursor = uint64(allPosts[len(allPosts)-1].ID)
+	} else{
+		return responsemodels.FetchNewsFeedResponse{},domain.ErrNoFollowingNoPost
 	}
 
 	finalResponse := responsemodels.FetchNewsFeedResponse{

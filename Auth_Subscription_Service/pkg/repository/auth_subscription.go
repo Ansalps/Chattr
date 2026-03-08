@@ -632,9 +632,7 @@ func (ad *AuthSubscriptionRepository) UpdateProfileImage(userid uint64, imageUrl
 }
 
 func (ad *AuthSubscriptionRepository) CheckUserExistsById(userId uint64) (bool, error) {
-
 	var exists bool
-
 	err := ad.DB.Raw(
 		"SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)",
 		userId,
@@ -645,6 +643,20 @@ func (ad *AuthSubscriptionRepository) CheckUserExistsById(userId uint64) (bool, 
 	}
 	return exists, nil
 }
+
+func (ad *AuthSubscriptionRepository) DoesUserExists(userid uint64) (bool, error) {
+	var num int64
+	query := `select count(*) from users where id=$1`
+	res := ad.DB.Raw(query, userid).Scan(&num)
+	if res.Error != nil {
+		return false, res.Error
+	}
+	if res.RowsAffected==0{
+		return false,gorm.ErrRecordNotFound
+	}
+	return num != 0, nil
+}
+
 func (ad *AuthSubscriptionRepository) GetProfileInformation(req requestmodels.GetProfileInformationRequest) (responsemodels.GetProfileInformationResponse, error) {
 	var resp responsemodels.GetProfileInformationResponse
 	query := `SELECT id as user_id,name,user_name,email,bio,profile_img_url,links,blue_tick,phone FROM users WHERE id=$1`
@@ -951,16 +963,6 @@ func (ad *AuthSubscriptionRepository) FetchUserSubscription(razorpaySubId string
 		return "", gorm.ErrRecordNotFound
 	}
 	return status, nil
-}
-
-func (ad *AuthSubscriptionRepository) DoesUserExists(userid uint64) (bool, error) {
-	var num int64
-	query := `select count(*) from users where id=$1`
-	err := ad.DB.Raw(query, userid).Scan(&num).Error
-	if err != nil {
-		return false, err
-	}
-	return num != 0, nil
 }
 
 func (ad *AuthSubscriptionRepository) CheckAllUsersExists(userIDs []uint64) ([]uint64, error) {

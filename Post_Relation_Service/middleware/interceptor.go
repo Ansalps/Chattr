@@ -58,9 +58,12 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 		// 	)
 		// }
 		log := utils.GetLogger(ctx)
-		log.Error("Client/server Error", logger.Field{Key: "details", Value: err.Error()})
+		
 		if err != nil {
+			log.Error("Client/server Error", logger.Field{Key: "details", Value: err.Error()})
 			switch{
+			case errors.Is(err,domain.ErrNoFollowingNoPost):
+				return nil,status.Error(codes.NotFound,domain.ErrNoFollowingNoPost.Error())
 			case errors.Is(err,domain.ErrNoPostGlobally):
 				return nil,status.Error(codes.NotFound,domain.ErrNoPostGlobally.Error())
 			case errors.Is(err,domain.CelebPostsNotFound):
@@ -68,7 +71,7 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 			case errors.Is(err,domain.ErrNoFollowing):
 				return nil,status.Error(codes.NotFound,domain.ErrNoFollowing.Error())
 			case errors.Is(err,domain.ErrNoFollowers):
-				return nil,status.Error(codes.NotFound,domain.ErrNoComments.Error())
+				return nil,status.Error(codes.NotFound,domain.ErrNoFollowers.Error())
 			case errors.Is(err,domain.ErrUsersNotFound):
 				return nil,status.Error(codes.NotFound,domain.ErrUsersNotFound.Error())
 			case errors.Is(err,domain.ErrInternal):
@@ -112,4 +115,20 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 
 		return resp, err
 	}
+}
+
+func RecoveryInterceptor(
+	ctx context.Context,
+	req interface{},
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler,
+) (resp interface{}, err error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = status.Error(codes.Internal, "internal server error")
+		}
+	}()
+
+	return handler(ctx, req)
 }

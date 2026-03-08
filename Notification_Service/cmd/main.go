@@ -18,6 +18,7 @@ func main() {
 	hub := websockethub.NewHub()
 	go hub.Run()
 	router := gin.New()
+	router.Use(gin.Recovery())
 	notificationUsecase,err := di.DependencyInjection(router, config, hub)
 	if err != nil {
 		log.Fatal("cannot start server: ", err)

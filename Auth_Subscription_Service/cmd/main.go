@@ -9,6 +9,7 @@ import (
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/di"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/pb"
 	"google.golang.org/grpc"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
 )
 
 func main() {
@@ -42,7 +43,12 @@ func main() {
 	)
 	// 5️⃣ Create gRPC server with logging interceptor
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(middleware.LoggerInterceptor(log)),
+		grpc.UnaryInterceptor(
+			grpc_middleware.ChainUnaryServer(
+				middleware.RecoveryInterceptor,
+				middleware.LoggerInterceptor(log),
+			),
+		),
 	)
 	pb.RegisterAuthSubscriptionServiceServer(grpcServer, AuthSubscriptionServiceServer)
 	if err := grpcServer.Serve(lis); err != nil {

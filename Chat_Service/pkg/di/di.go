@@ -3,6 +3,7 @@ package di
 import (
 	"fmt"
 
+	"github.com/Ansalps/Chattr_Chat_Service/logger"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/client"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/db"
@@ -15,7 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func DependencyInjection(router *gin.Engine, cfg *config.Config) error {
+func DependencyInjection(router *gin.Engine, cfg *config.Config,log logger.Logger) error {
 	mongoClient, err := db.ConnectMongo()
 	if err != nil {
 		return err
@@ -32,7 +33,7 @@ func DependencyInjection(router *gin.Engine, cfg *config.Config) error {
 	}
 	ChatRepository := repository.NewChatRepository(mongoClient.Client())
 	ChatUsecase := usecase.NewChatUsecase(ChatRepository, authClient, AwsS3Client, cfg.Aws.AwsBucket,cfg)
-	ChatHandler := handler.NewChatHandler(ChatUsecase, kafkaProducer, cfg)
+	ChatHandler := handler.NewChatHandler(ChatUsecase, kafkaProducer, cfg,log)
 	routes.ChatServiceRoutes(router, ChatHandler)
 	return nil
 }

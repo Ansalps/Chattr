@@ -14,6 +14,10 @@ var (
 	ErrNoUsersFound          = errors.New("No users exist or found")
 	//ErrNontExistingUsers=errors.New("All or some of the users are non-existent")
 	ErrContentTypeNil=errors.New("content type is nil")
+
+	ErrInternal=errors.New("internal server error")
+	ErrUserNotFound    = errors.New("User not found")
+	ErrDatabase=errors.New("Database error: ")
 )
 
 type NonExistingUsersError struct {

@@ -22,6 +22,7 @@ const (
 	AuthSubscriptionService_FetchUserMetaData_FullMethodName   = "/auth_subscription.AuthSubscriptionService/FetchUserMetaData"
 	AuthSubscriptionService_CheckUserListExists_FullMethodName = "/auth_subscription.AuthSubscriptionService/CheckUserListExists"
 	AuthSubscriptionService_DoesUserExists_FullMethodName      = "/auth_subscription.AuthSubscriptionService/DoesUserExists"
+	AuthSubscriptionService_CheckUserExists_FullMethodName     = "/auth_subscription.AuthSubscriptionService/CheckUserExists"
 	AuthSubscriptionService_CheckAllUsersExists_FullMethodName = "/auth_subscription.AuthSubscriptionService/CheckAllUsersExists"
 )
 
@@ -33,6 +34,7 @@ type AuthSubscriptionServiceClient interface {
 	FetchUserMetaData(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*BatchUserMetadataResponse, error)
 	CheckUserListExists(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*BatchUserExistResponse, error)
 	DoesUserExists(ctx context.Context, in *DoesUserExistsRequest, opts ...grpc.CallOption) (*DoesUserExistsResponse, error)
+	CheckUserExists(ctx context.Context, in *CheckUserExistsRequest, opts ...grpc.CallOption) (*CheckUserExistsResponse, error)
 	CheckAllUsersExists(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*UsersNotExistsResponse, error)
 }
 
@@ -74,6 +76,16 @@ func (c *authSubscriptionServiceClient) DoesUserExists(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *authSubscriptionServiceClient) CheckUserExists(ctx context.Context, in *CheckUserExistsRequest, opts ...grpc.CallOption) (*CheckUserExistsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckUserExistsResponse)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_CheckUserExists_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *authSubscriptionServiceClient) CheckAllUsersExists(ctx context.Context, in *UserDataReq, opts ...grpc.CallOption) (*UsersNotExistsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UsersNotExistsResponse)
@@ -92,6 +104,7 @@ type AuthSubscriptionServiceServer interface {
 	FetchUserMetaData(context.Context, *UserDataReq) (*BatchUserMetadataResponse, error)
 	CheckUserListExists(context.Context, *UserDataReq) (*BatchUserExistResponse, error)
 	DoesUserExists(context.Context, *DoesUserExistsRequest) (*DoesUserExistsResponse, error)
+	CheckUserExists(context.Context, *CheckUserExistsRequest) (*CheckUserExistsResponse, error)
 	CheckAllUsersExists(context.Context, *UserDataReq) (*UsersNotExistsResponse, error)
 	mustEmbedUnimplementedAuthSubscriptionServiceServer()
 }
@@ -111,6 +124,9 @@ func (UnimplementedAuthSubscriptionServiceServer) CheckUserListExists(context.Co
 }
 func (UnimplementedAuthSubscriptionServiceServer) DoesUserExists(context.Context, *DoesUserExistsRequest) (*DoesUserExistsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DoesUserExists not implemented")
+}
+func (UnimplementedAuthSubscriptionServiceServer) CheckUserExists(context.Context, *CheckUserExistsRequest) (*CheckUserExistsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckUserExists not implemented")
 }
 func (UnimplementedAuthSubscriptionServiceServer) CheckAllUsersExists(context.Context, *UserDataReq) (*UsersNotExistsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckAllUsersExists not implemented")
@@ -191,6 +207,24 @@ func _AuthSubscriptionService_DoesUserExists_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthSubscriptionService_CheckUserExists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckUserExistsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthSubscriptionServiceServer).CheckUserExists(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthSubscriptionService_CheckUserExists_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthSubscriptionServiceServer).CheckUserExists(ctx, req.(*CheckUserExistsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AuthSubscriptionService_CheckAllUsersExists_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UserDataReq)
 	if err := dec(in); err != nil {
@@ -227,6 +261,10 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DoesUserExists",
 			Handler:    _AuthSubscriptionService_DoesUserExists_Handler,
+		},
+		{
+			MethodName: "CheckUserExists",
+			Handler:    _AuthSubscriptionService_CheckUserExists_Handler,
 		},
 		{
 			MethodName: "CheckAllUsersExists",

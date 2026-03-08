@@ -681,7 +681,7 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 			PostAge:       v.PostAge,
 			IsLiked:       v.IsLiked,
 			UserData:      userMetaData,
-			Pagination: responsemodels.PagingationDetails{
+			Pagination: &responsemodels.PagingationDetails{
 				CurrentPage: page,
 				PageSize:    limit,
 			},

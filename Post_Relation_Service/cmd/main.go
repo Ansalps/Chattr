@@ -9,6 +9,7 @@ import (
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/di"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/pb"
 	"google.golang.org/grpc"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
 )
 
 func main() {
@@ -40,7 +41,12 @@ func main() {
 		logger.Field{Key: "port", Value: config.PortMngr.RunnerPort},
 	)
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(middleware.LoggerInterceptor(log)),
+		grpc.UnaryInterceptor(
+			grpc_middleware.ChainUnaryServer(
+				middleware.RecoveryInterceptor,
+				middleware.LoggerInterceptor(log),
+			),
+		),
 	)
 	pb.RegisterPostRelationServiceServer(grpcServer, PostRelationServiceServer)
 	if err := grpcServer.Serve(lis); err != nil {

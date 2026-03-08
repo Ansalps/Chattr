@@ -86,7 +86,7 @@ func NewChatHandler(cfg *config.Config) *ChatHandler {
 
 func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
-
+	requestID := c.GetString("request_id")
 	target, _ := url.Parse("http://" + as.config.ChatSvcUrl)
 
 	proxy := httputil.NewSingleHostReverseProxy(target)
@@ -98,6 +98,10 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 		req.Header.Del("Authorization")
 		req.Header.Set("X-User-ID", strconv.FormatUint(claims.ID, 10))
 		req.Header.Set("X-Auth-Source", as.config.AuthSource)
+		// propagate request tracing
+		if requestID != "" {
+			req.Header.Set("X-Request-ID", requestID)
+		}
 	}
 
 	proxy.ServeHTTP(c.Writer, c.Request)
