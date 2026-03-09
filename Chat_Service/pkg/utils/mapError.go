@@ -27,6 +27,14 @@ func ClientResponse(statusCode int, message string, data interface{}) Response {
 func MapDomainError(c *gin.Context, log logger.Logger, err error) {
 	var userErr *domain.NonExistingUsersError
 	switch{
+	case errors.Is(err,domain.ErrContentTypeNil):
+		log.Warn("Content type is nil",
+			logger.Field{Key: "error",Value: err})
+			c.JSON(http.StatusBadRequest,ClientResponse(400,domain.ErrContentTypeNil.Error(),nil))
+	case errors.Is(err,domain.ErrUserNotInConversation):
+		log.Warn("user not present in conversation",
+			logger.Field{Key: "error",Value: err})
+		c.JSON(403,ClientResponse(403,domain.ErrUserNotInConversation.Error(),nil))
 	case errors.As(err, &userErr):
 		log.Warn("Invalid userids persent",
 			logger.Field{Key: "error", Value: err})

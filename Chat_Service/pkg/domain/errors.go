@@ -21,6 +21,10 @@ var (
 	ErrDatabaseTimeout=errors.New("Mongodb Database Connection time out")
 
 	ErrInvalidGroupID= errors.New("Invalid Group ID")
+
+	ErrUsersNotFound=errors.New("Users not found")
+
+	ErrS3UploadFail=errors.New("profile image updload failed")
 )
 
 type NonExistingUsersError struct {

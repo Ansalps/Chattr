@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"slices"
 	"strconv"
@@ -693,15 +692,20 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 		// }
 
 		//c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		utils.MapDomainError(c,log,err)
+		utils.MapDomainError(c, log, err)
 		return
 	}
 	c.JSON(http.StatusOK, resp)
 }
 
 func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
+	requestID := c.GetHeader("X-Request-ID")
+	log := as.Log.With(
+		logger.Field{Key: "request_id", Value: requestID},
+	)
 	groupIdStr := c.Param("group_id")
 	if groupIdStr == "" {
+		log.Warn("Empty string fetched as group id from path params in chat service")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "group id missing"})
 		return
 	}
@@ -710,6 +714,7 @@ func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 
 	if page < 1 || limit < 1 || limit > 100 {
+		log.Warn("page number must be between 1 and 100")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid page or limit",
 		})
@@ -720,22 +725,26 @@ func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
 	offset := (page - 1) * limit
 	userIdStr := c.GetHeader("X-User-Id")
 	if userIdStr == "" {
-		log.Println("error fetching userid from header")
+		log.Warn("Empty string fetched as user id from header in chat service")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to fetch userid from header"})
 		return
 	}
 	userID, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
-		log.Println("error parsing userid to uint64")
+		log.Error("failed to parse user id",
+			logger.Field{Key: "user_id", Value: userIdStr},
+			logger.Field{Key: "error", Value: err},
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error converting userid from string to uint"})
 		return
 	}
 	authSource := c.GetHeader("X-Auth-Source")
 
-	//log.Println("Headers:", c.Request.Header)
-	//log.Println("User ID:", userID)
-
-	if userIdStr == "" || authSource != as.Config.AuthSource {
+	if authSource != as.Config.AuthSource {
+		log.Warn("unauthorized websocket request",
+			logger.Field{Key: "user_id", Value: userIdStr},
+			logger.Field{Key: "auth_source", Value: authSource},
+		)
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "unauthorized websocket request",
 		})
@@ -749,8 +758,9 @@ func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
 	//var resp []responsemodels.GetGroupMembersResponse
 	resp, err := as.ChatUsecase.GetGroupMembers(req)
 	if err != nil {
-		log.Println(err)
-		c.JSON(500, gin.H{"error": "internal server error"})
+		//log.Println(err)
+		utils.MapDomainError(c, log, err)
+		//c.JSON(500, gin.H{"error": "internal server error"})
 		return
 	}
 	resp1 := responsemodels.GetGroupMembers{
@@ -764,11 +774,16 @@ func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
 }
 
 func (as *ChatHandler) GetRecentChatProfiles(c *gin.Context) {
+	requestID := c.GetHeader("X-Request-ID")
+	log := as.Log.With(
+		logger.Field{Key: "request_id", Value: requestID},
+	)
 	// 1. Parse Pagination
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 
 	if page < 1 || limit < 1 || limit > 100 {
+		log.Warn("page number must be between 1 and 100")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid page or limit",
 		})
@@ -780,18 +795,25 @@ func (as *ChatHandler) GetRecentChatProfiles(c *gin.Context) {
 	var req requestmodels.RecentChatProfilesRequest
 	userIdStr := c.GetHeader("X-User-Id")
 	if userIdStr == "" {
-		log.Println("error fetching userid from header")
+		log.Warn("Empty string fetched as user id from header in chat service")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to fetch userid from header"})
+		return
 	}
 	userID, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
-		log.Println("error parsing userid to uint64")
+		log.Error("failed to parse user id",
+			logger.Field{Key: "user_id", Value: userIdStr},
+			logger.Field{Key: "error", Value: err},
+		)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error converting userid from string to uint"})
+		return
 	}
 	authSource := c.GetHeader("X-Auth-Source")
-
-	//log.Println("Headers:", c.Request.Header)
-	//log.Println("User ID:", userID)
-
-	if userIdStr == "" || authSource != as.Config.AuthSource {
+	if authSource != as.Config.AuthSource {
+		log.Warn("unauthorized websocket request",
+			logger.Field{Key: "user_id", Value: userIdStr},
+			logger.Field{Key: "auth_source", Value: authSource},
+		)
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "unauthorized  request",
 		})
@@ -803,8 +825,9 @@ func (as *ChatHandler) GetRecentChatProfiles(c *gin.Context) {
 	//var resp []responsemodels.ChatProfileResponse
 	resp, err := as.ChatUsecase.GetRecentChatProfiles(req)
 	if err != nil {
-		log.Println(err)
-		c.JSON(500, gin.H{"error": "internal server error"})
+		//log.Println(err)
+		//c.JSON(500, gin.H{"error": "internal server error"})
+		utils.MapDomainError(c, log, err)
 		return
 	}
 	resp1 := responsemodels.ChatProfileFinalResponse{
@@ -818,8 +841,13 @@ func (as *ChatHandler) GetRecentChatProfiles(c *gin.Context) {
 }
 
 func (as *ChatHandler) GetChat(c *gin.Context) {
+	requestID := c.GetHeader("X-Request-ID")
+	log := as.Log.With(
+		logger.Field{Key: "request_id", Value: requestID},
+	)
 	convIdStr := c.Param("conv_id")
 	if convIdStr == "" {
+		log.Warn("Empty string fetched as conversation id from path params in chat service")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "group id missing"})
 		return
 	}
@@ -828,6 +856,7 @@ func (as *ChatHandler) GetChat(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 
 	if page < 1 || limit < 1 || limit > 100 {
+		log.Warn("page number must be between 1 and 100")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid page or limit",
 		})
@@ -839,22 +868,25 @@ func (as *ChatHandler) GetChat(c *gin.Context) {
 	var req requestmodels.GetChatRequest
 	userIdStr := c.GetHeader("X-User-Id")
 	if userIdStr == "" {
-		log.Println("error fetching userid from header")
+		log.Warn("Empty string fetched as user id from header in chat service")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to fetch userid from header"})
 		return
 	}
 	userID, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
-		log.Println("error parsing userid to uint64")
+		log.Error("failed to parse user id",
+			logger.Field{Key: "user_id", Value: userIdStr},
+			logger.Field{Key: "error", Value: err},
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error converting userid from string to uint"})
 		return
 	}
 	authSource := c.GetHeader("X-Auth-Source")
-
-	//log.Println("Headers:", c.Request.Header)
-	//log.Println("User ID:", userID)
-
-	if userIdStr == "" || authSource != as.Config.AuthSource {
+	if authSource != as.Config.AuthSource {
+		log.Warn("unauthorized websocket request",
+			logger.Field{Key: "user_id", Value: userIdStr},
+			logger.Field{Key: "auth_source", Value: authSource},
+		)
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "unauthorized websocket request",
 		})
@@ -867,8 +899,9 @@ func (as *ChatHandler) GetChat(c *gin.Context) {
 	//var resp responsemodels.GetChatResponse
 	resp, err := as.ChatUsecase.GetChat(req)
 	if err != nil {
-		log.Println(err)
-		c.JSON(500, gin.H{"error": "internal server error"})
+		//log.Println(err)
+		//c.JSON(500, gin.H{"error": "internal server error"})
+		utils.MapDomainError(c, log, err)
 		return
 	}
 	resp.Pagination = responsemodels.PaginationDetails{
@@ -878,26 +911,38 @@ func (as *ChatHandler) GetChat(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 func (as *ChatHandler) SetGroupProfileImage(c *gin.Context) {
+	requestID := c.GetHeader("X-Request-ID")
+	log := as.Log.With(
+		logger.Field{Key: "request_id", Value: requestID},
+	)
 	groupIdStr := c.Param("group_id")
 	if groupIdStr == "" {
+		log.Warn("Empty string fetched as group id from path params in chat service")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "group id missing"})
 		return
 	}
 	userIdStr := c.GetHeader("X-User-Id")
 	if userIdStr == "" {
-		log.Println("error fetching userid from header")
+		log.Warn("Empty string fetched as user id from header in chat service")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to fetch userid from header"})
 		return
 	}
 	userID, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
-		log.Println("error parsing userid to uint64")
+		log.Error("failed to parse user id",
+			logger.Field{Key: "user_id", Value: userIdStr},
+			logger.Field{Key: "error", Value: err},
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error converting userid from string to uint"})
 		return
 	}
 	authSource := c.GetHeader("X-Auth-Source")
 
 	if authSource != as.Config.AuthSource {
+		log.Warn("unauthorized websocket request",
+			logger.Field{Key: "user_id", Value: userIdStr},
+			logger.Field{Key: "auth_source", Value: authSource},
+		)
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "unauthorized websocket request",
 		})
@@ -907,13 +952,14 @@ func (as *ChatHandler) SetGroupProfileImage(c *gin.Context) {
 	req.UserID = userID
 	req.GroupID = groupIdStr
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Println("error binding request in chat service", err)
+		log.Warn("error binding request:",
+			logger.Field{Key: "error", Value: err})
 		return
 	}
-	//fmt.Println("req",req)
 	resp, err := as.ChatUsecase.SetGroupProfileImage(req)
 	if err != nil {
-		c.JSON(500, err.Error())
+		//c.JSON(500, err.Error())
+		utils.MapDomainError(c,log,err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"group_profile_image_url": resp})

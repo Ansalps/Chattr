@@ -230,9 +230,6 @@ func (ad *ChatRepository) FetchMembersOfGroup(groupId string) ([]uint64, error) 
 		Decode(&result)
 
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("group not found with ID: %s", groupId)
-		}
 		return nil, err
 	}
 
@@ -391,13 +388,13 @@ func (ad *ChatRepository) GetUserConversation(req requestmodels.RecentChatProfil
 	// 3. Execution
 	cursor, err := collection.Find(ctx, filter, findOptions)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch conversations: %v", err)
+		return nil, err
 	}
 	defer cursor.Close(ctx)
 
 	var conversations []domain.Conversation
 	if err := cursor.All(ctx, &conversations); err != nil {
-		return nil, fmt.Errorf("failed to decode conversations: %v", err)
+		return nil, err
 	}
 
 	return conversations, nil
@@ -453,12 +450,12 @@ func (ad *ChatRepository) GetGroupMetaBatch(groupIDs []string) (map[string]respo
 			Name     string `bson:"groupname"`
 			ImageURL string `bson:"groupimageurl"`
 		}
-
+		// results[temp.ID] = responsemodels.GroupMeta{
+		// 	Name:     temp.Name,
+		// 	ImageURL: temp.ImageURL, // may be empty
+		// }
 		if err := cursor.Decode(&temp); err == nil {
-			results[temp.ID] = responsemodels.GroupMeta{
-				Name:     temp.Name,
-				ImageURL: temp.ImageURL, // may be empty
-			}
+			return nil, err
 		}
 	}
 
@@ -482,13 +479,13 @@ func (ad *ChatRepository) GetUserMessagesByConversationId(req requestmodels.GetC
 
 	cursor, err := collection.Find(ctx, filter, findOptions)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("find messages: %w", err)
 	}
 	defer cursor.Close(ctx)
 
 	var messages []domain.Message
 	if err := cursor.All(ctx, &messages); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode messages: %w", err)
 	}
 
 	return messages, nil
@@ -545,8 +542,9 @@ func (r *ChatRepository) SetGroupProfileImage(groupID string, imageURL string) e
 			"updatedat":     time.Now(),
 		},
 	}
-
-	result, err := r.groupColl().UpdateOne(context.Background(), filter, update)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	result, err := r.groupColl().UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err
 	}

@@ -47,14 +47,26 @@ func NewChatUsecase(repository interfacesrepository.ChatRepository, authClient p
 func (as *ChatUsecase) SetGroupProfileImage(req requestmodels.GroupProfileImageRequest) (string, error) {
 	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
 	if err != nil {
-		return "", err
+		if errors.Is(err, context.DeadlineExceeded) {
+			return "",fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		}
+	
+		return "",fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 	if !exists {
 		return "", domain.ErrGroupNotFound
 	}
 	userIds, err := as.ChatRepository.FetchMembersOfGroup(req.GroupID)
 	if err != nil {
-		return "nil", err
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return "", fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
+		}
+	
+		if errors.Is(err, context.DeadlineExceeded) {
+			return "", fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		}
+	
+		return "", fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 	if !slices.Contains(userIds, req.UserID) {
 		return "", domain.ErrNotGroupMember
@@ -80,65 +92,26 @@ func (as *ChatUsecase) SetGroupProfileImage(req requestmodels.GroupProfileImageR
 	})
 	if err != nil {
 		//fmt.Println("is it here")
-		return "", status.Errorf(codes.Internal, "upload failed: %v", err)
+		return "", fmt.Errorf("%w: %v",domain.ErrS3UploadFail,err)
 	}
 	// Construct URL
 	imageURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", as.AwsBucket, as.Config.Aws.AwsRegion, key)
 	// Save to DB
 	err = as.ChatRepository.SetGroupProfileImage(req.GroupID, imageURL)
 	if err != nil {
-		return "", status.Errorf(codes.Internal, "db update failed: %v", err)
+		if errors.Is(err,context.DeadlineExceeded){
+			return "",fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		}
+		if errors.Is(err, domain.ErrGroupNotFound) {
+			return "",domain.ErrGroupNotFound
+		}
+
+		return "",fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 
 	return imageURL, nil
 }
-func (as *ChatUsecase) GetGroupMembers(req requestmodels.GetGroupMembersRequest) ([]responsemodels.GetGroupMembersResponse, error) {
-	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, domain.ErrGroupNotFound
-	}
-	userIds, err := as.ChatRepository.FetchMembersOfGroup(req.GroupID)
-	if err != nil {
-		return nil, err
-	}
-	if !slices.Contains(userIds, req.UserID) {
-		return nil, domain.ErrNotGroupMember
-	}
-	// ✅ Apply pagination
-	start := req.Offset
-	end := req.Offset + req.Limit
 
-	if start > len(userIds) {
-		return []responsemodels.GetGroupMembersResponse{}, nil
-	}
-
-	if end > len(userIds) {
-		end = len(userIds)
-	}
-
-	userIds = userIds[start:end]
-	authRes, err := as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
-		UserId: userIds})
-	if err != nil {
-		log.Printf("Auth service batch call failed: %v", err)
-		return nil, err
-	}
-	//fmt.Println("",authRes.Users)
-
-	resp := make([]responsemodels.GetGroupMembersResponse, 0)
-	for _, v := range userIds {
-		r := responsemodels.GetGroupMembersResponse{
-			UserID:        authRes.Users[v].UserId,
-			UserName:      authRes.Users[v].UserName,
-			ProfileImgUrl: authRes.Users[v].ProfileImgUrl,
-		}
-		resp = append(resp, r)
-	}
-	return resp, nil
-}
 func (as *ChatUsecase) DoesUserExist(userid uint64) (bool, error) {
 	resp, err := as.AuthClient.CheckUserExists(context.Background(), &pb.CheckUserExistsRequest{
 		UserId: userid,
@@ -251,11 +224,19 @@ func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (response
 		return responsemodels.AddMembersResponse{},fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 	if !exists {
-		return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
+		return responsemodels.AddMembersResponse{}, domain.ErrGroupNotFound
 	}
 	resp1, err := as.ChatRepository.ExistingMembers(req.GroupID)
 	if err != nil {
-		return responsemodels.AddMembersResponse{}, err
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
+		}
+	
+		if errors.Is(err, context.DeadlineExceeded) {
+			return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		}
+	
+		return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 
 	if !slices.Contains(resp1, req.UserID) {
@@ -309,11 +290,19 @@ func (as *ChatUsecase) RemoveMember(req requestmodels.RemoveMemberRequest) (resp
 		return responsemodels.RemoveMemberResponse{},fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 	if !exists {
-		return responsemodels.RemoveMemberResponse{},fmt.Errorf("%w: %v",domain.ErrInternal,err)
+		return responsemodels.RemoveMemberResponse{},domain.ErrGroupNotFound
 	}
 	resp1, err := as.ChatRepository.ExistingMembers(req.GroupID)
 	if err != nil {
-		return responsemodels.RemoveMemberResponse{}, err
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
+		}
+	
+		if errors.Is(err, context.DeadlineExceeded) {
+			return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		}
+	
+		return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 	if !slices.Contains(resp1, req.UserID) {
 		return responsemodels.RemoveMemberResponse{}, domain.ErrNotGroupMember
@@ -334,6 +323,85 @@ func (as *ChatUsecase) RemoveMember(req requestmodels.RemoveMemberRequest) (resp
 		return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 	return resp2, nil
+}
+
+func (as *ChatUsecase) GetGroupMembers(req requestmodels.GetGroupMembersRequest) ([]responsemodels.GetGroupMembersResponse, error) {
+	
+	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil,fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		}
+	
+		return nil,fmt.Errorf("%w: %v",domain.ErrInternal,err)
+	}
+	if !exists {
+		return nil, domain.ErrGroupNotFound
+	}
+	userIds, err := as.ChatRepository.FetchMembersOfGroup(req.GroupID)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
+		}
+	
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		}
+	
+		return nil, fmt.Errorf("%w: %v",domain.ErrInternal,err)
+	}
+	if !slices.Contains(userIds, req.UserID) {
+		return nil, domain.ErrNotGroupMember
+	}
+	// ✅ Apply pagination
+	start := req.Offset
+	end := req.Offset + req.Limit
+
+	if start > len(userIds) {
+		return []responsemodels.GetGroupMembersResponse{}, nil
+	}
+
+	if end > len(userIds) {
+		end = len(userIds)
+	}
+
+	userIds = userIds[start:end]
+	authRes, err := as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+		UserId: userIds})
+	if err != nil {
+		st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return nil,
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return nil, domain.ErrUsersNotFound
+
+		case codes.Internal:
+			return nil,
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return nil,
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+	}
+	//fmt.Println("",authRes.Users)
+
+	resp := make([]responsemodels.GetGroupMembersResponse, 0)
+	for _, v := range userIds {
+		r := responsemodels.GetGroupMembersResponse{
+			UserID:        authRes.Users[v].UserId,
+			UserName:      authRes.Users[v].UserName,
+			ProfileImgUrl: authRes.Users[v].ProfileImgUrl,
+		}
+		resp = append(resp, r)
+	}
+	return resp, nil
 }
 
 func (as *ChatUsecase) FetchMembersOfGroup(groupId string) ([]uint64, error) {
@@ -383,7 +451,7 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 	//fmt.Println("req.UserID", req.UserID)
 	convs, err := as.ChatRepository.GetUserConversation(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 
 	// 2. Separate Group IDs and unique User IDs
@@ -409,8 +477,10 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 	groupMeta, err := as.ChatRepository.GetGroupMetaBatch(groupIDs)
 
 	if err != nil {
-		log.Println("error fetching group names")
-		return []responsemodels.ChatProfileResponse{}, err
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		}
+		return nil, fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 
 	// 3. Batch Call to Auth Service
@@ -420,7 +490,26 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 	authRes, err := as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
 		UserId: individualUserIDs})
 	if err != nil {
-		log.Printf("Auth service batch call failed: %v", err)
+		st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return nil,
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return nil, domain.ErrUsersNotFound
+
+		case codes.Internal:
+			return nil,
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return nil,
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
 	}
 
 	// 4. Build the final response list
@@ -457,14 +546,18 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 }
 
 func (as *ChatUsecase) GetChat(req requestmodels.GetChatRequest) (responsemodels.GetChatResponse, error) {
-	//fmt.Println("req.UserID", req.UserID)
-
 	// 1. SECURITY VALIDATION
 	// Check if the UserID is a participant in this Conversation
 	isParticipant, err := as.ChatRepository.IsUserInConversation(req.ConvID, req.UserID)
-	if err != nil || !isParticipant {
-		log.Printf("Unauthorized access attempt: User %d for ConvID %s", req.UserID, req.ConvID)
-		return responsemodels.GetChatResponse{}, domain.ErrUserNotInConversation
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return responsemodels.GetChatResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		}
+		//log.Printf("Unauthorized access attempt: User %d for ConvID %s", req.UserID, req.ConvID)
+		return responsemodels.GetChatResponse{},fmt.Errorf("%w: %v",domain.ErrInternal,err)
+	}
+	if !isParticipant{
+		return responsemodels.GetChatResponse{},domain.ErrUserNotInConversation
 	}
 
 	// 1. Request one extra message to check if there's more data
@@ -473,8 +566,7 @@ func (as *ChatUsecase) GetChat(req requestmodels.GetChatRequest) (responsemodels
 
 	messages, err := as.ChatRepository.GetUserMessagesByConversationId(req)
 	if err != nil {
-		log.Printf("Error fetching messages for ConvID %s: %v", req.ConvID, err)
-		return responsemodels.GetChatResponse{}, err
+		return responsemodels.GetChatResponse{},fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 
 	hasMore := false
@@ -505,8 +597,26 @@ func (as *ChatUsecase) GetChat(req requestmodels.GetChatRequest) (responsemodels
 			UserId: uniqueIDs,
 		})
 		if err != nil {
-			log.Printf("Warning: Auth service call failed: %v", err)
-			// We continue so the user sees message text even if profiles fail
+			st, ok := status.FromError(err)
+		if !ok {
+			// Not a gRPC error
+			return responsemodels.GetChatResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
+
+		switch st.Code() {
+
+		case codes.NotFound:
+			return responsemodels.GetChatResponse{}, domain.ErrUsersNotFound
+
+		case codes.Internal:
+			return responsemodels.GetChatResponse{},
+				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		default:
+			return responsemodels.GetChatResponse{},
+				fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
 		}
 	}
 
