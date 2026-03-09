@@ -24,23 +24,38 @@ func ClientResponse(statusCode int, message string, data interface{}) Response {
 	}
 }
 
-func MapError(log logger.Logger, err error, c *gin.Context) {
-	switch {
+func MapDomainError(c *gin.Context, log logger.Logger, err error) {
+	var userErr *domain.NonExistingUsersError
+	switch{
+	case errors.As(err, &userErr):
+		log.Warn("Invalid userids persent",
+			logger.Field{Key: "error", Value: err})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":            "some users do not exist",
+			"missing_user_ids": userErr.UserIDs,
+		})
+	case errors.Is(err, domain.ErrGroupNotFound):
+		log.Warn("Invalid group id",
+			logger.Field{Key: "error", Value: err})
+		c.JSON(http.StatusNotFound, ClientResponse(404, domain.ErrGroupNotFound.Error(), nil))
+	case errors.Is(err, domain.ErrNotGroupMember):
+		log.Warn("Not a Group Member",
+			logger.Field{Key: "error", Value: err})
+		c.JSON(http.StatusForbidden, ClientResponse(403, domain.ErrNotGroupMember.Error(), nil))
+	case errors.Is(err, domain.ErrDatabaseTimeout):
+		log.Error("Database Connection timed out",
+			logger.Field{Key: "error", Value: err})
+		c.JSON(500, ClientResponse(500, domain.ErrDatabaseTimeout.Error(), nil))
 	case errors.Is(err, domain.ErrInternal):
-		log.Error("internal server Error",
+		log.Error("Internal server error",
 			logger.Field{Key: "error", Value: err})
-		c.JSON(http.StatusInternalServerError, ClientResponse(400, domain.ErrInternal.Error(), nil))
-	case errors.Is(err, domain.ErrUserNotFound):
-		log.Warn("User Not Found",
-			logger.Field{Key: "error", Value: err})
-		c.JSON(http.StatusNotFound, ClientResponse(404, domain.ErrUserNotFound.Error(), nil))
-	case errors.Is(err, domain.ErrDatabase):
-		log.Error("Database error",
-			logger.Field{Key: "error", Value: err})
-		c.JSON(http.StatusInternalServerError, ClientResponse(500, domain.ErrDatabase.Error(), nil))
+		c.JSON(500,ClientResponse(500, domain.ErrInternal.Error(), nil))
 	default:
-		log.Error("internal server Error",
+		log.Error("internal server errot",
 			logger.Field{Key: "error", Value: err})
-		c.JSON(http.StatusInternalServerError, ClientResponse(400, domain.ErrInternal.Error(), nil))
+		// ✅ fallback (VERY IMPORTANT)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "internal server error",
+		})
 	}
 }

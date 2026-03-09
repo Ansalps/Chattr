@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
 	"slices"
@@ -159,7 +158,7 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 	// 4️⃣ Start WebSocket read loop
 	go as.reader(client, hub)
 }
-func (h *Hub) SendToGroup(dm requestmodels.MessageRequest, userIds []uint64,log logger.Logger) {
+func (h *Hub) SendToGroup(dm requestmodels.MessageRequest, userIds []uint64, log logger.Logger) {
 	for _, v := range userIds {
 		if v == dm.SenderID {
 			continue
@@ -167,7 +166,7 @@ func (h *Hub) SendToGroup(dm requestmodels.MessageRequest, userIds []uint64,log 
 		client, ok := h.clients[v]
 		if !ok {
 			log.Warn("User offline:",
-				logger.Field{Key: "user_id",Value: v})
+				logger.Field{Key: "user_id", Value: v})
 			continue
 		}
 		data, _ := json.Marshal(dm)
@@ -175,11 +174,11 @@ func (h *Hub) SendToGroup(dm requestmodels.MessageRequest, userIds []uint64,log 
 	}
 }
 
-func (h *Hub) SendToUser(dm requestmodels.MessageRequest,log logger.Logger) {
+func (h *Hub) SendToUser(dm requestmodels.MessageRequest, log logger.Logger) {
 	client, ok := h.clients[dm.RecipientID]
 	if !ok {
 		log.Warn("User offline:",
-				logger.Field{Key: "user_id",Value: dm.RecipientID})
+			logger.Field{Key: "user_id", Value: dm.RecipientID})
 		return
 	}
 	data, _ := json.Marshal(dm)
@@ -293,7 +292,7 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 				logger.Field{Key: "conversation_id", Value: actualConvID},
 				logger.Field{Key: "recipient_id", Value: dm.RecipientID},
 			)
-			hub.SendToUser(dm,log)
+			hub.SendToUser(dm, log)
 			event := map[string]interface{}{
 				"type":           "DIRECT_MESSAGE",
 				"actorId":        c.UserID,       // Person who clicked 'like'
@@ -384,7 +383,7 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 				logger.Field{Key: "conversation_id", Value: actualConvID},
 				logger.Field{Key: "group_id", Value: dm.GroupID},
 			)
-			hub.SendToGroup(dm, userIds,log)
+			hub.SendToGroup(dm, userIds, log)
 			log.Debug("group message broadcasted",
 				logger.Field{Key: "group_id", Value: dm.GroupID},
 				logger.Field{Key: "recipients_count", Value: len(userIds)},
@@ -499,40 +498,41 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 	req.CreatedAt = time.Now()
 	req.UpdatedAt = time.Now()
 	resp, err := as.ChatUsecase.CreateGroup(req)
-	var userErr *domain.NonExistingUsersError
+
 	if err != nil {
-		switch{
-		case errors.As(err, &userErr):
-			log.Warn("Invalid userids persent",
-				logger.Field{Key: "error", Value: err})
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":            "some users do not exist",
-				"missing_user_ids": userErr.UserIDs,
-			})
-		case errors.Is(err, domain.ErrGroupNotFound):
-			log.Warn("Invalid group id",
-				logger.Field{Key: "error", Value: err})
-			c.JSON(http.StatusNotFound, utils.ClientResponse(404, domain.ErrGroupNotFound.Error(), nil))
-		case errors.Is(err, domain.ErrNotGroupMember):
-			log.Warn("Not a Group Member",
-				logger.Field{Key: "error", Value: err})
-			c.JSON(http.StatusForbidden, utils.ClientResponse(403, domain.ErrNotGroupMember.Error(), nil))
-		case errors.Is(err, domain.ErrDatabaseTimeout):
-			log.Error("Database Connection timed out",
-				logger.Field{Key: "error", Value: err})
-			c.JSON(500, utils.ClientResponse(500, domain.ErrDatabaseTimeout.Error(), nil))
-		case errors.Is(err, domain.ErrInternal):
-			log.Error("Internal server error",
-				logger.Field{Key: "error", Value: err})
-			c.JSON(500, utils.ClientResponse(500, domain.ErrInternal.Error(), nil))
-		default:
-			log.Error("internal server errot",
-				logger.Field{Key: "error", Value: err})
-			// ✅ fallback (VERY IMPORTANT)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "internal server error",
-			})
-		}
+		// switch{
+		// case errors.As(err, &userErr):
+		// 	log.Warn("Invalid userids persent",
+		// 		logger.Field{Key: "error", Value: err})
+		// 	c.JSON(http.StatusBadRequest, gin.H{
+		// 		"error":            "some users do not exist",
+		// 		"missing_user_ids": userErr.UserIDs,
+		// 	})
+		// case errors.Is(err, domain.ErrGroupNotFound):
+		// 	log.Warn("Invalid group id",
+		// 		logger.Field{Key: "error", Value: err})
+		// 	c.JSON(http.StatusNotFound, utils.ClientResponse(404, domain.ErrGroupNotFound.Error(), nil))
+		// case errors.Is(err, domain.ErrNotGroupMember):
+		// 	log.Warn("Not a Group Member",
+		// 		logger.Field{Key: "error", Value: err})
+		// 	c.JSON(http.StatusForbidden, utils.ClientResponse(403, domain.ErrNotGroupMember.Error(), nil))
+		// case errors.Is(err, domain.ErrDatabaseTimeout):
+		// 	log.Error("Database Connection timed out",
+		// 		logger.Field{Key: "error", Value: err})
+		// 	c.JSON(500, utils.ClientResponse(500, domain.ErrDatabaseTimeout.Error(), nil))
+		// case errors.Is(err, domain.ErrInternal):
+		// 	log.Error("Internal server error",
+		// 		logger.Field{Key: "error", Value: err})
+		// 	c.JSON(500, utils.ClientResponse(500, domain.ErrInternal.Error(), nil))
+		// default:
+		// 	log.Error("internal server errot",
+		// 		logger.Field{Key: "error", Value: err})
+		// 	// ✅ fallback (VERY IMPORTANT)
+		// 	c.JSON(http.StatusInternalServerError, gin.H{
+		// 		"error": "internal server error",
+		// 	})
+		// }
+		utils.MapDomainError(c, log, err)
 		return
 	}
 
@@ -582,7 +582,7 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
-	var userErr *domain.NonExistingUsersError
+	//var userErr *domain.NonExistingUsersError
 	resp, err := as.ChatUsecase.AddMembers(req)
 	if err != nil {
 
@@ -594,38 +594,39 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 		// 	return
 		// }
 
-		switch {
-		case errors.As(err, &userErr):
-			log.Warn("Invalid userids persent",
-				logger.Field{Key: "error", Value: err})
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":            "some users do not exist",
-				"missing_user_ids": userErr.UserIDs,
-			})
-		case errors.Is(err, domain.ErrGroupNotFound):
-			log.Warn("Invalid group id",
-				logger.Field{Key: "error", Value: err})
-			c.JSON(http.StatusNotFound, utils.ClientResponse(404, domain.ErrGroupNotFound.Error(), nil))
-		case errors.Is(err, domain.ErrNotGroupMember):
-			log.Warn("Not a Group Member",
-				logger.Field{Key: "error", Value: err})
-			c.JSON(http.StatusForbidden, utils.ClientResponse(403, domain.ErrNotGroupMember.Error(), nil))
-		case errors.Is(err, domain.ErrDatabaseTimeout):
-			log.Error("Database Connection timed out",
-				logger.Field{Key: "error", Value: err})
-			c.JSON(500, utils.ClientResponse(500, domain.ErrDatabaseTimeout.Error(), nil))
-		case errors.Is(err, domain.ErrInternal):
-			log.Error("Internal server error",
-				logger.Field{Key: "error", Value: err})
-			c.JSON(500, utils.ClientResponse(500, domain.ErrInternal.Error(), nil))
-		default:
-			log.Error("internal server errot",
-				logger.Field{Key: "error", Value: err})
-			// ✅ fallback (VERY IMPORTANT)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "internal server error",
-			})
-		}
+		// switch {
+		// case errors.As(err, &userErr):
+		// 	log.Warn("Invalid userids persent",
+		// 		logger.Field{Key: "error", Value: err})
+		// 	c.JSON(http.StatusBadRequest, gin.H{
+		// 		"error":            "some users do not exist",
+		// 		"missing_user_ids": userErr.UserIDs,
+		// 	})
+		// case errors.Is(err, domain.ErrGroupNotFound):
+		// 	log.Warn("Invalid group id",
+		// 		logger.Field{Key: "error", Value: err})
+		// 	c.JSON(http.StatusNotFound, utils.ClientResponse(404, domain.ErrGroupNotFound.Error(), nil))
+		// case errors.Is(err, domain.ErrNotGroupMember):
+		// 	log.Warn("Not a Group Member",
+		// 		logger.Field{Key: "error", Value: err})
+		// 	c.JSON(http.StatusForbidden, utils.ClientResponse(403, domain.ErrNotGroupMember.Error(), nil))
+		// case errors.Is(err, domain.ErrDatabaseTimeout):
+		// 	log.Error("Database Connection timed out",
+		// 		logger.Field{Key: "error", Value: err})
+		// 	c.JSON(500, utils.ClientResponse(500, domain.ErrDatabaseTimeout.Error(), nil))
+		// case errors.Is(err, domain.ErrInternal):
+		// 	log.Error("Internal server error",
+		// 		logger.Field{Key: "error", Value: err})
+		// 	c.JSON(500, utils.ClientResponse(500, domain.ErrInternal.Error(), nil))
+		// default:
+		// 	log.Error("internal server errot",
+		// 		logger.Field{Key: "error", Value: err})
+		// 	// ✅ fallback (VERY IMPORTANT)
+		// 	c.JSON(http.StatusInternalServerError, gin.H{
+		// 		"error": "internal server error",
+		// 	})
+		// }
+		utils.MapDomainError(c, log, err)
 		return
 	}
 
