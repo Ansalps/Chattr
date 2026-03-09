@@ -34,6 +34,10 @@ func MapDomainError(c *gin.Context, log logger.Logger, err error) {
 			"error":            "some users do not exist",
 			"missing_user_ids": userErr.UserIDs,
 		})
+	case errors.Is(err, domain.ErrUserNotPresent):
+		log.Warn("Member to remove not present in the group",
+			logger.Field{Key: "error",Value: err})
+		c.JSON(404,ClientResponse(404,domain.ErrUserNotPresent.Error(),nil))
 	case errors.Is(err, domain.ErrGroupNotFound):
 		log.Warn("Invalid group id",
 			logger.Field{Key: "error", Value: err})

@@ -565,7 +565,7 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 		})
 	}
 	authSource := c.GetHeader("X-Auth-Source")
-	if userIdStr == "" || authSource != as.Config.AuthSource {
+	if authSource != as.Config.AuthSource {
 		log.Warn("unauthorized websocket request",
 			logger.Field{Key: "user_id", Value: userIdStr},
 			logger.Field{Key: "auth_source", Value: authSource},
@@ -634,18 +634,37 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 }
 
 func (as *ChatHandler) RemoveMember(c *gin.Context) {
+	requestID := c.GetHeader("X-Request-ID")
+	log := as.Log.With(
+		logger.Field{Key: "request_id", Value: requestID},
+	)
 	var req requestmodels.RemoveMemberRequest
 
 	userIdStr := c.GetHeader("X-User-Id")
+	if userIdStr == "" {
+		log.Warn("Empty string fetched as userid from header in chat service")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "no access",
+		})
+		return
+	}
 	userID, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
+		log.Error("failed to parse user id",
+			logger.Field{Key: "user_id", Value: userIdStr},
+			logger.Field{Key: "error", Value: err},
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "error in parsing string userid to uint",
 		})
 		return
 	}
 	authSource := c.GetHeader("X-Auth-Source")
-	if userIdStr == "" || authSource != as.Config.AuthSource {
+	if authSource != as.Config.AuthSource {
+		log.Warn("unauthorized websocket request",
+			logger.Field{Key: "user_id", Value: userIdStr},
+			logger.Field{Key: "auth_source", Value: authSource},
+		)
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "unauthorized websocket request",
 		})
@@ -653,25 +672,28 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 	}
 	req.UserID = userID
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Println("error binding request in chat service", err)
+		log.Warn("error binding request:",
+			logger.Field{Key: "error", Value: err})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
 	resp, err := as.ChatUsecase.RemoveMember(req)
 	if err != nil {
-		log.Println(err)
-		switch err {
-		case domain.ErrGroupNotFound:
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		case domain.ErrNotGroupMember:
-			c.JSON(403, gin.H{"error": err.Error()})
-		case domain.ErrUserNotPresent:
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		}
+		//log.Println(err)
+		// switch err {
+		// case domain.ErrGroupNotFound:
+		// 	c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		// case domain.ErrNotGroupMember:
+		// 	c.JSON(403, gin.H{"error": err.Error()})
+		// case domain.ErrUserNotPresent:
+		// 	c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		// default:
+		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		// }
 
 		//c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.MapDomainError(c,log,err)
 		return
 	}
 	c.JSON(http.StatusOK, resp)

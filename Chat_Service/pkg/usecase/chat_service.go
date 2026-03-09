@@ -268,8 +268,6 @@ func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (response
 	// 	log.Println(err)
 	// 	return responsemodels.AddMembersResponse{}, err
 	// }
-
-	// fmt.Println("three")
 	// req.GroupMembers = slices.DeleteFunc(resp1, func(id uint64) bool {
 	// 	return slices.Contains(resp.UserId, id)
 	// })
@@ -278,8 +276,6 @@ func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (response
 	// 	groupmembers = append(groupmembers, int64(req.GroupMembers[i]))
 	// }
 	//req.GroupMembers = resp.UserId
-	//fmt.Println("group members",groupmembers)
-	//fmt.Println("four")
 	resp2, err := as.ChatRepository.AddMembers(req)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
@@ -293,7 +289,6 @@ func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (response
 		return responsemodels.AddMembersResponse{}, domain.ErrInternal
 	}
 	resp2.UserID = req.UserID
-	//fmt.Println("resp2", resp2)
 	return resp2, nil
 }
 
@@ -307,10 +302,14 @@ func (as *ChatUsecase) RemoveMember(req requestmodels.RemoveMemberRequest) (resp
 	// }
 	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
 	if err != nil {
-		return responsemodels.RemoveMemberResponse{}, err
+		if errors.Is(err, context.DeadlineExceeded) {
+			return responsemodels.RemoveMemberResponse{},fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		}
+	
+		return responsemodels.RemoveMemberResponse{},fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 	if !exists {
-		return responsemodels.RemoveMemberResponse{}, domain.ErrGroupNotFound
+		return responsemodels.RemoveMemberResponse{},fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 	resp1, err := as.ChatRepository.ExistingMembers(req.GroupID)
 	if err != nil {
@@ -324,7 +323,15 @@ func (as *ChatUsecase) RemoveMember(req requestmodels.RemoveMemberRequest) (resp
 	}
 	resp2, err := as.ChatRepository.RemoveMember(req)
 	if err != nil {
-		return responsemodels.RemoveMemberResponse{}, err
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
+		}
+	
+		if errors.Is(err, context.DeadlineExceeded) {
+			return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		}
+	
+		return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 	return resp2, nil
 }

@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"log"
 	"sort"
 	"time"
 
@@ -114,7 +113,7 @@ func (ad *ChatRepository) ExistingMembers(groupId string) ([]uint64, error) {
 	err := ad.groupColl().FindOne(context.TODO(), filter, opts).Decode(&result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
+			return nil, fmt.Errorf("%w: %v", domain.ErrGroupNotFound, err)
 		}
 		return nil, err
 	}
@@ -202,7 +201,7 @@ func (ad *ChatRepository) RemoveMember(req requestmodels.RemoveMemberRequest) (r
 
 	_, err = ad.convColl().UpdateOne(ctx, convFilter, convUpdate)
 	if err != nil {
-		log.Printf("Warning: Failed to remove participant from conversation %s: %v", req.GroupID, err)
+		return responsemodels.RemoveMemberResponse{}, err
 	}
 
 	return responsemodels.RemoveMemberResponse{
