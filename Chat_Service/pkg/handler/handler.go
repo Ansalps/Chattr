@@ -159,14 +159,15 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 	// 4️⃣ Start WebSocket read loop
 	go as.reader(client, hub)
 }
-func (h *Hub) SendToGroup(dm requestmodels.MessageRequest, userIds []uint64) {
+func (h *Hub) SendToGroup(dm requestmodels.MessageRequest, userIds []uint64,log logger.Logger) {
 	for _, v := range userIds {
 		if v == dm.SenderID {
 			continue
 		}
 		client, ok := h.clients[v]
 		if !ok {
-			log.Println("User offline:", v)
+			log.Warn("User offline:",
+				logger.Field{Key: "user_id",Value: v})
 			continue
 		}
 		data, _ := json.Marshal(dm)
@@ -174,10 +175,11 @@ func (h *Hub) SendToGroup(dm requestmodels.MessageRequest, userIds []uint64) {
 	}
 }
 
-func (h *Hub) SendToUser(dm requestmodels.MessageRequest) {
+func (h *Hub) SendToUser(dm requestmodels.MessageRequest,log logger.Logger) {
 	client, ok := h.clients[dm.RecipientID]
 	if !ok {
-		log.Println("User offline:", dm.RecipientID)
+		log.Warn("User offline:",
+				logger.Field{Key: "user_id",Value: dm.RecipientID})
 		return
 	}
 	data, _ := json.Marshal(dm)
@@ -291,7 +293,7 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 				logger.Field{Key: "conversation_id", Value: actualConvID},
 				logger.Field{Key: "recipient_id", Value: dm.RecipientID},
 			)
-			hub.SendToUser(dm)
+			hub.SendToUser(dm,log)
 			event := map[string]interface{}{
 				"type":           "DIRECT_MESSAGE",
 				"actorId":        c.UserID,       // Person who clicked 'like'
@@ -382,7 +384,7 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 				logger.Field{Key: "conversation_id", Value: actualConvID},
 				logger.Field{Key: "group_id", Value: dm.GroupID},
 			)
-			hub.SendToGroup(dm, userIds)
+			hub.SendToGroup(dm, userIds,log)
 			log.Debug("group message broadcasted",
 				logger.Field{Key: "group_id", Value: dm.GroupID},
 				logger.Field{Key: "recipients_count", Value: len(userIds)},
@@ -500,38 +502,37 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 	var userErr *domain.NonExistingUsersError
 	if err != nil {
 		switch{
-			
-		}
-		if errors.As(err, &userErr) {
-			log.Warn("some users do not exist",
-				logger.Field{Key: "missing_user_ids", Value: userErr.UserIDs},
+		case errors.As(err, &userErr):
+			log.Warn("Invalid userids persent",
 				logger.Field{Key: "error", Value: err})
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error":            "some users do not exist",
 				"missing_user_ids": userErr.UserIDs,
 			})
-			return
-		}
-		if errors.Is(err, domain.ErrDatabaseTimeout) {
+		case errors.Is(err, domain.ErrGroupNotFound):
+			log.Warn("Invalid group id",
+				logger.Field{Key: "error", Value: err})
+			c.JSON(http.StatusNotFound, utils.ClientResponse(404, domain.ErrGroupNotFound.Error(), nil))
+		case errors.Is(err, domain.ErrNotGroupMember):
+			log.Warn("Not a Group Member",
+				logger.Field{Key: "error", Value: err})
+			c.JSON(http.StatusForbidden, utils.ClientResponse(403, domain.ErrNotGroupMember.Error(), nil))
+		case errors.Is(err, domain.ErrDatabaseTimeout):
 			log.Error("Database Connection timed out",
 				logger.Field{Key: "error", Value: err})
 			c.JSON(500, utils.ClientResponse(500, domain.ErrDatabaseTimeout.Error(), nil))
-			return
-		}
-
-		if errors.Is(err, domain.ErrInternal) {
+		case errors.Is(err, domain.ErrInternal):
 			log.Error("Internal server error",
 				logger.Field{Key: "error", Value: err})
 			c.JSON(500, utils.ClientResponse(500, domain.ErrInternal.Error(), nil))
-			return
+		default:
+			log.Error("internal server errot",
+				logger.Field{Key: "error", Value: err})
+			// ✅ fallback (VERY IMPORTANT)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "internal server error",
+			})
 		}
-
-		log.Error("internal server errot",
-			logger.Field{Key: "error", Value: err})
-		// ✅ fallback (VERY IMPORTANT)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "internal server error",
-		})
 		return
 	}
 
