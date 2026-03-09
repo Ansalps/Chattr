@@ -20,29 +20,27 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type ChatHandler struct {
 	ChatUsecase   interfacesUsecase.ChatUsecase
 	KafkaProducer interfacesHandler.KafkaProducer
 	Config        *config.Config
-	Log logger.Logger
+	Log           logger.Logger
 }
 
-func NewChatHandler(usecase interfacesUsecase.ChatUsecase, kafkaProducer interfacesHandler.KafkaProducer, config *config.Config,log logger.Logger) *ChatHandler {
+func NewChatHandler(usecase interfacesUsecase.ChatUsecase, kafkaProducer interfacesHandler.KafkaProducer, config *config.Config, log logger.Logger) *ChatHandler {
 	return &ChatHandler{
 		ChatUsecase:   usecase,
 		KafkaProducer: kafkaProducer,
 		Config:        config,
-		Log: log,
+		Log:           log,
 	}
 }
 
 type Client struct {
-	Conn   *websocket.Conn
-	UserID uint64
+	Conn      *websocket.Conn
+	UserID    uint64
 	RequestID string
 }
 type Hub struct {
@@ -150,8 +148,8 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 	// }
 
 	client := &Client{
-		UserID: userID,
-		Conn:   wsConn,
+		UserID:    userID,
+		Conn:      wsConn,
 		RequestID: requestID,
 	}
 	hub.register <- client
@@ -211,7 +209,7 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 
 		var dm requestmodels.MessageRequest
 		if err := json.Unmarshal(p, &dm); err != nil {
-			log.Warn("invalid websocket json payload: "+err.Error())
+			log.Warn("invalid websocket json payload: " + err.Error())
 			c.Conn.WriteMessage(websocket.TextMessage, []byte("invalid json paylad"))
 			continue
 		}
@@ -418,7 +416,7 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 					logger.Field{Key: "group_id", Value: dm.GroupID},
 					logger.Field{Key: "error", Value: err},
 				)
-			}else {
+			} else {
 
 				log.Info("group message event published",
 					logger.Field{Key: "topic", Value: "chat-events"},
@@ -436,16 +434,16 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 			data, err := json.Marshal(resp)
 			if err != nil {
 				log.Error("failed to marshal websocket error response",
-				logger.Field{Key: "error", Value: err},
-			)
-			break
-		}
-		err = c.Conn.WriteMessage(websocket.TextMessage, data)
-		if err != nil {
-			log.Error("failed to write websocket error message",
-				logger.Field{Key: "error", Value: err},
-			)
-		}
+					logger.Field{Key: "error", Value: err},
+				)
+				break
+			}
+			err = c.Conn.WriteMessage(websocket.TextMessage, data)
+			if err != nil {
+				log.Error("failed to write websocket error message",
+					logger.Field{Key: "error", Value: err},
+				)
+			}
 		}
 	}
 }
@@ -458,6 +456,13 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 	var req requestmodels.CreateGroupRequest
 
 	creatorIdStr := c.GetHeader("X-User-Id")
+	if creatorIdStr == "" {
+		log.Warn("Empty string fetched as userid from header in chat service")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "no access",
+		})
+		return
+	}
 	CreatorID, err := strconv.ParseUint(creatorIdStr, 10, 64)
 	if err != nil {
 		log.Error("failed to parse user id",
@@ -468,8 +473,7 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 		return
 	}
 	authSource := c.GetHeader("X-Auth-Source")
-
-	if creatorIdStr == "" || authSource != as.Config.AuthSource {
+	if authSource != as.Config.AuthSource {
 		log.Warn("unauthorized websocket request",
 			logger.Field{Key: "user_id", Value: creatorIdStr},
 			logger.Field{Key: "auth_source", Value: authSource},
@@ -482,7 +486,7 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 	// 2. Bind JSON body
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Warn("error binding request:",
-		logger.Field{Key: "error",Value: err})
+			logger.Field{Key: "error", Value: err})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
@@ -492,62 +496,38 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 	req.GroupID = groupId
 	req.CreatedAt = time.Now()
 	req.UpdatedAt = time.Now()
-	// resp, err := as.ChatUsecase.CreateGroup(req)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	var userErr *domain.NonExistingUsersError
-	// 	if errors.As(err, &userErr) {
-	// 		c.JSON(http.StatusBadRequest, gin.H{
-	// 			"error":            "some users do not exist",
-	// 			"missing_user_ids": userErr.UserIDs,
-	// 		})
-	// 		return
-	// 	}
-	// 	if err == domain.ErrNoUsersFound {
-	// 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-	// 		return
-	// 	}
-	// 	return
-	// }
-	// c.JSON(http.StatusOK, resp)
 	resp, err := as.ChatUsecase.CreateGroup(req)
+	var userErr *domain.NonExistingUsersError
 	if err != nil {
-		//log.Println(err)
-
-		var userErr *domain.NonExistingUsersError
+		switch{
+			
+		}
 		if errors.As(err, &userErr) {
 			log.Warn("some users do not exist",
-		logger.Field{Key: "missing_user_ids",Value: userErr.UserIDs},
-		logger.Field{Key: "error",Value: err})
+				logger.Field{Key: "missing_user_ids", Value: userErr.UserIDs},
+				logger.Field{Key: "error", Value: err})
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error":            "some users do not exist",
 				"missing_user_ids": userErr.UserIDs,
 			})
 			return
 		}
-
-		// if errors.Is(err, domain.ErrNoUsersFound) {
-		// 	c.JSON(http.StatusNotFound, gin.H{
-		// 		"error": "no users found",
-		// 	})
-		// 	return
-		// }
-		if errors.Is(err,domain.ErrDatabaseTimeout){
+		if errors.Is(err, domain.ErrDatabaseTimeout) {
 			log.Error("Database Connection timed out",
-			logger.Field{Key: "error",Value: err})
-			c.JSON(500,utils.ClientResponse(500,domain.ErrDatabaseTimeout.Error(),nil))
+				logger.Field{Key: "error", Value: err})
+			c.JSON(500, utils.ClientResponse(500, domain.ErrDatabaseTimeout.Error(), nil))
 			return
 		}
 
-		if errors.Is(err,domain.ErrInternal){
+		if errors.Is(err, domain.ErrInternal) {
 			log.Error("Internal server error",
-			logger.Field{Key: "error",Value: err})
-			c.JSON(500,utils.ClientResponse(500,domain.ErrInternal.Error(),nil))
+				logger.Field{Key: "error", Value: err})
+			c.JSON(500, utils.ClientResponse(500, domain.ErrInternal.Error(), nil))
 			return
 		}
 
 		log.Error("internal server errot",
-			logger.Field{Key: "error",Value: err})
+			logger.Field{Key: "error", Value: err})
 		// ✅ fallback (VERY IMPORTANT)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "internal server error",
@@ -559,11 +539,15 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 
 }
 func (as *ChatHandler) AddMembers(c *gin.Context) {
-	//fmt.Println("why is it not reaching in AddMembers Handler?")
+	requestID := c.GetHeader("X-Request-ID")
+	log := as.Log.With(
+		logger.Field{Key: "request_id", Value: requestID},
+	)
 	var req requestmodels.AddMembersRequest
 
 	userIdStr := c.GetHeader("X-User-Id")
 	if userIdStr == "" {
+		log.Warn("Empty string fetched as userid from header in chat service")
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "no access",
 		})
@@ -571,16 +555,20 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 	}
 	userID, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
+		log.Error("failed to parse user id",
+			logger.Field{Key: "user_id", Value: userIdStr},
+			logger.Field{Key: "error", Value: err},
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "error in parsing",
 		})
 	}
 	authSource := c.GetHeader("X-Auth-Source")
-
-	//log.Println("Headers:", c.Request.Header)
-	//log.Println("User ID:", userID)
-
 	if userIdStr == "" || authSource != as.Config.AuthSource {
+		log.Warn("unauthorized websocket request",
+			logger.Field{Key: "user_id", Value: userIdStr},
+			logger.Field{Key: "auth_source", Value: authSource},
+		)
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "unauthorized websocket request",
 		})
@@ -588,78 +576,54 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 	}
 	req.UserID = userID
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Println("error binding request in chat service", err)
+		log.Warn("error binding request:",
+			logger.Field{Key: "error", Value: err})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
-	//fmt.Println("req",req)
-	//fmt.Println("req in handler", req)
-	// resp, err := as.ChatUsecase.AddMembers(req)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	var userErr *domain.NonExistingUsersError
-	// 	if errors.As(err, &userErr) {
-	// 		c.JSON(http.StatusBadRequest, gin.H{
-	// 			"error":            "some users do not exist",
-	// 			"missing_user_ids": userErr.UserIDs,
-	// 		})
-	// 		return
-	// 	}
-	// 	if err == domain.ErrGroupNotFound {
-	// 		c.JSON(http.StatusNotFound, gin.H{"error": "Group does not exist"})
-	// 		return
-	// 	} else if err == domain.ErrNotGroupMember {
-	// 		c.JSON(403, gin.H{"error": "Do not have permission to add members to group"})
-	// 		return
-	// 	} else if st, ok := status.FromError(err); ok {
-	// 		switch st.Code() {
-	// 		case codes.NotFound:
-	// 			c.JSON(http.StatusNotFound, gin.H{"error": st.Message()})
-	// 		default:
-	// 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 		}
-	// 	}
-	// 	//c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// }
-	// //fmt.Println("resp", resp)
-	// c.JSON(http.StatusOK, resp)
+	var userErr *domain.NonExistingUsersError
 	resp, err := as.ChatUsecase.AddMembers(req)
 	if err != nil {
-		log.Println(err)
 
-		var userErr *domain.NonExistingUsersError
-		if errors.As(err, &userErr) {
+		// if errors.As(err, &userErr) {
+		// 	c.JSON(http.StatusBadRequest, gin.H{
+		// 		"error":            "some users do not exist",
+		// 		"missing_user_ids": userErr.UserIDs,
+		// 	})
+		// 	return
+		// }
+
+		switch {
+		case errors.As(err, &userErr):
+			log.Warn("Invalid userids persent",
+				logger.Field{Key: "error", Value: err})
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error":            "some users do not exist",
 				"missing_user_ids": userErr.UserIDs,
 			})
-			return
-		}
-
-		switch {
 		case errors.Is(err, domain.ErrGroupNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Group does not exist"})
-
+			log.Warn("Invalid group id",
+				logger.Field{Key: "error", Value: err})
+			c.JSON(http.StatusNotFound, utils.ClientResponse(404, domain.ErrGroupNotFound.Error(), nil))
 		case errors.Is(err, domain.ErrNotGroupMember):
-			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Do not have permission to add members to group",
-			})
-
+			log.Warn("Not a Group Member",
+				logger.Field{Key: "error", Value: err})
+			c.JSON(http.StatusForbidden, utils.ClientResponse(403, domain.ErrNotGroupMember.Error(), nil))
+		case errors.Is(err, domain.ErrDatabaseTimeout):
+			log.Error("Database Connection timed out",
+				logger.Field{Key: "error", Value: err})
+			c.JSON(500, utils.ClientResponse(500, domain.ErrDatabaseTimeout.Error(), nil))
+		case errors.Is(err, domain.ErrInternal):
+			log.Error("Internal server error",
+				logger.Field{Key: "error", Value: err})
+			c.JSON(500, utils.ClientResponse(500, domain.ErrInternal.Error(), nil))
 		default:
-			if st, ok := status.FromError(err); ok {
-				switch st.Code() {
-				case codes.NotFound:
-					c.JSON(http.StatusNotFound, gin.H{"error": st.Message()})
-				default:
-					c.JSON(http.StatusInternalServerError, gin.H{
-						"error": "internal server error",
-					})
-				}
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "internal server error",
-				})
-			}
+			log.Error("internal server errot",
+				logger.Field{Key: "error", Value: err})
+			// ✅ fallback (VERY IMPORTANT)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "internal server error",
+			})
 		}
 		return
 	}
@@ -679,10 +643,6 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 		return
 	}
 	authSource := c.GetHeader("X-Auth-Source")
-
-	//log.Println("Headers:", c.Request.Header)
-	//log.Println("User ID:", userID)
-
 	if userIdStr == "" || authSource != as.Config.AuthSource {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "unauthorized websocket request",
@@ -769,11 +729,11 @@ func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "internal server error"})
 		return
 	}
-	resp1:=responsemodels.GetGroupMembers{
+	resp1 := responsemodels.GetGroupMembers{
 		GetGroupMembers: resp,
 		Pagination: responsemodels.PaginationDetails{
 			CurrentPage: page,
-			PageSize: limit,
+			PageSize:    limit,
 		},
 	}
 	c.JSON(http.StatusOK, resp1)
@@ -823,11 +783,11 @@ func (as *ChatHandler) GetRecentChatProfiles(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "internal server error"})
 		return
 	}
-	resp1:=responsemodels.ChatProfileFinalResponse{
+	resp1 := responsemodels.ChatProfileFinalResponse{
 		ChatProfiles: resp,
 		Pagination: responsemodels.PaginationDetails{
 			CurrentPage: page,
-			PageSize: limit,
+			PageSize:    limit,
 		},
 	}
 	c.JSON(http.StatusOK, resp1)
@@ -887,9 +847,9 @@ func (as *ChatHandler) GetChat(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "internal server error"})
 		return
 	}
-	resp.Pagination=responsemodels.PaginationDetails{
+	resp.Pagination = responsemodels.PaginationDetails{
 		CurrentPage: page,
-		PageSize: limit,
+		PageSize:    limit,
 	}
 	c.JSON(http.StatusOK, resp)
 }

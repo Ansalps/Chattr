@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -187,26 +188,15 @@ func (as *ChatUsecase) CreateGroup(req requestmodels.CreateGroupRequest) (respon
 			UserIDs: allUsersNotExists.UserId,
 		}
 	}
-	// resp1, err := as.AuthClient.CheckUserListExists(context.Background(), &pb.UserDataReq{
-	// 	UserId: req.GroupMembers,
-	// })
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return responsemodels.CreateGroupResponse{}, err
-	// }
-	// if len(resp1.UserId) == 0 {
-	// 	return responsemodels.CreateGroupResponse{}, domain.ErrNoUsersFound
-	// }
-	//req.GroupMembers = resp1.UserId
-	// 1. Create the Group entry in the 'groups' collection
+
 	resp, err := as.ChatRepository.CreateGroup(req)
 	if err != nil {
 		//log.Println(err)
 		if errors.Is(err, context.DeadlineExceeded) {
-			return responsemodels.CreateGroupResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+			return responsemodels.CreateGroupResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
 
-		return responsemodels.CreateGroupResponse{}, fmt.Errorf("%w: %v",domain.ErrInternal,err)
+		return responsemodels.CreateGroupResponse{}, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
 	// 2. Initialize the Conversation record
@@ -226,7 +216,13 @@ func (as *ChatUsecase) CreateGroup(req requestmodels.CreateGroupRequest) (respon
 	if err != nil {
 		// We log the error but still return the GroupID because the group was created
 		//log.Printf("Warning: Group %s created but conversation sync failed: %v", resp.GroupID, err)
-		return responsemodels.CreateGroupResponse{}, err
+		if errors.Is(err, context.DeadlineExceeded) {
+			return responsemodels.CreateGroupResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
+		}
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return responsemodels.CreateGroupResponse{}, fmt.Errorf("%w: %v", domain.ErrInvalidGroupID, err)
+		}
+		return responsemodels.CreateGroupResponse{}, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
 	return responsemodels.CreateGroupResponse{
@@ -235,13 +231,11 @@ func (as *ChatUsecase) CreateGroup(req requestmodels.CreateGroupRequest) (respon
 }
 
 func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (responsemodels.AddMembersResponse, error) {
-	//fmt.Println("first")
 	allUsersNotExists, err := as.AuthClient.CheckAllUsersExists(context.Background(), &pb.UserDataReq{
 		UserId: req.GroupMembers,
 	})
 	if err != nil {
-		//fmt.Println("is it here")
-		return responsemodels.AddMembersResponse{}, err
+		return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v: %v", domain.ErrInternal, "failed internal service call on auth service", err)
 	}
 	if len(allUsersNotExists.UserId) != 0 {
 		return responsemodels.AddMembersResponse{}, &domain.NonExistingUsersError{
@@ -250,31 +244,30 @@ func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (response
 	}
 	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
 	if err != nil {
-		//fmt.Println("seconde")
-		return responsemodels.AddMembersResponse{}, err
+		if errors.Is(err, context.DeadlineExceeded) {
+			return responsemodels.AddMembersResponse{},fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		}
+	
+		return responsemodels.AddMembersResponse{},fmt.Errorf("%w: %v",domain.ErrInternal,err)
 	}
 	if !exists {
-		//fmt.Println("third")
-		return responsemodels.AddMembersResponse{}, domain.ErrGroupNotFound
+		return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
 	}
 	resp1, err := as.ChatRepository.ExistingMembers(req.GroupID)
 	if err != nil {
-		//fmt.Println("fourth")
 		return responsemodels.AddMembersResponse{}, err
 	}
 
 	if !slices.Contains(resp1, req.UserID) {
-		//fmt.Println("fifth")
 		return responsemodels.AddMembersResponse{}, domain.ErrNotGroupMember
 	}
-	//fmt.Println("req.GroupMembers",req.GroupMembers)
-	resp, err := as.AuthClient.CheckUserListExists(context.Background(), &pb.UserDataReq{
-		UserId: req.GroupMembers,
-	})
-	if err != nil {
-		log.Println(err)
-		return responsemodels.AddMembersResponse{}, err
-	}
+	// resp, err := as.AuthClient.CheckUserListExists(context.Background(), &pb.UserDataReq{
+	// 	UserId: req.GroupMembers,
+	// })
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return responsemodels.AddMembersResponse{}, err
+	// }
 
 	// fmt.Println("three")
 	// req.GroupMembers = slices.DeleteFunc(resp1, func(id uint64) bool {
@@ -284,12 +277,20 @@ func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (response
 	// for i:=range resp.UserId{
 	// 	groupmembers = append(groupmembers, int64(req.GroupMembers[i]))
 	// }
-	req.GroupMembers = resp.UserId
+	//req.GroupMembers = resp.UserId
 	//fmt.Println("group members",groupmembers)
 	//fmt.Println("four")
 	resp2, err := as.ChatRepository.AddMembers(req)
 	if err != nil {
-		return responsemodels.AddMembersResponse{}, err
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return responsemodels.AddMembersResponse{}, domain.ErrGroupNotFound
+		}
+	
+		if errors.Is(err, context.DeadlineExceeded) {
+			return responsemodels.AddMembersResponse{}, domain.ErrDatabaseTimeout
+		}
+	
+		return responsemodels.AddMembersResponse{}, domain.ErrInternal
 	}
 	resp2.UserID = req.UserID
 	//fmt.Println("resp2", resp2)

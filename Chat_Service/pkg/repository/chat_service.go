@@ -52,6 +52,7 @@ func (ad *ChatRepository) convColl() *mongo.Collection {
 //			GroupID: req.GroupID,
 //		}, nil
 //	}
+//
 // GroupExists checks if a group exists by its string groupid
 func (r *ChatRepository) GroupExists(ctx context.Context, groupID string) (bool, error) {
 	// We only need to know if at least one document matches
@@ -77,7 +78,7 @@ func (ad *ChatRepository) CreateGroup(req requestmodels.CreateGroupRequest) (res
 	if err != nil {
 		return responsemodels.CreateGroupResponse{}, err
 	}
-	fmt.Println("a",a)
+	fmt.Println("a", a)
 	return responsemodels.CreateGroupResponse{
 		GroupID: req.GroupID,
 	}, nil
@@ -113,7 +114,7 @@ func (ad *ChatRepository) ExistingMembers(groupId string) ([]uint64, error) {
 	err := ad.groupColl().FindOne(context.TODO(), filter, opts).Decode(&result)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("group not found")
+			return nil, fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
 		}
 		return nil, err
 	}
@@ -121,7 +122,6 @@ func (ad *ChatRepository) ExistingMembers(groupId string) ([]uint64, error) {
 }
 
 func (ad *ChatRepository) AddMembers(req requestmodels.AddMembersRequest) (responsemodels.AddMembersResponse, error) {
-	//fmt.Println("request in group rep", req)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -139,13 +139,10 @@ func (ad *ChatRepository) AddMembers(req requestmodels.AddMembersRequest) (respo
 	}
 
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
-	//fmt.Println("hi hello")
 	err := ad.groupColl().FindOneAndUpdate(ctx, groupFilter, groupUpdate, opts).Decode(&updatedDoc)
 	if err != nil {
-		log.Println(err)
 		return responsemodels.AddMembersResponse{}, err
 	}
-	//fmt.Println("hello hi")
 	// 2. IMMEDIATE VISIBILITY: Sync to Conversations Collection
 	// We use Upsert so the group appears in the inbox immediately.
 	convFilter := bson.M{"group_id": req.GroupID, "type": "group"}
@@ -163,17 +160,13 @@ func (ad *ChatRepository) AddMembers(req requestmodels.AddMembersRequest) (respo
 	convOpts := options.Update().SetUpsert(true)
 	_, err = ad.convColl().UpdateOne(ctx, convFilter, convUpdate, convOpts)
 	if err != nil {
-		log.Printf("Warning: Failed to sync conversation for group %s: %v", req.GroupID, err)
-		return responsemodels.AddMembersResponse{},err
+		return responsemodels.AddMembersResponse{}, err
 	}
-	//fmt.Println("updatedDoc.GroupID",updatedDoc.GroupID)
-	//fmt.Println("updatdDoc.GroupMembers",updatedDoc.GroupMembers)
-	//fmt.Println("updatedDoc.CreatorID",updatedDoc.CreatorID)
-	//fmt.Println("hello hello")
+
 	return responsemodels.AddMembersResponse{
 		GroupID:      updatedDoc.GroupID,
 		GroupMembers: updatedDoc.GroupMembers,
-		UserID:    updatedDoc.CreatorID,
+		UserID:       updatedDoc.CreatorID,
 	}, nil
 }
 
@@ -424,18 +417,18 @@ func (ad *ChatRepository) GetUserConversation(req requestmodels.RecentChatProfil
 // 	}
 // 	defer cursor.Close(context.Background())
 
-// 	results := make(map[string]string)
-// 	for cursor.Next(context.Background()) {
-// 		var temp struct {
-// 			ID   string `bson:"groupid"`
-// 			Name string `bson:"groupname"`
-// 		}
-// 		if err := cursor.Decode(&temp); err == nil {
-// 			results[temp.ID] = temp.Name
-// 		}
-// 	}
-// 	return results, nil
-// }
+//		results := make(map[string]string)
+//		for cursor.Next(context.Background()) {
+//			var temp struct {
+//				ID   string `bson:"groupid"`
+//				Name string `bson:"groupname"`
+//			}
+//			if err := cursor.Decode(&temp); err == nil {
+//				results[temp.ID] = temp.Name
+//			}
+//		}
+//		return results, nil
+//	}
 func (ad *ChatRepository) GetGroupMetaBatch(groupIDs []string) (map[string]responsemodels.GroupMeta, error) {
 	collection := ad.MongoClient.Database("chat").Collection("group")
 
@@ -472,7 +465,6 @@ func (ad *ChatRepository) GetGroupMetaBatch(groupIDs []string) (map[string]respo
 
 	return results, nil
 }
-
 
 func (ad *ChatRepository) GetUserMessagesByConversationId(req requestmodels.GetChatRequest) ([]domain.Message, error) {
 	collection := ad.MongoClient.Database("chat").Collection("messages")
