@@ -15,6 +15,7 @@ import (
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/responsemodels"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/usecase/interfacesUsecase"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/utils"
+	"github.com/Ansalps/Chattr_Chat_Service/pkg/wshub"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -36,52 +37,29 @@ func NewChatHandler(usecase interfacesUsecase.ChatUsecase, kafkaProducer interfa
 	}
 }
 
-type Client struct {
-	Conn      *websocket.Conn
-	UserID    uint64
-	RequestID string
-}
-type Hub struct {
-	clients    map[uint64]*Client
-	register   chan *Client
-	unregister chan uint64
-	broadcast  chan []byte
+// type Client struct {
+// 	Conn      *websocket.Conn
+// 	UserID    uint64
+// 	RequestID string
+// }
+// type Hub struct {
+// 	clients    map[uint64]*Client
+// 	register   chan *Client
+// 	unregister chan uint64
+// 	broadcast  chan []byte
+// }
+
+var hub = &wshub.Hub{
+	Clients:    make(map[uint64]*wshub.Client),
+	Register:   make(chan *wshub.Client),
+	Unregister: make(chan uint64),
+	Broadcast:  make(chan []byte),
 }
 
-var hub = &Hub{
-	clients:    make(map[uint64]*Client),
-	register:   make(chan *Client),
-	unregister: make(chan uint64),
-	broadcast:  make(chan []byte),
-}
 
-func (h *Hub) run() {
-	for {
-		select {
-		case c := <-h.register:
-			h.clients[c.UserID] = c
-			//fmt.Println("registering", h.clients)
-
-		case id := <-h.unregister:
-			if c, ok := h.clients[id]; ok {
-				c.Conn.Close()
-				delete(h.clients, id)
-			}
-
-		case msg := <-h.broadcast:
-			for _, c := range h.clients {
-				err := c.Conn.WriteMessage(websocket.TextMessage, msg)
-				if err != nil {
-					c.Conn.Close()
-					delete(h.clients, c.UserID)
-				}
-			}
-		}
-	}
-}
 func StartHub() {
 	//fmt.Println("please do tell me if hub is starting")
-	go hub.run()
+	go hub.Run()
 }
 
 var upgrader = websocket.Upgrader{
@@ -100,6 +78,13 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 	)
 	// 1️⃣ Read trusted headers from API Gateway
 	userIdStr := c.GetHeader("X-User-ID")
+	if userIdStr == "" {
+		log.Warn("Empty string fetched as userid from header in chat service")
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "no access",
+		})
+		return
+	}
 	userID, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
 		log.Error("failed to parse user id",
@@ -116,7 +101,7 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 	//log.Println("Headers:", c.Request.Header)
 	//log.Println("User ID:", userID)
 
-	if userIdStr == "" || authSource != as.Config.AuthSource {
+	if authSource != as.Config.AuthSource {
 		log.Warn("unauthorized websocket request",
 			logger.Field{Key: "user_id", Value: userIdStr},
 			logger.Field{Key: "auth_source", Value: authSource},
@@ -145,46 +130,23 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 	// 	log.Println("failed to register client",err)
 	// }
 
-	client := &Client{
+	client := &wshub.Client{
 		UserID:    userID,
 		Conn:      wsConn,
 		RequestID: requestID,
 	}
-	hub.register <- client
+	hub.Register <- client
 	log.Info("websocket client connected",
 		logger.Field{Key: "user_id", Value: userID},
 	)
 	// 4️⃣ Start WebSocket read loop
-	go as.reader(client, hub)
-}
-func (h *Hub) SendToGroup(dm requestmodels.MessageRequest, userIds []uint64, log logger.Logger) {
-	for _, v := range userIds {
-		if v == dm.SenderID {
-			continue
-		}
-		client, ok := h.clients[v]
-		if !ok {
-			log.Warn("User offline:",
-				logger.Field{Key: "user_id", Value: v})
-			continue
-		}
-		data, _ := json.Marshal(dm)
-		client.Conn.WriteMessage(websocket.TextMessage, data)
-	}
+	go as.reader(client, hub,c)
 }
 
-func (h *Hub) SendToUser(dm requestmodels.MessageRequest, log logger.Logger) {
-	client, ok := h.clients[dm.RecipientID]
-	if !ok {
-		log.Warn("User offline:",
-			logger.Field{Key: "user_id", Value: dm.RecipientID})
-		return
-	}
-	data, _ := json.Marshal(dm)
-	client.Conn.WriteMessage(websocket.TextMessage, data)
-}
 
-func (as *ChatHandler) reader(c *Client, hub *Hub) {
+
+
+func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub,ginctx *gin.Context) {
 	log := as.Log.With(
 		logger.Field{Key: "user_id", Value: c.UserID},
 		logger.Field{Key: "request_id", Value: c.RequestID},
@@ -192,17 +154,25 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 
 	log.Info("websocket reader started")
 	defer func() {
-		hub.unregister <- c.UserID
+		hub.Unregister <- c.UserID
 		log.Info("websocket client disconnected")
 	}()
 
 	for {
 		_, p, err := c.Conn.ReadMessage()
 		if err != nil {
-			log.Error("failed to read websocket message",
-				logger.Field{Key: "error", Value: err},
-			)
-			return // triggers unregister via defer
+			// log.Error("failed to read websocket message",
+			// 	logger.Field{Key: "error", Value: err},
+			// )
+			// return // triggers unregister via defer
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Error("websocket unexpected close",
+					logger.Field{Key: "error", Value: err},
+				)
+			} else {
+				log.Info("websocket client closed connection")
+			}
+			return
 		}
 
 		log.Debug("websocket message received")
@@ -210,7 +180,8 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 		var dm requestmodels.MessageRequest
 		if err := json.Unmarshal(p, &dm); err != nil {
 			log.Warn("invalid websocket json payload: " + err.Error())
-			c.Conn.WriteMessage(websocket.TextMessage, []byte("invalid json paylad"))
+			//c.Conn.WriteMessage(websocket.TextMessage, []byte("invalid json paylad"))
+			wshub.SendWSError(c,log,"invalid websocket json payload",hub)
 			continue
 		}
 		dm.SenderID = c.UserID
@@ -220,26 +191,30 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 		case "individual":
 			if dm.RecipientID == 0 {
 				log.Warn("invalid recipient id")
-				data, _ := json.Marshal("invalid receipient id")
-				c.Conn.WriteMessage(websocket.TextMessage, data)
+				//data, _ := json.Marshal("invalid receipient id")
+				//c.Conn.WriteMessage(websocket.TextMessage, data)
+				wshub.SendWSError(c,log,"invalid recipient id",hub)
 				break
 			}
 			exists, err := as.ChatUsecase.DoesUserExist(dm.RecipientID)
 			if err != nil {
-				log.Error("failed to verify recipient existence",
+				log.Error("failed to verify recipient existence in individual chat",
 					logger.Field{Key: "recipient_id", Value: dm.RecipientID},
 					logger.Field{Key: "error", Value: err.Error()},
 				)
-				data, _ := json.Marshal(err.Error())
-				c.Conn.WriteMessage(websocket.TextMessage, data)
+				//utils.MapDomainError(ginctx,log,err)
+				//data, _ := json.Marshal(err.Error())
+				//c.Conn.WriteMessage(websocket.TextMessage, data)
+				wshub.SendWSError(c,log,"failed to send message",hub)
 				break
 			}
 			if !exists {
-				log.Warn("recipient does not exist",
+				log.Warn("recipient id does not exist",
 					logger.Field{Key: "recipient_id", Value: dm.RecipientID},
 				)
-				data, _ := json.Marshal("invalid recipient id")
-				c.Conn.WriteMessage(websocket.TextMessage, data)
+				//data, _ := json.Marshal("invalid recipient id")
+				//c.Conn.WriteMessage(websocket.TextMessage, data)
+				wshub.SendWSError(c,log,"invalid recipient id",hub)
 				break
 			}
 			syncTime := time.Now()
@@ -256,13 +231,15 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 			// This now returns the ACTUAL id (either existing or the one above)
 			actualConvID, err := as.ChatUsecase.StoreOrUpdateIndividualChatInConversation(conversationStruct)
 			if err != nil {
-				log.Error("conversation sync failed",
+				log.Error("conversation sync failed for individual chat",
 					logger.Field{Key: "recipient_id", Value: dm.RecipientID},
 					logger.Field{Key: "error", Value: err},
 				)
+				//utils.MapDomainError(ginctx,log,err)
 				// Decide if you want to stop here or continue
-				data, _ := json.Marshal("failed to store individual chat in conversations")
-				c.Conn.WriteMessage(websocket.TextMessage, data)
+				//data, _ := json.Marshal("failed to store individual chat in conversations")
+				//c.Conn.WriteMessage(websocket.TextMessage, data)
+				wshub.SendWSError(c,log,"failed to send message",hub)
 				break
 			}
 			//fmt.Println("c.UserID", c.UserID)
@@ -283,15 +260,20 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 					logger.Field{Key: "conversation_id", Value: actualConvID},
 					logger.Field{Key: "error", Value: err},
 				)
-				data, _ := json.Marshal("failed to store individual chat in messages")
-				c.Conn.WriteMessage(websocket.TextMessage, data)
+				//utils.MapDomainError(ginctx,log,err)
+				//data, _ := json.Marshal("failed to store individual chat in messages")
+				//c.Conn.WriteMessage(websocket.TextMessage, data)
+				wshub.SendWSError(c,log,"failed to send message",hub)
 				break
 			}
 			log.Info("direct message stored",
 				logger.Field{Key: "conversation_id", Value: actualConvID},
 				logger.Field{Key: "recipient_id", Value: dm.RecipientID},
 			)
-			hub.SendToUser(dm, log)
+			err=hub.SendToUser(c,dm, log)
+			if err!=nil{
+				break
+			}
 			event := map[string]interface{}{
 				"type":           "DIRECT_MESSAGE",
 				"actorId":        c.UserID,       // Person who clicked 'like'
@@ -312,8 +294,9 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 		case "group":
 			if dm.GroupID == "" {
 				log.Warn("invalid group id")
-				data, _ := json.Marshal("invalid group id")
-				c.Conn.WriteMessage(websocket.TextMessage, data)
+				//data, _ := json.Marshal("invalid group id")
+				//c.Conn.WriteMessage(websocket.TextMessage, data)
+				wshub.SendWSError(c,log,"invalid group id",hub)
 				break
 			}
 			userIds, err := as.ChatUsecase.FetchMembersOfGroup(dm.GroupID)
@@ -323,16 +306,18 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 					logger.Field{Key: "error", Value: err},
 				)
 
-				data, _ := json.Marshal("fetching group members failed or group id not found")
-				c.Conn.WriteMessage(websocket.TextMessage, data)
+				//data, _ := json.Marshal("fetching group members failed or group id not found")
+				//c.Conn.WriteMessage(websocket.TextMessage, data)
+				wshub.SendWSError(c,log,"failed to send message",hub)
 				break
 			}
 			if !slices.Contains(userIds, c.UserID) {
 				log.Warn("sender not part of group",
 					logger.Field{Key: "group_id", Value: dm.GroupID},
 				)
-				data, _ := json.Marshal("can't send message because sender is not a group member")
-				c.Conn.WriteMessage(websocket.TextMessage, data)
+				//data, _ := json.Marshal("can't send message because sender is not a group member")
+				//c.Conn.WriteMessage(websocket.TextMessage, data)
+				wshub.SendWSError(c,log,"sender not part of group",hub)
 				break
 			}
 			syncTime := time.Now()
@@ -354,8 +339,9 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 					logger.Field{Key: "group_id", Value: dm.GroupID},
 					logger.Field{Key: "error", Value: err},
 				)
-				data, _ := json.Marshal("failed to store group chat in conversation")
-				c.Conn.WriteMessage(websocket.TextMessage, data)
+				//data, _ := json.Marshal("failed to store group chat in conversation")
+				//c.Conn.WriteMessage(websocket.TextMessage, data)
+				wshub.SendWSError(c,log,"failed to send message",hub)
 				break
 			}
 
@@ -375,14 +361,19 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 					logger.Field{Key: "conversation_id", Value: actualConvID},
 					logger.Field{Key: "error", Value: err},
 				)
-				data, _ := json.Marshal("failed to store group chat in messages")
-				c.Conn.WriteMessage(websocket.TextMessage, data)
+				//data, _ := json.Marshal("failed to store group chat in messages")
+				//c.Conn.WriteMessage(websocket.TextMessage, data)
+				wshub.SendWSError(c,log,"failed to send message",hub)
+				break
 			}
 			log.Info("group message stored",
 				logger.Field{Key: "conversation_id", Value: actualConvID},
 				logger.Field{Key: "group_id", Value: dm.GroupID},
 			)
-			hub.SendToGroup(dm, userIds, log)
+			err=hub.SendToGroup(c,dm, userIds, log)
+			if err!=nil{
+				break
+			}
 			log.Debug("group message broadcasted",
 				logger.Field{Key: "group_id", Value: dm.GroupID},
 				logger.Field{Key: "recipients_count", Value: len(userIds)},
@@ -393,8 +384,8 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 					logger.Field{Key: "group_id", Value: dm.GroupID},
 					logger.Field{Key: "error", Value: err},
 				)
-				data, _ := json.Marshal("failed to fetch group name")
-				c.Conn.WriteMessage(websocket.TextMessage, data)
+				//data, _ := json.Marshal("failed to fetch group name")
+				//c.Conn.WriteMessage(websocket.TextMessage, data)
 				break
 			}
 			event := map[string]interface{}{
@@ -427,23 +418,7 @@ func (as *ChatHandler) reader(c *Client, hub *Hub) {
 			log.Warn("invalid message type received",
 				logger.Field{Key: "message_type", Value: dm.Type},
 			)
-			resp := map[string]string{
-				"type":    "ERROR",
-				"message": "invalid message type",
-			}
-			data, err := json.Marshal(resp)
-			if err != nil {
-				log.Error("failed to marshal websocket error response",
-					logger.Field{Key: "error", Value: err},
-				)
-				break
-			}
-			err = c.Conn.WriteMessage(websocket.TextMessage, data)
-			if err != nil {
-				log.Error("failed to write websocket error message",
-					logger.Field{Key: "error", Value: err},
-				)
-			}
+			wshub.SendWSError(c,log,"invalid message type received",hub)
 		}
 	}
 }
@@ -959,7 +934,7 @@ func (as *ChatHandler) SetGroupProfileImage(c *gin.Context) {
 	resp, err := as.ChatUsecase.SetGroupProfileImage(req)
 	if err != nil {
 		//c.JSON(500, err.Error())
-		utils.MapDomainError(c,log,err)
+		utils.MapDomainError(c, log, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"group_profile_image_url": resp})

@@ -259,7 +259,10 @@ func (ad *ChatRepository) StoreIndividualChatInMessages(dm domain.Message) error
 	}
 
 	_, err := collection.InsertOne(ctx, messageDoc)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to insert message: %w", err)
+	}
+	return nil
 }
 
 func (ad *ChatRepository) StoreOrUpdateIndividualChatInConversation(conv domain.Conversation) (string, error) {

@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"slices"
 	"strings"
 	"time"
@@ -48,10 +47,10 @@ func (as *ChatUsecase) SetGroupProfileImage(req requestmodels.GroupProfileImageR
 	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return "",fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+			return "", fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
-	
-		return "",fmt.Errorf("%w: %v",domain.ErrInternal,err)
+
+		return "", fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 	if !exists {
 		return "", domain.ErrGroupNotFound
@@ -59,14 +58,14 @@ func (as *ChatUsecase) SetGroupProfileImage(req requestmodels.GroupProfileImageR
 	userIds, err := as.ChatRepository.FetchMembersOfGroup(req.GroupID)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return "", fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
+			return "", fmt.Errorf("%w: %v", domain.ErrGroupNotFound, err)
 		}
-	
+
 		if errors.Is(err, context.DeadlineExceeded) {
-			return "", fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+			return "", fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
-	
-		return "", fmt.Errorf("%w: %v",domain.ErrInternal,err)
+
+		return "", fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 	if !slices.Contains(userIds, req.UserID) {
 		return "", domain.ErrNotGroupMember
@@ -92,21 +91,21 @@ func (as *ChatUsecase) SetGroupProfileImage(req requestmodels.GroupProfileImageR
 	})
 	if err != nil {
 		//fmt.Println("is it here")
-		return "", fmt.Errorf("%w: %v",domain.ErrS3UploadFail,err)
+		return "", fmt.Errorf("%w: %v", domain.ErrS3UploadFail, err)
 	}
 	// Construct URL
 	imageURL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", as.AwsBucket, as.Config.Aws.AwsRegion, key)
 	// Save to DB
 	err = as.ChatRepository.SetGroupProfileImage(req.GroupID, imageURL)
 	if err != nil {
-		if errors.Is(err,context.DeadlineExceeded){
-			return "",fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+		if errors.Is(err, context.DeadlineExceeded) {
+			return "", fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
 		if errors.Is(err, domain.ErrGroupNotFound) {
-			return "",domain.ErrGroupNotFound
+			return "", domain.ErrGroupNotFound
 		}
 
-		return "",fmt.Errorf("%w: %v",domain.ErrInternal,err)
+		return "", fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
 	return imageURL, nil
@@ -218,10 +217,10 @@ func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (response
 	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return responsemodels.AddMembersResponse{},fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+			return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
-	
-		return responsemodels.AddMembersResponse{},fmt.Errorf("%w: %v",domain.ErrInternal,err)
+
+		return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 	if !exists {
 		return responsemodels.AddMembersResponse{}, domain.ErrGroupNotFound
@@ -229,14 +228,14 @@ func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (response
 	resp1, err := as.ChatRepository.ExistingMembers(req.GroupID)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
+			return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v", domain.ErrGroupNotFound, err)
 		}
-	
+
 		if errors.Is(err, context.DeadlineExceeded) {
-			return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+			return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
-	
-		return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v",domain.ErrInternal,err)
+
+		return responsemodels.AddMembersResponse{}, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
 	if !slices.Contains(resp1, req.UserID) {
@@ -262,11 +261,11 @@ func (as *ChatUsecase) AddMembers(req requestmodels.AddMembersRequest) (response
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return responsemodels.AddMembersResponse{}, domain.ErrGroupNotFound
 		}
-	
+
 		if errors.Is(err, context.DeadlineExceeded) {
 			return responsemodels.AddMembersResponse{}, domain.ErrDatabaseTimeout
 		}
-	
+
 		return responsemodels.AddMembersResponse{}, domain.ErrInternal
 	}
 	resp2.UserID = req.UserID
@@ -284,25 +283,25 @@ func (as *ChatUsecase) RemoveMember(req requestmodels.RemoveMemberRequest) (resp
 	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return responsemodels.RemoveMemberResponse{},fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+			return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
-	
-		return responsemodels.RemoveMemberResponse{},fmt.Errorf("%w: %v",domain.ErrInternal,err)
+
+		return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 	if !exists {
-		return responsemodels.RemoveMemberResponse{},domain.ErrGroupNotFound
+		return responsemodels.RemoveMemberResponse{}, domain.ErrGroupNotFound
 	}
 	resp1, err := as.ChatRepository.ExistingMembers(req.GroupID)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
+			return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v", domain.ErrGroupNotFound, err)
 		}
-	
+
 		if errors.Is(err, context.DeadlineExceeded) {
-			return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+			return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
-	
-		return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v",domain.ErrInternal,err)
+
+		return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 	if !slices.Contains(resp1, req.UserID) {
 		return responsemodels.RemoveMemberResponse{}, domain.ErrNotGroupMember
@@ -313,27 +312,27 @@ func (as *ChatUsecase) RemoveMember(req requestmodels.RemoveMemberRequest) (resp
 	resp2, err := as.ChatRepository.RemoveMember(req)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
+			return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v", domain.ErrGroupNotFound, err)
 		}
-	
+
 		if errors.Is(err, context.DeadlineExceeded) {
-			return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+			return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
-	
-		return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v",domain.ErrInternal,err)
+
+		return responsemodels.RemoveMemberResponse{}, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 	return resp2, nil
 }
 
 func (as *ChatUsecase) GetGroupMembers(req requestmodels.GetGroupMembersRequest) ([]responsemodels.GetGroupMembersResponse, error) {
-	
+
 	exists, err := as.ChatRepository.GroupExists(context.Background(), req.GroupID)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return nil,fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+			return nil, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
-	
-		return nil,fmt.Errorf("%w: %v",domain.ErrInternal,err)
+
+		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 	if !exists {
 		return nil, domain.ErrGroupNotFound
@@ -341,14 +340,14 @@ func (as *ChatUsecase) GetGroupMembers(req requestmodels.GetGroupMembersRequest)
 	userIds, err := as.ChatRepository.FetchMembersOfGroup(req.GroupID)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, fmt.Errorf("%w: %v",domain.ErrGroupNotFound,err)
+			return nil, fmt.Errorf("%w: %v", domain.ErrGroupNotFound, err)
 		}
-	
+
 		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+			return nil, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
-	
-		return nil, fmt.Errorf("%w: %v",domain.ErrInternal,err)
+
+		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 	if !slices.Contains(userIds, req.UserID) {
 		return nil, domain.ErrNotGroupMember
@@ -415,16 +414,22 @@ func (as *ChatUsecase) FetchMembersOfGroup(groupId string) ([]uint64, error) {
 func (as *ChatUsecase) StoreIndividualChatInMessages(dm domain.Message) error {
 	err := as.ChatRepository.StoreIndividualChatInMessages(dm)
 	if err != nil {
-		log.Println(err)
-		return err
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
+		}
+
+		return fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
-	return err
+	return nil
 }
 func (as *ChatUsecase) StoreOrUpdateIndividualChatInConversation(conversation domain.Conversation) (string, error) {
 	convID, err := as.ChatRepository.StoreOrUpdateIndividualChatInConversation(conversation)
 	if err != nil {
-		log.Printf("Usecase Error: StoreOrUpdateIndividualChatInConversation failed: %v", err)
-		return "", err
+		if errors.Is(err, context.DeadlineExceeded) {
+			return "", fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
+		}
+
+		return "", fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 	return convID, nil
 }
@@ -432,7 +437,7 @@ func (as *ChatUsecase) StoreOrUpdateIndividualChatInConversation(conversation do
 func (as *ChatUsecase) StoreGroupChatInMessages(gm domain.Message) error {
 	err := as.ChatRepository.StoreGroupChatInMessages(gm)
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
 		return err
 	}
 	return err
@@ -441,7 +446,7 @@ func (as *ChatUsecase) StoreGroupChatInMessages(gm domain.Message) error {
 func (as *ChatUsecase) StoreOrUpdateGroupChatInConversation(conversation domain.Conversation) (string, error) {
 	convID, err := as.ChatRepository.StoreOrUpdateGroupChatInConversation(conversation)
 	if err != nil {
-		log.Println("Usecase Error:", err)
+		//log.Println("Usecase Error:", err)
 		return "", err
 	}
 	return convID, nil
@@ -451,7 +456,7 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 	//fmt.Println("req.UserID", req.UserID)
 	convs, err := as.ChatRepository.GetUserConversation(req)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v",domain.ErrInternal,err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
 	// 2. Separate Group IDs and unique User IDs
@@ -478,9 +483,9 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+			return nil, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
-		return nil, fmt.Errorf("%w: %v",domain.ErrInternal,err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
 	// 3. Batch Call to Auth Service
@@ -551,13 +556,13 @@ func (as *ChatUsecase) GetChat(req requestmodels.GetChatRequest) (responsemodels
 	isParticipant, err := as.ChatRepository.IsUserInConversation(req.ConvID, req.UserID)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return responsemodels.GetChatResponse{}, fmt.Errorf("%w: %v",domain.ErrDatabaseTimeout,err)
+			return responsemodels.GetChatResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
 		//log.Printf("Unauthorized access attempt: User %d for ConvID %s", req.UserID, req.ConvID)
-		return responsemodels.GetChatResponse{},fmt.Errorf("%w: %v",domain.ErrInternal,err)
+		return responsemodels.GetChatResponse{}, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
-	if !isParticipant{
-		return responsemodels.GetChatResponse{},domain.ErrUserNotInConversation
+	if !isParticipant {
+		return responsemodels.GetChatResponse{}, domain.ErrUserNotInConversation
 	}
 
 	// 1. Request one extra message to check if there's more data
@@ -566,7 +571,7 @@ func (as *ChatUsecase) GetChat(req requestmodels.GetChatRequest) (responsemodels
 
 	messages, err := as.ChatRepository.GetUserMessagesByConversationId(req)
 	if err != nil {
-		return responsemodels.GetChatResponse{},fmt.Errorf("%w: %v",domain.ErrInternal,err)
+		return responsemodels.GetChatResponse{}, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
 
 	hasMore := false
@@ -598,25 +603,25 @@ func (as *ChatUsecase) GetChat(req requestmodels.GetChatRequest) (responsemodels
 		})
 		if err != nil {
 			st, ok := status.FromError(err)
-		if !ok {
-			// Not a gRPC error
-			return responsemodels.GetChatResponse{},
-				fmt.Errorf("%w: %v", domain.ErrInternal, err)
-		}
+			if !ok {
+				// Not a gRPC error
+				return responsemodels.GetChatResponse{},
+					fmt.Errorf("%w: %v", domain.ErrInternal, err)
+			}
 
-		switch st.Code() {
+			switch st.Code() {
 
-		case codes.NotFound:
-			return responsemodels.GetChatResponse{}, domain.ErrUsersNotFound
+			case codes.NotFound:
+				return responsemodels.GetChatResponse{}, domain.ErrUsersNotFound
 
-		case codes.Internal:
-			return responsemodels.GetChatResponse{},
-				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+			case codes.Internal:
+				return responsemodels.GetChatResponse{},
+					fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 
-		default:
-			return responsemodels.GetChatResponse{},
-				fmt.Errorf("%w: %v", domain.ErrInternal, err)
-		}
+			default:
+				return responsemodels.GetChatResponse{},
+					fmt.Errorf("%w: %v", domain.ErrInternal, err)
+			}
 		}
 	}
 

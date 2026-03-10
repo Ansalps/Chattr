@@ -26,15 +26,19 @@ func ClientResponse(statusCode int, message string, data interface{}) Response {
 
 func MapDomainError(c *gin.Context, log logger.Logger, err error) {
 	var userErr *domain.NonExistingUsersError
-	switch{
-	case errors.Is(err,domain.ErrContentTypeNil):
+	switch {
+	case errors.Is(err,domain.ErrUserNotFound):
+		log.Warn("User Not found",
+			logger.Field{Key: "error",Value: err})
+		c.JSON(404,ClientResponse(404,domain.ErrUserNotFound.Error(),nil))
+	case errors.Is(err, domain.ErrContentTypeNil):
 		log.Warn("Content type is nil",
-			logger.Field{Key: "error",Value: err})
-			c.JSON(http.StatusBadRequest,ClientResponse(400,domain.ErrContentTypeNil.Error(),nil))
-	case errors.Is(err,domain.ErrUserNotInConversation):
+			logger.Field{Key: "error", Value: err})
+		c.JSON(http.StatusBadRequest, ClientResponse(400, domain.ErrContentTypeNil.Error(), nil))
+	case errors.Is(err, domain.ErrUserNotInConversation):
 		log.Warn("user not present in conversation",
-			logger.Field{Key: "error",Value: err})
-		c.JSON(403,ClientResponse(403,domain.ErrUserNotInConversation.Error(),nil))
+			logger.Field{Key: "error", Value: err})
+		c.JSON(403, ClientResponse(403, domain.ErrUserNotInConversation.Error(), nil))
 	case errors.As(err, &userErr):
 		log.Warn("Invalid userids persent",
 			logger.Field{Key: "error", Value: err})
@@ -44,8 +48,8 @@ func MapDomainError(c *gin.Context, log logger.Logger, err error) {
 		})
 	case errors.Is(err, domain.ErrUserNotPresent):
 		log.Warn("Member to remove not present in the group",
-			logger.Field{Key: "error",Value: err})
-		c.JSON(404,ClientResponse(404,domain.ErrUserNotPresent.Error(),nil))
+			logger.Field{Key: "error", Value: err})
+		c.JSON(404, ClientResponse(404, domain.ErrUserNotPresent.Error(), nil))
 	case errors.Is(err, domain.ErrGroupNotFound):
 		log.Warn("Invalid group id",
 			logger.Field{Key: "error", Value: err})
@@ -61,7 +65,7 @@ func MapDomainError(c *gin.Context, log logger.Logger, err error) {
 	case errors.Is(err, domain.ErrInternal):
 		log.Error("Internal server error",
 			logger.Field{Key: "error", Value: err})
-		c.JSON(500,ClientResponse(500, domain.ErrInternal.Error(), nil))
+		c.JSON(500, ClientResponse(500, domain.ErrInternal.Error(), nil))
 	default:
 		log.Error("internal server errot",
 			logger.Field{Key: "error", Value: err})
