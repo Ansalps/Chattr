@@ -894,20 +894,22 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 	errChan := make(chan error, 2)
 	//fmt.Println("user id print here please ", req.UserID)
 	go func() {
-		authresp, err := as.DirectClient.Client.UserPublicData(context.Background(), &auth_subscription.UserPublicDataRequest{
+		authresp, err := as.DirectClient.Client.UserPublicData(c.Request.Context(), &auth_subscription.UserPublicDataRequest{
 			UserId: req.UserID,
 		})
 		if err != nil {
 			errChan <- err
+			return
 		}
 		authChan <- authresp
 	}()
 	go func() {
-		postresp, err := as.PostDirectClient.Client.PostFollowCount(context.Background(), &post_relation.PostFollowCountRequest{
+		postresp, err := as.PostDirectClient.Client.PostFollowCount(c.Request.Context(), &post_relation.PostFollowCountRequest{
 			UserId: req.UserID,
 		})
 		if err != nil {
 			errChan <- err
+			return
 		}
 		postChan <- postresp
 	}()
@@ -924,7 +926,11 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 			postData = res
 		case <-errChan:
 			// Handle error or just ignore to allow partial success
-		case <-c.Done():
+			code,msg:=utils.GRPCtoHTTP(err)
+			utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,code,msg)
+			c.JSON(code,response.ClientResponse(code,msg,nil))
+			return
+		case <-c.Request.Context().Done():
 			c.JSON(http.StatusGatewayTimeout, "Service took too long")
 			return
 		}
@@ -955,7 +961,8 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 		posts = postData.PostCount
 	} else {
 		// Log that the post service is down, but don't stop the request
-		//log.Println("Warning: post_relation service unavailable for user", userId)
+		log.Warn("Warning: post_relation service unavailable for user",
+		logger.Field{Key: "user_id",Value: userId})
 	}
 
 	// 3. Construct the response

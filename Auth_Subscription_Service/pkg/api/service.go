@@ -582,8 +582,8 @@ func (as *AuthSubscriptionServer) UserPublicData(ctx context.Context, req *pb.Us
 	//fmt.Println("is it not even entering here?")
 	resp, err := as.AuthSubscriptionUsecase.FetchUserPublicData(req.UserId)
 	if err != nil {
-		log.Println("show error", err)
-		return &pb.UserPublicDataResponse{}, err
+		//log.Println("show error", err)
+		return nil, err
 	}
 	//fmt.Println("resp in UserPublicData",resp)
 	return &pb.UserPublicDataResponse{
