@@ -140,13 +140,13 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 		logger.Field{Key: "user_id", Value: userID},
 	)
 	// 4️⃣ Start WebSocket read loop
-	go as.reader(client, hub,c)
+	go as.reader(client, hub)
 }
 
 
 
 
-func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub,ginctx *gin.Context) {
+func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub) {
 	log := as.Log.With(
 		logger.Field{Key: "user_id", Value: c.UserID},
 		logger.Field{Key: "request_id", Value: c.RequestID},
