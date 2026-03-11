@@ -6,11 +6,11 @@ import (
 )
 
 type NotificationUsecase interface{
-	ProcessLikeEvent(event requestmodels.PostEvent)
-	ProcessCommentEvent(event requestmodels.PostEvent)
-	ProcessFollowEvent(event requestmodels.UserEvent) 
-	ProcessDirectMessageEvent(event requestmodels.DirectMessageEvent)
-	ProcessGroupMessageEvent(event requestmodels.GroupMessageEvent)
+	ProcessLikeEvent(event requestmodels.PostEvent)error
+	ProcessCommentEvent(event requestmodels.PostEvent)error
+	ProcessFollowEvent(event requestmodels.UserEvent) error
+	ProcessDirectMessageEvent(event requestmodels.DirectMessageEvent)error
+	ProcessGroupMessageEvent(event requestmodels.GroupMessageEvent)error
 	GetAllNotifications(req requestmodels.GetNotificationsequest)([]domain.Notification,error)
 }
 

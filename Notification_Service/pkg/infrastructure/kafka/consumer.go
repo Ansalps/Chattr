@@ -67,7 +67,11 @@ func StartNotificationConsumer(brokerStr string, topic string, hub *websockethub
 				//log.Printf("New Follow detected for user %d",event.FollowingID)
 				log.Info("New Follow detected for user: ",
 					logger.Field{Key: "following_id",Value: event.FollowingID})
-				notificationUsecase.ProcessFollowEvent(event)
+				err=notificationUsecase.ProcessFollowEvent(event)
+				if err!=nil{
+					log.Error("Failed to store  notification for follow event",
+						logger.Field{Key: "error",Value: err})
+				}
 			}
 
 		case "POST_LIKE", "POST_COMMENT":
@@ -82,12 +86,20 @@ func StartNotificationConsumer(brokerStr string, topic string, hub *websockethub
 				//log.Printf("New Like detected for User %d", event.PostOwnerID)
 				log.Info("New Like detected for User",
 					logger.Field{Key: "error",Value: err})
-				notificationUsecase.ProcessLikeEvent(event)
+				err=notificationUsecase.ProcessLikeEvent(event)
+				if err!=nil{
+					log.Error("failed to store notification for like event",
+						logger.Field{Key: "error",Value: err})	
+				}
 			} else if event.Type=="POST_COMMENT" &&event.PostOwnerID!=0{
 				//log.Printf("New Comment detected for User %d",event.PostOwnerID)
 				log.Info("New Comment detected for User",
 					logger.Field{Key: "error",Value: err})
-				notificationUsecase.ProcessCommentEvent(event)
+				err=notificationUsecase.ProcessCommentEvent(event)
+				if err!=nil{
+					log.Error("failed to store notification for post comment",
+					logger.Field{Key: "error",Value: err})
+				}
 			}
 		case "DIRECT_MESSAGE":
 			var event requestmodels.DirectMessageEvent
@@ -101,7 +113,11 @@ func StartNotificationConsumer(brokerStr string, topic string, hub *websockethub
 				//log.Printf("New Message detected for user %d",event.RecipientID)
 				log.Info("New Message detected for user",
 					logger.Field{Key: "recipient_id",Value: event.RecipientID})
-				notificationUsecase.ProcessDirectMessageEvent(event)
+				err=notificationUsecase.ProcessDirectMessageEvent(event)
+				if err!=nil{
+					log.Error("faile to store notification for direct message",
+						logger.Field{Key: "error",Value: err})
+				}
 			}
 		case "GROUP_MESSAGE":
 			var event requestmodels.GroupMessageEvent
@@ -115,7 +131,11 @@ func StartNotificationConsumer(brokerStr string, topic string, hub *websockethub
 				//log.Print("Group Message detectd for users",event.RecipientID)
 				log.Info("Group Message detectd for users",
 					logger.Field{Key: "recipient_id",Value: event.RecipientID})
-				notificationUsecase.ProcessGroupMessageEvent(event)
+				err=notificationUsecase.ProcessGroupMessageEvent(event)
+				if err!=nil{
+					log.Error("failed to store notification for group message",
+						logger.Field{Key: "error",Value: err})
+				}
 			}
 		default:
 			//log.Printf("Unknown event type: %s", base.Type)

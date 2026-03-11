@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
@@ -29,13 +28,14 @@ func NewNotificationUsecase(repository interfacesrepository.NotificationReposito
 	}
 }
 
-func (uc *NotificationUsecase) ProcessLikeEvent(event requestmodels.PostEvent) {
+func (uc *NotificationUsecase) ProcessLikeEvent(event requestmodels.PostEvent) error {
 	// 1. Get Actor Name from User Service (via gRPC or Client)
 	actor, err := uc.AuthSubscriptionClient.UserPublicData(context.Background(), &pb.UserPublicDataRequest{
 		UserId: event.ActorID,
 	})
 	if err != nil {
-		log.Println("failed to fetch user name from auth_subscripiton service")
+		//log.Println("failed to fetch user name from auth_subscripiton service",err)
+		return err
 	}
 
 	// 2. Format the message
@@ -52,7 +52,8 @@ func (uc *NotificationUsecase) ProcessLikeEvent(event requestmodels.PostEvent) {
 		CreatedAt: time.Now(),
 	})
 	if err != nil {
-		log.Println("notification failed to store in db", err)
+		//log.Println("notification failed to store in db", err)
+		return err
 	}
 
 	// 4. Push to Hub
@@ -60,15 +61,17 @@ func (uc *NotificationUsecase) ProcessLikeEvent(event requestmodels.PostEvent) {
 		UserID:  event.PostOwnerID,
 		Payload: []byte(displayMsg),
 	}
+	return nil
 }
 
-func (uc *NotificationUsecase) ProcessCommentEvent(event requestmodels.PostEvent) {
+func (uc *NotificationUsecase) ProcessCommentEvent(event requestmodels.PostEvent) error {
 	// 1. Get Actor Name from User Service (via gRPC or Client)
 	actor, err := uc.AuthSubscriptionClient.UserPublicData(context.Background(), &pb.UserPublicDataRequest{
 		UserId: event.ActorID,
 	})
 	if err != nil {
-		log.Println("failed to fetch user name from auth_subscripiton service")
+		//log.Println("failed to fetch user name from auth_subscripiton service",err)
+		return err
 	}
 
 	// 2. Format the message
@@ -87,7 +90,8 @@ func (uc *NotificationUsecase) ProcessCommentEvent(event requestmodels.PostEvent
 	})
 
 	if err != nil {
-		log.Println("notification failed to store in db", err)
+		//log.Println("notification failed to store in db", err)
+		return err
 	}
 
 	// 4. Push to Hub
@@ -95,15 +99,17 @@ func (uc *NotificationUsecase) ProcessCommentEvent(event requestmodels.PostEvent
 		UserID:  event.PostOwnerID,
 		Payload: []byte(displayMsg),
 	}
+	return nil
 }
 
-func (uc *NotificationUsecase) ProcessFollowEvent(event requestmodels.UserEvent) {
+func (uc *NotificationUsecase) ProcessFollowEvent(event requestmodels.UserEvent) error {
 	// 1. Get Actor Name from User Service (via gRPC or Client)
 	actor, err := uc.AuthSubscriptionClient.UserPublicData(context.Background(), &pb.UserPublicDataRequest{
 		UserId: event.ActorID,
 	})
 	if err != nil {
-		log.Println("failed to fetch user name from auth_subscripiton service")
+		//log.Println("failed to fetch user name from auth_subscripiton service",err)
+		return err
 	}
 	// 2. Format the message
 	displayMsg := fmt.Sprintf("%s started following you!", actor.Name)
@@ -121,7 +127,8 @@ func (uc *NotificationUsecase) ProcessFollowEvent(event requestmodels.UserEvent)
 	})
 
 	if err != nil {
-		log.Println("notification failed to store in db", err)
+		//log.Println("notification failed to store in db", err)
+		return err
 	}
 
 	// 4. Push to Hub
@@ -129,16 +136,18 @@ func (uc *NotificationUsecase) ProcessFollowEvent(event requestmodels.UserEvent)
 		UserID:  event.FollowingID,
 		Payload: []byte(displayMsg),
 	}
+	return nil
 
 }
 
-func (uc *NotificationUsecase) ProcessDirectMessageEvent(event requestmodels.DirectMessageEvent) {
+func (uc *NotificationUsecase) ProcessDirectMessageEvent(event requestmodels.DirectMessageEvent) error {
 	// 1. Get Actor Name from User Service (via gRPC or Client)
 	actor, err := uc.AuthSubscriptionClient.UserPublicData(context.Background(), &pb.UserPublicDataRequest{
 		UserId: event.ActorID,
 	})
 	if err != nil {
-		log.Println("failed to fetch user name from auth_subscripiton service")
+		//log.Println("failed to fetch user name from auth_subscripiton service")
+		return err
 	}
 	// 2. Format the message
 	displayMsg := fmt.Sprintf("%s messaged you!", actor.Name)
@@ -154,7 +163,8 @@ func (uc *NotificationUsecase) ProcessDirectMessageEvent(event requestmodels.Dir
 	})
 
 	if err != nil {
-		log.Println("notification failed to store in db", err)
+		//log.Println("notification failed to store in db", err)
+		return err
 	}
 
 	// 4. Push to Hub
@@ -162,22 +172,23 @@ func (uc *NotificationUsecase) ProcessDirectMessageEvent(event requestmodels.Dir
 		UserID:  event.RecipientID,
 		Payload: []byte(displayMsg),
 	}
-
+	return nil
 }
 
-func (uc *NotificationUsecase) ProcessGroupMessageEvent(event requestmodels.GroupMessageEvent) {
+func (uc *NotificationUsecase) ProcessGroupMessageEvent(event requestmodels.GroupMessageEvent) error {
 	// 1. Get Actor Name from User Service (via gRPC or Client)
 	actor, err := uc.AuthSubscriptionClient.UserPublicData(context.Background(), &pb.UserPublicDataRequest{
 		UserId: event.ActorID,
 	})
 	if err != nil {
-		log.Println("failed to fetch user name from auth_subscripiton service")
+		//log.Println("failed to fetch user name from auth_subscripiton service")
+		return err
 	}
 
 	// 2. Format the message
-	displayMsg := fmt.Sprintf("%s messaged in the group \"%s\"!", actor.Name,event.GroupName)
+	displayMsg := fmt.Sprintf("%s messaged in the group \"%s\"!", actor.Name, event.GroupName)
 
-	for _,v:=range event.RecipientID{
+	for _, v := range event.RecipientID {
 		// 3. Save to DB (optional)
 		err = uc.NotificationRepository.SaveNotification(domain.Notification{
 			UserID:    v,
@@ -188,7 +199,8 @@ func (uc *NotificationUsecase) ProcessGroupMessageEvent(event requestmodels.Grou
 			CreatedAt: time.Now(),
 		})
 		if err != nil {
-			log.Println("notification failed to store in db", err)
+			//log.Println("notification failed to store in db", err)
+			return err
 		}
 		// 4. Push to Hub
 		uc.Hub.Notification <- websockethub.NotificationMessage{
@@ -196,12 +208,13 @@ func (uc *NotificationUsecase) ProcessGroupMessageEvent(event requestmodels.Grou
 			Payload: []byte(displayMsg),
 		}
 	}
+	return nil
 }
 
-func (uc *NotificationUsecase)GetAllNotifications(req requestmodels.GetNotificationsequest)([]domain.Notification,error){
-	resp,err:=uc.NotificationRepository.GetAllNotifications(req)
-	if err!=nil{
-		return nil,err
+func (uc *NotificationUsecase) GetAllNotifications(req requestmodels.GetNotificationsequest) ([]domain.Notification, error) {
+	resp, err := uc.NotificationRepository.GetAllNotifications(req)
+	if err != nil {
+		return nil, err
 	}
-	return resp,nil
+	return resp, nil
 }
