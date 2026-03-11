@@ -28,7 +28,7 @@ func NewNotificationHandler(cfg *config.Config) *NotificationHandler {
 
 func (as *NotificationHandler) WebSocketConnection(c *gin.Context) {
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
-
+	requestID := c.GetString("request_id")
 	target, _ := url.Parse("http://" + as.Config.NotificationSvcUrl)
 
 	proxy := httputil.NewSingleHostReverseProxy(target)
@@ -40,13 +40,17 @@ func (as *NotificationHandler) WebSocketConnection(c *gin.Context) {
 		req.Header.Del("Authorization")
 		req.Header.Set("X-User-ID", strconv.FormatUint(claims.ID, 10))
 		req.Header.Set("X-Auth-Source", "gateway")
+		// propagate request tracing
+		if requestID != "" {
+			req.Header.Set("X-Request-ID", requestID)
+		}
 	}
 
 	proxy.ServeHTTP(c.Writer, c.Request)
 }
 
 func (as *NotificationHandler) GetAllNotifications(c *gin.Context) {
-
+	requestID := c.GetString("request_id")
 	// 1. Parse Pagination
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
@@ -70,6 +74,9 @@ func (as *NotificationHandler) GetAllNotifications(c *gin.Context) {
 	httpReq.Header.Set("X-User-Id", strconv.FormatUint(claims.ID, 10))
 	httpReq.Header.Set("X-Internal-Secret", "internalSecret")
 	httpReq.Header.Set("Content-Type", "application/json")
+	if requestID != "" {
+		httpReq.Header.Set("X-Request-ID", requestID)
+	}
 
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(httpReq)

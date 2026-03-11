@@ -19,15 +19,13 @@ type NotificationUsecase struct {
 	NotificationRepository interfacesrepository.NotificationRepository
 	Hub                    *websockethub.Hub
 	AuthSubscriptionClient pb.AuthSubscriptionServiceClient
-	logger domain.Logger
 }
 
-func NewNotificationUsecase(repository interfacesrepository.NotificationRepository, hub *websockethub.Hub, authSubClient pb.AuthSubscriptionServiceClient,logger domain.Logger) interfacesUsecase.NotificationUsecase {
+func NewNotificationUsecase(repository interfacesrepository.NotificationRepository, hub *websockethub.Hub, authSubClient pb.AuthSubscriptionServiceClient) interfacesUsecase.NotificationUsecase {
 	return &NotificationUsecase{
 		NotificationRepository: repository,
 		Hub:                    hub,
 		AuthSubscriptionClient: authSubClient,
-		logger: logger,
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/domain"
+	"github.com/Ansalps/Chattr_Notification_Service/pkg/infrastructure/logger"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/infrastructure/websockethub"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/requestmodels"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/usecase/interfacesUsecase"
@@ -16,12 +17,14 @@ import (
 type NotificationHandler struct {
 	NotificationUsecase interfacesUsecase.NotificationUsecase
 	Hub                 *websockethub.Hub
+	Log logger.Logger
 }
 
-func NewNotificationHandler(usecase interfacesUsecase.NotificationUsecase, hub *websockethub.Hub) *NotificationHandler {
+func NewNotificationHandler(usecase interfacesUsecase.NotificationUsecase, hub *websockethub.Hub,log logger.Logger) *NotificationHandler {
 	return &NotificationHandler{
 		NotificationUsecase: usecase,
 		Hub:                 hub,
+		Log: log,
 	}
 }
 

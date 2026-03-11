@@ -14,7 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func DependencyInjection(router *gin.Engine, cfg *config.Config, hub *websockethub.Hub) (interfacesUsecase.NotificationUsecase, error) {
+func DependencyInjection(router *gin.Engine, cfg *config.Config, hub *websockethub.Hub,log logger.Logger) (interfacesUsecase.NotificationUsecase, error) {
 	gormDB, err := db.ConnectDatabase(cfg)
 	if err != nil {
 		return nil, err
@@ -23,10 +23,9 @@ func DependencyInjection(router *gin.Engine, cfg *config.Config, hub *websocketh
 	if err != nil {
 		return nil,err
 	}
-	logger:=logger.NewLogrusLogger()
 	NotificationRepository := repository.NewNotificationRepository(gormDB)
-	NotificationUsecase := usecase.NewNotificationUsecase(NotificationRepository, hub,authClient,logger)
-	NotificationHandler := handler.NewNotificationHandler(NotificationUsecase, hub)
+	NotificationUsecase := usecase.NewNotificationUsecase(NotificationRepository, hub,authClient)
+	NotificationHandler := handler.NewNotificationHandler(NotificationUsecase, hub,log)
 	routes.NotificationServiceRoutes(router, NotificationHandler)
 	return NotificationUsecase, nil
 }
