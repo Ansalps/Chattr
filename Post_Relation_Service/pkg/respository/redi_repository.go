@@ -19,18 +19,6 @@ func NewRedisRepository(rdb *redis.Client) interfacesRepository.RedisRepository 
 		rdb: rdb,
 	}
 }
-func (r *redisRepository) CacheGet(ctx context.Context, cacheKey string) (string, error) {
-	cachedData, err := r.rdb.Get(ctx, cacheKey).Result()
-	if err != nil {
-		return "", err
-	}
-	return cachedData, nil
-}
-func (r *redisRepository) CacheSet(ctx context.Context, cacheKey string, dataToCache []byte, expiration time.Duration) error {
-	// r.Client is your *redis.Client (go-redis)
-	return r.rdb.Set(ctx, cacheKey, dataToCache, expiration).Err()
-}
-
 func (r *redisRepository) Incr(ctx context.Context, key string) (string, error) {
 	newVal, err := r.rdb.Incr(context.Background(), key).Result()
 	if err != nil {
@@ -39,25 +27,23 @@ func (r *redisRepository) Incr(ctx context.Context, key string) (string, error) 
 
 	return strconv.FormatInt(newVal, 10), nil
 }
-func (r *redisRepository) ExtendTTL(ctx context.Context, key string, ttl time.Duration) error {
-	return r.rdb.Expire(ctx, key, ttl).Err()
-}
+
 func (r *redisRepository) Pipeline() redis.Pipeliner {
 	return r.rdb.Pipeline()
 }
-func (r *redisRepository) ZAdd(ctx context.Context, key string, score float64, member interface{}) error {
-	return r.rdb.ZAdd(ctx, key, redis.Z{Score: score, Member: member}).Err()
+
+func (r *redisRepository) CacheGet(ctx context.Context, cacheKey string) (string, error) {
+	cachedData, err := r.rdb.Get(ctx, cacheKey).Result()
+	if err != nil {
+		return "", err
+	}
+	return cachedData, nil
 }
 
-func (r *redisRepository) ZRem(ctx context.Context, key string, member interface{}) error {
-	return r.rdb.ZRem(ctx, key, member).Err()
+func (r *redisRepository) CacheSet(ctx context.Context, cacheKey string, dataToCache []byte, expiration time.Duration) error {
+	// r.Client is your *redis.Client (go-redis)
+	return r.rdb.Set(ctx, cacheKey, dataToCache, expiration).Err()
 }
-
-// You will need this for the "Pull" part of the Newsfeed
-func (r *redisRepository) ZRevRangeByScore(ctx context.Context, key string, opt *redis.ZRangeBy) ([]string, error) {
-	return r.rdb.ZRevRangeByScore(ctx, key, opt).Result()
-}
-
 func (r *redisRepository) PullCelebPostIDsFromRedis(ctx context.Context, celebIDs []uint64, lastID uint64, limit int) ([]uint64, error) {
 	pipe := r.rdb.Pipeline()
 
@@ -105,3 +91,21 @@ func (r *redisRepository) PullCelebPostIDsFromRedis(ctx context.Context, celebID
 
 	return resultIDs, nil
 }
+func (r *redisRepository) ExtendTTL(ctx context.Context, key string, ttl time.Duration) error {
+	return r.rdb.Expire(ctx, key, ttl).Err()
+}
+
+// func (r *redisRepository) ZAdd(ctx context.Context, key string, score float64, member interface{}) error {
+// 	return r.rdb.ZAdd(ctx, key, redis.Z{Score: score, Member: member}).Err()
+// }
+
+func (r *redisRepository) ZRem(ctx context.Context, key string, member interface{}) error {
+	return r.rdb.ZRem(ctx, key, member).Err()
+}
+
+// You will need this for the "Pull" part of the Newsfeed
+func (r *redisRepository) ZRevRangeByScore(ctx context.Context, key string, opt *redis.ZRangeBy) ([]string, error) {
+	return r.rdb.ZRevRangeByScore(ctx, key, opt).Result()
+}
+
+

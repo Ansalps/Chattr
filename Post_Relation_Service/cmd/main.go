@@ -25,7 +25,7 @@ func main() {
 			logger.Field{Key: "error", Value: err},
 		)
 	}
-	PostRelationServiceServer, err := di.DependencyIndjection(config)
+	PostRelationServiceServer, err := di.DependencyIndjection(config,log)
 	if err != nil {
 		log.Fatal("cannot start server",
 			logger.Field{Key: "error", Value: err},

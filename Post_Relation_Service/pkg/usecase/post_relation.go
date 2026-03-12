@@ -8,6 +8,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/Ansalps/Chattr_Post_Relation_Service/infrastructure/logger"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/pb"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/requestmodels"
@@ -26,16 +27,22 @@ type PostRelationUsecase struct {
 	AuthSubscriptionClient pb.AuthSubscriptionServiceClient
 	RedisRepository        interfacesRepository.RedisRepository
 	KafkaProducer          interfacesUsecase.KafkaProducer // <--- Add this
+	Log logger.Logger
 }
 
 var ()
 
-func NewPostRelationUsecase(repository interfacesRepository.PostRelationRepository, authSubClient pb.AuthSubscriptionServiceClient, redisRepository interfacesRepository.RedisRepository, kafkaProducer interfacesUsecase.KafkaProducer) interfacesUsecase.PostRelationUsecase {
+func NewPostRelationUsecase(repository interfacesRepository.PostRelationRepository, 
+	authSubClient pb.AuthSubscriptionServiceClient, 
+	redisRepository interfacesRepository.RedisRepository, 
+	kafkaProducer interfacesUsecase.KafkaProducer,
+	log logger.Logger) interfacesUsecase.PostRelationUsecase {
 	return &PostRelationUsecase{
 		PostRelationRepository: repository,
 		AuthSubscriptionClient: authSubClient,
 		RedisRepository:        redisRepository,
 		KafkaProducer:          kafkaProducer,
+		Log: log,
 	}
 }
 
@@ -47,7 +54,11 @@ func (as *PostRelationUsecase) CreatePost(createPostReq requestmodels.CreatePost
 
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", createPostReq.UserID)
-	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
+	_, err= as.RedisRepository.Incr(context.Background(), versionKey)
+	if err!=nil{
+		as.Log.Error("Version key increment failed in redis upon create post",
+			logger.Field{Key: "error",Value: err})
+	}
 
 	// 2. Start a background process for fan-out
 	go func() {
@@ -59,6 +70,10 @@ func (as *PostRelationUsecase) CreatePost(createPostReq requestmodels.CreatePost
 		// 1. Fetch followers from SQL
 		followers, err := as.PostRelationRepository.FetchFollowersUserIds(createPostReq.UserID)
 		if err != nil || len(followers) == 0 {
+			if err!=nil{
+				as.Log.Error("failed to fetch follower user ids from auth service",
+					logger.Field{Key: "error",Value: err})
+			}
 			return
 		}
 		if len(followers) > 5 {
@@ -74,7 +89,11 @@ func (as *PostRelationUsecase) CreatePost(createPostReq requestmodels.CreatePost
 			//3. Set a long TTL (e.g., 7 days) because this is the primary cache for their feed
 			pipe.Expire(context.Background(), key, 7*24*time.Hour)
 
-			_, _ = pipe.Exec(context.TODO())
+			_, err= pipe.Exec(context.TODO())
+			if err!=nil{
+				as.Log.Warn("redis pipeline failed(adding post id to celeb cache and removing old posts and setting expiry upon create post)",
+					logger.Field{Key: "error",Value: err})
+			}
 			return
 		}
 
@@ -92,7 +111,9 @@ func (as *PostRelationUsecase) CreatePost(createPostReq requestmodels.CreatePost
 			if (i+1)%500 == 0 {
 				_, err := pipe.Exec(ctx)
 				if err != nil {
-					log.Printf("Pipeline execution error: %v", err)
+					//log.Printf("Pipeline execution error: %v", err)
+					as.Log.Error("Pipeline execution error(invalidation all followers of cache for normal user upon create post)",
+						logger.Field{Key: "error",Value: err})
 				}
 				// Create a fresh pipeline for the next batch
 				pipe = as.RedisRepository.Pipeline()
@@ -103,7 +124,8 @@ func (as *PostRelationUsecase) CreatePost(createPostReq requestmodels.CreatePost
 		if pipe.Len() > 0 {
 			_, err := pipe.Exec(ctx)
 			if err != nil {
-				log.Printf("Final pipeline execution error: %v", err)
+				as.Log.Error("Final Pipeline execution error(invalidation all followers of cache for normal user upon create post)",
+						logger.Field{Key: "error",Value: err})
 			}
 		}
 	}()
@@ -125,7 +147,11 @@ func (as *PostRelationUsecase) EditPost(editPostReq requestmodels.EditPostReques
 
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", editPostReq.UserID)
-	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
+	_, err = as.RedisRepository.Incr(context.Background(), versionKey)
+	if err!=nil{
+		as.Log.Error("Version key increment failed in redis upon edit post",
+			logger.Field{Key: "error",Value: err})
+	}
 
 	return responsemodels.EditPostResponse{
 		Caption: editPostRes.Caption,
@@ -143,7 +169,11 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", deletePostReq.UserID)
-	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
+	_, err = as.RedisRepository.Incr(context.Background(), versionKey)
+	if err!=nil{
+		as.Log.Error("Version key increment failed in redis upon delete post",
+			logger.Field{Key: "error",Value: err})
+	}
 
 	// 3. Handle Celebrity Cache Removal
 	// We run this in a background goroutine to keep the response time fast
@@ -151,6 +181,10 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 		ctx := context.Background()
 		followers, err := as.PostRelationRepository.FetchFollowersUserIds(deletePostReq.UserID)
 		if err != nil || len(followers) == 0 {
+			if err!=nil{
+				as.Log.Error("failed to fetch follower user ids from auth service",
+					logger.Field{Key: "error",Value: err})
+			}
 			return
 		}
 		if len(followers) > 5 {
@@ -160,7 +194,9 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 			pipe.ZRem(ctx, key, deletePostRes.PostID)
 			_, err := pipe.Exec(ctx)
 			if err != nil {
-				log.Printf("Failed to remove post from celeb cache: %v", err)
+				//log.Printf("Failed to remove post from celeb cache: %v", err)
+				as.Log.Error("Failed to remove post from celeb cache:",
+					logger.Field{Key: "error",Value: err})
 			}
 			return
 		}
@@ -192,7 +228,11 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 			fVersionKey := fmt.Sprintf("user:%d:feed_version", fID.FollowerID)
 			pipe.Incr(ctx, fVersionKey)
 		}
-		_, _ = pipe.Exec(ctx)
+		_, err = pipe.Exec(ctx)
+		if err!=nil{
+			as.Log.Error("pipeline execution error, failed to increment version key of normal users upon delete post",
+				logger.Field{Key: "error",Value: err})
+		}
 	}()
 
 	return responsemodels.DeletePostResponse{
@@ -217,7 +257,11 @@ func (as *PostRelationUsecase) LikePost(likePostReq requestmodels.LikePostReques
 	}
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", likePostReq.UserID)
-	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
+	_, err= as.RedisRepository.Incr(context.Background(), versionKey)
+	if err!=nil{
+		as.Log.Error("Version key increment failed in redis upon like post",
+			logger.Field{Key: "error",Value: err})
+	}
 
 	event := map[string]interface{}{
 		"type":        "POST_LIKE",
@@ -258,7 +302,11 @@ func (as *PostRelationUsecase) UnlikePost(unlikePostReq requestmodels.UnlikePost
 	}
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", unlikePostReq.UserID)
-	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
+	_, err = as.RedisRepository.Incr(context.Background(), versionKey)
+	if err!=nil{
+		as.Log.Error("Version key increment failed in redis upon unlike post",
+			logger.Field{Key: "error",Value: err})
+	}
 
 	return responsemodels.UnlikePostResponse{
 		PostID: unlikePostRes.PostID,
@@ -286,7 +334,11 @@ func (as *PostRelationUsecase) AddComment(addCommentReq requestmodels.AddComment
 
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", addCommentReq.UserID)
-	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
+	_, err = as.RedisRepository.Incr(context.Background(), versionKey)
+	if err!=nil{
+		as.Log.Error("Version key increment failed in redis upon add comment",
+			logger.Field{Key: "error",Value: err})
+	}
 
 	postOwnerId, err := as.PostRelationRepository.FetchPostOwnerIdByPostId(addCommentReq.PostID)
 	if err != nil {
@@ -333,6 +385,14 @@ func (as *PostRelationUsecase) EditComment(editCommentReq requestmodels.EditComm
 		return responsemodels.EditCommentResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 
+	//invalidate cach
+	versionKey := fmt.Sprintf("user:%d:feed_version", editCommentReq.UserID)
+	_, err = as.RedisRepository.Incr(context.Background(), versionKey)
+	if err!=nil{
+		as.Log.Error("Version key increment failed in redis upon delete comment",
+			logger.Field{Key: "error",Value: err})
+	}
+
 	return resp, nil
 }
 func (as *PostRelationUsecase) DeleteComment(deleteCommentReq requestmodels.DeleteCommentRequest) (responsemodels.DeleteCommentResponse, error) {
@@ -357,7 +417,11 @@ func (as *PostRelationUsecase) DeleteComment(deleteCommentReq requestmodels.Dele
 
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", deleteCommentReq.UserID)
-	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
+	_, err = as.RedisRepository.Incr(context.Background(), versionKey)
+	if err!=nil{
+		as.Log.Error("Version key increment failed in redis upon delete comment",
+			logger.Field{Key: "error",Value: err})
+	}
 
 	return responsemodels.DeleteCommentResponse{
 		CommentID: deleteCommentRes.CommentID,
@@ -407,7 +471,11 @@ func (as *PostRelationUsecase) Follow(followReq requestmodels.FollowRequest) (re
 
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", followReq.UserID)
-	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
+	_, err = as.RedisRepository.Incr(context.Background(), versionKey)
+	if err!=nil{
+		as.Log.Error("Version key increment failed in redis upon user follow",
+			logger.Field{Key: "error",Value: err})
+	}
 
 	go func() {
 		ans, err := as.PostRelationRepository.FetchFollowCountByUserId(followReq.FollowingUserID)
@@ -487,7 +555,11 @@ func (as *PostRelationUsecase) Unfollow(unfollowReq requestmodels.UnfollowReques
 
 	//invalidate cach
 	versionKey := fmt.Sprintf("user:%d:feed_version", unfollowReq.UserID)
-	_, _ = as.RedisRepository.Incr(context.Background(), versionKey)
+	_, err = as.RedisRepository.Incr(context.Background(), versionKey)
+	if err!=nil{
+		as.Log.Error("Version key increment failed in redis upon unfollow user",
+			logger.Field{Key: "error",Value: err})
+	}
 
 	go func() {
 		ans, err := as.PostRelationRepository.FetchFollowCountByUserId(unfollowReq.UnfollowingUserID)
@@ -946,19 +1018,19 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 		if err == nil {
 			json.Unmarshal([]byte(cachedData), &normalPosts1)
 			cacheHit = true
-			fmt.Println("returnnig cached response of normal users")
+			as.Log.Info("returnnig cached response of normal users")
+		} else{
+			as.Log.Error("Cache miss or redis error upon fetch in noremal usesrs newsfeed",
+				logger.Field{Key: "error",Value: err})
 		}
 	}
 
 	// 3. LIVE INJECTION: Get Celebrity Posts
 	celebIDs, err := as.PostRelationRepository.GetFollowedCelebrityIDs(newsfeedReq.UserID)
 	if err!=nil{
-		if err==gorm.ErrRecordNotFound{
-
-		} else{
+		if err!=gorm.ErrRecordNotFound{
 			return responsemodels.FetchNewsFeedResponse{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 		}
-
 	}
 	var celebPosts []responsemodels.PostWithStatus
 
@@ -968,15 +1040,12 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 	if !cacheHit {
 		normalPosts, err := as.PostRelationRepository.FetchNormalPostData(newsfeedReq)
 		if err != nil {
-			//log.Println("what is the error in fetching normal posts", err)
-			if err==gorm.ErrRecordNotFound{
-				//return responsemodels.FetchNewsFeedResponse{},domain.ErrNoFollowingNoPost
-			}else{
+			if err!=gorm.ErrRecordNotFound{
 				return responsemodels.FetchNewsFeedResponse{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
 			}
 			
 		}
-		//fmt.Println("length of normal posts",len(normalPosts))
+		//making a map to avoid duplicate userids
 		userIDs := make(map[uint64]bool)
 
 		for _, v := range normalPosts {
@@ -995,16 +1064,27 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 		userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
 			UserId: userids,
 		})
-		//fmt.Println("userResp",userResp)
 		if err != nil {
-			
+			st, ok := status.FromError(err)
+			if !ok {
+				// Not a gRPC error
+				return responsemodels.FetchNewsFeedResponse{},
+					fmt.Errorf("%w: %v", domain.ErrInternal, err)
+			}
+			switch st.Code() {
+			case codes.NotFound:
+				return responsemodels.FetchNewsFeedResponse{}, domain.ErrUsersNotFound
+			case codes.Internal:
+				return responsemodels.FetchNewsFeedResponse{},
+					fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+			default:
+				return responsemodels.FetchNewsFeedResponse{},
+					fmt.Errorf("%w: %v", domain.ErrInternal, err)
+			}
 		}
-		//userResp1=userResp
-		//fmt.Println("**********")
+		
 		for i, v := range normalPosts {
-			//fmt.Println("is it reaching here in looping normalPostss")
 			uid := uint64(v.UserID)
-			//fmt.Println("uid",uid)
 			// SAFE MAPPING: check if user exists in the map
 			if userData, ok := userResp.Users[uid]; ok {
 				//fmt.Println("what about here",ok,userData,userResp.Users[uid])
@@ -1015,23 +1095,27 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 					ProfileImgUrl: userData.ProfileImgUrl,
 					BlueTick:      userData.BlueTick,
 				}
-				//fmt.Println("normalPosts[i] hi hello hi hello",normalPosts[i])
 			} else {
-				log.Printf("Warning: Metadata for user %d not found in auth service", uid)
+				//log.Printf("Warning: Metadata for user %d not found in auth service", uid)
+				as.Log.Error("Metadata for normal users not found in auth service")
+				return responsemodels.FetchNewsFeedResponse{},fmt.Errorf("%v:","Metadata for normal users not found in auth service")
 			}
 
 			normalPosts[i].Age = utils.CalcuateCommentAge(v.CreatedAt)
 		}
-		normalPosts1 = normalPosts
-		//fmt.Println("normal posts",normalPosts)
+		//normalPosts1 = normalPosts
 		// Store in cache for 5 minutes
 		data, err := json.Marshal(normalPosts)
 		if err != nil {
-			log.Println("error in marshalling json", err)
+			//log.Println("error in marshalling json", err)
+			as.Log.Error("error in marshalling json of normal posts")
 		}
-		//fmt.Println("data",data)
-		fmt.Println("returning posts of normal users from db")
-		as.RedisRepository.CacheSet(ctx, normalCacheKey, data, 5*time.Minute)
+		//fmt.Println("returning posts of normal users from db")
+		err=as.RedisRepository.CacheSet(ctx, normalCacheKey, data, 5*time.Minute)
+		if err!=nil{
+			as.Log.Error("failed to set cache of normal posts",
+				logger.Field{Key: "error",Value: err})
+		}
 	}
 
 	if len(celebIDs) > 0 {

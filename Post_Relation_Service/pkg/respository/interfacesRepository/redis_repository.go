@@ -14,8 +14,8 @@ type RedisRepository interface {
 	ExtendTTL(ctx context.Context, key string, ttl time.Duration) error
 	Pipeline() redis.Pipeliner
 
-	// New methods for Celebrity Hot Lists
-    ZAdd(ctx context.Context, key string, score float64, member interface{}) error
+	// // New methods for Celebrity Hot Lists
+    // ZAdd(ctx context.Context, key string, score float64, member interface{}) error
     ZRem(ctx context.Context, key string, member interface{}) error
     ZRevRangeByScore(ctx context.Context, key string, opt *redis.ZRangeBy) ([]string, error)
 

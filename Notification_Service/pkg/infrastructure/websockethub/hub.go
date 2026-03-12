@@ -57,8 +57,9 @@ func (h *Hub) Run() {
 			if client, ok := h.Clients[msg.UserID]; ok {
 				err := client.Conn.WriteMessage(websocket.TextMessage, msg.Payload)
 				if err != nil {
-					client.Conn.Close()
-					delete(h.Clients, msg.UserID)
+					//client.Conn.Close()
+					//delete(h.Clients, msg.UserID)
+					h.Unregister <- msg.UserID
 				}
 			}
 		}
