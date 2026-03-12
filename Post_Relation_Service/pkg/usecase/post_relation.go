@@ -1025,7 +1025,7 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 		}
 	}
 
-	// 3. LIVE INJECTION: Get Celebrity Posts
+	//3. LIVE INJECTION: Get Celebrity Posts
 	celebIDs, err := as.PostRelationRepository.GetFollowedCelebrityIDs(newsfeedReq.UserID)
 	if err!=nil{
 		if err!=gorm.ErrRecordNotFound{
@@ -1034,7 +1034,7 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 	}
 	var celebPosts []responsemodels.PostWithStatus
 
-	//var userResp1 *pb.BatchUserMetadataResponse
+	var userResp *pb.BatchUserMetadataResponse
 
 	// 2. IF CACHE MISS: Get Normal Posts from DB
 	if !cacheHit {
@@ -1059,9 +1059,9 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 			userids[i] = k
 			i++
 		}
-		userids = append(userids, celebIDs...)
+		//userids = append(userids, celebIDs...)
 
-		userResp, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+		userResp, err = as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
 			UserId: userids,
 		})
 		if err != nil {
@@ -1107,10 +1107,8 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 		// Store in cache for 5 minutes
 		data, err := json.Marshal(normalPosts)
 		if err != nil {
-			//log.Println("error in marshalling json", err)
 			as.Log.Error("error in marshalling json of normal posts")
 		}
-		//fmt.Println("returning posts of normal users from db")
 		err=as.RedisRepository.CacheSet(ctx, normalCacheKey, data, 5*time.Minute)
 		if err!=nil{
 			as.Log.Error("failed to set cache of normal posts",
@@ -1126,25 +1124,21 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 		if err != nil || len(celebPostIDs) == 0 {
 			log.Printf("Celeb cache miss for user %d, falling back to SQL", newsfeedReq.UserID)
 			celebPostIDs, err = as.PostRelationRepository.FetchCelebrityPostIDsFromSQL(celebIDs, newsfeedReq.LastID, int(newsfeedReq.Limit))
-			if err==gorm.ErrRecordNotFound{
-
-			}else{
+			if err!=gorm.ErrRecordNotFound{
 				return responsemodels.FetchNewsFeedResponse{},fmt.Errorf("%w: %v",domain.ErrDatabase,err)
-			}
-			if len(celebPostIDs) == 0 {
-				fmt.Println("justp printing to see number of post id is 0")
 			}
 			// OPTIONAL: You could trigger a background job here to re-populate
 			// the Redis ZSET so the next request is faster.
 			// Repopulate in the background
 			if len(celebPostIDs) > 0 {
+				as.Log.Info("repopulating celeb cache")
 				go as.RepopulateCelebrityCache(context.Background(), celebIDs)
 			}
 		}
 
 		// C. Hydrate those IDs from SQL (Get full post details, counts, etc.)
 		if len(celebPostIDs) > 0 {
-			fmt.Println("showning response from db, but fecthed post ids though cache")
+			//fmt.Println("showning response from db, but fecthed post ids though cache")
 			celebPosts, err = as.PostRelationRepository.FetchPostsByIDs(celebPostIDs, newsfeedReq.UserID)
 			if err != nil {
 				//log.Println("failed to fetch celeb posts by id")
@@ -1154,32 +1148,32 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 					return responsemodels.FetchNewsFeedResponse{},fmt.Errorf("%w:; %v",domain.ErrDatabase,err)
 				}
 			}
-			userIDs := make(map[uint64]bool)
+			// userIDs := make(map[uint64]bool)
 
-			for _, v := range celebPosts {
+			// for _, v := range celebPosts {
 
-				userIDs[uint64(v.UserID)] = true
-			}
-			userids := make([]uint64, len(userIDs))
-			i := 0
-			for k := range userIDs {
-				userids[i] = k
-				i++
-			}
-			userids = append(userids, celebIDs...)
+			// 	userIDs[uint64(v.UserID)] = true
+			// }
+			// userids := make([]uint64, len(userIDs))
+			// i := 0
+			// for k := range userIDs {
+			// 	userids[i] = k
+			// 	i++
+			// }
+			//userids = append(userids, celebIDs...)
 
-			userResp2, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
-				UserId: userids,
-			})
-			//fmt.Println("userResp",userResp)
-			if err != nil {
+			// userResp2, err := as.AuthSubscriptionClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+			// 	UserId: userids,
+			// })
+			
+			// if err != nil {
 				
-			}
+			// }
 			for i, v := range celebPosts {
 				uid := uint64(v.UserID)
 
 				// SAFE MAPPING: check if user exists in the map
-				if userData, ok := userResp2.Users[uid]; ok {
+				if userData, ok := userResp.Users[uid]; ok {
 					celebPosts[i].UserDetails = responsemodels.UserMetaData{
 						UserID:        userData.UserId,
 						UserName:      userData.UserName,
@@ -1188,17 +1182,14 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 						BlueTick:      userData.BlueTick,
 					}
 				} else {
-					log.Printf("Warning: Metadata for user %d not found in auth service", uid)
+					as.Log.Error("Metadata for celeb users not found in auth service")
+					return responsemodels.FetchNewsFeedResponse{},fmt.Errorf("%v:","Metadata for celeb users not found in auth service")
 				}
-
 				celebPosts[i].Age = utils.CalcuateCommentAge(v.CreatedAt)
 			}
 		}
-	} else {
-		fmt.Println("just printing to see number of celeb id is 0, means no data for celebs")
 	}
-	//fmt.Println("normalPosts*******************************************",normalPosts1)
-	//fmt.Println("celeb posts*************************************",celebPosts)
+	
 	// 4. MERGE & SORT
 	allPosts := append(normalPosts1, celebPosts...)
 	sort.Slice(allPosts, func(i, j int) bool {
