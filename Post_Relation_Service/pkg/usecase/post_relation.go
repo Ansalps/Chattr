@@ -1007,7 +1007,12 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 	ctx := context.Background()
 
 	// 1. TRY CACHE (ONLY for Normal Posts)
-	version := as.getFeedVersion(ctx, newsfeedReq.UserID)
+	version,err := as.getFeedVersion(ctx, newsfeedReq.UserID)
+	if err!=nil{
+		as.Log.Error("redis error in getting feed version",
+			logger.Field{Key: "error",Value: err},
+			logger.Field{Key: "user_id",Value: newsfeedReq.UserID})
+	}
 	normalCacheKey := fmt.Sprintf("newsfeed:normal:%d:v:%s:lim:%d:last:%d", newsfeedReq.UserID, version, newsfeedReq.Limit, newsfeedReq.LastID)
 
 	var normalPosts1 []responsemodels.PostWithStatus
@@ -1240,6 +1245,10 @@ func (as *PostRelationUsecase) RepopulateCelebrityCache(ctx context.Context, cel
 		// We do this per celebrity to keep the ZSet clean
 		posts, err := as.PostRelationRepository.FetchLatestPostIDsByUserID(cID, 50)
 		if err != nil || len(posts) == 0 {
+			if err!=gorm.ErrRecordNotFound{
+				as.Log.Error("Error in fetching latest post ids by user id",
+					logger.Field{Key:"error",Value: err})
+			}
 			continue
 		}
 
@@ -1261,25 +1270,31 @@ func (as *PostRelationUsecase) RepopulateCelebrityCache(ctx context.Context, cel
 
 		_, err = pipe.Exec(ctx)
 		if err != nil {
-			log.Printf("Failed to repopulate cache for celeb %d: %v", cID, err)
+			//log.Printf("Failed to repopulate cache for celeb %d: %v", cID, err)
+			as.Log.Error("Failed to repopulate cache for celeb",
+				logger.Field{Key: "error",Value: err})
 		}
 	}
 }
-func (as *PostRelationUsecase) getFeedVersion(ctx context.Context, userID uint64) string {
+func (as *PostRelationUsecase) getFeedVersion(ctx context.Context, userID uint64) (string,error) {
 	versionKey := fmt.Sprintf("user:%d:feed_version", userID)
 	version, err := as.RedisRepository.CacheGet(ctx, versionKey)
 	if err != nil || len(version) == 0 {
 		// If no version exists, start at 1
-		as.RedisRepository.CacheSet(ctx, versionKey, []byte("1"), 48*time.Hour)
-		fmt.Println(err, len(version))
-		return "1"
+		if err==redis.Nil{
+			as.Log.Info("setting feed version to 1",
+				logger.Field{Key: "error",Value: err})	
+			as.RedisRepository.CacheSet(ctx, versionKey, []byte("1"), 48*time.Hour)
+			return "1",nil
+		}
+		return "",fmt.Errorf("redis error while getting feed_version %v:",err)
 	}
 	// OPTIONAL: Refresh the 48h timer so active users never lose their version
 	err = as.RedisRepository.ExtendTTL(ctx, versionKey, 48*time.Hour)
 	if err != nil {
-		log.Println("failed to extend ttl")
+		return "",err
 	}
-	return string(version)
+	return version,nil
 }
 
 func (as *PostRelationUsecase) FetchGlobalNewsFeed(req requestmodels.GlobalNewsFeedRequest) (responsemodels.FetchGlobalNewsFeedResponse, error) {
