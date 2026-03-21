@@ -16,4 +16,6 @@ func ChatRoutes(router *gin.Engine, chatHandler *chatServiceHandler.ChatHandler,
 	router.GET("/user/get-recent-chat-profiles",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.RecentChatProfiles)
 	router.GET("/user/chat/:conv_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.GetChat)
 	router.PATCH("/user/group/:group_id/set-group-profile-image",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.SetGroupProfileImage)
+
+	router.POST("/chat/panic",chatHandler.PanicInChat)
 }

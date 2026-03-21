@@ -22,3 +22,10 @@ type Relation struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+type Follow_Count struct {
+	UserID         uint `gorm:"primaryKey"`
+	FollowCount    uint
+	FollowingCount uint
+	UpdatedAt      time.Time
+}

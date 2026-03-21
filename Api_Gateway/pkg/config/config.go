@@ -10,6 +10,7 @@ type Config struct {
 	NotificationSvcUrl     string `mapstructure:"NOTIFICATION_SVC_URL"`
 	MaxFileNumber	string `mapstructure:"MAX_FILE_NUMBER"`
 	ProfileImgSize string `mapstructure:"PROFILE_IMG_SIZE"`
+	PostSize string `mapstructure:"POST_SIZE"`
 	AuthSource 	string `mapstructure:"AUTH_SOURCE"`
 	Token Token
 	Razorpay Razorpay

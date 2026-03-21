@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	services "github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/api"
+	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/client"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/db"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/infrastructure/jwt"
@@ -29,8 +30,13 @@ func DependencyIndjection(cfg *config.Config) (*services.AuthSubscriptionServer,
 	}
 	//razorpayClient := utils.NewRazorpayClient(cfg.Razorpay.KeyId, cfg.Razorpay.KeySecret)
 	razorpayGateway := razorpaygateway.NewRazorpayGateway(cfg.Razorpay.KeyId, cfg.Razorpay.KeySecret)
+
+	postRelationClient, err := client.InitPostRelationServiceClient(cfg)
+	if err != nil {
+		return nil, err
+	}
 	AuthSubscriptionUsecase := usecase.NewAuthSubscriptionUsecase(AuthSubscriptionRepository,
-		SmtpProvider, cfg, JwtProvider, razorpayGateway, AwsS3Client, cfg.Aws.AwsBucket)
+		SmtpProvider, cfg, JwtProvider, razorpayGateway, AwsS3Client, cfg.Aws.AwsBucket,postRelationClient)
 	AuthSubscriptionServiceServer := services.NewAuthSubscriptionServer(AuthSubscriptionUsecase)
 
 	return AuthSubscriptionServiceServer, nil

@@ -540,3 +540,27 @@ func (as *ChatHandler)GetChat(c *gin.Context){
 
 	c.Data(resp.StatusCode, "application/json", body)
 }
+
+func (as *ChatHandler) PanicInChat(c *gin.Context){
+	//panic("intentional test panic in api gateway")
+	fullURL := fmt.Sprintf("http://localhost:50053/chat/panic")
+	httpReq, err := http.NewRequest("POST", fullURL, nil)
+	if err != nil {
+		log.Printf("Failed to create request: %v", err)
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		c.JSON(502, gin.H{"error": "chat service unavailable"})
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	c.Data(resp.StatusCode, "application/json", body)
+
+}

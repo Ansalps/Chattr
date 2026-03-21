@@ -1212,3 +1212,19 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, resp1)
 }
+
+func (as *AuthSubscriptionHandler) Panic(c *gin.Context){
+	panic("intentional test panic in api gateway")
+}
+
+func (as *AuthSubscriptionHandler)PanicInAuth(c *gin.Context){
+	log:=utils.GetLogger(c)
+	resp,err:=as.DirectClient.Client.PanicInAuth(context.TODO(),&auth_subscription.PanicInAuthReq{})
+	if err!=nil{
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return
+	}
+	c.JSON(http.StatusOK,resp)
+}

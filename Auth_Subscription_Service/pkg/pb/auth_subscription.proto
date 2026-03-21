@@ -53,6 +53,14 @@ service AuthSubscriptionService{
     rpc DoesUserExists(DoesUserExistsRequest) returns (DoesUserExistsResponse);
 
     rpc CheckAllUsersExists(UserDataReq) returns (UsersNotExistsResponse);
+
+    rpc PanicInAuth(PanicInAuthReq) returns (PanicInAuthRes);
+}
+message PanicInAuthReq{
+
+}
+message PanicInAuthRes{
+    
 }
 message UsersNotExistsResponse{
     repeated uint64 UserId=1;

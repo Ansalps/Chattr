@@ -28,4 +28,6 @@ type PostRelationUsecase interface {
 
 	FetchPostUserDataForNewsFeed(requestmodels.FetchNewsFeedRequest)(responsemodels.FetchNewsFeedResponse,error)
 	FetchGlobalNewsFeed(requestmodels.GlobalNewsFeedRequest)(responsemodels.FetchGlobalNewsFeedResponse,error)
+
+	InsertUserIntoFollowCount(userid uint64)(error)
 }

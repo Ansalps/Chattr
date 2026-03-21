@@ -778,3 +778,6 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionCompleted(ctx context.Conte
 	}, nil
 }
 
+func (as *AuthSubscriptionServer)PanicInAuth(ctx context.Context,req *pb.PanicInAuthReq)(*pb.PanicInAuthRes,error){
+	panic("intentional test panic in auth subscription service")
+}

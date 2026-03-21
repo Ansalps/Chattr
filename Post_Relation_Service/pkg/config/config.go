@@ -21,6 +21,7 @@ type KafkaConfig struct {
 }
 type Config struct {
 	PortMngr PortManager
+	CelebrityFollowCount	string `mapstructure:"CELEBRITY_FOLLOW_COUNT"`
 	DB       Database
 	Redis Redis
 	Kafka        KafkaConfig

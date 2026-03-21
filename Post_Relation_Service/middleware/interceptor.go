@@ -60,7 +60,7 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 		log := utils.GetLogger(ctx)
 		
 		if err != nil {
-			log.Error("Client/server Error", logger.Field{Key: "details", Value: err.Error()})
+			log.Error("Client/server Error", logger.Field{Key: "details", Value: err})
 			switch{
 			case errors.Is(err,domain.ErrNoFollowingNoPost):
 				return nil,status.Error(codes.NotFound,domain.ErrNoFollowingNoPost.Error())

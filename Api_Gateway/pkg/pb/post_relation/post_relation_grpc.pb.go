@@ -36,6 +36,7 @@ const (
 	PostRelationService_PostFollowCount_FullMethodName     = "/post_relation.PostRelationService/PostFollowCount"
 	PostRelationService_FetchNewsFeed_FullMethodName       = "/post_relation.PostRelationService/FetchNewsFeed"
 	PostRelationService_FetchGlobalNewsFeed_FullMethodName = "/post_relation.PostRelationService/FetchGlobalNewsFeed"
+	PostRelationService_PanicInPost_FullMethodName         = "/post_relation.PostRelationService/PanicInPost"
 )
 
 // PostRelationServiceClient is the client API for PostRelationService service.
@@ -59,6 +60,7 @@ type PostRelationServiceClient interface {
 	PostFollowCount(ctx context.Context, in *PostFollowCountRequest, opts ...grpc.CallOption) (*PostFollowCountResponse, error)
 	FetchNewsFeed(ctx context.Context, in *FetchNewsFeedRequest, opts ...grpc.CallOption) (*FetchNewsFeedResponse, error)
 	FetchGlobalNewsFeed(ctx context.Context, in *FetchGlobalNewsFeedRequest, opts ...grpc.CallOption) (*FetchGlobalNewsFeedResponse, error)
+	PanicInPost(ctx context.Context, in *PanicInPostReq, opts ...grpc.CallOption) (*PanicInPostRes, error)
 }
 
 type postRelationServiceClient struct {
@@ -239,6 +241,16 @@ func (c *postRelationServiceClient) FetchGlobalNewsFeed(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *postRelationServiceClient) PanicInPost(ctx context.Context, in *PanicInPostReq, opts ...grpc.CallOption) (*PanicInPostRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PanicInPostRes)
+	err := c.cc.Invoke(ctx, PostRelationService_PanicInPost_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PostRelationServiceServer is the server API for PostRelationService service.
 // All implementations must embed UnimplementedPostRelationServiceServer
 // for forward compatibility.
@@ -260,6 +272,7 @@ type PostRelationServiceServer interface {
 	PostFollowCount(context.Context, *PostFollowCountRequest) (*PostFollowCountResponse, error)
 	FetchNewsFeed(context.Context, *FetchNewsFeedRequest) (*FetchNewsFeedResponse, error)
 	FetchGlobalNewsFeed(context.Context, *FetchGlobalNewsFeedRequest) (*FetchGlobalNewsFeedResponse, error)
+	PanicInPost(context.Context, *PanicInPostReq) (*PanicInPostRes, error)
 	mustEmbedUnimplementedPostRelationServiceServer()
 }
 
@@ -320,6 +333,9 @@ func (UnimplementedPostRelationServiceServer) FetchNewsFeed(context.Context, *Fe
 }
 func (UnimplementedPostRelationServiceServer) FetchGlobalNewsFeed(context.Context, *FetchGlobalNewsFeedRequest) (*FetchGlobalNewsFeedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FetchGlobalNewsFeed not implemented")
+}
+func (UnimplementedPostRelationServiceServer) PanicInPost(context.Context, *PanicInPostReq) (*PanicInPostRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PanicInPost not implemented")
 }
 func (UnimplementedPostRelationServiceServer) mustEmbedUnimplementedPostRelationServiceServer() {}
 func (UnimplementedPostRelationServiceServer) testEmbeddedByValue()                             {}
@@ -648,6 +664,24 @@ func _PostRelationService_FetchGlobalNewsFeed_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PostRelationService_PanicInPost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PanicInPostReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostRelationServiceServer).PanicInPost(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostRelationService_PanicInPost_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostRelationServiceServer).PanicInPost(ctx, req.(*PanicInPostReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PostRelationService_ServiceDesc is the grpc.ServiceDesc for PostRelationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -722,6 +756,10 @@ var PostRelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FetchGlobalNewsFeed",
 			Handler:    _PostRelationService_FetchGlobalNewsFeed_Handler,
+		},
+		{
+			MethodName: "PanicInPost",
+			Handler:    _PostRelationService_PanicInPost_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

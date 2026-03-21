@@ -391,13 +391,13 @@ func (ad *ChatRepository) GetUserConversation(req requestmodels.RecentChatProfil
 	// 3. Execution
 	cursor, err := collection.Find(ctx, filter, findOptions)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v",err,"error in fetching conversations of user_id")
 	}
 	defer cursor.Close(ctx)
 
 	var conversations []domain.Conversation
 	if err := cursor.All(ctx, &conversations); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v",err,"error decoding each mongo document into struct")
 	}
 
 	return conversations, nil
@@ -441,7 +441,7 @@ func (ad *ChatRepository) GetGroupMetaBatch(groupIDs []string) (map[string]respo
 
 	cursor, err := collection.Find(context.Background(), filter, options.Find().SetProjection(projection))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v",err,"error in finding group documents")
 	}
 	defer cursor.Close(context.Background())
 
@@ -457,7 +457,7 @@ func (ad *ChatRepository) GetGroupMetaBatch(groupIDs []string) (map[string]respo
 		// 	Name:     temp.Name,
 		// 	ImageURL: temp.ImageURL, // may be empty
 		// }
-		if err := cursor.Decode(&temp); err == nil {
+		if err := cursor.Decode(&temp); err != nil {
 			return nil, err
 		}
 	}

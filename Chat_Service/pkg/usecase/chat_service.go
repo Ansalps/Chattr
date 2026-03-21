@@ -476,18 +476,21 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 			groupIDs = append(groupIDs, c.GroupID)
 		}
 	}
-
+	var groupMeta map[string]responsemodels.GroupMeta
+	if len(groupIDs)>0{
 	// 2. One Batch Call for Groups
 	//groupNames, err := as.ChatRepository.GetGroupNamesBatch(groupIDs) // Map[ID]Name
-	groupMeta, err := as.ChatRepository.GetGroupMetaBatch(groupIDs)
+	groupMeta, err = as.ChatRepository.GetGroupMetaBatch(groupIDs)
 
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return nil, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
 		}
-		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		if err!=mongo.ErrNoDocuments{
+			return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		}
 	}
-
+	}
 	// 3. Batch Call to Auth Service
 	// Request: { user_ids: [10, 11, ...] }
 	// Response: { user_metadata_map: { "10": {name: "Ansal", img: "..."}, "11": {...} } }

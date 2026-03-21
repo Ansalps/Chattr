@@ -41,4 +41,9 @@ type PostRelationRepository interface {
 	DepromoteToNormalUser(userid uint64)error
 
 	FetchGlobalTrendingSQL(requestmodels.GlobalNewsFeedRequest)([]responsemodels.PostWithStatusWithTrendingScore,error)
+
+	UpdatFollowCountOnFollow(uint64,uint64)(uint64,error)
+	UpdatFollowCountOnUnFollow(uint64,uint64)(uint64,error)
+
+	InsertUserIntoFollowCount(userid uint64)(error)
 }

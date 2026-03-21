@@ -1,11 +1,15 @@
 TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiZW1haWwiOiJhbnNhbHBzMTBAZ21haWwuY29tIiwicm9sZSI6InVzZXIiLCJ0eXBlIjoiYWNjZXNzIiwiaXNzIjoiQ2hhdHRyIiwiZXhwIjoxNzcyOTUwNjMxLCJpYXQiOjE3NzI4NjQyMzEsImp0aSI6Ijk2NzExZDU4LWJiMDAtNGMzMy1iMGU5LTEyYzk2MjI5MzYzNyJ9.N7MWUjNG6sp4CRXGpCk1lPYrqr95ea530T78n0gvq9c
 
-.PHONY: papiauth Run
+.PHONY: papiauth papipost Run
 
 papiauth:
 	cd Api_Gateway && protoc --go_out=. --go-grpc_out=. ./pkg/proto/auth_subscription.proto
+papipost:
+	cd Api_Gateway && protoc --go_out=. --go-grpc_out=. ./pkg/proto/post_relation.proto
 pauthauth:
 	cd Auth_Subscription_Service && protoc --go_out=. --go-grpc_out=. ./pkg/pb/auth_subscription.proto
+ppostpost:
+	cd Post_Relation_Service && protoc --go_out=. --go-grpc_out=. ./pkg/pb/post_relation.proto
 Run:
 	cd Api_Gateway && go run ./cmd/main.go & \
 	cd Auth_Subscription_Service && go run ./cmd/main.go & \

@@ -283,9 +283,9 @@ func (ad *PostRelationRepository) FetchFollowersUserIds1(req requestmodels.Fetch
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	if result.RowsAffected == 0 {
-		return nil, gorm.ErrRecordNotFound
-	}
+	// if result.RowsAffected == 0 {
+	// 	return nil, gorm.ErrRecordNotFound
+	// }
 	return resp, nil
 }
 func (ad *PostRelationRepository) FetchFollowingUserIds(req requestmodels.FetchFollowingRequest) ([]responsemodels.FollowingIds, error) {
@@ -296,9 +296,9 @@ func (ad *PostRelationRepository) FetchFollowingUserIds(req requestmodels.FetchF
 		//fmt.Println("is it reaching in error")
 		return nil, result.Error
 	}
-	if result.RowsAffected == 0 {
-		return nil, gorm.ErrRecordNotFound
-	}
+	// if result.RowsAffected == 0 {
+	// 	return nil, gorm.ErrRecordNotFound
+	// }
 	return resp, nil
 }
 
@@ -357,16 +357,22 @@ func (ad *PostRelationRepository) FetchNormalPostData(newsfeedReq requestmodels.
 		query = query.Where("posts.id < ?", newsfeedReq.LastID)
 	}
 
-	err := query.Order("posts.id DESC").Limit(int(newsfeedReq.Limit) + 1).Preload("Media").Find(&resp).Error
-	return resp, err
+	query1 := query.Order("posts.id DESC").Limit(int(newsfeedReq.Limit) + 1).Preload("Media").Find(&resp)
+	if query1.Error!=nil{
+		return nil,fmt.Errorf("error in fetch normal post data: %w",query1.Error)
+	}
+	return resp, nil
 }
 func (ad *PostRelationRepository) GetFollowedCelebrityIDs(userID uint64) ([]uint64, error) {
 	var celebIDs []uint64
-	err := ad.DB.Table("relations").
+	query := ad.DB.Table("relations").
 		Select("following_id").
 		Where("follower_id = ? AND following_id IN (SELECT id FROM celebrities)", userID).
-		Pluck("following_id", &celebIDs).Error
-	return celebIDs, err
+		Pluck("following_id", &celebIDs)
+	if query.Error!=nil{
+		return nil,fmt.Errorf("error fething followed celebrity ids: %w",query.Error)
+	}
+	return celebIDs, nil
 }
 func (ad *PostRelationRepository) FetchPostsByIDs(postIDs []uint64, viewerID uint64) ([]responsemodels.PostWithStatus, error) {
 	var resp []responsemodels.PostWithStatus
@@ -374,7 +380,7 @@ func (ad *PostRelationRepository) FetchPostsByIDs(postIDs []uint64, viewerID uin
 		return resp, nil
 	}
 
-	err := ad.DB.Table("posts").
+	query1 := ad.DB.Table("posts").
 		Select(`posts.*, 
 		(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count,
 		(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
@@ -383,10 +389,14 @@ func (ad *PostRelationRepository) FetchPostsByIDs(postIDs []uint64, viewerID uin
 		Where("id IN ?", postIDs).
 		Preload("Media").
 		Order("id DESC"). // Keep them sorted for the merge
-		Find(&resp).Error
-	return resp, err
+		Find(&resp)
+	if query1.Error!=nil{
+		return nil,fmt.Errorf("error in fetching posts by id: %w",query1.Error)
+	}
+	return resp, nil
 }
 func (ad *PostRelationRepository) FetchCelebrityPostIDsFromSQL(celebIDs []uint64, lastID uint64, limit int) ([]uint64, error) {
+	fmt.Println("here----------")
 	var postIDs []uint64
 
 	query := ad.DB.Table("posts").
@@ -398,9 +408,13 @@ func (ad *PostRelationRepository) FetchCelebrityPostIDsFromSQL(celebIDs []uint64
 	}
 
 	// We pull 'limit' posts per request to ensure we have enough to merge
-	err := query.Order("id DESC").Limit(limit).Pluck("id", &postIDs).Error
-
-	return postIDs, err
+	query1 := query.Order("id DESC").Limit(limit).Pluck("id", &postIDs)
+	if query1.Error!=nil{
+		fmt.Println("hi-----------",query1.Error)
+		return nil, fmt.Errorf("error in fetching celebrity post ids: %w",query1.Error)
+	}
+	fmt.Println("hello----------")
+	return postIDs, nil
 }
 func (ad *PostRelationRepository) FetchLatestPostIDsByUserID(userID uint64, limit int) ([]uint64, error) {
 	var ids []uint64
@@ -491,4 +505,105 @@ Find(&posts).Error
 	}
 
 	return posts, nil
+}
+
+func (r *PostRelationRepository) UpdatFollowCountOnFollow(
+	followerID uint64,
+	followingID uint64,
+) (uint64, error) {
+
+	var followerCount uint64
+
+	tx := r.DB.Begin()
+	if tx.Error != nil {
+		return 0, tx.Error
+	}
+
+	// 1. increase follower count of the user being followed
+	err := tx.Raw(`
+		UPDATE follow_counts
+		SET follow_count = follow_count + 1,
+		    updated_at = NOW()
+		WHERE user_id = ?
+		RETURNING follow_count
+	`, followingID).Scan(&followerCount).Error
+
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// 2. increase following count of follower
+	err = tx.Exec(`
+		UPDATE follow_counts
+		SET following_count = following_count + 1,
+		    updated_at = NOW()
+		WHERE user_id = ?
+	`, followerID).Error
+
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return 0, err
+	}
+
+	return followerCount, nil
+}
+
+func (r *PostRelationRepository) UpdatFollowCountOnUnFollow(
+	followerID uint64,
+	followingID uint64,
+) (uint64, error) {
+
+	var followerCount uint64
+
+	tx := r.DB.Begin()
+	if tx.Error != nil {
+		return 0, tx.Error
+	}
+
+	// 1. decrease follower count of the user being unfollowed
+	err := tx.Raw(`
+		UPDATE follow_counts
+		SET follow_count = GREATEST(follow_count - 1, 0),
+		    updated_at = NOW()
+		WHERE user_id = ?
+		RETURNING follow_count
+	`, followingID).Scan(&followerCount).Error
+
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	// 2. decrease following count of follower
+	err = tx.Exec(`
+		UPDATE follow_counts
+		SET following_count = GREATEST(following_count - 1,0),
+		    updated_at = NOW()
+		WHERE user_id = ?
+	`, followerID).Error
+
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return 0, err
+	}
+
+	return followerCount, nil
+}
+
+func (ad *PostRelationRepository)InsertUserIntoFollowCount(userid uint64)(error){
+	query:=`INSERT INTO follow_counts (user_id,follow_count,following_count,updated_at) VALUES ($1,0,0,NOW())`
+	err:=ad.DB.Exec(query,userid).Error
+	if err!=nil{
+		return err
+	}
+	return nil
 }

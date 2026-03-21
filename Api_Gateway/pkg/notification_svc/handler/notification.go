@@ -90,3 +90,25 @@ func (as *NotificationHandler) GetAllNotifications(c *gin.Context) {
 
 	c.Data(resp.StatusCode, "application/json", body)
 }
+
+func (as *NotificationHandler)PanicInNotification(c *gin.Context){
+	fullURL := fmt.Sprintf("http://localhost:50054/notification/panic")
+	httpReq, err := http.NewRequest("POST", fullURL, nil)
+	if err != nil {
+		log.Printf("Failed to create request: %v", err)
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		c.JSON(502, gin.H{"error": "notification service unavailable"})
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	c.Data(resp.StatusCode, "application/json", body)
+}

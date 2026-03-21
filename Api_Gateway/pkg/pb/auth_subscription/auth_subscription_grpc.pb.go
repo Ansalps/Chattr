@@ -50,6 +50,7 @@ const (
 	AuthSubscriptionService_WebhookSubscriptionHalted_FullMethodName     = "/auth_subscription.AuthSubscriptionService/WebhookSubscriptionHalted"
 	AuthSubscriptionService_WebhookSubscriptionCancelled_FullMethodName  = "/auth_subscription.AuthSubscriptionService/WebhookSubscriptionCancelled"
 	AuthSubscriptionService_WebhookSubscriptionCompleted_FullMethodName  = "/auth_subscription.AuthSubscriptionService/WebhookSubscriptionCompleted"
+	AuthSubscriptionService_PanicInAuth_FullMethodName                   = "/auth_subscription.AuthSubscriptionService/PanicInAuth"
 )
 
 // AuthSubscriptionServiceClient is the client API for AuthSubscriptionService service.
@@ -87,6 +88,7 @@ type AuthSubscriptionServiceClient interface {
 	WebhookSubscriptionHalted(ctx context.Context, in *WebhookSubscriptionHaltedRequest, opts ...grpc.CallOption) (*WebhookSubscriptionHaltedResponse, error)
 	WebhookSubscriptionCancelled(ctx context.Context, in *WebhookSubscriptionCancelledRequest, opts ...grpc.CallOption) (*WebhookSubscriptionCancelledResponse, error)
 	WebhookSubscriptionCompleted(ctx context.Context, in *WebhookSubscriptionCompletedRequest, opts ...grpc.CallOption) (*WebhookSubscriptionCompletedResponse, error)
+	PanicInAuth(ctx context.Context, in *PanicInAuthReq, opts ...grpc.CallOption) (*PanicInAuthRes, error)
 }
 
 type authSubscriptionServiceClient struct {
@@ -407,6 +409,16 @@ func (c *authSubscriptionServiceClient) WebhookSubscriptionCompleted(ctx context
 	return out, nil
 }
 
+func (c *authSubscriptionServiceClient) PanicInAuth(ctx context.Context, in *PanicInAuthReq, opts ...grpc.CallOption) (*PanicInAuthRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PanicInAuthRes)
+	err := c.cc.Invoke(ctx, AuthSubscriptionService_PanicInAuth_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthSubscriptionServiceServer is the server API for AuthSubscriptionService service.
 // All implementations must embed UnimplementedAuthSubscriptionServiceServer
 // for forward compatibility.
@@ -442,6 +454,7 @@ type AuthSubscriptionServiceServer interface {
 	WebhookSubscriptionHalted(context.Context, *WebhookSubscriptionHaltedRequest) (*WebhookSubscriptionHaltedResponse, error)
 	WebhookSubscriptionCancelled(context.Context, *WebhookSubscriptionCancelledRequest) (*WebhookSubscriptionCancelledResponse, error)
 	WebhookSubscriptionCompleted(context.Context, *WebhookSubscriptionCompletedRequest) (*WebhookSubscriptionCompletedResponse, error)
+	PanicInAuth(context.Context, *PanicInAuthReq) (*PanicInAuthRes, error)
 	mustEmbedUnimplementedAuthSubscriptionServiceServer()
 }
 
@@ -544,6 +557,9 @@ func (UnimplementedAuthSubscriptionServiceServer) WebhookSubscriptionCancelled(c
 }
 func (UnimplementedAuthSubscriptionServiceServer) WebhookSubscriptionCompleted(context.Context, *WebhookSubscriptionCompletedRequest) (*WebhookSubscriptionCompletedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method WebhookSubscriptionCompleted not implemented")
+}
+func (UnimplementedAuthSubscriptionServiceServer) PanicInAuth(context.Context, *PanicInAuthReq) (*PanicInAuthRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PanicInAuth not implemented")
 }
 func (UnimplementedAuthSubscriptionServiceServer) mustEmbedUnimplementedAuthSubscriptionServiceServer() {
 }
@@ -1125,6 +1141,24 @@ func _AuthSubscriptionService_WebhookSubscriptionCompleted_Handler(srv interface
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthSubscriptionService_PanicInAuth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PanicInAuthReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthSubscriptionServiceServer).PanicInAuth(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthSubscriptionService_PanicInAuth_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthSubscriptionServiceServer).PanicInAuth(ctx, req.(*PanicInAuthReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthSubscriptionService_ServiceDesc is the grpc.ServiceDesc for AuthSubscriptionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1255,6 +1289,10 @@ var AuthSubscriptionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "WebhookSubscriptionCompleted",
 			Handler:    _AuthSubscriptionService_WebhookSubscriptionCompleted_Handler,
+		},
+		{
+			MethodName: "PanicInAuth",
+			Handler:    _AuthSubscriptionService_PanicInAuth_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

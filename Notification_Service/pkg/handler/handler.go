@@ -141,6 +141,10 @@ func (as *NotificationHandler) GetAllNotifications(c *gin.Context) {
 	c.JSON(http.StatusOK, resp1)
 }
 
+func (as *NotificationHandler)PanicInNotification(c *gin.Context){
+	panic("intentional test panic in notifications service")
+}
+
 // func (as *NotificationHandler) reader(c *websockethub.Client) {
 // 	defer func() {
 // 		as.Hub.Unregister <- c.UserID

@@ -12,4 +12,6 @@ func NotificationServiceRoutes(router *gin.Engine, notificationHandler *handler.
 	// router.DELETE("/user/group/remove-member", chatHandler.RemoveMember)
 	// router.GET("/user/get-recent-chat-profiles", chatHandler.GetRecentChatProfiles)
 	 router.GET("/user/notifications", notificationHandler.GetAllNotifications)
+
+	 router.POST("/notification/panic",notificationHandler.PanicInNotification)
 }

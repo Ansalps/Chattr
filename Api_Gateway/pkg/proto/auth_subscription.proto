@@ -44,6 +44,14 @@ service AuthSubscriptionService{
     rpc WebhookSubscriptionCancelled(WebhookSubscriptionCancelledRequest) returns (WebhookSubscriptionCancelledResponse);
 
     rpc WebhookSubscriptionCompleted(WebhookSubscriptionCompletedRequest) returns (WebhookSubscriptionCompletedResponse);
+
+    rpc PanicInAuth(PanicInAuthReq) returns (PanicInAuthRes);
+}
+message PanicInAuthReq{
+
+}
+message PanicInAuthRes{
+    
 }
 message WebhookSubscriptionCompletedRequest{
     string RazorpaySubscriptionId=1;

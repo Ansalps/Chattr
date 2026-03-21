@@ -26,6 +26,14 @@ service PostRelationService{
 
     rpc FetchNewsFeed(FetchNewsFeedRequest) returns (FetchNewsFeedResponse);
     rpc FetchGlobalNewsFeed(FetchGlobalNewsFeedRequest) returns (FetchGlobalNewsFeedResponse);
+
+    rpc PanicInPost(PanicInPostReq) returns (PanicInPostRes);
+}
+message PanicInPostReq{
+
+}
+message PanicInPostRes{
+
 }
 message FetchGlobalNewsFeedRequest{
     uint64 UserId=1;

@@ -4,6 +4,8 @@ option go_package="./pkg/pb";
 import "google/protobuf/timestamp.proto";
 
 service PostRelationService{
+    rpc InsertUserIntoFollowCount(InsertUserRequest) returns(Empty);
+
     rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
     rpc FetchAllPosts(FetchAllPostsRequest) returns (FetchAllPostsResponse);
     rpc EditPost(EditPostRequest) returns (EditPostResponse);
@@ -26,7 +28,22 @@ service PostRelationService{
 
     rpc FetchNewsFeed(FetchNewsFeedRequest) returns (FetchNewsFeedResponse);
     rpc FetchGlobalNewsFeed(FetchGlobalNewsFeedRequest) returns (FetchGlobalNewsFeedResponse);
+
+    rpc PanicInPost(PanicInPostReq) returns (PanicInPostRes);
 }
+message PanicInPostReq{
+
+}
+message PanicInPostRes{
+    
+}
+message InsertUserRequest{
+    uint64 UserId=1;
+}
+message Empty{
+
+}
+
 message FetchGlobalNewsFeedRequest{
     uint64 UserId=1;
     int64 Limit=2;

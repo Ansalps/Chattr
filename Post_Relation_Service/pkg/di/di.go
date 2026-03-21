@@ -27,7 +27,8 @@ func DependencyIndjection(cfg *config.Config,log logger.Logger) (*services.PostR
 	kafkaProducer := kafka.NewKafkaProducer([]string{cfg.Kafka.Brokers})
 
 	PostRelationRepository := repository.NewPostRelationRepository(gormDB)
-	PostRelationUsecase := usecase.NewPostRelationUsecase(PostRelationRepository, authSubscriptionClient, RedisRepository,kafkaProducer,log)
+	PostRelationUsecase := usecase.NewPostRelationUsecase(PostRelationRepository, authSubscriptionClient,
+		 RedisRepository,kafkaProducer,log,cfg)
 	PostRelationServiceServer := services.NewPostRelationSever(PostRelationUsecase)
 
 	return PostRelationServiceServer, nil

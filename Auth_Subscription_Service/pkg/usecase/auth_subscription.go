@@ -16,6 +16,7 @@ import (
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/infrastructure/smtp"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/responsemodels"
+	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/pb"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/repository/interfacesRepository"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/usecase/interfacesUsecase"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils"
@@ -31,13 +32,17 @@ type AuthSubscriptionUsecase struct {
 	Config                     *config.Config
 	JwtProvider                *jwt.JwtProvider
 	//RazorpayCredentials	*config.Razorpay
-	RazorpayGateway *razorpaygateway.RazorpayGateway
-	AwsS3Client     *s3.Client
-	AwsBucket       string
+	RazorpayGateway    *razorpaygateway.RazorpayGateway
+	AwsS3Client        *s3.Client
+	AwsBucket          string
+	PostRelationClient pb.PostRelationServiceClient
 }
 
 func NewAuthSubscriptionUsecase(repository interfacesRepository.AuthSubscriptionRepository,
-	smtpProvider *smtp.SmtpCredentials, config *config.Config, jwtProvider *jwt.JwtProvider /*razorpayCredentials *config.Razorpay,*/, razorpayGateway *razorpaygateway.RazorpayGateway, awsS3Client *s3.Client, awsBucket string) interfacesUsecase.AuthSubscriptionUsecase {
+	smtpProvider *smtp.SmtpCredentials, config *config.Config, 
+	jwtProvider *jwt.JwtProvider /*razorpayCredentials *config.Razorpay,*/,
+	 razorpayGateway *razorpaygateway.RazorpayGateway, awsS3Client *s3.Client,
+	  awsBucket string,postRelationClient pb.PostRelationServiceClient) interfacesUsecase.AuthSubscriptionUsecase {
 	return &AuthSubscriptionUsecase{
 		AuthSubscriptionRepository: repository,
 		SmtpProvider:               smtpProvider,
@@ -47,9 +52,9 @@ func NewAuthSubscriptionUsecase(repository interfacesRepository.AuthSubscription
 		RazorpayGateway: razorpayGateway,
 		AwsS3Client:     awsS3Client,
 		AwsBucket:       awsBucket,
+		PostRelationClient: postRelationClient,
 	}
 }
-
 
 func (as *AuthSubscriptionUsecase) AdminLogin(ctx context.Context, admin requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse, error) {
 	admins, err := as.AuthSubscriptionRepository.CheckAdminExistsByEmail(ctx, admin.Email)
@@ -273,8 +278,12 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(ctx context.Context, otpReq request
 	if err != nil {
 		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:", domain.ErrUserRefreshTokenFail, err)
 	}
-	//fmt.Println("userAccessTokenSting",userAccessTokenString)
-	//fmt.Println("userRefreshTokenString",userRefreshTokenString)
+	_,err=as.PostRelationClient.InsertUserIntoFollowCount(context.Background(),&pb.InsertUserRequest{
+			UserId: otpReq.UserId,
+		})
+	if err!=nil{
+		return responsemodels.OtpVerificationResponse{},fmt.Errorf("%w: %v:",domain.ErrInternal,err)
+	}
 	return responsemodels.OtpVerificationResponse{
 		Email:        otp.Email,
 		Status:       "verified",
@@ -803,10 +812,10 @@ func (as *AuthSubscriptionUsecase) SetProfileImage(setProfileImageReq requestmod
 func (as *AuthSubscriptionUsecase) DoesUserExists(userid uint64) (bool, error) {
 	resp, err := as.AuthSubscriptionRepository.DoesUserExists(userid)
 	if err != nil {
-		if err==gorm.ErrRecordNotFound{
-			return false,domain.ErrUserNotFound
+		if err == gorm.ErrRecordNotFound {
+			return false, domain.ErrUserNotFound
 		}
-		return false, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+		return false, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 	return resp, nil
 }
@@ -814,7 +823,7 @@ func (as *AuthSubscriptionUsecase) DoesUserExists(userid uint64) (bool, error) {
 func (as *AuthSubscriptionUsecase) CheckUserExists(userId uint64) (bool, error) {
 	status, err := as.AuthSubscriptionRepository.CheckUserExistsById(userId)
 	if err != nil {
-		return false,fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+		return false, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 	if !status {
 		return false, domain.ErrUserNotFound
@@ -896,7 +905,7 @@ func (as *AuthSubscriptionUsecase) FetchUserMetaData(userids []uint64) (map[uint
 		if err == gorm.ErrRecordNotFound {
 			return nil, domain.ErrUsersNotFound
 		}
-		return nil, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+		return nil, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 	return resp, nil
 }
@@ -918,7 +927,7 @@ func (as *AuthSubscriptionUsecase) GetSubscriptionDetails(req requestmodels.GetS
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.GetSubscriptionDetails{}, domain.ErrNoSubscription
 		}
-		return responsemodels.GetSubscriptionDetails{}, fmt.Errorf("%w: %v",domain.ErrDatabase,err)
+		return responsemodels.GetSubscriptionDetails{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 	return resp, nil
 }

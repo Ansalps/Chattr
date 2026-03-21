@@ -48,4 +48,6 @@ var (
 	ErrS3UploadFail=errors.New("profile image updload failed")
 
 	ErrPasswordMismatch=errors.New("passwords does not match")
+
+	ErrInternal=errors.New("internal server error")
 )

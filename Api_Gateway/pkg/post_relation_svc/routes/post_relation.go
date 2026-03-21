@@ -9,6 +9,7 @@ import (
 
 func PostRelationRoutes(router *gin.Engine,postRelationHandler *handler.PostRelationHandler,cfg *config.Config,authMiddleware *middleware.AuthMiddleware){
 	router.POST("/user/post",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.CreatePost)
+	router.GET("/user/posts",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchAllPosts)
 	router.GET("/user/:user_id/posts",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchAllPosts)
 	router.PATCH("/user/post/:post_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.EditPost)
 	router.DELETE("/user/post/:post_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.DeletePost)
@@ -23,9 +24,13 @@ func PostRelationRoutes(router *gin.Engine,postRelationHandler *handler.PostRela
 
 	router.POST("/user/relation/follow/:following_user_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.Follow)
 	router.DELETE("/user/relation/unfollow/:unfollowing_user_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.Unfollow)
+	router.GET("/user/relation/followers",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchFollowers)
 	router.GET("/user/:user_id/relation/followers",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchFollowers)
+	router.GET("/user/relation/following",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchFollowing)
 	router.GET("/user/:user_id/relation/following",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchFollowing)
 
 	router.GET("/user/newsfeed",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchNewsFeed)
 	router.GET("/user/global-newsfeed",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchGlobalNewseed)
+
+	router.POST("/post/panic",postRelationHandler.PanicInPost)
 }

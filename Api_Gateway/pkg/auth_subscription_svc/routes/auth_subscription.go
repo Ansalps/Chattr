@@ -40,9 +40,12 @@ func AuthSubscriptionRoutes(router *gin.Engine, authSubscriptionHandler *handler
 	router.PATCH("/user/change-password", authMiddleware.VerifyJwt([]string{"user"}, "access", tokenSecurityKey.UserSecurityKey), authSubscriptionHandler.ChangePassword)
 
 	router.GET("/user/search", authSubscriptionHandler.SearchUser)
-	//fmt.Println("is it reaching in registering routes")
 
 	router.POST("/user/logout", authMiddleware.VerifyJwt([]string{"user"}, "access", tokenSecurityKey.UserSecurityKey), authSubscriptionHandler.Logout)
 
 	router.POST("/", authSubscriptionHandler.Webhook)
+
+	router.POST("/panic",authSubscriptionHandler.Panic)
+
+	router.POST("/auth/panic",authSubscriptionHandler.PanicInAuth)
 }

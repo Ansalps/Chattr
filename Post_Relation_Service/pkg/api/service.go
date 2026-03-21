@@ -23,6 +23,14 @@ func NewPostRelationSever(useCase interfacesUsecase.PostRelationUsecase) *PostRe
 	}
 }
 
+func (as *PostRelationServer) InsertUserIntoFollowCount(ctx context.Context, req *pb.InsertUserRequest) (*pb.Empty, error) {
+	err := as.PostRelationUsecase.InsertUserIntoFollowCount(req.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return nil, err
+}
+
 func (as *PostRelationServer) CreatePost(ctx context.Context, req *pb.CreatePostRequest) (*pb.CreatePostResponse, error) {
 	//fmt.Println("in service print print urls request",req.MediaUrls)
 	createPostReq := requestmodels.CreatePostRequest{
@@ -342,8 +350,10 @@ func (as *PostRelationServer) FetchNewsFeed(ctx context.Context, req *pb.FetchNe
 	}
 	resp, err := as.PostRelationUsecase.FetchPostUserDataForNewsFeed(newsfeedReq)
 	if err != nil {
+		//fmt.Println("inside service,",err)
 		return nil, err
 	}
+	//fmt.Println("resp ",resp)
 	c := make([]*pb.PostUserData, len(resp.PostUserData))
 	for i, v := range resp.PostUserData {
 		var s1 []string
@@ -421,4 +431,8 @@ func (as *PostRelationServer) FetchGlobalNewsFeed(ctx context.Context, req *pb.F
 		NextCursor:   float32(resp.NextCursor),
 		HasMore:      resp.HasMore,
 	}, nil
+}
+
+func (as *PostRelationServer) PanicInPost(ctx context.Context, req *pb.PanicInPostReq) (*pb.PanicInPostRes, error) {
+	panic("intentional test panic in post relation service")
 }

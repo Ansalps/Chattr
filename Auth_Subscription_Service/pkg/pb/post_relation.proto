@@ -1,0 +1,14 @@
+syntax="proto3";
+package post_relation;
+option go_package="./pkg/pb";
+
+service PostRelationService{
+    rpc InsertUserIntoFollowCount(InsertUserRequest) returns(Empty);
+}
+
+message InsertUserRequest{
+    uint64 UserId=1;
+}
+message Empty{
+
+}

@@ -939,3 +939,7 @@ func (as *ChatHandler) SetGroupProfileImage(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"group_profile_image_url": resp})
 }
+
+func (as *ChatHandler)PanicInChat(c *gin.Context){
+	panic("intentional test panic in chat service")
+}

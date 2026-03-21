@@ -14,4 +14,6 @@ func ChatServiceRoutes(router *gin.Engine, chatHandler *handler.ChatHandler) {
 	router.GET("/user/chat/:conv_id",chatHandler.GetChat)
 	router.GET("/user/group/:group_id/members",chatHandler.GetGroupMembers)
 	router.PATCH("/user/group/:group_id/set-group-profile-image",chatHandler.SetGroupProfileImage)
+
+	router.POST("/chat/panic",chatHandler.PanicInChat)
 }

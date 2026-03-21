@@ -5,6 +5,7 @@ import "github.com/spf13/viper"
 
 type PortManager struct{
 	RunnerPort string `mapstructure:"PORT"`
+	PostRelationSvcUrl string `mapstructure:"POST_RELATION_SVC_URL"`
 }
 type Database struct{
 	DBHost     string `mapstructure:"DB_HOST"`
