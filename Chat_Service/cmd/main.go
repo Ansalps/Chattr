@@ -35,7 +35,7 @@ func main() {
 		log.Fatal("Cannot Start server due to failure in DependencyInjectin:",
 			logger.Field{Key: "error", Value: err})
 	}
-	handler.StartHub()
+	handler.StartHub(log)
 	// err = router.Run(config.PortMngr.RunnerPort)
 	// if err != nil {
 	// 	log.Fatal("Error starting server:",
@@ -68,5 +68,8 @@ func main() {
 		log.Fatal("forced shutdown",
 			logger.Field{Key: "error", Value: err})
 	}
+	// ✅ stop websocket hub
+	handler.StopHub()
 
+	log.Info("shutdown complete")
 }
