@@ -155,6 +155,25 @@ func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub) {
 	log.Info("websocket reader started")
 	defer func() {
 		hub.Unregister <- c.UserID
+		if err := c.Conn.WriteMessage(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(
+				websocket.CloseNormalClosure,
+				"server closing",
+			),
+		); err != nil {
+	
+			log.Debug("failed to send close frame",
+				logger.Field{Key: "error", Value: err},
+			)
+		}
+	
+		if err := c.Conn.Close(); err != nil {
+			log.Debug("failed to close websocket",
+				logger.Field{Key: "error", Value: err},
+			)
+		}
+	
 		log.Info("websocket client disconnected")
 	}()
 

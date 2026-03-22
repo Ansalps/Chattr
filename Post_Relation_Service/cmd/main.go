@@ -2,14 +2,17 @@ package main
 
 import (
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/Ansalps/Chattr_Post_Relation_Service/infrastructure/logger"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/middleware"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/di"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/pb"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
-	"github.com/grpc-ecosystem/go-grpc-middleware"
 )
 
 func main() {
@@ -19,27 +22,27 @@ func main() {
 		panic(err)
 	}
 
-	config, err := config.LoadConfig()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal("cannot load config",
 			logger.Field{Key: "error", Value: err},
 		)
 	}
-	PostRelationServiceServer, err := di.DependencyIndjection(config,log)
+	PostRelationServiceServer, err := di.DependencyIndjection(cfg, log)
 	if err != nil {
 		log.Fatal("cannot start server",
 			logger.Field{Key: "error", Value: err},
 		)
 	}
-	lis, err := net.Listen("tcp", config.PortMngr.RunnerPort)
+	lis, err := net.Listen("tcp", cfg.PortMngr.RunnerPort)
 	if err != nil {
 		log.Fatal("failed to listen",
 			logger.Field{Key: "error", Value: err},
 		)
 	}
-	log.Info("Post Relation Service started",
-		logger.Field{Key: "port", Value: config.PortMngr.RunnerPort},
-	)
+	// log.Info("Post Relation Service started",
+	// 	logger.Field{Key: "port", Value: cfg.PortMngr.RunnerPort},
+	// )
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
 			grpc_middleware.ChainUnaryServer(
@@ -49,10 +52,32 @@ func main() {
 		),
 	)
 	pb.RegisterPostRelationServiceServer(grpcServer, PostRelationServiceServer)
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatal("failed to start grpc server",
-			logger.Field{Key: "error", Value: err},
-		)
-	}
+	// if err := grpcServer.Serve(lis); err != nil {
+	// 	log.Fatal("failed to start grpc server",
+	// 		logger.Field{Key: "error", Value: err},
+	// 	)
+	// }
 
+	log.Info("Post Relation Service started",
+		logger.Field{Key: "port", Value: cfg.PortMngr.RunnerPort},
+	)
+
+	// start server in goroutine
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatal("failed to start grpc server",
+				logger.Field{Key: "error", Value: err})
+		}
+	}()
+
+	// wait for signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	<-quit
+	log.Info("Shutting down gRPC server...")
+
+	grpcServer.GracefulStop()
+
+	log.Info("gRPC server stopped")
 }

@@ -2,14 +2,17 @@ package main
 
 import (
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/logger"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/middleware"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/di"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/pb"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
-	"github.com/grpc-ecosystem/go-grpc-middleware"
 )
 
 func main() {
@@ -20,27 +23,27 @@ func main() {
 		panic(err)
 	}
 
-	config, err := config.LoadConfig()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal("cannot load config",
 			logger.Field{Key: "error", Value: err},
 		)
 	}
-	AuthSubscriptionServiceServer, err := di.DependencyIndjection(config)
+	AuthSubscriptionServiceServer, err := di.DependencyIndjection(cfg)
 	if err != nil {
 		log.Fatal("cannot start server",
 			logger.Field{Key: "error", Value: err},
 		)
 	}
-	lis, err := net.Listen("tcp", config.PortMngr.RunnerPort)
+	lis, err := net.Listen("tcp", cfg.PortMngr.RunnerPort)
 	if err != nil {
 		log.Fatal("failed to listen",
 			logger.Field{Key: "error", Value: err},
 		)
 	}
-	log.Info("Auth Subscription Service started",
-		logger.Field{Key: "port", Value: config.PortMngr.RunnerPort},
-	)
+	// log.Info("Auth Subscription Service started",
+	// 	logger.Field{Key: "port", Value: cfg.PortMngr.RunnerPort},
+	// )
 	// 5️⃣ Create gRPC server with logging interceptor
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
@@ -51,10 +54,31 @@ func main() {
 		),
 	)
 	pb.RegisterAuthSubscriptionServiceServer(grpcServer, AuthSubscriptionServiceServer)
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatal("failed to start grpc server",
-			logger.Field{Key: "error", Value: err},
-		)
-	}
+	// if err := grpcServer.Serve(lis); err != nil {
+	// 	log.Fatal("failed to start grpc server",
+	// 		logger.Field{Key: "error", Value: err},
+	// 	)
+	// }
+	log.Info("Auth Subscription Service started",
+		logger.Field{Key: "port", Value: cfg.PortMngr.RunnerPort},
+	)
 
+	// start server in goroutine
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatal("failed to start grpc server",
+				logger.Field{Key: "error", Value: err})
+		}
+	}()
+
+	// wait for signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	<-quit
+	log.Info("Shutting down gRPC server...")
+
+	grpcServer.GracefulStop()
+
+	log.Info("gRPC server stopped")
 }

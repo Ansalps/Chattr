@@ -1,6 +1,13 @@
 package main
 
 import (
+	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/Ansalps/Chattr_Api_Gateway/infrastructure/logger"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/config"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/di"
@@ -21,33 +28,61 @@ func main() {
 	router.Use(middleware.RequestIDMiddleware())
 	router.Use(middleware.LoggerMiddleware(log))
 
-	config, err := config.LoadConfig()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		//log.Fatalf("cannot load configuration: %v", err)
 		log.Fatal("cannot load configuration:",
 			logger.Field{Key: "error", Value: err})
 	}
-	
+
 	router.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
 			"http://localhost:5500",
 			"http://127.0.0.1:5500",
 		},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
 	}))
 	router.LoadHTMLGlob("./cmd/templates/*")
-	err = di.DependencyInjection(router, config)
+	err = di.DependencyInjection(router, cfg)
 	if err != nil {
 		//log.Fatalf("Cannot Start server due to failure in DependencyInjectin: %v", err)
 		log.Fatal("Cannot Start server due to failure in DependencyInjectin:",
 			logger.Field{Key: "error", Value: err})
 	}
-	err = router.Run(config.Port)
-	if err != nil {
-		//log.Fatalf("Error starting server: %v\n", err)
-		log.Fatal("Error starting server:",
+	// err = router.Run(cfg.Port)
+	// if err != nil {
+	// 	//log.Fatalf("Error starting server: %v\n", err)
+	// 	log.Fatal("Error starting server:",
+	// 		logger.Field{Key: "error", Value: err})
+	// }
+	srv := &http.Server{
+		Addr:    cfg.Port,
+		Handler: router,
+	}
+
+	log.Info("Starting API Gateway",
+		logger.Field{Key: "port", Value: cfg.Port})
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal("server failed",
+				logger.Field{Key: "error", Value: err})
+		}
+	}()
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	<-quit
+	log.Info("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("forced shutdown",
 			logger.Field{Key: "error", Value: err})
 	}
+
 }

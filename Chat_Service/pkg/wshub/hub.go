@@ -50,11 +50,16 @@ func (h *Hub) SendToUser(c *Client, dm requestmodels.MessageRequest, log logger.
 		SendWSError(c,log,"failed to marshal individual message",h)
 		return err
 	}
-	SendWSError(c, log, "hi", h)
+	//SendWSError(c, log, "hi", h)
 	client, ok := h.Clients[dm.RecipientID]
 	if !ok {
 		log.Warn("User offline:",
-			logger.Field{Key: "user_id", Value: dm.RecipientID})
+			logger.Field{Key: "recipient_id", Value: dm.RecipientID})
+
+		 // send ack to sender instead of crashing
+		 SendWSError(c, log, "recipient offline", h)
+
+		 return nil // ✅ IMPORTANT
 	}
 	//data, _ := json.Marshal(dm)
 	err = client.Conn.WriteMessage(websocket.TextMessage, data)

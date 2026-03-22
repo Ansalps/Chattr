@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Ansalps/Chattr_Chat_Service/pkg/client"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/pb"
@@ -365,30 +366,37 @@ func (as *ChatUsecase) GetGroupMembers(req requestmodels.GetGroupMembersRequest)
 	}
 
 	userIds = userIds[start:end]
-	authRes, err := as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
-		UserId: userIds})
+	authRes, err := client.FetchUserMetaData(
+		as.AuthClient,
+		userIds,
+	)
 	if err != nil {
-		st, ok := status.FromError(err)
-		if !ok {
-			// Not a gRPC error
-			return nil,
-				fmt.Errorf("%w: %v", domain.ErrInternal, err)
-		}
-
-		switch st.Code() {
-
-		case codes.NotFound:
-			return nil, domain.ErrUsersNotFound
-
-		case codes.Internal:
-			return nil,
-				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
-
-		default:
-			return nil,
-				fmt.Errorf("%w: %v", domain.ErrInternal, err)
-		}
+		return nil, err
 	}
+	// authRes, err := as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+	// 	UserId: userIds})
+	// if err != nil {
+	// 	st, ok := status.FromError(err)
+	// 	if !ok {
+	// 		// Not a gRPC error
+	// 		return nil,
+	// 			fmt.Errorf("%w: %v", domain.ErrInternal, err)
+	// 	}
+
+	// 	switch st.Code() {
+
+	// 	case codes.NotFound:
+	// 		return nil, domain.ErrUsersNotFound
+
+	// 	case codes.Internal:
+	// 		return nil,
+	// 			fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+	// 	default:
+	// 		return nil,
+	// 			fmt.Errorf("%w: %v", domain.ErrInternal, err)
+	// 	}
+	// }
 	//fmt.Println("",authRes.Users)
 
 	resp := make([]responsemodels.GetGroupMembersResponse, 0)
@@ -477,48 +485,56 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 		}
 	}
 	var groupMeta map[string]responsemodels.GroupMeta
-	if len(groupIDs)>0{
-	// 2. One Batch Call for Groups
-	//groupNames, err := as.ChatRepository.GetGroupNamesBatch(groupIDs) // Map[ID]Name
-	groupMeta, err = as.ChatRepository.GetGroupMetaBatch(groupIDs)
+	if len(groupIDs) > 0 {
+		// 2. One Batch Call for Groups
+		//groupNames, err := as.ChatRepository.GetGroupNamesBatch(groupIDs) // Map[ID]Name
+		groupMeta, err = as.ChatRepository.GetGroupMetaBatch(groupIDs)
 
-	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
+		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				return nil, fmt.Errorf("%w: %v", domain.ErrDatabaseTimeout, err)
+			}
+			if err != mongo.ErrNoDocuments {
+				return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
+			}
 		}
-		if err!=mongo.ErrNoDocuments{
-			return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
-		}
-	}
 	}
 	// 3. Batch Call to Auth Service
 	// Request: { user_ids: [10, 11, ...] }
 	// Response: { user_metadata_map: { "10": {name: "Ansal", img: "..."}, "11": {...} } }
 	//fmt.Println("individualUserIDs", individualUserIDs)
-	authRes, err := as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
-		UserId: individualUserIDs})
+
+	authRes, err := client.FetchUserMetaData(
+		as.AuthClient,
+		individualUserIDs,
+	)
 	if err != nil {
-		st, ok := status.FromError(err)
-		if !ok {
-			// Not a gRPC error
-			return nil,
-				fmt.Errorf("%w: %v", domain.ErrInternal, err)
-		}
-
-		switch st.Code() {
-
-		case codes.NotFound:
-			return nil, domain.ErrUsersNotFound
-
-		case codes.Internal:
-			return nil,
-				fmt.Errorf("%w: %v", domain.ErrDatabase, err)
-
-		default:
-			return nil,
-				fmt.Errorf("%w: %v", domain.ErrInternal, err)
-		}
+		return nil, err
 	}
+	// authRes, err := as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+	// 	UserId: individualUserIDs})
+	// if err != nil {
+	// 	st, ok := status.FromError(err)
+	// 	if !ok {
+	// 		// Not a gRPC error
+	// 		return nil,
+	// 			fmt.Errorf("%w: %v", domain.ErrInternal, err)
+	// 	}
+
+	// 	switch st.Code() {
+
+	// 	case codes.NotFound:
+	// 		return nil, domain.ErrUsersNotFound
+
+	// 	case codes.Internal:
+	// 		return nil,
+	// 			fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+	// 	default:
+	// 		return nil,
+	// 			fmt.Errorf("%w: %v", domain.ErrInternal, err)
+	// 	}
+	// }
 
 	// 4. Build the final response list
 	var finalProfiles []responsemodels.ChatProfileResponse
@@ -601,31 +617,38 @@ func (as *ChatUsecase) GetChat(req requestmodels.GetChatRequest) (responsemodels
 	// 3. Batch Call to Auth Service (gRPC)
 	var authRes *pb.BatchUserMetadataResponse // Replace with your actual gRPC generated package name
 	if len(uniqueIDs) > 0 {
-		authRes, err = as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
-			UserId: uniqueIDs,
-		})
+		authRes, err = client.FetchUserMetaData(
+			as.AuthClient,
+			uniqueIDs,
+		)
 		if err != nil {
-			st, ok := status.FromError(err)
-			if !ok {
-				// Not a gRPC error
-				return responsemodels.GetChatResponse{},
-					fmt.Errorf("%w: %v", domain.ErrInternal, err)
-			}
-
-			switch st.Code() {
-
-			case codes.NotFound:
-				return responsemodels.GetChatResponse{}, domain.ErrUsersNotFound
-
-			case codes.Internal:
-				return responsemodels.GetChatResponse{},
-					fmt.Errorf("%w: %v", domain.ErrDatabase, err)
-
-			default:
-				return responsemodels.GetChatResponse{},
-					fmt.Errorf("%w: %v", domain.ErrInternal, err)
-			}
+			return responsemodels.GetChatResponse{}, err
 		}
+		// authRes, err = as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
+		// 	UserId: uniqueIDs,
+		// })
+		// if err != nil {
+		// 	st, ok := status.FromError(err)
+		// 	if !ok {
+		// 		// Not a gRPC error
+		// 		return responsemodels.GetChatResponse{},
+		// 			fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		// 	}
+
+		// 	switch st.Code() {
+
+		// 	case codes.NotFound:
+		// 		return responsemodels.GetChatResponse{}, domain.ErrUsersNotFound
+
+		// 	case codes.Internal:
+		// 		return responsemodels.GetChatResponse{},
+		// 			fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+
+		// 	default:
+		// 		return responsemodels.GetChatResponse{},
+		// 			fmt.Errorf("%w: %v", domain.ErrInternal, err)
+		// 	}
+		// }
 	}
 
 	// 4. Map to response models and hydrate sender data
