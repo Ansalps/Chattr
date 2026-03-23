@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -898,6 +899,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 			UserId: req.UserID,
 		})
 		if err != nil {
+			fmt.Println("authresp", authresp, err)
 			errChan <- err
 			return
 		}
@@ -920,15 +922,15 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 	for i := 0; i < 2; i++ {
 		select {
 		case res := <-authChan:
-			//fmt.Println("res00000",res)
 			authData = res
 		case res := <-postChan:
 			postData = res
-		case <-errChan:
+		case res:=<-errChan:
 			// Handle error or just ignore to allow partial success
-			code,msg:=utils.GRPCtoHTTP(err)
-			utils.LogApiWithUserID(log,jwtClaims.Email,jwtClaims.ID,code,msg)
-			c.JSON(code,response.ClientResponse(code,msg,nil))
+			code, msg := utils.GRPCtoHTTP(res)
+			fmt.Println("code",code,msg)
+			utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+			c.JSON(code, response.ClientResponse(code, msg, nil))
 			return
 		case <-c.Request.Context().Done():
 			c.JSON(http.StatusGatewayTimeout, "Service took too long")
@@ -962,7 +964,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 	} else {
 		// Log that the post service is down, but don't stop the request
 		log.Warn("Warning: post_relation service unavailable for user",
-		logger.Field{Key: "user_id",Value: userId})
+			logger.Field{Key: "user_id", Value: userId})
 	}
 
 	// 3. Construct the response
@@ -1213,18 +1215,18 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 	c.JSON(http.StatusOK, resp1)
 }
 
-func (as *AuthSubscriptionHandler) Panic(c *gin.Context){
+func (as *AuthSubscriptionHandler) Panic(c *gin.Context) {
 	panic("intentional test panic in api gateway")
 }
 
-func (as *AuthSubscriptionHandler)PanicInAuth(c *gin.Context){
-	log:=utils.GetLogger(c)
-	resp,err:=as.DirectClient.Client.PanicInAuth(context.TODO(),&auth_subscription.PanicInAuthReq{})
-	if err!=nil{
+func (as *AuthSubscriptionHandler) PanicInAuth(c *gin.Context) {
+	log := utils.GetLogger(c)
+	resp, err := as.DirectClient.Client.PanicInAuth(context.TODO(), &auth_subscription.PanicInAuthReq{})
+	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
 		utils.LogAdminApi(log, code, msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
-	c.JSON(http.StatusOK,resp)
+	c.JSON(http.StatusOK, resp)
 }

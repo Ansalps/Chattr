@@ -2,26 +2,33 @@ package wshub
 
 import (
 	"encoding/json"
+	"fmt"
+	"sync"
 
 	"github.com/Ansalps/Chattr_Chat_Service/logger"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/requestmodels"
 	"github.com/gorilla/websocket"
 )
+
 type UnregisterEvent struct {
 	UserID          uint64
 	ServerInitiated bool
 }
 type Hub struct {
-	Clients    map[uint64]*Client
-	Register   chan *Client
+	Clients  map[uint64]*Client
+	Register chan *Client
 	//Unregister chan uint64
 	Unregister chan UnregisterEvent
 	Broadcast  chan []byte
 
 	Stop chan struct{} // ✅ add
+
+	Wg sync.WaitGroup
 }
 
 func (h *Hub) Run(log logger.Logger) {
+	h.Wg.Add(1)
+	defer h.Wg.Done()
 	for {
 		select {
 		case c := <-h.Register:
@@ -52,9 +59,9 @@ func (h *Hub) Run(log logger.Logger) {
 		case <-h.Stop:
 
 			log.Info("hub stopping")
-		
+
 			for id, c := range h.Clients {
-		
+
 				_ = c.Conn.WriteMessage(
 					websocket.CloseMessage,
 					websocket.FormatCloseMessage(
@@ -62,11 +69,13 @@ func (h *Hub) Run(log logger.Logger) {
 						"server shutdown",
 					),
 				)
-		
+
 				_ = c.Conn.Close()
-		
+
 				delete(h.Clients, id)
 			}
+			fmt.Println("jjjjjjjjjjjjjjjj")
+			return
 		case msg := <-h.Broadcast:
 			for _, c := range h.Clients {
 				err := c.Conn.WriteMessage(websocket.TextMessage, msg)
@@ -86,7 +95,7 @@ func (h *Hub) SendToUser(c *Client, dm requestmodels.MessageRequest, log logger.
 			logger.Field{Key: "error", Value: err},
 			logger.Field{Key: "sender_id", Value: dm.SenderID},
 		)
-		
+
 		SendWSError(c, log, "failed to marshal individual message", h)
 		return err
 	}
@@ -108,7 +117,7 @@ func (h *Hub) SendToUser(c *Client, dm requestmodels.MessageRequest, log logger.
 			logger.Field{Key: "user_id", Value: dm.RecipientID},
 			logger.Field{Key: "error", Value: err},
 		)
-		
+
 		// optional: remove dead connection
 		h.Unregister <- UnregisterEvent{
 			UserID:          dm.RecipientID,
@@ -127,7 +136,7 @@ func (h *Hub) SendToGroup(c *Client, dm requestmodels.MessageRequest, userIds []
 			logger.Field{Key: "error", Value: err},
 			logger.Field{Key: "sender_id", Value: dm.SenderID},
 		)
-		
+
 		SendWSError(c, log, "failed to marshal group message", h)
 		return err
 	}
@@ -155,7 +164,7 @@ func (h *Hub) SendToGroup(c *Client, dm requestmodels.MessageRequest, userIds []
 				UserID:          v,
 				ServerInitiated: true,
 			}
-			
+
 			client.Conn.Close()
 			return err
 		}

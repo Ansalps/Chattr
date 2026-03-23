@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
@@ -62,12 +63,13 @@ func StartHub(log logger.Logger) {
 	go hub.Run(log)
 }
 func StopHub() {
-
+	fmt.Println("StopHub called")
 	if hub != nil {
-
-		hub.Stop <- struct{}{}
+		close(hub.Stop)
+		hub.Wg.Wait() // ✅ wait until Run exits
 	}
 }
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -150,6 +152,7 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 }
 
 func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub) {
+	fmt.Println("is it getting called?")
 	log := as.Log.With(
 		logger.Field{Key: "user_id", Value: c.UserID},
 		logger.Field{Key: "request_id", Value: c.RequestID},
@@ -164,6 +167,7 @@ func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub) {
 	}()
 
 	for {
+		fmt.Println("is it entering here?")
 		_, p, err := c.Conn.ReadMessage()
 		if err != nil {
 			// log.Error("failed to read websocket message",
@@ -177,6 +181,7 @@ func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub) {
 			} else {
 				log.Info("websocket client closed connection")
 			}
+			fmt.Println("entering out")
 			return
 		}
 

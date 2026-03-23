@@ -604,9 +604,10 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 		UserId: req.TargetUserID,
 	})
 	if err != nil {
+		fmt.Println("error print from auth ",err)
 		code, msg := utils.GRPCtoHTTP(err)
 		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	userMetaData := responsemodels.UserMetaData{

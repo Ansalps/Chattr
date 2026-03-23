@@ -757,13 +757,13 @@ func (as *PostRelationUsecase) PostFollowCount(userid uint64) (responsemodels.Po
 	return resp, nil
 }
 func (as *PostRelationUsecase) FetchAllPosts(req requestmodels.FetchAllPostsReq) ([]responsemodels.PostWithCounts, error) {
-	err := client.CheckUserExists(
-		as.AuthSubscriptionClient,
-		req.TargetUserID,
-	)
-	if err != nil {
-		return nil, err
-	}
+	// err := client.CheckUserExists(
+	// 	as.AuthSubscriptionClient,
+	// 	req.TargetUserID,
+	// )
+	// if err != nil {
+	// 	return nil, err
+	// }
 	// exists, err := as.AuthSubscriptionClient.CheckUserExists(context.Background(), &pb.CheckUserExistsRequest{
 	// 	UserId: req.TargetUserID,
 	// })
@@ -1351,7 +1351,7 @@ func (as *PostRelationUsecase) FetchPostUserDataForNewsFeed(newsfeedReq requestm
 		// The ID of the last item in our result is the cursor for the next request
 		nextCursor = uint64(allPosts[len(allPosts)-1].ID)
 	} else {
-		return responsemodels.FetchNewsFeedResponse{}, domain.ErrNoFollowingNoPost
+		//return responsemodels.FetchNewsFeedResponse{}, domain.ErrNoFollowingNoPost
 	}
 
 	finalResponse := responsemodels.FetchNewsFeedResponse{
@@ -1425,9 +1425,9 @@ func (as *PostRelationUsecase) FetchGlobalNewsFeed(req requestmodels.GlobalNewsF
 		return responsemodels.FetchGlobalNewsFeedResponse{}, err
 	}
 	//fmt.Println("post resp",postResp)
-	if len(postResp) == 0 {
-		return responsemodels.FetchGlobalNewsFeedResponse{}, domain.ErrNoPostGlobally
-	}
+	// if len(postResp) == 0 {
+	// 	return responsemodels.FetchGlobalNewsFeedResponse{}, domain.ErrNoPostGlobally
+	// }
 	userIDs := make(map[uint64]bool)
 
 	for _, v := range postResp {
@@ -1450,7 +1450,10 @@ func (as *PostRelationUsecase) FetchGlobalNewsFeed(req requestmodels.GlobalNewsF
 		userids,
 	)
 	if err != nil {
-		return responsemodels.FetchGlobalNewsFeedResponse{}, err
+		if err!=domain.ErrUsersNotFound{
+			return responsemodels.FetchGlobalNewsFeedResponse{}, err
+		}
+		
 	}
 	// if err != nil {
 	// 	log.Println("error calling service auth_subcription", err)

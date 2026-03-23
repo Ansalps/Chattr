@@ -23,7 +23,7 @@ type User struct {
 	Links         string
 	Status        string `gorm:"type:text;default:'pending';check:status IN ('blocked','deleted','pending','active','verified','rejected')"`
 	BlueTick	bool	`gorm:"default:false"`
-    RazorpayCustomerID string `gorm:"column:razorpay_customer_id;uniqueIndex;size:255"`
+    RazorpayCustomerID string `gorm:"column:razorpay_customer_id;size:255"`
     Phone string `gorm:"column:phone;size:20"`
 }
 

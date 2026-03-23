@@ -893,8 +893,10 @@ func (as *AuthSubscriptionUsecase) FetchUserPublicData(userid uint64) (responsem
 	resp, err := as.AuthSubscriptionRepository.FetchUserPublicData(userid)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
+			fmt.Println("returning here")
 			return responsemodels.UserPublicDataResponse{}, domain.ErrUserNotFound
 		}
+		fmt.Println("returning this error")
 		return responsemodels.UserPublicDataResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 	return resp, nil
