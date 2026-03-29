@@ -130,7 +130,7 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 		return
 	}
 
-	url := "http://localhost:50053/user/group"
+	url := "http://chat_service:50053/user/group"
 
 	httpReq, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -239,7 +239,7 @@ func (as *ChatHandler)SetGroupProfileImage(c *gin.Context){
 		c.JSON(500, gin.H{"error": "failed to encode request"})
 		return
 	}
-	url := fmt.Sprintf("http://localhost:50053/user/group/%s/set-group-profile-image",groupIdStr)
+	url := fmt.Sprintf("http://chat_service:50053/user/group/%s/set-group-profile-image",groupIdStr)
 	
 	httpReq, err := http.NewRequest("PATCH", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -297,7 +297,7 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 		return
 	}
 
-	url := "http://localhost:50053/user/group/add-members"
+	url := "http://chat_service:50053/user/group/add-members"
 
 	httpReq, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -362,7 +362,7 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 		return
 	}
 
-	url := "http://localhost:50053/user/group/remove-member"
+	url := "http://chat_service:50053/user/group/remove-member"
 
 	httpReq, err := http.NewRequest("DELETE", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -414,7 +414,7 @@ func (as *ChatHandler)GetGroupMembers(c *gin.Context){
 
 	offset := (page - 1) * limit
 
-	url := fmt.Sprintf("http://localhost:50053/user/group/%s/members?limit=%d&offset=%d",groupIdStr,limit,offset)
+	url := fmt.Sprintf("http://chat_service:50053/user/group/%s/members?limit=%d&offset=%d",groupIdStr,limit,offset)
 
 	httpReq, err := http.NewRequest("GET", url, nil)
 
@@ -461,7 +461,7 @@ func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
 
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
-	fullURL := fmt.Sprintf("http://localhost:50053/user/get-recent-chat-profiles?limit=%d&offset=%d", limit, offset)
+	fullURL := fmt.Sprintf("http://chat_service:50053/user/get-recent-chat-profiles?limit=%d&offset=%d", limit, offset)
 	httpReq, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
 		log.Printf("Failed to create request: %v", err)
@@ -511,7 +511,7 @@ func (as *ChatHandler)GetChat(c *gin.Context){
 	
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
-	fullURL := fmt.Sprintf("http://localhost:50053/user/chat/%s?limit=%d&offset=%d",convIdStr, limit, offset)
+	fullURL := fmt.Sprintf("http://chat_service:50053/user/chat/%s?limit=%d&offset=%d",convIdStr, limit, offset)
 	httpReq, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
 		log.Printf("Failed to create request: %v", err)
@@ -543,7 +543,7 @@ func (as *ChatHandler)GetChat(c *gin.Context){
 
 func (as *ChatHandler) PanicInChat(c *gin.Context){
 	//panic("intentional test panic in api gateway")
-	fullURL := fmt.Sprintf("http://localhost:50053/chat/panic")
+	fullURL := fmt.Sprintf("http://chat_service:50053/chat/panic")
 	httpReq, err := http.NewRequest("POST", fullURL, nil)
 	if err != nil {
 		log.Printf("Failed to create request: %v", err)

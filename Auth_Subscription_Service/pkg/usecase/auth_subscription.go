@@ -926,10 +926,12 @@ func (as *AuthSubscriptionUsecase) CheckUserListExists(userids []uint64) ([]uint
 func (as *AuthSubscriptionUsecase) GetSubscriptionDetails(req requestmodels.GetSubscriptionDetails) (responsemodels.GetSubscriptionDetails, error) {
 	resp, err := as.AuthSubscriptionRepository.GetSubscriptionDetails(req)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return responsemodels.GetSubscriptionDetails{}, domain.ErrNoSubscription
+		if err != gorm.ErrRecordNotFound {
+			// fmt.Println("isn't no su")
+			// return responsemodels.GetSubscriptionDetails{}, domain.ErrNoSubscription
+			return responsemodels.GetSubscriptionDetails{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 		}
-		return responsemodels.GetSubscriptionDetails{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
+		
 	}
 	return resp, nil
 }

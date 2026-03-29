@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,6 +15,7 @@ import (
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/di"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/handler"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 )
 
 func main() {
@@ -20,6 +23,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// ✅ start pprof server
+	go func() {
+		log.Info("pprof running on 127.0.0.1:6063")
+		if err := http.ListenAndServe("127.0.0.1:6063", nil); err != nil {
+			log.Error("pprof server failed",
+				logger.Field{Key: "error", Value: err})
+		}
+	}()
 
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -29,7 +41,10 @@ func main() {
 		log.Fatal("cannot load configuration:",
 			logger.Field{Key: "error", Value: err})
 	}
-
+	uri := viper.GetString("MONGODB_URI")
+	fmt.Println("Viper", uri)
+	fmt.Println("Config:", cfg.MongoDBUri)
+	log.Info(uri)
 	err = di.DependencyInjection(router, cfg, log)
 	if err != nil {
 		log.Fatal("Cannot Start server due to failure in DependencyInjectin:",

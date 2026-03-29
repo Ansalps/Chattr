@@ -64,7 +64,7 @@ func (as *NotificationHandler) GetAllNotifications(c *gin.Context) {
 
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
-	fullURL := fmt.Sprintf("http://localhost:50054/user/notifications?limit=%d&offset=%d", limit, offset)
+	fullURL := fmt.Sprintf("http://notification_service:50054/user/notifications?limit=%d&offset=%d", limit, offset)
 	httpReq, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
 		log.Printf("Failed to create request: %v", err)
@@ -92,7 +92,7 @@ func (as *NotificationHandler) GetAllNotifications(c *gin.Context) {
 }
 
 func (as *NotificationHandler)PanicInNotification(c *gin.Context){
-	fullURL := fmt.Sprintf("http://localhost:50054/notification/panic")
+	fullURL := fmt.Sprintf("http://notification_service:50054/notification/panic")
 	httpReq, err := http.NewRequest("POST", fullURL, nil)
 	if err != nil {
 		log.Printf("Failed to create request: %v", err)

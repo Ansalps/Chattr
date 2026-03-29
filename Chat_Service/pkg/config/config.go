@@ -21,6 +21,7 @@ type Aws struct{
 
 type Config struct {
 	AuthSource 	string `mapstructure:"AUTH_SOURCE"`
+	MongoDBUri string `mapstructure:"MONGODB_URI"`
 	PortMngr PortManager
 	DB       Database
 	Kafka        KafkaConfig
@@ -37,11 +38,13 @@ func LoadConfig() (*Config, error) {
 	viper.AddConfigPath("./pkg/config")
 	viper.SetConfigName("dev")
 	viper.SetConfigType("env")
-	viper.AutomaticEnv()
+	
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err
 	}
+	viper.AutomaticEnv()
+
 	err := viper.Unmarshal(&portmngr)
 	if err != nil {
 		return nil, err

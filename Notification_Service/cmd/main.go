@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
+	_ "net/http/pprof"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/di"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/infrastructure/kafka"
@@ -21,6 +21,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// ✅ start pprof server
+	go func() {
+		log.Info("pprof running on 127.0.0.1:6064")
+		if err := http.ListenAndServe("127.0.0.1:6064", nil); err != nil {
+			log.Error("pprof server failed",
+				logger.Field{Key: "error", Value: err})
+		}
+	}()
+
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal("cannot load configuration:",

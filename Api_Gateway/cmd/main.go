@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -22,7 +23,16 @@ func main() {
 		panic(err)
 	}
 
-	//fmt.Println("Config.Port", config.Port, "Config.AuthSubscriptionSvcUrl", config.AuthSubscriptionSvcUrl)
+	// ✅ start pprof server
+	go func() {
+		log.Info("pprof running on 127.0.0.1:6060")
+		if err := http.ListenAndServe("127.0.0.1:6060", nil); err != nil {
+			log.Error("pprof server failed",
+				logger.Field{Key: "error", Value: err})
+		}
+	}()
+
+	
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(middleware.RequestIDMiddleware())

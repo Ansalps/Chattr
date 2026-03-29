@@ -17,7 +17,7 @@ import (
 )
 
 func DependencyInjection(router *gin.Engine, cfg *config.Config,log logger.Logger) error {
-	mongoClient, err := db.ConnectMongo()
+	mongoClient, err := db.ConnectMongo(cfg)
 	if err != nil {
 		return err
 	}

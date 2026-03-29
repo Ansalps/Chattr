@@ -2,6 +2,8 @@ package main
 
 import (
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -21,6 +23,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// ✅ start pprof server
+	go func() {
+		log.Info("pprof running on 127.0.0.1:6062")
+		if err := http.ListenAndServe("127.0.0.1:6062", nil); err != nil {
+			log.Error("pprof server failed",
+				logger.Field{Key: "error", Value: err})
+		}
+	}()
 
 	cfg, err := config.LoadConfig()
 	if err != nil {

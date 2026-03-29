@@ -461,7 +461,7 @@ func (as *ChatUsecase) StoreOrUpdateGroupChatInConversation(conversation domain.
 }
 
 func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfilesRequest) ([]responsemodels.ChatProfileResponse, error) {
-	//fmt.Println("req.UserID", req.UserID)
+	fmt.Println("req.UserID", req.UserID)
 	convs, err := as.ChatRepository.GetUserConversation(req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)

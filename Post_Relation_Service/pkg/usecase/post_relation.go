@@ -504,7 +504,6 @@ func (as *PostRelationUsecase) Follow(followReq requestmodels.FollowRequest) (re
 		// 	log.Println("error in executing goroutine for fetching follow count")
 		// 	return
 		// }
-		fmt.Println("hi hereeeeeeeeee000000000")
 		follower_count, err := as.PostRelationRepository.UpdatFollowCountOnFollow(followReq.UserID, followReq.FollowingUserID)
 		if err != nil {
 			fmt.Println("errrrrrr", err)

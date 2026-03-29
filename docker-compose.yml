@@ -43,7 +43,7 @@ services:
       POSTGRES_PASSWORD: 123
     volumes:
       - chattr_pgdata:/var/lib/postgresql/data
-      - ../database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
 
 
   mongodb:
@@ -74,7 +74,8 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     volumes:
-    - zookeeper_data:/var/lib/zookeeper
+    - zookeeper_data:/var/lib/zookeeper/data
+    - zookeeper_log:/var/lib/zookeeper/log
 
 
   kafka:
@@ -84,10 +85,12 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       # Define how Kafka is reached internally (by other containers) and externally (by your host)
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
@@ -97,16 +100,69 @@ services:
     volumes:
     - kafka_data:/var/lib/kafka/data
 
+    # ---------------- MICROSERVICES ----------------
+
+  auth_service:
+    build: ./Auth_Subscription_Service
+    container_name: auth_service
+    ports:
+      - "50051:50051"
+    depends_on:
+      - postgres
+      - redis
+
+
+  post_relation_service:
+    build: ./Post_Relation_Service
+    container_name: post_relation_service
+    ports:
+      - "50052:50052"
+    depends_on:
+      - postgres
+      - redis
+
+
+  chat_service:
+    build: ./Chat_Service
+    container_name: chat_service
+    ports:
+      - "50053:50053"
+    depends_on:
+      - mongodb
+      - kafka
+      - redis
+
+
+  notification_service:
+    build: ./Notification_Service
+    container_name: notification_service
+    ports:
+      - "50054:50054"
+    depends_on:
+      - kafka
+      - redis
+
+
+  api_gateway:
+    build: ./Api_Gateway
+    container_name: api_gateway
+    ports:
+      - "3000:3000"
+    depends_on:
+      - auth_service
+      - post_relation_service
+      - chat_service
+      - notification_service
+      - redis
+
+
 
 volumes:
   chattr_pgdata:
     external: true
-
   mongo_data:
     external: true
-
   redis_data:
-
   kafka_data:
-
   zookeeper_data:
+  zookeeper_log: # Add this one

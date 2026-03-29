@@ -58,58 +58,58 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 		// 	)
 		// }
 		log := utils.GetLogger(ctx)
-		
+
 		if err != nil {
 			log.Error("Client/server Error", logger.Field{Key: "details", Value: err})
-			switch{
-			case errors.Is(err,domain.ErrNoFollowingNoPost):
-				return nil,status.Error(codes.NotFound,domain.ErrNoFollowingNoPost.Error())
-			case errors.Is(err,domain.ErrNoPostGlobally):
-				return nil,status.Error(codes.NotFound,domain.ErrNoPostGlobally.Error())
-			case errors.Is(err,domain.CelebPostsNotFound):
-				return nil,status.Error(codes.NotFound,domain.CelebPostsNotFound.Error())
-			case errors.Is(err,domain.ErrNoFollowing):
-				return nil,status.Error(codes.NotFound,domain.ErrNoFollowing.Error())
-			case errors.Is(err,domain.ErrNoFollowers):
-				return nil,status.Error(codes.NotFound,domain.ErrNoFollowers.Error())
-			case errors.Is(err,domain.ErrUsersNotFound):
-				return nil,status.Error(codes.NotFound,domain.ErrUsersNotFound.Error())
-			case errors.Is(err,domain.ErrInternal):
-				return nil,status.Error(codes.Internal,domain.ErrInternal.Error())
-			case errors.Is(err,domain.ErrInvalidParentCommentId):
-				return nil,status.Error(codes.InvalidArgument,domain.ErrInvalidParentCommentId.Error())
-			case errors.Is(err,domain.ErrNoFollower):
-				return nil,status.Error(codes.FailedPrecondition,domain.ErrNoFollower.Error())
-			case errors.Is(err,domain.ErrUnfollowOwn):
-				return nil,status.Error(codes.FailedPrecondition,domain.ErrUnfollowOwn.Error())
-			case errors.Is(err,domain.ErrAlreadyFollowing):
-				return nil,status.Error(codes.FailedPrecondition,domain.ErrAlreadyFollowing.Error())
-			case errors.Is(err,domain.ErrFollowOwn):
-				return nil,status.Error(codes.FailedPrecondition,domain.ErrFollowOwn.Error())
-			case errors.Is(err,domain.ErrCommentDeleteDenied):
-				return nil,status.Error(codes.PermissionDenied,domain.ErrCommentDeleteDenied.Error())
-			case errors.Is(err,domain.ErrCommentEditDenied):
-				return nil,status.Error(codes.PermissionDenied,domain.ErrCommentEditDenied.Error())
-			case errors.Is(err,domain.ErrForeignKeyViolationCommentPost):
-				return nil,status.Error(codes.NotFound,domain.ErrForeignKeyViolationCommentPost.Error())
-			case errors.Is(err,domain.ErrRecursiveComment):
-				return nil,status.Error(codes.PermissionDenied,domain.ErrRecursiveComment.Error())
-			case errors.Is(err,domain.ErrCommentIdNotFound):
-				return nil,status.Error(codes.NotFound,domain.ErrCommentIdNotFound.Error())
-			case errors.Is(err,domain.ErrCommentNotFound):
-				return nil,status.Error(codes.NotFound,domain.ErrCommentNotFound.Error())
-			case errors.Is(err,domain.ErrPostLikeNotFound):
-				return nil,status.Error(codes.NotFound,domain.ErrPostLikeNotFound.Error())
+			switch {
+			case errors.Is(err, domain.ErrNoFollowingNoPost):
+				return nil, status.Error(codes.NotFound, domain.ErrNoFollowingNoPost.Error())
+			case errors.Is(err, domain.ErrNoPostGlobally):
+				return nil, status.Error(codes.NotFound, domain.ErrNoPostGlobally.Error())
+			case errors.Is(err, domain.CelebPostsNotFound):
+				return nil, status.Error(codes.NotFound, domain.CelebPostsNotFound.Error())
+			case errors.Is(err, domain.ErrNoFollowing):
+				return nil, status.Error(codes.NotFound, domain.ErrNoFollowing.Error())
+			case errors.Is(err, domain.ErrNoFollowers):
+				return nil, status.Error(codes.NotFound, domain.ErrNoFollowers.Error())
+			case errors.Is(err, domain.ErrUsersNotFound):
+				return nil, status.Error(codes.NotFound, domain.ErrUsersNotFound.Error())
+			case errors.Is(err, domain.ErrInternal):
+				return nil, status.Error(codes.Internal, domain.ErrInternal.Error())
+			case errors.Is(err, domain.ErrInvalidParentCommentId):
+				return nil, status.Error(codes.InvalidArgument, domain.ErrInvalidParentCommentId.Error())
+			case errors.Is(err, domain.ErrNoFollower):
+				return nil, status.Error(codes.FailedPrecondition, domain.ErrNoFollower.Error())
+			case errors.Is(err, domain.ErrUnfollowOwn):
+				return nil, status.Error(codes.FailedPrecondition, domain.ErrUnfollowOwn.Error())
+			case errors.Is(err, domain.ErrAlreadyFollowing):
+				return nil, status.Error(codes.FailedPrecondition, domain.ErrAlreadyFollowing.Error())
+			case errors.Is(err, domain.ErrFollowOwn):
+				return nil, status.Error(codes.FailedPrecondition, domain.ErrFollowOwn.Error())
+			case errors.Is(err, domain.ErrCommentDeleteDenied):
+				return nil, status.Error(codes.PermissionDenied, domain.ErrCommentDeleteDenied.Error())
+			case errors.Is(err, domain.ErrCommentEditDenied):
+				return nil, status.Error(codes.PermissionDenied, domain.ErrCommentEditDenied.Error())
 			case errors.Is(err, domain.ErrForeignKeyViolationCommentPost):
-				return nil,status.Error(codes.NotFound,domain.ErrForeignKeyViolationCommentPost.Error())
-			case errors.Is(err,domain.ErrPostNotFound):
-				return nil,status.Error(codes.NotFound,domain.ErrPostNotFound.Error())
-			case errors.Is(err,domain.ErrPostIdNotFound):
-				return nil,status.Error(codes.NotFound,domain.ErrPostIdNotFound.Error())
-			case errors.Is(err,domain.ErrUserNotFound):
-				return nil,status.Error(codes.NotFound,domain.ErrUserNotFound.Error())
-			case errors.Is(err,domain.ErrDatabase):
-				return nil,status.Error(codes.Internal,domain.ErrDatabase.Error())
+				return nil, status.Error(codes.NotFound, domain.ErrForeignKeyViolationCommentPost.Error())
+			case errors.Is(err, domain.ErrRecursiveComment):
+				return nil, status.Error(codes.PermissionDenied, domain.ErrRecursiveComment.Error())
+			case errors.Is(err, domain.ErrCommentIdNotFound):
+				return nil, status.Error(codes.NotFound, domain.ErrCommentIdNotFound.Error())
+			case errors.Is(err, domain.ErrCommentNotFound):
+				return nil, status.Error(codes.NotFound, domain.ErrCommentNotFound.Error())
+			case errors.Is(err, domain.ErrPostLikeNotFound):
+				return nil, status.Error(codes.NotFound, domain.ErrPostLikeNotFound.Error())
+			case errors.Is(err, domain.ErrForeignKeyViolationCommentPost):
+				return nil, status.Error(codes.NotFound, domain.ErrForeignKeyViolationCommentPost.Error())
+			case errors.Is(err, domain.ErrPostNotFound):
+				return nil, status.Error(codes.NotFound, domain.ErrPostNotFound.Error())
+			case errors.Is(err, domain.ErrPostIdNotFound):
+				return nil, status.Error(codes.NotFound, domain.ErrPostIdNotFound.Error())
+			case errors.Is(err, domain.ErrUserNotFound):
+				return nil, status.Error(codes.NotFound, domain.ErrUserNotFound.Error())
+			case errors.Is(err, domain.ErrDatabase):
+				return nil, status.Error(codes.Internal, domain.ErrDatabase.Error())
 			}
 		}
 

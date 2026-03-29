@@ -1163,6 +1163,12 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
+
+	if resp.SubsciptionPlan.Id==0{
+		c.JSON(http.StatusOK,response.ClientResponse(http.StatusOK,"NO Subsciption to Show",nil))
+		return
+	}
+
 	resp2 := responsemodels.SubscriptionPlan{
 		ID:             resp.SubsciptionPlan.Id,
 		CreatedAt:      resp.SubsciptionPlan.CreatedAt.AsTime(),
@@ -1212,6 +1218,7 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 		CancelledAt:            cancelledAt,
 		CancelReason:           resp.CancelReason,
 	}
+
 	c.JSON(http.StatusOK, resp1)
 }
 

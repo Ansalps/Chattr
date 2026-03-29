@@ -63,6 +63,9 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 			log.Error("Client/server Error", logger.Field{Key: "details", Value: err.Error()})
 
 			switch {
+			case errors.Is(err,domain.ErrNoSubscription):
+				fmt.Println("11111111111")
+				return nil,nil
 			case errors.Is(err, domain.ErrInternal):
 				return nil, status.Error(codes.Internal, domain.ErrInternal.Error())
 			case errors.Is(err, domain.ErrUsersNotFound):

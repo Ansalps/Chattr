@@ -2,6 +2,8 @@ package main
 
 import (
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -23,12 +25,22 @@ func main() {
 		panic(err)
 	}
 
+	// ✅ start pprof server
+	go func() {
+		log.Info("pprof running on 127.0.0.1:6061")
+		if err := http.ListenAndServe("127.0.0.1:6061", nil); err != nil {
+			log.Error("pprof server failed",
+				logger.Field{Key: "error", Value: err})
+		}
+	}()
+
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal("cannot load config",
 			logger.Field{Key: "error", Value: err},
 		)
 	}
+
 	AuthSubscriptionServiceServer, err := di.DependencyIndjection(cfg)
 	if err != nil {
 		log.Fatal("cannot start server",
