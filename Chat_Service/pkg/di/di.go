@@ -26,7 +26,14 @@ func DependencyInjection(router *gin.Engine, cfg *config.Config,log logger.Logge
 		return err
 	}
 	// This reads much better: Config -> Kafka -> Brokers
-	kafkaProducer := kafka.NewKafkaProducer([]string{cfg.Kafka.Brokers})
+	// kafkaProducer := kafka.NewKafkaProducer([]string{cfg.Kafka.Brokers})
+	kafkaProducer := kafka.NewKafkaProducer(
+		[]string{cfg.Kafka.Brokers},
+		[]byte(cfg.Kafka.CACert),
+		[]byte(cfg.Kafka.AccessCert),
+		[]byte(cfg.Kafka.AccessKey),
+	)
+	
 	AwsS3Client, err := awss3.NewS3Client(cfg.Aws.AwsAccessKey, cfg.Aws.AwsSecretAccessKey, cfg.Aws.AwsRegion)
 	if err != nil {
 		return  fmt.Errorf("failed to initialize s3 client: %w", err)

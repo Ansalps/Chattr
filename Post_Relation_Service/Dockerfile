@@ -23,7 +23,7 @@ WORKDIR /app
 COPY --from=builder /app/post_relation_service .
 
 # copy env file (important for viper)
-COPY pkg/config/dev.env ./pkg/config/dev.env
+#COPY pkg/config/dev.env ./pkg/config/dev.env
 
 EXPOSE 50052
 

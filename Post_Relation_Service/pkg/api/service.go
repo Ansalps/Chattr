@@ -3,13 +3,11 @@ package services
 import (
 	"context"
 
-	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/domain"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/infrastructure/logger"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/pb"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/requestmodels"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase/interfacesUsecase"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/utils"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type PostRelationServer struct {
@@ -76,19 +74,22 @@ func (as *PostRelationServer) DeletePost(ctx context.Context, req *pb.DeletePost
 }
 
 func (as *PostRelationServer) LikePost(ctx context.Context, req *pb.LikePostRequest) (*pb.LikePostResponse, error) {
+	log := utils.GetLogger(ctx)
 	likePostReq := requestmodels.LikePostRequest{
 		UserID: req.UserId,
 		PostID: req.PostId,
 	}
 	likePostRes, err := as.PostRelationUsecase.LikePost(likePostReq)
 	if err != nil {
+		log.Info("user id",logger.Field{
+			Key: "user_id",Value: req.UserId,
+		})
+		log.Info("post_id",logger.Field{
+			Key: "post_id",Value: req.PostId,
+		})
+		log.Error("Client/server Error", logger.Field{Key: "details", Value: err})
 		//fmt.Println("hi hwillo")
-		switch err {
-		case domain.ErrForeignKeyViolationCommentPost:
-			return nil, status.Error(codes.NotFound, err.Error())
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil, err
 	}
 	return &pb.LikePostResponse{
 		PostId: likePostRes.PostID,

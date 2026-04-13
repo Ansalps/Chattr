@@ -148,6 +148,7 @@ func (as *AuthSubscriptionUsecase) GetAllUsers(getAllUsersReq requestmodels.GetA
 func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq requestmodels.UserSignUpRequest) (responsemodels.UserSignupResponse, error) {
 	err := as.AuthSubscriptionRepository.DeletePendingUser(ctx, userReq.Email)
 	if err != nil {
+		fmt.Println("error in usecase delete pending user",err)
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
 			return responsemodels.UserSignupResponse{}, err
 		}
@@ -155,6 +156,7 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 	}
 	user, err := as.AuthSubscriptionRepository.CheckUserExistsByEmail(ctx, userReq.Email)
 	if err != nil {
+		fmt.Println("error in CheckUserExistsByEmail",err)
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
 			return responsemodels.UserSignupResponse{}, err
 		}
@@ -163,6 +165,7 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 		}
 	}
 	if user != nil {
+		fmt.Println("in first error")
 		return responsemodels.UserSignupResponse{
 			ID:       user.ID,
 			UserName: user.UserName,
@@ -172,6 +175,7 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 	}
 	usernameAlredayExists, err := as.AuthSubscriptionRepository.CheckUserExistsByUseraname(ctx, userReq.UserName)
 	if err != nil {
+		fmt.Println("CheckUserExistsByUseraname",err)
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
 			return responsemodels.UserSignupResponse{}, err
 		}
@@ -180,6 +184,7 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 		}
 	}
 	if usernameAlredayExists != nil {
+		fmt.Println("in second error")
 		return responsemodels.UserSignupResponse{
 			ID:       usernameAlredayExists.ID,
 			UserName: usernameAlredayExists.UserName,
@@ -189,7 +194,9 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 	}
 	err = as.AuthSubscriptionRepository.DeleteOtpByEmail(ctx, userReq.Email)
 	if err != nil {
+		fmt.Println("DeleteOtpByEmail",err)
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
+			fmt.Println("is its here")
 			return responsemodels.UserSignupResponse{}, err
 		}
 		if err != gorm.ErrRecordNotFound {
@@ -201,6 +208,7 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 	expiration := time.Now().Add(5 * time.Minute)
 	err = as.AuthSubscriptionRepository.TemporarySavingUserOtp(ctx, otp, userReq.Email, expiration)
 	if err != nil {
+		fmt.Println("what about here")
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
 			return responsemodels.UserSignupResponse{}, err
 		}
@@ -240,26 +248,32 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 func (as *AuthSubscriptionUsecase) VerifyOtp(ctx context.Context, otpReq requestmodels.OtpRequest) (responsemodels.OtpVerificationResponse, error) {
 	otp, err := as.AuthSubscriptionRepository.CheckOtpExistsByEmail(otpReq)
 	if err != nil {
+		fmt.Println("CheckOtpExistsByEmail in verfiy otp",err)
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.OtpVerificationResponse{}, domain.ErrUserNotFound
 		}
 		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	if otp.OTP != otpReq.OtpCode {
+		fmt.Println("is it that")
 		return responsemodels.OtpVerificationResponse{}, domain.ErrInvalidCredentials
 	}
 	if time.Now().After(otp.Expiration) {
+		fmt.Println("is it expired")
 		return responsemodels.OtpVerificationResponse{}, domain.ErrOtpExpired
 	}
 	err = as.AuthSubscriptionRepository.ChangeOtpStatus(otpReq.Email)
 	if err != nil {
+		fmt.Println("hello",err)
 		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	err = as.AuthSubscriptionRepository.ChangeUserStatusByEmail(otpReq.Email)
 	if err != nil {
+		fmt.Println("hi",err)
 		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	if otpReq.Purpose == "user-forgot-password" {
+		fmt.Println("not here")
 		resetPasswordToken, err := as.JwtProvider.GenerateToken(as.Config.Token.ResetPasswordSecurityKey, uint64(otpReq.UserId), otp.Email, "resetpassword", "access", 5*time.Minute)
 		if err != nil {
 			return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:", domain.ErrVerifyOtpTokenFail, err)
@@ -282,6 +296,7 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(ctx context.Context, otpReq request
 			UserId: otpReq.UserId,
 		})
 	if err!=nil{
+		fmt.Println("error in ")
 		return responsemodels.OtpVerificationResponse{},fmt.Errorf("%w: %v:",domain.ErrInternal,err)
 	}
 	return responsemodels.OtpVerificationResponse{
@@ -937,6 +952,7 @@ func (as *AuthSubscriptionUsecase) GetSubscriptionDetails(req requestmodels.GetS
 }
 
 func (as *AuthSubscriptionUsecase) WebhookSubscriptionActivated(req requestmodels.WebhookSubscriptionActivatedRequest) (responsemodels.WebhookSubscriptionActivatedResponse, error) {
+	fmt.Println("subscription activated in usecase")
 	status, err := as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
 	if err != nil {
 		//log.Println(err)
@@ -972,6 +988,7 @@ func (as *AuthSubscriptionUsecase) WebhookSubscriptionActivated(req requestmodel
 }
 
 func (as *AuthSubscriptionUsecase) WebhookSubscriptionCharged(req requestmodels.WebhookSubscriptionChargedRequest) (responsemodels.WebhookSubscriptionChargedResponse, error) {
+	fmt.Println("subscription charged in usecase")
 	status, err := as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -1025,6 +1042,7 @@ func (as *AuthSubscriptionUsecase) WebhookSubscriptionCharged(req requestmodels.
 	return resp, nil
 }
 func (as *AuthSubscriptionUsecase) WebhookSubscriptionHalted(req requestmodels.WebhookSubscriptionHaltedRequest) (responsemodels.WebhookSubscriptionHaltedResponse, error) {
+	fmt.Println("subscription halted in usecase")
 	status, err := as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -1058,8 +1076,10 @@ func (as *AuthSubscriptionUsecase) WebhookSubscriptionHalted(req requestmodels.W
 }
 
 func (as *AuthSubscriptionUsecase) WebhookSubscriptionCancelled(req requestmodels.WebhookSubscriptionCancelledRequest) (responsemodels.WebhookSubscriptionCancelledResponse, error) {
+	fmt.Println("subscription cancelled in usecase")
 	status, err := as.AuthSubscriptionRepository.FetchSubStatus(req.RazorpaySubscriptionId)
 	if err != nil {
+		fmt.Println("print error in FetchSubStatus",err)
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.WebhookSubscriptionCancelledResponse{}, domain.ErrSubNotFound
 		}
@@ -1073,6 +1093,7 @@ func (as *AuthSubscriptionUsecase) WebhookSubscriptionCancelled(req requestmodel
 	}
 	resp, err := as.AuthSubscriptionRepository.UpdateSubscriptionCancelled(req)
 	if err != nil {
+		fmt.Println("print error in UpdateSubscriptionCancelled",err)
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.WebhookSubscriptionCancelledResponse{}, domain.ErrSubNotFound
 		}
@@ -1080,15 +1101,18 @@ func (as *AuthSubscriptionUsecase) WebhookSubscriptionCancelled(req requestmodel
 	}
 	err = as.AuthSubscriptionRepository.TurnOffBlueTickForUserId(req.UserId)
 	if err != nil {
+		fmt.Println("print error in TurnOffBlueTickForUserId",err)
 		if err != gorm.ErrRecordNotFound {
 			return responsemodels.WebhookSubscriptionCancelledResponse{}, domain.ErrUserNotFound
 		}
 		return responsemodels.WebhookSubscriptionCancelledResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
+	fmt.Println("it is reaching at last in subscription cancelled in usecase")
 	return resp, nil
 }
 
 func (as *AuthSubscriptionUsecase) WebhookSubscriptionCompleted(req requestmodels.WebhookSubscriptionCompletedRequest) (responsemodels.WebhookSubscriptionCompletedResponse, error) {
+	fmt.Println("subscription completed in usecase")
 	resp, err := as.AuthSubscriptionRepository.UpdateSubscripionCompleted(req)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {

@@ -28,7 +28,7 @@ import (
 func ConnectDatabase(cfg *config.Config) (*gorm.DB, error) {
 
 	connectionString := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=require",
 		cfg.DB.DBHost,
 		cfg.DB.DBUser,
 		cfg.DB.DBPassword,

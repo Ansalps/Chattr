@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -151,6 +152,7 @@ func (as *AuthSubscriptionServer) VerifyOtp(ctx context.Context, req *pb.OtpRequ
 	}
 	otpResponse, err := as.AuthSubscriptionUsecase.VerifyOtp(ctx, otpReq)
 	if err != nil {
+		fmt.Println("error",err)
 		return nil, err
 	}
 
@@ -468,7 +470,7 @@ func (as *AuthSubscriptionServer) SetProfileImage(ctx context.Context, req *pb.S
 	}
 	setProfileImageRes, err := as.AuthSubscriptionUsecase.SetProfileImage(setProfileImageReq)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	//fmt.Println("in service printing image url", setProfileImageRes.ImageUrl)
 	return &pb.SetProfileImageResponse{
@@ -602,7 +604,7 @@ func (as *AuthSubscriptionServer) FetchUserMetaData(ctx context.Context, req *pb
 	userids = req.UserId
 	resp, err := as.AuthSubscriptionUsecase.FetchUserMetaData(userids)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	pbMap := make(map[uint64]*pb.UserMetaData)
 	for id, r := range resp {
@@ -686,8 +688,32 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionActivated(ctx context.Conte
 	// if req.EndAt == nil {
 	// 	fmt.Println("20000")
 	// }
+	// fmt.Println("subscription activated in auth service")
+	// loc, _ := time.LoadLocation("Asia/Kolkata")
+		fmt.Println("req",req)
+	fmt.Println("1. Entered WebhookSubscriptionActivated")
+    
+    // 1. Safe Time Conversion
+    var startAt time.Time
+    if req.StartAt != nil {
+		fmt.Println("req.StartAt is not nil")
+        // Only call AsTime() if the pointer is not nil
+        startAt = req.StartAt.AsTime()
+    } else {
+        fmt.Println("Warning: CancelledAt is nil in the request")
+        startAt = time.Now() // Fallback or handle as error
+    }
+	fmt.Println("time to start loading location")
+    // 2. Handle Location (ensure tzdata is in your Dockerfile!)
+    loc, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+        fmt.Printf("Error loading location: %v. Defaulting to UTC.\n", err)
+        loc = time.UTC
+    }
+	fmt.Println("reached after loading location",loc)
+    // Apply the timezone
+    startAt = startAt.In(loc)
 
-	loc, _ := time.LoadLocation("Asia/Kolkata")
 	webhookReq := requestmodels.WebhookSubscriptionActivatedRequest{
 		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
 		Status:                 req.Status,
@@ -697,17 +723,25 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionActivated(ctx context.Conte
 		EndAt:                  req.EndAt.AsTime().In(loc),
 		UserID:                 req.UserId,
 	}
+	fmt.Println("just before calling usecase activated")
 	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionActivated(webhookReq)
 	if err != nil {
+		fmt.Println("is there any error in activated usecase activated",err)
 		return nil, err
 	}
+	fmt.Println("just before calling usecase activated")
 	return &pb.WebhookSubscriptionActivatedResponse{
 		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
 	}, nil
 }
 
 func (as *AuthSubscriptionServer) WebhookSubscriptionCharged(ctx context.Context, req *pb.WebhookSubscriptionChargedRequest) (*pb.WebhookSubscriptionChargedResponse, error) {
-	loc, _ := time.LoadLocation("Asia/Kolkata")
+	fmt.Println("subscription charged in auth service")
+	loc, err := time.LoadLocation("Asia/Kolkata")
+	if err!=nil{
+		fmt.Printf("Error loading location: %v. Defaulting to UTC.\n", err)
+        loc = time.UTC
+	}
 	webhookReq := requestmodels.WebhookSubscriptionChargedRequest{
 		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
 		RazorpayPlanId:         req.RazorpayPlanId,
@@ -733,6 +767,7 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionCharged(ctx context.Context
 }
 
 func (as *AuthSubscriptionServer) WebhookSubscriptionHalted(ctx context.Context, req *pb.WebhookSubscriptionHaltedRequest) (*pb.WebhookSubscriptionHaltedResponse, error) {
+	fmt.Println("subscription halted in auth service")
 	webhookreq := requestmodels.WebhookSubscriptionHaltedRequest{
 		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
 		Status:                 req.Status,
@@ -748,22 +783,48 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionHalted(ctx context.Context,
 }
 
 func (as *AuthSubscriptionServer) WebhookSubscriptionCancelled(ctx context.Context, req *pb.WebhookSubscriptionCancelledRequest) (*pb.WebhookSubscriptionCancelledResponse, error) {
-	loc, _ := time.LoadLocation("Asia/Kolkata")
+	// fmt.Println("subscription cancelled in auth service")
+	// loc, _ := time.LoadLocation("Asia/Kolkata")
+	fmt.Println("1. Entered WebhookSubscriptionCancelled")
+    
+    // 1. Safe Time Conversion
+    var cancelledTime time.Time
+    if req.CancelledAt != nil {
+        // Only call AsTime() if the pointer is not nil
+        cancelledTime = req.CancelledAt.AsTime()
+    } else {
+        fmt.Println("Warning: CancelledAt is nil in the request")
+        cancelledTime = time.Now() // Fallback or handle as error
+    }
+    // 2. Handle Location (ensure tzdata is in your Dockerfile!)
+    loc, err := time.LoadLocation("Asia/Kolkata")
+    if err != nil {
+        fmt.Printf("Error loading location: %v. Defaulting to UTC.\n", err)
+        loc = time.UTC
+    }
+    // Apply the timezone
+    cancelledTime = cancelledTime.In(loc)
+
 	webhookreq := requestmodels.WebhookSubscriptionCancelledRequest{
 		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
 		Status:                 req.Status,
 		CancelledAt:            req.CancelledAt.AsTime().In(loc),
 		UserId:                 req.UserId,
 	}
+	
+	fmt.Println("just before calling usecase cancelled")
 	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionCancelled(webhookreq)
 	if err != nil {
+		fmt.Println("is there any error in calling usecase cancelled",err)
 		return nil, err
 	}
+	fmt.Println("just after calling usecase cancelled")
 	return &pb.WebhookSubscriptionCancelledResponse{
 		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
 	}, nil
 }
 func (as *AuthSubscriptionServer) WebhookSubscriptionCompleted(ctx context.Context, req *pb.WebhookSubscriptionCompletedRequest) (*pb.WebhookSubscriptionCompletedResponse, error) {
+	fmt.Println("subscription completed in auth service")
 	webhookReq := requestmodels.WebhookSubscriptionCompletedRequest{
 		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
 		Status:                 req.Status,
@@ -778,6 +839,6 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionCompleted(ctx context.Conte
 	}, nil
 }
 
-func (as *AuthSubscriptionServer)PanicInAuth(ctx context.Context,req *pb.PanicInAuthReq)(*pb.PanicInAuthRes,error){
+func (as *AuthSubscriptionServer) PanicInAuth(ctx context.Context, req *pb.PanicInAuthReq) (*pb.PanicInAuthRes, error) {
 	panic("intentional test panic in auth subscription service")
 }

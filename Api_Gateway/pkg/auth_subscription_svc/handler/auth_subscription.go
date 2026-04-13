@@ -1016,7 +1016,7 @@ func (as *AuthSubscriptionHandler) Logout(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
-
+	fmt.Println("is it reaching here in webhook any way")
 	// 2. Verify Signature
 	// signature := c.GetHeader("X-Razorpay-Signature")
 	// if signature!="postman-bypass"{
@@ -1030,6 +1030,7 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 	var webhookReq requestmodels.RazorpayEvent
 	err := utils.BindingJson(c, &webhookReq, log)
 	if err != nil {
+		fmt.Println("JSON Binding Failed:", err) // Add this
 		return
 	}
 	//fmt.Printf("Type: %T, Value: %v\n", webhookReq.Payload.Subscription.Entity.Notes["user_id"], webhookReq.Payload.Subscription.Entity.Notes["user_id"])
@@ -1040,11 +1041,12 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error in conver string user id to uint64"})
 		return
 	}
-
+	fmt.Println("webhook req",webhookReq)
 	// 4. Validate Event Type
 	var res *auth_subscription.WebhookSubscriptionActivatedResponse
 	switch webhookReq.Event {
 	case "subscription.activated":
+		fmt.Println("subscription.activated in api gateway")
 		res, err = as.DirectClient.Client.WebhookSubscriptionActivated(context.Background(), &auth_subscription.WebhookSubscriptionActivatedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
 			Status:                 webhookReq.Payload.Subscription.Entity.Status,
@@ -1061,6 +1063,7 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 			return
 		}
 	case "subscription.charged":
+		fmt.Println("subscription.charged in api gateway")
 		//fmt.Printf("The type of UserID is: %T\n", UserID)
 		_, err := as.DirectClient.Client.WebhookSubscriptionCharged(context.Background(), &auth_subscription.WebhookSubscriptionChargedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
@@ -1085,6 +1088,7 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 			return
 		}
 	case "subscription.halted":
+		fmt.Println("subscription.halted in api gateway")
 		_, err := as.DirectClient.Client.WebhookSubscriptionHalted(context.Background(), &auth_subscription.WebhookSubscriptionHaltedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
 			Status:                 webhookReq.Payload.Subscription.Entity.Status,
@@ -1097,6 +1101,7 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 			return
 		}
 	case "subscription.cancelled":
+		fmt.Println("subscription.cancelled in api gateway")
 		_, err := as.DirectClient.Client.WebhookSubscriptionCancelled(context.Background(), &auth_subscription.WebhookSubscriptionCancelledRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
 			Status:                 webhookReq.Payload.Subscription.Entity.Status,
@@ -1111,6 +1116,7 @@ func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
 			return
 		}
 	case "subscription.completed":
+		fmt.Println("subscription.completed in api gateway")
 		_, err := as.DirectClient.Client.WebhookSubscriptionCompleted(context.Background(), &auth_subscription.WebhookSubscriptionCompletedRequest{
 			RazorpaySubscriptionId: webhookReq.Payload.Subscription.Entity.ID,
 			Status:                 webhookReq.Payload.Subscription.Entity.Status,

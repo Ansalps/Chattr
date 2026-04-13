@@ -255,6 +255,7 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 }
 
 func (as *PostRelationUsecase) LikePost(likePostReq requestmodels.LikePostRequest) (responsemodels.LikePostResponse, error) {
+	log.Println("is it here reaching")
 	postOwnerId, err := as.PostRelationRepository.FetchPostOwnerIdByPostId(likePostReq.PostID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -292,7 +293,7 @@ func (as *PostRelationUsecase) LikePost(likePostReq requestmodels.LikePostReques
 		// unless real-time notification is critical.
 		log.Printf("Failed to emit Kafka event: %v", err)
 	}
-
+	fmt.Println("hi hello after emiiting event")
 	return responsemodels.LikePostResponse{
 		PostID: likePostRes.PostID,
 	}, nil

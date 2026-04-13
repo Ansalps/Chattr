@@ -1,0 +1,57 @@
+# 1. THE CONFIGMAP (Public Settings)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-config
+data: # Directly under metadata
+  PORT: ":50051"
+  POST_RELATION_SVC_URL: "post-relation-service:50052"
+  DB_HOST: "ep-silent-voice-a1jrocug.ap-southeast-1.aws.neon.tech"
+  DB_NAME: "auth_subscription"
+  DB_PORT: "5432"
+  SMTP_HOST: "smtp.gmail.com"
+  SMTP_PORT: "587"
+  AWS_REGION: "ap-south-1"
+  AWS_BUCKET: "chattr-storage-photos"
+
+---
+# 3. THE SERVICE (The Networking "Entry Point")
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+spec:
+  selector:
+    app: auth-service
+  ports:
+    - protocol: TCP
+      port: 50051
+      targetPort: 50051
+
+---
+# 4. THE DEPLOYMENT (The "Brain" that runs your Go App)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+      - name: auth-service
+        image: chattr-auth_svc:latest
+        imagePullPolicy: IfNotPresent      # <--- ADD THIS to ensure it uses the local kind image
+        ports:
+        - containerPort: 50051
+        envFrom:
+        - configMapRef:
+            name: auth-config
+        - secretRef:
+            name: auth-secret

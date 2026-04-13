@@ -47,9 +47,12 @@ func main() {
 	}
 	// NEW: Start the bridge between Kafka and WebSockets
 	// Use the field from your config (e.g., config.Kafka.Brokers)
-	go kafka.StartNotificationConsumer(cfg.Kafka.Brokers, "post-events", hub, notificationUsecase, log)
-	go kafka.StartNotificationConsumer(cfg.Kafka.Brokers, "user-events", hub, notificationUsecase, log)
-	go kafka.StartNotificationConsumer(cfg.Kafka.Brokers, "chat-events", hub, notificationUsecase, log)
+	ca := []byte(cfg.Kafka.CACert)
+    cert := []byte(cfg.Kafka.AccessCert)
+    key := []byte(cfg.Kafka.AccessKey)
+	go kafka.StartNotificationConsumer(cfg.Kafka.Brokers, "post-events", hub, notificationUsecase, log, ca, cert, key)
+	go kafka.StartNotificationConsumer(cfg.Kafka.Brokers, "user-events", hub, notificationUsecase, log, ca, cert, key)
+	go kafka.StartNotificationConsumer(cfg.Kafka.Brokers, "chat-events", hub, notificationUsecase, log, ca, cert, key)
 
 	// err = router.Run(config.PortMngr.RunnerPort)
 	// if err != nil {

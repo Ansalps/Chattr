@@ -24,7 +24,14 @@ func DependencyIndjection(cfg *config.Config,log logger.Logger) (*services.PostR
 	RedisRepository := repository.NewRedisRepository(redisClient)
 
 	// This reads much better: Config -> Kafka -> Brokers
-	kafkaProducer := kafka.NewKafkaProducer([]string{cfg.Kafka.Brokers})
+	// kafkaProducer := kafka.NewKafkaProducer([]string{cfg.Kafka.Brokers})
+
+	kafkaProducer := kafka.NewKafkaProducer(
+		[]string{cfg.Kafka.Brokers},
+		[]byte(cfg.Kafka.CACert),
+		[]byte(cfg.Kafka.AccessCert),
+		[]byte(cfg.Kafka.AccessKey),
+	)
 
 	PostRelationRepository := repository.NewPostRelationRepository(gormDB)
 	PostRelationUsecase := usecase.NewPostRelationUsecase(PostRelationRepository, authSubscriptionClient,

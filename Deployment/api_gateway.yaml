@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+data:
+  PORT: ":3000"
+  AUTH_SOURCE: "gateway"
+  # URLs for other services (Internal K8s DNS)
+  AUTH_SUBSCRIPTION_SVC_URL: "auth-service:50051"
+  POST_RELATION_SVC_URL: "post-relation-service:50052"
+  CHAT_SVC_URL: "chat-service:50053"
+  NOTIFICATION_SVC_URL: "notification-service:50054"
+  # Limits/Sizes
+  MAX_FILE_NUMBER: "5"
+  PROFILE_IMG_SIZE: "2097152" # 2MB in bytes
+  POST_SIZE: "5242880"        # 5MB in bytes
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway-service
+spec:
+  selector:
+    app: api-gateway
+  ports:
+    - protocol: TCP
+      port: 80         # Port exposed to you/other services
+      targetPort: 3000 # Port your Go app listens on
+  type: ClusterIP      # Use NodePort or LoadBalancer if accessing from outside KIND
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+      - name: api-gateway
+        image: chattr-api_gateway:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - configMapRef:
+            name: api-gateway-config
+        env:
+        # Map secrets individually to match your Viper manual unmarshal
+        - name: REDIS_ADDRESS
+          valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: REDIS_ADDRESS } }
+        - name: USER_SECURITY_KEY
+          valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: USER_SECURITY_KEY } }
+        - name: ADMIN_SECURITY_KEY
+          valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: ADMIN_SECURITY_KEY } }
+        - name: OTPVERIFICATION_SECURITY_KEY
+          valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: OTPVERIFICATION_SECURITY_KEY } }
+        - name: RESET_PASSWORD_SECURITY_KEY
+          valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: RESET_PASSWORD_SECURITY_KEY } }
+        - name: ADMIN_REFRESH_KEY
+          valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: ADMIN_REFRESH_KEY } }
+        - name: USER_REFRESH_KEY
+          valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: USER_REFRESH_KEY } }
+        - name: RAZORPAY_KEY_ID
+          valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: RAZORPAY_KEY_ID } }
+        - name: RAZORPAY_KEY_SECRET
+          valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: RAZORPAY_KEY_SECRET } }
+        - name: RAZORPAY_WEBHOOK_SECRET
+          valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: RAZORPAY_WEBHOOK_SECRET } }
+        - name: CLOUDINARY_CLOUD_NAME
+          valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: CLOUDINARY_CLOUD_NAME } }
+        - name: CLOUDINARY_API_KEY
+          valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: CLOUDINARY_API_KEY } }
+        - name: CLOUDINARY_API_SECRET
+          valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: CLOUDINARY_API_SECRET } }

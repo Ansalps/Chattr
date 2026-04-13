@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notification-config
+data:
+  PORT: ":50054"
+  AUTH_SUBSCRIPTION_SVC_URL: "auth-service:50051"
+  DB_HOST: "ep-silent-voice-a1jrocug.ap-southeast-1.aws.neon.tech" # Adjust if your DB service name is different
+  DB_NAME: "notification_svc"
+  DB_PORT: "5432"
+  DB_USER: "neondb_owner"
+  KAFKA_BROKERS: "kafka-2b562aca-chattr.k.aivencloud.com:15035"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+spec:
+  selector:
+    app: notification-service
+  ports:
+    - protocol: TCP
+      port: 50054
+      targetPort: 50054
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+      - name: notification-service
+        # Ensure this matches the tag you use when building/loading into KIND
+        image: chattr-not_svc:latest 
+        imagePullPolicy: IfNotPresent 
+        ports:
+        - containerPort: 50054
+        envFrom:
+        - configMapRef:
+            name: notification-config
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: notification-secrets
+              key: DB_PASSWORD
+        - name: KAFKA_CA_CERT
+          valueFrom:
+            secretKeyRef:
+              name: notification-secrets
+              key: KAFKA_CA_CERT
+        - name: KAFKA_ACCESS_CERT
+          valueFrom:
+            secretKeyRef:
+              name: notification-secrets
+              key: KAFKA_ACCESS_CERT
+        - name: KAFKA_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: notification-secrets
+              key: KAFKA_ACCESS_KEY
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"

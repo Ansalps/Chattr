@@ -23,7 +23,7 @@ WORKDIR /app
 COPY --from=builder /app/api_gateway .
 
 # ✅ keep config path same
-COPY pkg/config/dev.env ./pkg/config/dev.env
+#COPY pkg/config/dev.env ./pkg/config/dev.env
 
 # ✅ keep template path same
 COPY cmd/templates ./cmd/templates
