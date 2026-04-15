@@ -39,8 +39,8 @@ spec:
     spec:
       containers:
       - name: chat-service
-        image: chattr-chat_svc:latest
-        imagePullPolicy: IfNotPresent      # <--- ADD THIS to ensure it uses the local kind image
+        image: ansalps/chattr-chat_svc:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 50053
         # Loads all non-sensitive variables from the ConfigMap

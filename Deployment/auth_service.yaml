@@ -46,8 +46,8 @@ spec:
     spec:
       containers:
       - name: auth-service
-        image: chattr-auth_svc:latest
-        imagePullPolicy: IfNotPresent      # <--- ADD THIS to ensure it uses the local kind image
+        image: ansalps/chattr-auth_svc:latest
+        imagePullPolicy: Always      
         ports:
         - containerPort: 50051
         envFrom:

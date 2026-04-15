@@ -40,8 +40,8 @@ spec:
       containers:
       - name: notification-service
         # Ensure this matches the tag you use when building/loading into KIND
-        image: chattr-not_svc:latest 
-        imagePullPolicy: IfNotPresent 
+        image: ansalps/chattr-not_svc:latest 
+        imagePullPolicy: Always 
         ports:
         - containerPort: 50054
         envFrom:

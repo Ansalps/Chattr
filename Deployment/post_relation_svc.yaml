@@ -28,8 +28,8 @@ spec:
     spec:
       containers:
       - name: post-relation
-        image: chattr-post_svc:latest
-        imagePullPolicy: Never # Critical for KIND to use local image
+        image: ansalps/chattr-post_svc:latest
+        imagePullPolicy: Always 
         ports:
         - containerPort: 50052
         envFrom:
