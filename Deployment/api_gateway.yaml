@@ -79,3 +79,10 @@ spec:
           valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: CLOUDINARY_API_KEY } }
         - name: CLOUDINARY_API_SECRET
           valueFrom: { secretKeyRef: { name: api-gateway-secrets, key: CLOUDINARY_API_SECRET } }
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
