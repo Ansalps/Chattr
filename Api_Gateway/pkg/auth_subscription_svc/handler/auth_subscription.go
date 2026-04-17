@@ -1243,3 +1243,9 @@ func (as *AuthSubscriptionHandler) PanicInAuth(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, resp)
 }
+
+func (as *AuthSubscriptionHandler) Health(c *gin.Context) {
+    c.JSON(200, gin.H{
+        "status": "ok",
+    })
+}
