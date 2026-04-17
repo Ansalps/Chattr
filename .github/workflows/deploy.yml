@@ -9,7 +9,7 @@ env:
   GKE_CLUSTER: "chattr-standard"
   GKE_ZONE: "us-central1-a"
   # Replace with your Docker Hub details
-  DOCKER_USER: "ansalps10" 
+  DOCKER_USER: "ansalps" 
   IMAGE_NAME: "chattr-api-gateway"
   # Replace 'github-provider' if you named yours differently in your pool
   WIF_PROVIDER: "projects/18338518815/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
