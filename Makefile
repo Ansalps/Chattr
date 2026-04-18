@@ -1,4 +1,4 @@
-TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NiwiZW1haWwiOiJmYXdhd28zNzA1QGtvYmFjZS5jb20iLCJyb2xlIjoidXNlciIsInR5cGUiOiJhY2Nlc3MiLCJpc3MiOiJDaGF0dHIiLCJleHAiOjE3NzYxMDkzMzMsImlhdCI6MTc3NjAyMjkzMywianRpIjoiODhiZTUwNGYtMjNhNC00ODk4LWI5OTctY2RhZDBjZjlhNmRmIn0.5LsAVPKNhe4CaIyzh2jfHEbqj3q98BGZmoDAX3Y-Eb8
+TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NSwiZW1haWwiOiJzb2JpamkzMTkzQG55c3ByaW5nLmNvbSIsInJvbGUiOiJ1c2VyIiwidHlwZSI6ImFjY2VzcyIsImlzcyI6IkNoYXR0ciIsImV4cCI6MTc3NjQyMDUxOSwiaWF0IjoxNzc2MzM0MTE5LCJqdGkiOiJmY2FmMzA5Mi03Y2ZkLTQ0MDMtOGIwNi1iMzg2ZjMzMTNmNWEifQ.kymd_SdSf3p8TnXPHa9wmJJqA5FKUv2tPhwcTgLtUOs
 
 .PHONY: papiauth papipost Run
 
@@ -27,12 +27,16 @@ Kafkalog:
 	--from-beginning
 Kafkatopic:
 	docker exec kafka kafka-topics --bootstrap-server localhost:9092 --list
-Chatws:
+chatws:
 	wscat -c "ws://localhost:3000/user/ws" -H "Authorization: Bearer $(TOKEN)"
-Notws:
+notws:
 	wscat -c "ws://localhost:3000/user/notification/ws" -H "Authorization: Bearer $(TOKEN)"
+make gkechatws:
+	wscat -c "ws://chattr.shop/user/ws" -H "Authorization: Bearer $(TOKEN)"
+make gkenotws:
+	wscat -c "ws://chattr.shop/user/notification/ws" -H "Authorization: Bearer $(TOKEN)"
 dap:
-	docker build -t chattr-api_gateway ./Api_Gateway
+	docker build -t ansalps/chattr-api_gateway ./Api_Gateway
 klap:
 	kind load docker-image chattr-api_gateway:latest --name single-node
 krdap:

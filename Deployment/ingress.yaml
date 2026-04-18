@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: main-ingress
+  namespace: default # Ensure this matches the namespace of your app service
+  annotations:
+    # 🔐 Tell cert-manager to issue certificate
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Use this to increase upload limits if needed
+    nginx.ingress.kubernetes.io/proxy-body-size: "25m"
+    nginx.ingress.kubernetes.io/limit-rps: "5"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "3"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - chattr.shop
+        - www.chattr.shop
+      secretName: chattr-tls   # cert-manager will create this
+  rules:
+    - host: chattr.shop # Replace with your actual domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway-service # Replace with your actual Service name
+                port:
+                  number: 80 # Replace with your Service's port
+    - host: www.chattr.shop # Add this block
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway-service
+                port:
+                  number: 80
