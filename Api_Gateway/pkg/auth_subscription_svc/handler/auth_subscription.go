@@ -1247,5 +1247,6 @@ func (as *AuthSubscriptionHandler) PanicInAuth(c *gin.Context) {
 func (as *AuthSubscriptionHandler) Health(c *gin.Context) {
     c.JSON(200, gin.H{
         "status": "ok",
+		"message":"health check",
     })
 }
