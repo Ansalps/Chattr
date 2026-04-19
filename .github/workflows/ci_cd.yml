@@ -2,7 +2,7 @@ name: Build and Deploy to GKE
 
 on:
   push:
-    branches: [ "newsfeed1.0" ]
+    branches: [ "Authentication" ]
 
 env:
   PROJECT_ID: "project-7559c875-60a6-4d6a-b57"
