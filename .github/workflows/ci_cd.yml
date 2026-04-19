@@ -67,5 +67,5 @@ jobs:
     - name: Deploy to GKE
       run: |
         kubectl set image deployment/auth-service \
-          api-gateway=${{ env.DOCKER_USER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          auth-service=${{ env.DOCKER_USER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
         kubectl rollout status deployment/auth-service
