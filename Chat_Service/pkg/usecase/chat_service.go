@@ -466,7 +466,9 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
-
+	if len(convs)==0{
+		return []responsemodels.ChatProfileResponse{},nil
+	}
 	// 2. Separate Group IDs and unique User IDs
 	var individualUserIDs []uint64
 	var groupIDs []string
@@ -499,42 +501,17 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 			}
 		}
 	}
-	// 3. Batch Call to Auth Service
-	// Request: { user_ids: [10, 11, ...] }
-	// Response: { user_metadata_map: { "10": {name: "Ansal", img: "..."}, "11": {...} } }
-	//fmt.Println("individualUserIDs", individualUserIDs)
 
-	authRes, err := client.FetchUserMetaData(
+	var authRes *pb.BatchUserMetadataResponse
+	if len(individualUserIDs)>0{
+	authRes, err = client.FetchUserMetaData(
 		as.AuthClient,
 		individualUserIDs,
 	)
 	if err != nil {
 		return nil, err
 	}
-	// authRes, err := as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
-	// 	UserId: individualUserIDs})
-	// if err != nil {
-	// 	st, ok := status.FromError(err)
-	// 	if !ok {
-	// 		// Not a gRPC error
-	// 		return nil,
-	// 			fmt.Errorf("%w: %v", domain.ErrInternal, err)
-	// 	}
-
-	// 	switch st.Code() {
-
-	// 	case codes.NotFound:
-	// 		return nil, domain.ErrUsersNotFound
-
-	// 	case codes.Internal:
-	// 		return nil,
-	// 			fmt.Errorf("%w: %v", domain.ErrDatabase, err)
-
-	// 	default:
-	// 		return nil,
-	// 			fmt.Errorf("%w: %v", domain.ErrInternal, err)
-	// 	}
-	// }
+}
 
 	// 4. Build the final response list
 	var finalProfiles []responsemodels.ChatProfileResponse
