@@ -2,7 +2,7 @@ name: Build and Deploy to GKE
 
 on:
   push:
-    branches: [ "Chat" ]
+    branches: [ "Notification" ]
 
 env:
   PROJECT_ID: "project-7559c875-60a6-4d6a-b57"
@@ -10,7 +10,7 @@ env:
   GKE_ZONE: "us-central1-a"
   # Replace with your Docker Hub details
   DOCKER_USER: "ansalps" 
-  IMAGE_NAME: "chattr-chat_svc"
+  IMAGE_NAME: "chattr-not_svc"
   # Replace 'github-provider' if you named yours differently in your pool
   WIF_PROVIDER: "projects/18338518815/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
   SERVICE_ACCOUNT: "github-deployer@project-7559c875-60a6-4d6a-b57.iam.gserviceaccount.com"
@@ -41,7 +41,7 @@ jobs:
     - name: Build and Push Docker Image
       uses: docker/build-push-action@v5
       with:
-        context: ./Chat_Service  # Ensure this matches your folder name
+        context: ./Notification_Service  # Ensure this matches your folder name
         push: true
         tags: |
           ${{ env.DOCKER_USER }}/${{ env.IMAGE_NAME }}:latest
@@ -66,6 +66,6 @@ jobs:
     # We update the deployment image to the specific SHA tag we just built
     - name: Deploy to GKE
       run: |
-        kubectl set image deployment/chat-service \
-          chat-service=${{ env.DOCKER_USER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-        kubectl rollout status deployment/chat-service
+        kubectl set image deployment/notification-service \
+          notification-service=${{ env.DOCKER_USER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        kubectl rollout status deployment/notification-service
