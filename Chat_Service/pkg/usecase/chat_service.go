@@ -479,6 +479,7 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 			for _, pID := range c.Participants {
 				if pID != req.UserID && !userIDsMap[pID] {
 					individualUserIDs = append(individualUserIDs, pID)
+					individualUserIDs=append(individualUserIDs, req.UserID)
 					userIDsMap[pID] = true
 				}
 			}
@@ -530,8 +531,14 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 			profile.ChatImage = meta.ImageURL // empty if not set
 		} else {
 			// Find the "other" person in this chat
-			for _, pID := range conv.Participants {
+			for i, pID := range conv.Participants {
 				if pID != req.UserID {
+					if meta, ok := authRes.Users[pID]; ok {
+						profile.ChatName = meta.UserName
+						profile.ChatImage = meta.ProfileImgUrl
+					}
+					break
+				} else if conv.Participants[i]==req.UserID && conv.Participants[i+1]==req.UserID{
 					if meta, ok := authRes.Users[pID]; ok {
 						profile.ChatName = meta.UserName
 						profile.ChatImage = meta.ProfileImgUrl
