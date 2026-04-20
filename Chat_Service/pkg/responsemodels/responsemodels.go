@@ -37,7 +37,7 @@ type ChatProfileResponse struct {
 	LastMessage     string    `json:"last_message"`
 	LastMessageTime time.Time `json:"last_message_time"`
 	IsGroup         bool      `json:"is_group"`
-	
+	GroupID string `json:"group_id,omitempty"`
 }
 
 type ChatProfileFinalResponse struct{

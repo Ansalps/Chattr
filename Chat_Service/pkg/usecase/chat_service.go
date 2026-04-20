@@ -529,6 +529,7 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 
 			profile.ChatName = meta.Name
 			profile.ChatImage = meta.ImageURL // empty if not set
+			profile.GroupID=conv.GroupID
 		} else {
 			// Find the "other" person in this chat
 			for i, pID := range conv.Participants {
