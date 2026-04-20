@@ -453,14 +453,20 @@ func (ad *ChatRepository) GetGroupMetaBatch(groupIDs []string) (map[string]respo
 			Name     string `bson:"groupname"`
 			ImageURL string `bson:"groupimageurl"`
 		}
-		// results[temp.ID] = responsemodels.GroupMeta{
-		// 	Name:     temp.Name,
-		// 	ImageURL: temp.ImageURL, // may be empty
-		// }
+		
 		if err := cursor.Decode(&temp); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error decoding group: %w", err)
 		}
+		// 2. Assign to map SECOND
+        results[temp.ID] = responsemodels.GroupMeta{
+            Name:     temp.Name,
+            ImageURL: temp.ImageURL,
+        }
 	}
+	// Check for errors that occurred during iteration
+    if err := cursor.Err(); err != nil {
+        return nil, fmt.Errorf("cursor error: %w", err)
+    }
 
 	return results, nil
 }
