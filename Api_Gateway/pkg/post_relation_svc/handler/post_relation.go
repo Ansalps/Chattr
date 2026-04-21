@@ -91,7 +91,7 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 
 	// Allowed formats
 	allowed := map[string]bool{
-		".jpg": true, ".jpeg": true, ".png": true, ".webp": true, ".mp4": true,
+		".jpg": true, ".jpeg": true, ".png": true, ".webp": true, ".mp4": true, ".mp3":true, ".ogg":true,
 	}
 	var uploadedUrls []string
 
@@ -103,9 +103,9 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 
 	for _, file := range files {
 		// Validate size (<1MB)
-		if file.Size > 5<<20 {
-			utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, 400, "Each file must be < 5 MB")
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Each file must be < 5 MB"})
+		if file.Size > 20<<20 {
+			utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, 400, "Each file must be < 20 MB")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Each file must be < 20 MB"})
 			return
 		}
 		ext := strings.ToLower(filepath.Ext(file.Filename))
