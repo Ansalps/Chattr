@@ -46,4 +46,8 @@ type PostRelationRepository interface {
 	UpdatFollowCountOnUnFollow(uint64,uint64)(uint64,error)
 
 	InsertUserIntoFollowCount(userid uint64)(error)
+
+	GetFollowedNormalUsersIDs(userID uint64) ([]uint64, error)
+	IsUserCelebrity(userid uint64)(bool,error)
+	FetchPostData(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error)
 }

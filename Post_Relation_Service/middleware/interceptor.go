@@ -66,6 +66,8 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 				return nil, status.Error(codes.NotFound, domain.ErrNoFollowingNoPost.Error())
 			case errors.Is(err, domain.ErrNoPostGlobally):
 				return nil, status.Error(codes.NotFound, domain.ErrNoPostGlobally.Error())
+			case errors.Is(err, domain.NormalUserPostsNotFound):
+				return nil, status.Error(codes.NotFound, domain.NormalUserPostsNotFound.Error())
 			case errors.Is(err, domain.CelebPostsNotFound):
 				return nil, status.Error(codes.NotFound, domain.CelebPostsNotFound.Error())
 			case errors.Is(err, domain.ErrNoFollowing):

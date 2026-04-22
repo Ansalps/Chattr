@@ -301,41 +301,34 @@ func (ad *PostRelationRepository) FetchFollowingUserIds(req requestmodels.FetchF
 	// }
 	return resp, nil
 }
+func (ad *PostRelationRepository) FetchPostData(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error) {
+	var resp []responsemodels.PostWithStatus
 
-// func (ad *PostRelationRepository) FetchPostDataForNewsFeed(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error) {
-//     var resp []responsemodels.PostWithStatus
+	// Subquery to get Followings who are NOT celebrities
+	normalFollowingSubquery := ad.DB.Table("relations").
+		Select("following_id").
+		Where("follower_id = ?", newsfeedReq.UserID)
+		//fmt.Println("user id",newsfeedReq.UserID)
+	query := ad.DB.Table("posts").
+		Select(`posts.*, 
+		(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count,
+		(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
+		EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?)  as is_liked
+		`, newsfeedReq.UserID). // Use your existing SELECT logic
+		Where("(posts.user_id = ? OR posts.user_id IN (?))", newsfeedReq.UserID, normalFollowingSubquery).
+		Where("posts.post_status = ?", "normal")
 
-//     query := ad.DB.Table("posts").
-//         Select(`
-//             posts.*,
-//             (SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count,
-//             (SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count,
-//             EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked
-//         `, newsfeedReq.UserID)//.
-//         //Joins("JOIN relations ON relations.following_id = posts.user_id").
-//         //Where("relations.follower_id = ?", newsfeedReq.UserID).
-//         //Where("posts.post_status = ?", "normal")//.
+	if newsfeedReq.LastID > 0 {
+		query = query.Where("posts.id < ?", newsfeedReq.LastID)
+	}
 
-// 		// 2. Logic to include Followings + Self
-//     // We use a subquery for following_ids to make the 'OR' condition efficient
-//     query = query.Where("posts.user_id = ? OR posts.user_id IN (SELECT following_id FROM relations WHERE follower_id = ?)",
-//         newsfeedReq.UserID, newsfeedReq.UserID)
+	query1 := query.Order("posts.id DESC").Limit(int(newsfeedReq.Limit) + 1).Preload("Media").Find(&resp)
+	if query1.Error!=nil{
+		return nil,fmt.Errorf("error in fetch normal post data: %w",query1.Error)
+	}
+	return resp, nil
+}
 
-//     // 3. Keep existing filters
-//     query = query.Where("posts.post_status = ?", "normal")
-
-// 		// CURSOR LOGIC: If LastID is provided, fetch posts older than that ID
-// 		if newsfeedReq.LastID > 0 {
-// 			query = query.Where("posts.id < ?", newsfeedReq.LastID)
-// 		}
-
-// 		err := query.Order("posts.id DESC"). // Using ID DESC is faster and safer than CreatedAt
-//         Limit(int(newsfeedReq.Limit)+1).
-//         Preload("Media").
-//         Find(&resp).Error
-
-//	    return resp, err
-//	}
 func (ad *PostRelationRepository) FetchNormalPostData(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error) {
 	var resp []responsemodels.PostWithStatus
 
@@ -362,6 +355,17 @@ func (ad *PostRelationRepository) FetchNormalPostData(newsfeedReq requestmodels.
 		return nil,fmt.Errorf("error in fetch normal post data: %w",query1.Error)
 	}
 	return resp, nil
+}
+func (ad *PostRelationRepository) GetFollowedNormalUsersIDs(userID uint64) ([]uint64, error) {
+	var normalUserIDs []uint64
+	query := ad.DB.Table("relations").
+		Select("following_id").
+		Where("follower_id = ? AND following_id NOT IN (SELECT id FROM celebrities)", userID).
+		Pluck("following_id", &normalUserIDs)
+	if query.Error!=nil{
+		return nil,fmt.Errorf("error fething followed celebrity ids: %w",query.Error)
+	}
+	return normalUserIDs, nil
 }
 func (ad *PostRelationRepository) GetFollowedCelebrityIDs(userID uint64) ([]uint64, error) {
 	var celebIDs []uint64
@@ -433,6 +437,22 @@ func (ad *PostRelationRepository) PromoteToCelebrity(userid uint64) error {
 		return result.Error
 	}
 	return nil
+}
+func (ad *PostRelationRepository) IsUserCelebrity(userid uint64)(bool,error){
+	fmt.Println("user id",userid)
+	var exists int
+	query := `SELECT 1 FROM celebrities WHERE id=$1 LIMIT 1`
+
+	result := ad.DB.Raw(query, userid).Scan(&exists)
+	if result.Error != nil {
+		return false, result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		fmt.Println("no rows found")
+		return false, nil
+	}
+	return true,nil
 }
 func (ad *PostRelationRepository) DepromoteToNormalUser(userid uint64) error {
 	query := `DELETE FROM celebrities WHERE id=$1`
