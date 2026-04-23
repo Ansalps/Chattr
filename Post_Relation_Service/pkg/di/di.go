@@ -1,24 +1,25 @@
 package di
 
 import (
-	"github.com/Ansalps/Chattr_Post_Relation_Service/infrastructure/logger"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/infrastructure/kafka"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/infrastructure/logger"
 	services "github.com/Ansalps/Chattr_Post_Relation_Service/pkg/api"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/client"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/db"
 	repository "github.com/Ansalps/Chattr_Post_Relation_Service/pkg/respository"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase/interfacesUsecase"
 )
 
-func DependencyIndjection(cfg *config.Config,log logger.Logger) (*services.PostRelationServer, error) {
+func DependencyInjection(cfg *config.Config, log logger.Logger) (*services.PostRelationServer, interfacesUsecase.FeedUsecase, error) {
 	gormDB, err := db.ConnectDatabase(cfg)
 	if err != nil {
-		return nil, err
+		return nil,nil, err
 	}
 	authSubscriptionClient, err := client.InitAuthSubscriptionServiceClient(cfg)
 	if err != nil {
-		return nil, err
+		return nil,nil, err
 	}
 	redisClient := client.NewRedisClient(cfg)
 	RedisRepository := repository.NewRedisRepository(redisClient)
@@ -35,8 +36,16 @@ func DependencyIndjection(cfg *config.Config,log logger.Logger) (*services.PostR
 
 	PostRelationRepository := repository.NewPostRelationRepository(gormDB)
 	PostRelationUsecase := usecase.NewPostRelationUsecase(PostRelationRepository, authSubscriptionClient,
-		 RedisRepository,kafkaProducer,log,cfg)
+		RedisRepository, kafkaProducer, log, cfg)
+
+	// ✅ NEW: Feed Usecase
+	feedUsecase := usecase.NewFeedUsecase(
+		PostRelationRepository,
+		RedisRepository,
+		cfg,
+		log,
+	)
 	PostRelationServiceServer := services.NewPostRelationSever(PostRelationUsecase)
 
-	return PostRelationServiceServer, nil
+	return PostRelationServiceServer,feedUsecase, nil
 }

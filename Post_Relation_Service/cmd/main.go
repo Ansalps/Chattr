@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/Ansalps/Chattr_Post_Relation_Service/infrastructure/kafka"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/infrastructure/logger"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/middleware"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/config"
@@ -39,7 +40,7 @@ func main() {
 			logger.Field{Key: "error", Value: err},
 		)
 	}
-	PostRelationServiceServer, err := di.DependencyIndjection(cfg, log)
+	PostRelationServiceServer,feedUsecase, err := di.DependencyInjection(cfg, log)
 	if err != nil {
 		log.Fatal("cannot start server",
 			logger.Field{Key: "error", Value: err},
@@ -51,9 +52,18 @@ func main() {
 			logger.Field{Key: "error", Value: err},
 		)
 	}
-	// log.Info("Post Relation Service started",
-	// 	logger.Field{Key: "port", Value: cfg.PortMngr.RunnerPort},
-	// )
+	go func() {
+		log.Info("Starting Feed Consumer...")
+		kafka.StartFeedConsumer(
+			cfg.Kafka.Brokers,
+			"post-events",
+			"feed-group",
+			feedUsecase,
+			[]byte(cfg.Kafka.CACert),
+			[]byte(cfg.Kafka.AccessCert),
+			[]byte(cfg.Kafka.AccessKey),
+		)
+	}()
 	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(
 			grpc_middleware.ChainUnaryServer(
@@ -63,11 +73,6 @@ func main() {
 		),
 	)
 	pb.RegisterPostRelationServiceServer(grpcServer, PostRelationServiceServer)
-	// if err := grpcServer.Serve(lis); err != nil {
-	// 	log.Fatal("failed to start grpc server",
-	// 		logger.Field{Key: "error", Value: err},
-	// 	)
-	// }
 
 	log.Info("Post Relation Service started",
 		logger.Field{Key: "port", Value: cfg.PortMngr.RunnerPort},

@@ -56,86 +56,25 @@ func (as *PostRelationUsecase) InsertUserIntoFollowCount(userid uint64) error {
 	return nil
 }
 func (as *PostRelationUsecase) CreatePost(createPostReq requestmodels.CreatePostRequest) (responsemodels.CreatePostResponse, error) {
-	celebfollowcount, err := strconv.Atoi(as.Cfg.CelebrityFollowCount)
-	if err != nil {
-		return responsemodels.CreatePostResponse{}, fmt.Errorf("%w: %v", domain.ErrInternal, err)
-	}
 	createPostRes, err := as.PostRelationRepository.CreatePost(createPostReq)
 	if err != nil {
 		return responsemodels.CreatePostResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
 
+	// ✅ Publish Kafka Event instead of goroutine
+	event := map[string]interface{}{
+		"type":      "POST_CREATED",
+		"userId":    createPostReq.UserID,
+		"postId":    createPostRes.PostID,
+		"createdAt": time.Now().Unix(),
+	}
 
-	// 2. Start a background process for fan-out
-	go func() {
-		// 1. Fetch followers from SQL
-		followers, err := as.PostRelationRepository.FetchFollowersUserIds(createPostReq.UserID)
-		if err != nil {
-			if err!=gorm.ErrRecordNotFound{
-				as.Log.Error("failed to fetch follower user ids from auth service",
-				logger.Field{Key: "error", Value: err})
-				return
-			}
-		}
-		if len(followers) > celebfollowcount {
-			key := fmt.Sprintf("celeb:posts:%d", createPostReq.UserID)
-
-			pipe := as.RedisRepository.Pipeline()
-			//1. Add the new post ID
-			pipe.ZAdd(context.Background(), key, redis.Z{Score: float64(createPostRes.PostID), Member: createPostRes.PostID})
-
-			//2. Keep only the latest 50 posts (remove everything from index 0 to -51)
-			pipe.ZRemRangeByRank(context.Background(), key, 0, -51)
-
-			//3. Set a long TTL (e.g., 7 days) because this is the primary cache for their feed
-			pipe.Expire(context.Background(), key, 7*24*time.Hour)
-
-			_, err = pipe.Exec(context.TODO())
-			if err != nil {
-				as.Log.Warn("redis pipeline failed(adding post id to celeb cache and removing old posts and setting expiry upon create post)",
-					logger.Field{Key: "error", Value: err})
-			}
-			return
-		}
-
-		ctx := context.Background()
-		pipe := as.RedisRepository.Pipeline()
-		followers = append(followers, responsemodels.FollowerIds{
-			FollowerID: createPostReq.UserID,
-		})
-		for i, fID := range followers {
-			// The key is the FOLLOWER'S feed
-			feedKey := fmt.Sprintf("feed:user:%d", fID.FollowerID)
-
-			// 1. Add the new post to the follower's feed cache
-			pipe.ZAdd(ctx, feedKey, redis.Z{
-				Score:  float64(time.Now().Unix()),
-				Member: createPostRes.PostID,
-			})
-
-			// 2. Trim the feed so it doesn't grow indefinitely (e.g., keep top 100)
-			pipe.ZRemRangeByRank(ctx, feedKey, 0, -101)
-
-			// 3. Set/Refresh TTL so inactive users' feeds eventually clear out
-			pipe.Expire(ctx, feedKey, 72*time.Hour)
-
-			// Batch Execution every 500 commands
-			if (i+1)%500 == 0 {
-				_, err := pipe.Exec(ctx)
-				if err != nil {
-					as.Log.Error("Push model pipeline failed", logger.Field{Key: "error", Value: err})
-				}
-				pipe = as.RedisRepository.Pipeline()
-			}
-		}
-
-		if pipe.Len() > 0 {
-			_, err := pipe.Exec(ctx)
-			if err != nil {
-				as.Log.Error("Final Push model pipeline failed", logger.Field{Key: "error", Value: err})
-			}
-		}
-	}()
+	err = as.KafkaProducer.PublishEvent("post-events", event)
+	if err != nil {
+		// Do NOT fail request — just log
+		as.Log.Error("failed to publish POST_CREATED event",
+			logger.Field{Key: "error", Value: err})
+	}
 
 	return responsemodels.CreatePostResponse{
 		PostID: createPostRes.PostID,
