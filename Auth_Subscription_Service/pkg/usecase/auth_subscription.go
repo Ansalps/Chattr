@@ -911,9 +911,10 @@ func (as *AuthSubscriptionUsecase) FetchUserPublicData(userid uint64) (responsem
 			fmt.Println("returning here")
 			return responsemodels.UserPublicDataResponse{}, domain.ErrUserNotFound
 		}
-		fmt.Println("returning this error")
+		//fmt.Println("returning this error")
 		return responsemodels.UserPublicDataResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
+	//fmt.Println("printing resp in usecase FetchUserPublicData",resp)
 	return resp, nil
 }
 func (as *AuthSubscriptionUsecase) FetchUserMetaData(userids []uint64) (map[uint64]responsemodels.UserMetaData, error) {
