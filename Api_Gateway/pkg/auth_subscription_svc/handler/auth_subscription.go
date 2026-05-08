@@ -714,7 +714,7 @@ func (as *AuthSubscriptionHandler) GetProfileInformation(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 	"reponse":res,
-	"test":"key",
+	"test":"key 1",
 })
 
 }
