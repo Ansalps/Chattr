@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-	_ "net/http/pprof"
+
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/di"
 	"github.com/Ansalps/Chattr_Notification_Service/pkg/infrastructure/kafka"
@@ -48,8 +50,9 @@ func main() {
 	// NEW: Start the bridge between Kafka and WebSockets
 	// Use the field from your config (e.g., config.Kafka.Brokers)
 	ca := []byte(cfg.Kafka.CACert)
-    cert := []byte(cfg.Kafka.AccessCert)
-    key := []byte(cfg.Kafka.AccessKey)
+	cert := []byte(cfg.Kafka.AccessCert)
+	key := []byte(cfg.Kafka.AccessKey)
+	fmt.Println("ca:", string(ca), "cert:", string(cert), "key:", string(key))
 	go kafka.StartNotificationConsumer(cfg.Kafka.Brokers, "post-events", hub, notificationUsecase, log, ca, cert, key)
 	go kafka.StartNotificationConsumer(cfg.Kafka.Brokers, "user-events", hub, notificationUsecase, log, ca, cert, key)
 	go kafka.StartNotificationConsumer(cfg.Kafka.Brokers, "chat-events", hub, notificationUsecase, log, ca, cert, key)

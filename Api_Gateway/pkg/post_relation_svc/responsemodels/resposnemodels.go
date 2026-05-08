@@ -80,6 +80,18 @@ type FetchFollowingResponse struct {
 	UserMetaData []UserMetaData
 	Pagingation PagingationDetails
 }
+type FetchPostByIdResponse struct{
+	PostID uint64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID uint64
+	Caption string
+	MediaUrls []string
+	LikeCount     uint64
+	CommentsCount uint64
+	IsLiked bool
+	PostAge       string
+}
 type Post struct{
 	PostID uint64
 	CreatedAt time.Time

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/viper"
 )
@@ -18,10 +19,10 @@ type Database struct {
 	DBPort     string `mapstructure:"DB_PORT"`
 }
 type KafkaConfig struct {
-	Brokers string `mapstructure:"KAFKA_BROKERS"`
-	CACert string	`mapstructure:"KAFKA_CA_CERT"`
-	AccessCert string	`mapstructure:"KAFKA_ACCESS_CERT"`
-	AccessKey string	`mapstructure:"KAFKA_ACCESS_KEY"`
+	Brokers    string `mapstructure:"KAFKA_BROKERS"`
+	CACert     string `mapstructure:"KAFKA_CA_CERT"`
+	AccessCert string `mapstructure:"KAFKA_ACCESS_CERT"`
+	AccessKey  string `mapstructure:"KAFKA_ACCESS_KEY"`
 }
 type Config struct {
 	PortMngr PortManager
@@ -54,7 +55,7 @@ func LoadConfig() (*Config, error) {
 
 	// Bind all known keys from your structs so Viper knows to look for them in Env
 	allKeys := []string{
-		"PORT", "AUTH_SUBSCRIPTION_SVC_URL","DB_HOST", "DB_USER","DB_PASSWORD",
+		"PORT", "AUTH_SUBSCRIPTION_SVC_URL", "DB_HOST", "DB_USER", "DB_PASSWORD",
 		"DB_NAME", "DB_PORT", "KAFKA_BROKERS", "KAFKA_CA_CERT", "KAFKA_ACCESS_CERT", "KAFKA_ACCESS_KEY",
 	}
 
@@ -74,6 +75,28 @@ func LoadConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	viper.Unmarshal(&config) // For the top-level CelebrityFollowCount
+	// Read CA Cert
+	caData, err := os.ReadFile(config.Kafka.CACert)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read CA cert at %s: %w", config.Kafka.CACert, err)
+	}
+	config.Kafka.CACert = string(caData)
+
+	// Read Access Cert
+	accessCertData, err := os.ReadFile(config.Kafka.AccessCert)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read Access cert at %s: %w", config.Kafka.AccessCert, err)
+	}
+	config.Kafka.AccessCert = string(accessCertData)
+
+	// Read Access Key
+	accessKeyData, err := os.ReadFile(config.Kafka.AccessKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read Access key at %s: %w", config.Kafka.AccessKey, err)
+	}
+	config.Kafka.AccessKey = string(accessKeyData)
 
 	//config := Config{PortMngr: portmngr, DB: db,Kafka: kafka}
 	return &config, nil

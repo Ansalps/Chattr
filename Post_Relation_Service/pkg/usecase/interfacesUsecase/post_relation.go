@@ -8,6 +8,7 @@ import (
 type PostRelationUsecase interface {
 	CreatePost(requestmodels.CreatePostRequest) (responsemodels.CreatePostResponse, error)
 	FetchAllPosts(requestmodels.FetchAllPostsReq) ([]responsemodels.PostWithCounts, error)
+	FetchPostByPostID(requestmodels.FetchPostByPostIDRequest) (responsemodels.PostWithCounts, error)
 	EditPost(requestmodels.EditPostRequest) (responsemodels.EditPostResponse, error)
 	DeletePost(requestmodels.DeletePostRequest) (responsemodels.DeletePostResponse, error)
 

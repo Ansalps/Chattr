@@ -63,6 +63,10 @@ type FetchCommentsReqeust struct{
 	Limit int
 	Offset int
 }
+type FetchPostByPostIDRequest struct{
+	UserID uint64
+	PostID uint64
+}
 type FetchAllPostsReq struct{
 	CurrentUserID uint64
 	TargetUserID uint64
