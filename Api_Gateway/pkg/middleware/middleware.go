@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -188,6 +189,7 @@ func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tok
 		})
 
 		if err != nil {
+			fmt.Println("jwstClaims.Role", jwtClaims.Role)
 			if errors.Is(err, jwt.ErrTokenExpired) {
 				//log.Warn("token expired")
 				response.AbortWithError(c, http.StatusUnauthorized, "Session expired, repeat the process to get new otp again")
@@ -260,6 +262,7 @@ func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tok
 		// Role authorization
 		authorized := false
 		for _, r := range requiredRoles {
+			fmt.Println("jwstClaims.Role", jwtClaims.Role)
 			if jwtClaims.Role == r {
 				authorized = true
 				break

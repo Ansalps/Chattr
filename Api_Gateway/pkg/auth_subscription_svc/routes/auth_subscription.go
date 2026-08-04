@@ -22,7 +22,7 @@ func AuthSubscriptionRoutes(router *gin.Engine, authSubscriptionHandler *handler
 
 	router.POST("/user/signup", authSubscriptionHandler.UserSignUp)
 	router.POST("/user/verify-otp", authMiddleware.VerifyJwt([]string{"otpverification"}, "access", tokenSecurityKey.OtpVerificationSecurityKey), authSubscriptionHandler.VerifyOtp)
-	router.POST("/user/resend-otp", authMiddleware.VerifyJwt([]string{"otpverifcation"}, "access", tokenSecurityKey.OtpVerificationSecurityKey), authSubscriptionHandler.ResendOtp)
+	router.POST("/user/resend-otp", authMiddleware.VerifyJwt([]string{"otpverification"}, "access", tokenSecurityKey.OtpVerificationSecurityKey), authSubscriptionHandler.ResendOtp)
 	router.POST("/user/forgot-password", authSubscriptionHandler.ForgotPassword)
 	router.POST("/user/reset-password", authMiddleware.VerifyJwt([]string{"resetpassword"}, "access", tokenSecurityKey.ResetPasswordSecurityKey), authSubscriptionHandler.ResetPassword)
 	router.POST("/user/login", authSubscriptionHandler.UserLogin)

@@ -1,6 +1,6 @@
-TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NSwiZW1haWwiOiJzb2JpamkzMTkzQG55c3ByaW5nLmNvbSIsInJvbGUiOiJ1c2VyIiwidHlwZSI6ImFjY2VzcyIsImlzcyI6IkNoYXR0ciIsImV4cCI6MTc3NjQyMDUxOSwiaWF0IjoxNzc2MzM0MTE5LCJqdGkiOiJmY2FmMzA5Mi03Y2ZkLTQ0MDMtOGIwNi1iMzg2ZjMzMTNmNWEifQ.kymd_SdSf3p8TnXPHa9wmJJqA5FKUv2tPhwcTgLtUOs
+TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NSwiZW1haWwiOiJzb2JpamkzMTkzQG55c3ByaW5nLmNvbSIsInJvbGUiOiJ1c2VyIiwidHlwZSI6ImFjY2VzcyIsImlzcyI6IkNoYXR0ciIsImV4cCI6MTc3ODY2MTM2NiwiaWF0IjoxNzc4NTc0OTY2LCJqdGkiOiJjYWM0OWEwYS03NTdmLTQ3NjQtYWUyOS0zYjE2MjBjODY0NWIifQ.Zk-yoqRwFQQyJkYxlxzA_rw4V5l_MQ2aKZJJCNf9i7Q
 
-.PHONY: papiauth papipost Run
+.PHONY: papiauth papipost Run gkechatws
 
 papiauth:
 	cd Api_Gateway && protoc --go_out=. --go-grpc_out=. ./pkg/proto/auth_subscription.proto
@@ -31,10 +31,10 @@ chatws:
 	wscat -c "ws://localhost:3000/user/ws" -H "Authorization: Bearer $(TOKEN)"
 notws:
 	wscat -c "ws://localhost:3000/user/notification/ws" -H "Authorization: Bearer $(TOKEN)"
-make gkechatws:
-	wscat -c "ws://chattr.shop/user/ws" -H "Authorization: Bearer $(TOKEN)"
-make gkenotws:
-	wscat -c "ws://chattr.shop/user/notification/ws" -H "Authorization: Bearer $(TOKEN)"
+gkechatws:
+	wscat -c "wss://chattr.shop/user/ws" -H "Authorization: Bearer $(TOKEN)"
+gkenotws:
+	wscat -c "wss://chattr.shop/user/notification/ws" -H "Authorization: Bearer $(TOKEN)"
 dap:
 	docker build -t ansalps/chattr-api_gateway ./Api_Gateway
 klap:
