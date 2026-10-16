@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -24,8 +23,6 @@ import (
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-gonic/gin"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type PostRelationHandler struct {
@@ -45,36 +42,56 @@ func NewPostRelationHandler(postRelationClient interfaces.PostRelationClientInte
 }
 
 func (as *PostRelationHandler) CreatePost(c *gin.Context) {
+	log := utils.GetLogger(c)
 	var createPostReq requestmodels.CreatePostRequest
 	createPostReq.Caption = c.PostForm("caption")
 
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log, 401, "Calims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log, 401, "Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
 	createPostReq.UserID = jwtClaims.ID
-	// 1. Parse form
-	err := c.Request.ParseMultipartForm(20 << 20) // 20MB max
+	str:=as.config.PostSize
+	num, err := strconv.Atoi(str) // returns (int, error)
 	if err != nil {
+		//fmt.Println("Error:", err)
+		utils.LogApiWithUserID(log, "", createPostReq.UserID, 500, "error in converting prorile image size from string to int"+err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error in converting prorile image size from string to int"})
+		return
+	}
+	// 1. Parse form
+	err = c.Request.ParseMultipartForm(int64(num) << 20) // 20MB max
+	if err != nil {
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, 500, "Cannot parse form: "+err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot parse form"})
 		return
 	}
-
+	str = as.config.MaxFileNumber
+	num, err = strconv.Atoi(str) // returns (int, error)
+	if err != nil {
+		//log.Println("Error:", err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, 500, "cannot convert max file number from string to int: "+err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot convert max file number from string to int"})
+		return
+	}
 	files := c.Request.MultipartForm.File["media"]
-	if len(files) < 1 || len(files) > 5 {
+	if len(files) < 1 || len(files) > num {
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, 500, "Files count must be between 1 and 5")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Files count must be between 1 and 5"})
 		return
 	}
 
 	// Allowed formats
 	allowed := map[string]bool{
-		".jpg": true, ".jpeg": true, ".png": true, ".webp": true, ".mp4": true,
+		".jpg": true, ".jpeg": true, ".png": true, ".webp": true, ".mp4": true, ".mp3":true, ".ogg":true,
 	}
 	var uploadedUrls []string
 
@@ -86,18 +103,21 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 
 	for _, file := range files {
 		// Validate size (<1MB)
-		if file.Size > 5<<20 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Each file must be < 5 MB"})
+		if file.Size > 20<<20 {
+			utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, 400, "Each file must be < 20 MB")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Each file must be < 20 MB"})
 			return
 		}
 		ext := strings.ToLower(filepath.Ext(file.Filename))
 		if !allowed[ext] {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file format"})
+			utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, 400, "Invalid file format, allowed file formats are jpg,jpeg,png,webp")
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file format, allowed file formats are jpg,jpeg,png,webp"})
 			return
 		}
 
 		src, err := file.Open()
 		if err != nil {
+			utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, 500, "caannot open file: "+err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Cannot open file"})
 			return
 		}
@@ -115,7 +135,8 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 		)
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Cloudinary upload failed"})
+			utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, 500, "Cloudinary upload failed: "+err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Post upload failed"})
 			return
 		}
 
@@ -124,7 +145,10 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 	createPostReq.MediaUrls = uploadedUrls
 	createPostResponse, err := as.GPPC_Client.CreatePost(createPostReq)
 	if err != nil {
-
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -135,54 +159,63 @@ func (as *PostRelationHandler) CreatePost(c *gin.Context) {
 }
 
 func (as *PostRelationHandler) EditPost(c *gin.Context) {
+	log := utils.GetLogger(c)
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log, 400, "invalid post id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post id", nil))
 		return
 	}
 	var editPostRequest requestmodels.EditPostRequest
 	editPostRequest.PostID = postId
-	if err := c.ShouldBindJSON(&editPostRequest); err != nil {
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid Request Body", nil))
+	err = utils.BindingJson(c, &editPostRequest, log)
+	if err != nil {
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log, 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims Not Found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log, 401, "Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid Claims", nil))
 		return
 	}
 	editPostRequest.UserID = jwtClaims.ID
 	editPostResponse, err := as.GPPC_Client.EditPost(editPostRequest)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.ClientResponse(http.StatusInternalServerError, "error from grpc", err))
+		//fmt.Println("will it reach inside")
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "Post edited Successfully", editPostResponse))
 }
 
 func (as *PostRelationHandler) DeletePost(c *gin.Context) {
+	log := utils.GetLogger(c)
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log, 400, "Invalid post id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post id", nil))
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log, 401, "claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims Not Found", nil))
 		return
 	}
-	fmt.Println("print claims", claims)
-	fmt.Printf("claims type = %T\n", claims)
+
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
@@ -191,35 +224,32 @@ func (as *PostRelationHandler) DeletePost(c *gin.Context) {
 	deletePostReq.PostID = postId
 	deletePostResponse, err := as.GPPC_Client.DeletePost(deletePostReq)
 	if err != nil {
-		var obj response.Response
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusPreconditionFailed, st.Message(), nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		}
-		c.JSON(obj.StatusCode, obj)
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "post deleted successfully", deletePostResponse))
 }
 
 func (as *PostRelationHandler) LikePost(c *gin.Context) {
+	log := utils.GetLogger(c)
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log, 400, "Invalid post id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post id", nil))
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log, 401, "claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log, 401, "Invalid calims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
@@ -228,26 +258,32 @@ func (as *PostRelationHandler) LikePost(c *gin.Context) {
 	likePostReq.PostID = postId
 	likePostResponse, err := as.GPPC_Client.LikePost(likePostReq)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.ClientResponse(http.StatusInternalServerError, "error from grpc", err))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "post like successfully", likePostResponse))
 }
 
 func (as *PostRelationHandler) UnlikePost(c *gin.Context) {
+	log := utils.GetLogger(c)
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log, 400, "Invalid post id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalide post id", nil))
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log, 401, "claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
 		return
 	}
@@ -256,90 +292,83 @@ func (as *PostRelationHandler) UnlikePost(c *gin.Context) {
 	unlikePostReq.PostID = postId
 	unlikePostResponse, err := as.GPPC_Client.UnlikePost(unlikePostReq)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.ClientResponse(http.StatusInternalServerError, "error from grpc", err))
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "post unliked successfully", unlikePostResponse))
 }
 
 func (as *PostRelationHandler) AddComment(c *gin.Context) {
+	log := utils.GetLogger(c)
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log, 400, "Invalid post id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid Post id", nil))
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log, 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log, 401, "Invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Invalid claims", nil))
 		return
 	}
 	var addCommentRequest requestmodels.AddCommentRequest
 	addCommentRequest.UserID = jwtClaims.ID
 	addCommentRequest.PostID = postId
-	if err := c.ShouldBindJSON(&addCommentRequest); err != nil {
-		if validateioErrors := utils.FormatValidationError(err); validateioErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", validateioErrors))
-			return
-		}
-		log.Println("Bind Error: ", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", err))
+	err = utils.BindingJson(c, &addCommentRequest, log)
+	if err != nil {
 		return
 	}
 	addCommentResponse, err := as.GPPC_Client.AddComment(addCommentRequest)
 	if err != nil {
-		var obj response.Response
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusNotFound, st.Message(), nil)
-			case codes.FailedPrecondition:
-				obj = response.ClientResponse(http.StatusPreconditionFailed, st.Message(), nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-		}
-		c.JSON(obj.StatusCode, obj)
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comment added succesfully", addCommentResponse))
 }
 
 func (as *PostRelationHandler) EditComment(c *gin.Context) {
+	log := utils.GetLogger(c)
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post di", nil))
+		utils.LogAdminApi(log, 400, "Invalid post id")
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post id", nil))
 		return
 	}
 	commentIdStr := c.Param("comment_id")
 	commentId, err := strconv.ParseUint(commentIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log, 400, "Invalid comment id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid comment id", nil))
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log, 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claimsd")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
 		return
 	}
 	var editCommentReq requestmodels.EditCommentRequest
-	if err := c.ShouldBindJSON(&editCommentReq); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "validation failed", validationErrors))
-			return
-		}
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "bind error", err))
+	err = utils.BindingJson(c, &editCommentReq, log)
+	if err != nil {
 		return
 	}
 	editCommentReq.UserID = jwtClaims.ID
@@ -348,31 +377,37 @@ func (as *PostRelationHandler) EditComment(c *gin.Context) {
 	editCommentResponse, err := as.GPPC_Client.EditComment(editCommentReq)
 	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return // Stop execution
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comment edited successfully", editCommentResponse))
 }
 func (as *PostRelationHandler) DeleteComment(c *gin.Context) {
+	log := utils.GetLogger(c)
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post di", nil))
+		utils.LogAdminApi(log, 400, "invalid post id")
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid post id", nil))
 		return
 	}
 	commentIdStr := c.Param("comment_id")
 	commentId, err := strconv.ParseUint(commentIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log, 400, "invalid comment id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid comment id", nil))
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log, 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
 		return
 	}
@@ -382,35 +417,32 @@ func (as *PostRelationHandler) DeleteComment(c *gin.Context) {
 	deletCommentReq.CommentID = commentId
 	deleteCommentRes, err := as.GPPC_Client.DeleteComment(deletCommentReq)
 	if err != nil {
-		var obj response.Response
-		if st, ok := status.FromError(err); ok {
-			switch st.Code() {
-			case codes.NotFound:
-				obj = response.ClientResponse(http.StatusNotFound, st.Message(), nil)
-			default:
-				obj = response.ClientResponse(http.StatusInternalServerError, "Internal Server Error", nil)
-			}
-			c.JSON(obj.StatusCode, obj)
-			return
-		}
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return // Stop execution
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comment deleted succesfully", deleteCommentRes))
 }
 
 func (as *PostRelationHandler) Follow(c *gin.Context) {
+	log := utils.GetLogger(c)
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log, 401, "Calims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
 		return
 	}
 	followingUserIdStr := c.Param("following_user_id")
 	followingUserId, err := strconv.ParseUint(followingUserIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log, 400, "invalid following user id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid following user id", nil))
 		return
 	}
@@ -419,25 +451,31 @@ func (as *PostRelationHandler) Follow(c *gin.Context) {
 	followRequest.FollowingUserID = followingUserId
 	followResponse, err := as.GPPC_Client.Follow(followRequest)
 	if err != nil {
-
+		code, msg := utils.GRPCtoHTTP(err)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "followed user successfully", followResponse))
 }
 
 func (as *PostRelationHandler) Unfollow(c *gin.Context) {
+	log := utils.GetLogger(c)
 	unfollowningUserIdStr := c.Param("unfollowing_user_id")
 	unfollowningUserId, err := strconv.ParseUint(unfollowningUserIdStr, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalide unfollowing user id", nil))
+		utils.LogAdminApi(log, 400, "invalid unfollowing user id")
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid unfollowing user id", nil))
 		return
 	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log, 401, "Claims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log, 401, "invalide claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
 		return
 	}
@@ -446,26 +484,39 @@ func (as *PostRelationHandler) Unfollow(c *gin.Context) {
 	unfollowReq.UnfollowingUserID = unfollowningUserId
 	unfollowResponse, err := as.GPPC_Client.Unfollow(unfollowReq)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "unfollowed user successfully", unfollowResponse))
 }
 
 func (as *PostRelationHandler) FetchComments(c *gin.Context) {
+	log := utils.GetLogger(c)
+	limit, offset, page, err := utils.SetPageLimit(c, log)
+	if err != nil {
+		return
+	}
 	postIdStr := c.Param("post_id")
 	postId, err := strconv.ParseUint(postIdStr, 10, 64)
 	if err != nil {
+		utils.LogAdminApi(log, 400, "invalid post id")
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid post id", postId))
 		return
 	}
 	var fetchCommentsReq requestmodels.FetchCommentsReqeust
 	fetchCommentsReq.PostID = postId
+	fetchCommentsReq.Limit = limit
+	fetchCommentsReq.Offset = offset
 	fetchCommentsResponse, err := as.DirectPostClient.Client.FetchComments(context.Background(), &post_relation.FetchCommentsRequest{
 		PostId: fetchCommentsReq.PostID,
+		Limit:  int64(fetchCommentsReq.Limit),
+		Offset: int64(fetchCommentsReq.Offset),
 	})
 	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
@@ -507,34 +558,105 @@ func (as *PostRelationHandler) FetchComments(c *gin.Context) {
 			ChildComment:      childComments,
 		})
 	}
+	resp := responsemodels.FetchCommentsResponse{
+		Comments: finalComments,
+		Pagination: responsemodels.PagingationDetails{
+			CurrentPage: page,
+			PageSize:    limit,
+		},
+	}
 	//fetchCommentsResponse.Comments.CreatedAt=
-	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comments fetched successfully", finalComments))
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comments fetched successfully", resp))
 }
-func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
+func (as *PostRelationHandler) FetchPostByPostId(c *gin.Context){
+	log := utils.GetLogger(c)
+	postIdStr := c.Param("post_id")
+	postId, err := strconv.ParseUint(postIdStr, 10, 64)
+	if err != nil {
+		utils.LogAdminApi(log, 400, "invalid post id")
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid post id", nil))
+		return
+	}
 	claims, exists := c.Get("claims")
 	if !exists {
+		utils.LogAdminApi(log, 401, "Calims not found")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
 		return
 	}
 	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
 	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claims")
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
+		return
+	}
+	postResp, err := as.DirectPostClient.Client.FetchPostByPostID(context.Background(),&post_relation.FetchPostRequest{
+		PostId: postId,
+		UserId: jwtClaims.ID,
+	})
+	if err != nil {
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return
+	}
+	var mediaUrls []string
+	for _, v := range postResp.MediaUrls {
+		mediaUrls = append(mediaUrls, v)
+	}
+	resp := responsemodels.FetchPostByIdResponse{
+		PostID:        postResp.PostId,
+		CreatedAt:     postResp.CreatedAt.AsTime().Local(),
+		UpdatedAt:	 postResp.UpdatedAt.AsTime().Local(),
+		UserID:        postResp.UserId,
+		Caption:       postResp.Caption,
+		MediaUrls:     mediaUrls,
+		LikeCount:     postResp.LikesCount,
+		CommentsCount: postResp.CommentsCount,
+		IsLiked:       postResp.IsLiked,
+		PostAge:       postResp.PostAge,
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "post fetched successfully", resp))
+}
+func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
+	log := utils.GetLogger(c)
+	limit, offset, page, err := utils.SetPageLimit(c, log)
+	claims, exists := c.Get("claims")
+	if !exists {
+		utils.LogAdminApi(log, 401, "Calims not found")
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
+	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claims")
 		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
 		return
 	}
 	var req requestmodels.FetchAllPostsReq
 	req.CurrentUserID = jwtClaims.ID
-	targetUserIdStr:=c.Param("user_id")
-	targetUserId,err:=strconv.ParseUint(targetUserIdStr,10,64)
-	if err!=nil{
-		c.JSON(http.StatusBadRequest,response.ClientResponse(http.StatusBadRequest,"invalid user id",nil))
+	targetUserIdStr := c.Param("user_id")
+	if targetUserIdStr == "" {
+		str := strconv.FormatUint(jwtClaims.ID, 10)
+		targetUserIdStr = str
 	}
-	req.TargetUserID=targetUserId
-	authResp, err := as.DirectAuthClient.Client.GetProfileInformation(context.Background(), &auth_subscription.ProfileInfoReq{
+	targetUserId, err := strconv.ParseUint(targetUserIdStr, 10, 64)
+	if err != nil {
+		utils.LogAdminApi(log, 400, "invalid user id")
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid user id", nil))
+	}
+	req.TargetUserID = targetUserId
+	req.Limit = limit
+	req.Offset = offset
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	authResp, err := as.DirectAuthClient.Client.GetProfileInformation(ctx, &auth_subscription.ProfileInfoReq{
 		UserId: req.TargetUserID,
 	})
 	if err != nil {
-		log.Println("error from grpc", err)
-		c.JSON(http.StatusInternalServerError, err.Error())
+		fmt.Println("error print from auth ",err)
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code,response.ClientResponse(code,msg,nil))
 		return
 	}
 	userMetaData := responsemodels.UserMetaData{
@@ -546,11 +668,15 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 	}
 	postResp, err := as.DirectPostClient.Client.FetchAllPosts(context.Background(), &post_relation.FetchAllPostsRequest{
 		CurrentUserId: req.CurrentUserID,
-		TargetUserId: req.TargetUserID,
+		TargetUserId:  req.TargetUserID,
+		Limit:         int64(req.Limit),
+		Offset:        int64(req.Offset),
 	})
 	if err != nil {
-		log.Println("error from grpc", err)
-		c.JSON(http.StatusInternalServerError, err.Error())
+		//log.Println("error from grpc", err)
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
 	var finalResp []responsemodels.PostData
@@ -569,51 +695,374 @@ func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 			LikeCount:     v.LikesCount,
 			CommentsCount: v.CommentsCount,
 			PostAge:       v.PostAge,
-			IsLiked: v.IsLiked,
-			UserData: userMetaData,
+			IsLiked:       v.IsLiked,
+			UserData:      userMetaData,
+			Pagination: &responsemodels.PagingationDetails{
+				CurrentPage: page,
+				PageSize:    limit,
+			},
 		})
 	}
-	if postResp == nil {
-		c.JSON(http.StatusInternalServerError, "failed to fetch from post service")
-		return
-	}
-	
-	c.JSON(http.StatusOK, finalResp)
+	// if postResp == nil {
+	// 	c.JSON(http.StatusInternalServerError, "failed to fetch from post service")
+	// 	return
+	// }
+
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "all posts of user fectched successfully", finalResp))
 }
 
-func (as *PostRelationHandler)FetchFollowers(c *gin.Context){
-	userIdStr:=c.Param("user_id")
-	userId,err:=strconv.ParseUint(userIdStr,10,64)
-	if err!=nil{
-		c.JSON(http.StatusBadRequest,response.ClientResponse(http.StatusBadRequest,"invalid user id",nil))
+func (as *PostRelationHandler) FetchFollowers(c *gin.Context) {
+	log := utils.GetLogger(c)
+	limit, offset, page, err := utils.SetPageLimit(c, log)
+	if err != nil {
 		return
 	}
-	resp,err:=as.DirectPostClient.Client.FetchFollowers(context.Background(),&post_relation.FetchFollowersRequest{
+	//added code below
+	claims, exists := c.Get("claims")
+	if !exists {
+		utils.LogAdminApi(log, 401, "claims not found")
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
+	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claims")
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
+		return
+	}
+	//added code above
+	userIdStr := c.Param("user_id")
+	if userIdStr == "" {
+		str := strconv.FormatUint(jwtClaims.ID, 10)
+		userIdStr = str
+	}
+	userId, err := strconv.ParseUint(userIdStr, 10, 64)
+	if err != nil {
+		utils.LogAdminApi(log, 400, "invalid user id")
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid user id", nil))
+		return
+	}
+
+	resp, err := as.DirectPostClient.Client.FetchFollowers(context.Background(), &post_relation.FetchFollowersRequest{
 		UserId: userId,
+		Limit:  int64(limit),
+		Offset: int64(offset),
 	})
-	if err!=nil{
+	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, "", userId, code, msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
-	c.JSON(http.StatusOK,resp)
+	userMetaData := make([]responsemodels.UserMetaData, len(resp.UserMetaData))
+	for i, v := range resp.UserMetaData {
+		userMetaData[i].UserID = v.UserId
+		userMetaData[i].UserName = v.UserName
+		userMetaData[i].Name = v.Name
+		userMetaData[i].ProfileImgUrl = v.ProfileImgUrl
+		userMetaData[i].BlueTick = v.BlueTick
+	}
+	resp1 := responsemodels.FetchFollowersResponse{
+		UserMetaData: userMetaData,
+		Pagingation: responsemodels.PagingationDetails{
+			CurrentPage: page,
+			PageSize:    limit,
+		},
+	}
+	c.JSON(http.StatusOK, resp1)
 }
-func (as *PostRelationHandler)FetchFollowing(c *gin.Context){
-	userIdStr:=c.Param("user_id")
-	userId,err:=strconv.ParseUint(userIdStr,10,64)
-	if err!=nil{
-		c.JSON(http.StatusBadRequest,response.ClientResponse(http.StatusBadRequest,"invalid user id",nil))
+func (as *PostRelationHandler) FetchFollowing(c *gin.Context) {
+	log := utils.GetLogger(c)
+	limit, offset, page, err := utils.SetPageLimit(c, log)
+	if err != nil {
 		return
 	}
-	resp,err:=as.DirectPostClient.Client.FetchFollowing(context.Background(),&post_relation.FetchFollowingRequest{
+	//added code below
+	claims, exists := c.Get("claims")
+	if !exists {
+		utils.LogAdminApi(log, 401, "claims not found")
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
+	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claims")
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalid claims", nil))
+		return
+	}
+	//added code above
+	userIdStr := c.Param("user_id")
+	if userIdStr == "" {
+		str := strconv.FormatUint(jwtClaims.ID, 10)
+		userIdStr = str
+	}
+	userId, err := strconv.ParseUint(userIdStr, 10, 64)
+	if err != nil {
+		utils.LogAdminApi(log, 400, "invalid user id")
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid user id", nil))
+		return
+	}
+
+	resp, err := as.DirectPostClient.Client.FetchFollowing(context.Background(), &post_relation.FetchFollowingRequest{
 		UserId: userId,
+		Limit:  int64(limit),
+		Offset: int64(offset),
 	})
-	if err!=nil{
+	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, "", userId, code, msg)
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
-	
-	fmt.Println("resp in handler",resp)
+	userMetaData := make([]responsemodels.UserMetaData, len(resp.UserMetaData))
+	for i, v := range resp.UserMetaData {
+		userMetaData[i].UserID = v.UserId
+		userMetaData[i].UserName = v.UserName
+		userMetaData[i].Name = v.Name
+		userMetaData[i].ProfileImgUrl = v.ProfileImgUrl
+		userMetaData[i].BlueTick = v.BlueTick
+	}
+	resp1 := responsemodels.FetchFollowingResponse{
+		UserMetaData: userMetaData,
+		Pagingation: responsemodels.PagingationDetails{
+			CurrentPage: page,
+			PageSize:    limit,
+		},
+	}
+
+	//fmt.Println("resp in handler",resp)
+	c.JSON(http.StatusOK, resp1)
+}
+
+func (as *PostRelationHandler) FetchNewsFeed(c *gin.Context) {
+	log := utils.GetLogger(c)
+	refreshStr := c.Query("refresh")
+	lastIdStr := c.Query("last_id")
+
+	var req requestmodels.FetchNewsFeedRequest
+	// 1. Parse LastID (The Cursor)
+	lastID, _ := strconv.ParseUint(lastIdStr, 10, 64)
+	req.LastID = lastID
+	claims, exists := c.Get("claims")
+	if !exists {
+		utils.LogAdminApi(log, 401, "Claims not found")
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
+	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claims")
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
+		return
+	}
+	req.UserID = jwtClaims.ID
+
+	limitStr := c.Query("limit")
+
+	limit, err := strconv.Atoi(limitStr)
+
+	if err != nil || limit < 1 || limit > 100 {
+		if err != nil {
+			utils.LogAdminApi(log, 400, "Error while string to int conversion(limit): "+err.Error())
+		}
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+		return
+	}
+
+	req.Limit = limit
+
+	if req.LastID == 0 && refreshStr == "true" {
+		req.PullToRefresh = true
+	} else {
+		req.PullToRefresh = false
+	}
+
+	resp, err := as.DirectPostClient.Client.FetchNewsFeed(context.Background(), &post_relation.FetchNewsFeedRequest{
+		UserId:        req.UserID,
+		Limit:         int64(req.Limit),
+		LastId:        req.LastID,
+		PullToRefresh: req.PullToRefresh,
+	})
+	if err != nil {
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return
+	}
+	// c:=make([]responsemodels)
+	// for _,v:=range resp{
+
+	// }
+	var finalResp []responsemodels.PostData
+	for _, v := range resp.PostUserData {
+		var s1 []string
+		for _, v1 := range v.MediaUrls {
+			s1 = append(s1, v1)
+		}
+		finalResp = append(finalResp, responsemodels.PostData{
+			PostID:        v.PostId,
+			CreatedAt:     v.CreatedAt.AsTime().Local(),
+			UpdatedAt:     v.UpdatedAt.AsTime().Local(),
+			UserID:        v.UserId,
+			Caption:       v.Caption,
+			MediaUrls:     s1,
+			LikeCount:     v.LikesCount,
+			CommentsCount: v.CommentsCount,
+			PostAge:       v.PostAge,
+			IsLiked:       v.IsLiked,
+			UserData: responsemodels.UserMetaData{
+				UserID:        v.UserMetaData.UserId,
+				UserName:      v.UserMetaData.UserName,
+				Name:          v.UserMetaData.Name,
+				ProfileImgUrl: v.UserMetaData.ProfileImgUrl,
+				BlueTick:      v.UserMetaData.BlueTick,
+			},
+		})
+	}
+
+	// var lastID1 uint64
+	// if len(finalResp) > 0 {
+	//     // Use the ID of the last post in our mapped response
+	//     lastID1 = finalResp[len(finalResp)-1].PostID
+	// }
+	// // Determine HasMore based on the gRPC response or slice length
+	// hasMore := len(finalResp) == limit
+
+	finallyResp := responsemodels.FetchNewsFeedResponse{
+		PostUserData: finalResp,
+		NextCursor:   resp.NextCursor,
+		HasMore:      resp.HasMore,
+	}
+	c.JSON(http.StatusOK, finallyResp)
+}
+
+func (as *PostRelationHandler) FetchGlobalNewseed(c *gin.Context) {
+	// pageStr := c.Query("page")
+	// limitStr := c.Query("limit")
+
+	// page, err := strconv.Atoi(pageStr)
+	// if err != nil || page < 1 {
+	// 	if err != nil {
+	// 		log.Printf("Error while string to int conversion(page), error: %v", err)
+	// 	}
+	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
+	// 	return
+	// }
+
+	// limit, err := strconv.Atoi(limitStr)
+
+	// if err != nil || limit < 1 || limit > 100 {
+	// 	if err != nil {
+	// 		log.Printf("Error while string to int conversion(limit), error: %v", err)
+	// 	}
+	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+	// 	return
+	// }
+
+	// offset := (page - 1) * limit
+	log := utils.GetLogger(c)
+	limit, offset, page, err := utils.SetPageLimit(c, log)
+	if err != nil {
+		return
+	}
+	var req requestmodels.GlobalNewsFeedRequest
+	//lastIdStr:=c.Query("last_id")
+	//lastScoreStr:=c.Query("last_score")
+
+	claims, exists := c.Get("claims")
+	if !exists {
+		utils.LogAdminApi(log, 401, "claims not found")
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
+	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claims")
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
+		return
+	}
+	req.UserID = jwtClaims.ID
+	req.Limit = limit
+	req.Offset = offset
+	// 1. Parse LastID (The Cursor)
+	//lastID, _ := strconv.ParseUint(lastIdStr, 10, 64)
+	//lastScore,_:=strconv.ParseFloat(lastScoreStr,64)
+
+	//req.LastScore = lastScore
+	//limitStr := c.Query("limit")
+
+	// limit, err := strconv.Atoi(limitStr)
+
+	// if err != nil || limit < 1 || limit > 100 {
+	// 	if err != nil {
+	// 		log.Printf("Error while string to int conversion(limit), error: %v", err)
+	// 	}
+	// 	c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
+	// 	return
+	// }
+
+	//req.Limit = limit
+	resp, err := as.DirectPostClient.Client.FetchGlobalNewsFeed(context.Background(), &post_relation.FetchGlobalNewsFeedRequest{
+		UserId: req.UserID,
+		Limit:  int64(req.Limit),
+		Offset: int64(req.Offset),
+	})
+	if err != nil {
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return
+	}
+	//fmt.Println("resp",resp)
+	// if resp == nil {
+	// 	c.JSON(500, "internal server error")
+	// 	return
+	// }
+	var finalResp []responsemodels.PostDataWithTrendingScore
+	for _, v := range resp.PostUserDataWithTrendingScore {
+		var s1 []string
+		for _, v1 := range v.MediaUrls {
+			s1 = append(s1, v1)
+		}
+		finalResp = append(finalResp, responsemodels.PostDataWithTrendingScore{
+			PostID:        v.PostId,
+			CreatedAt:     v.CreatedAt.AsTime().Local(),
+			UpdatedAt:     v.UpdatedAt.AsTime().Local(),
+			UserID:        v.UserId,
+			Caption:       v.Caption,
+			MediaUrls:     s1,
+			LikeCount:     v.LikesCount,
+			CommentsCount: v.CommentsCount,
+			PostAge:       v.PostAge,
+			IsLiked:       v.IsLiked,
+			TrendingScore: float64(v.TrendingScore),
+			UserData: responsemodels.UserMetaData{
+				UserID:        v.UserMetaData.UserId,
+				UserName:      v.UserMetaData.UserName,
+				Name:          v.UserMetaData.Name,
+				ProfileImgUrl: v.UserMetaData.ProfileImgUrl,
+				BlueTick:      v.UserMetaData.BlueTick,
+			},
+		})
+	}
+	resp1 := responsemodels.FetchGlobalNewsFeedResponse{
+		PostUserData: finalResp,
+		Pagination: responsemodels.PagingationDetails{
+			CurrentPage: page,
+			PageSize:    limit,
+		},
+	}
+	c.JSON(http.StatusOK, resp1)
+}
+
+func (as *PostRelationHandler)PanicInPost(c *gin.Context){
+	log:=utils.GetLogger(c)
+	resp,err:=as.DirectPostClient.Client.PanicInPost(context.TODO(),&post_relation.PanicInPostReq{})
+	if err!=nil{
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return
+	}
 	c.JSON(http.StatusOK,resp)
 }

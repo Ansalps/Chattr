@@ -165,19 +165,20 @@ type SubscribeResponse struct{
 	ID uint64
 	CreatedAt time.Time
 	UpdatedAt time.Time
+
 	UserID uint64
+
 	RazorpaySubscriptionId string
-	Amount int64
-	Currency string
+	SubscriptionPlanID uint64
+	RazorpayPlanId string
+
 	Status string
-	StartAt time.Time
-	EndAt	time.Time
-	NextChargeAt time.Time
+	ShortUrl string
+
 	TotalCount int
 	RemainingCount int
 	PaidCount int
-	CancelledAt time.Time
-	CancelReason string
+	
 }
 
 type VerifySubscriptionPaymentResponse struct{
@@ -194,23 +195,25 @@ type VerifySubscriptionPaymentResponse struct{
 	RemainingCount int
 	PaidCount int
 }
-
 type UnsubscribeResponse struct{
-	ID uint64
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	UserID uint64
-	RazorpaySubscriptionId string
-	Status string
-	StartAt time.Time
-	EndAt	time.Time
-	NextChargeAt time.Time
-	TotalCount int
-	RemainingCount int
-	PaidCount int
-	CancelledAt time.Time
-	CancelReason string
+	SubId uint64
 }
+// type UnsubscribeResponse struct{
+// 	ID uint64
+// 	CreatedAt time.Time
+// 	UpdatedAt time.Time
+// 	UserID uint64
+// 	RazorpaySubscriptionId string
+// 	Status string
+// 	StartAt time.Time
+// 	EndAt	time.Time
+// 	NextChargeAt time.Time
+// 	TotalCount int
+// 	RemainingCount int
+// 	PaidCount int
+// 	CancelledAt time.Time
+// 	CancelReason string
+// }
 
 type SetProfileImageResponse struct{
 	ImageUrl string
@@ -225,6 +228,7 @@ type GetProfileInformationResponse struct{
 	ProfileImgUrl string
 	Links         string
 	BlueTick	bool	
+	Phone string
 }
 
 type EditProfile struct{
@@ -232,6 +236,7 @@ type EditProfile struct{
 	Name *string	`json:"name,omitempty"`
 	Bio *string	`json:"bio,omitempty"`
 	Links *string `json:"links,omitempty"`
+	Phone *string	`json:"phone,omitempty"`
 }
 
 type ChangePasswordResponse struct{
@@ -247,10 +252,7 @@ type UserMetaData struct {
 type SearchUserResponse struct{
 	Usermetadata []UserMetaData
 }
-type WebhookResponse struct{
-	Event string
-	RazropaySubscriptinId string
-}
+
 type UserPublicDataResponse struct{
 	UserID uint64
 	UserName string
@@ -259,5 +261,58 @@ type UserPublicDataResponse struct{
 	Bio string
 	Links string
 	BlueTick bool
+	RazorpayCustomerID string
+	Phone string
+}
+type FetchSubscriptionPlan struct{
+	ID uint64 `gorm:"column:plan_id"`
+	CreatedAt time.Time `gorm:"column:plan_created_at"`
+	UpdatedAt time.Time `gorm:"column:plan_updated_at"`
+	RazorpayPlanId string
+	Name string
+	Price int64
+	Currency string
+	Period string
+	Interval uint64
+	Description string
+	IsActive bool
+}
+type GetSubscriptionDetails struct{
+	FetchSubscriptionPlan FetchSubscriptionPlan `gorm:"embedded"`
+	ID uint64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID uint64
+	RazorpaySubscriptionId string
+	Status string
+	ShortUrl string
+	StartAt *time.Time
+	EndAt	*time.Time
+	NextChargeAt *time.Time
+	TotalCount int
+	RemainingCount int
+	PaidCount int
+	CancelledAt *time.Time
+	CancelReason string
+}
+type WebhookSubscriptionActivatedResponse struct{
+	RazorpaySubcriptionId string
+}
+type WebhookSubscriptionChargedResponse struct{
+	RazorpaySubcriptionId string
+}
+type WebhookSubscriptionHaltedResponse struct{
+	RazorpaySubcriptionId string
+}
+type WebhookSubscriptionCancelledResponse struct{
+	RazorpaySubcriptionId string
+}
+type WebhookSubscriptionCompletedResponse struct{
+	RazorpaySubcriptionId string
+}
+type WebhookResponse struct {
+    Event                  string `json:"event"`
+    RazorpaySubscriptionId string `json:"razorpay_subscription_id"`
+    Message                string `json:"message,omitempty"` // Added for better feedback
 }
 

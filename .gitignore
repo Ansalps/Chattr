@@ -1,3 +1,17 @@
 # Environment files
 **/dev.env
 **/.env
+Deployment/secrets/api_gateway.secrets.yaml
+Deployment/secrets/auth_service.secrets.yaml
+Deployment/secrets/chat_service.secrets.yaml
+Deployment/secrets/not_service.secrets.yaml
+Deployment/secrets/not_service.secrets.yaml
+Deployment/secrets/post_relation_svc.secrets.yaml
+certs
+postgres.yaml
+mongodb.yaml
+redis.yaml
+kafka.yaml
+kafka1.yaml
+zookeeper.yaml
+zookeeper1.yaml

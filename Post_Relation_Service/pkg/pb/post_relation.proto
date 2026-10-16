@@ -4,8 +4,11 @@ option go_package="./pkg/pb";
 import "google/protobuf/timestamp.proto";
 
 service PostRelationService{
+    rpc InsertUserIntoFollowCount(InsertUserRequest) returns(Empty);
+
     rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
     rpc FetchAllPosts(FetchAllPostsRequest) returns (FetchAllPostsResponse);
+    rpc FetchPostByPostID(FetchPostRequest) returns (FetchPostResponse);
     rpc EditPost(EditPostRequest) returns (EditPostResponse);
     rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
 
@@ -23,22 +26,113 @@ service PostRelationService{
     rpc FetchFollowing(FetchFollowingRequest) returns (FetchFollowingResponse);
 
     rpc PostFollowCount(PostFollowCountRequest) returns (PostFollowCountResponse);
+
+    rpc FetchNewsFeed(FetchNewsFeedRequest) returns (FetchNewsFeedResponse);
+    rpc FetchGlobalNewsFeed(FetchGlobalNewsFeedRequest) returns (FetchGlobalNewsFeedResponse);
+
+    rpc PanicInPost(PanicInPostReq) returns (PanicInPostRes);
+}
+message PanicInPostReq{
+
+}
+message PanicInPostRes{
+    
+}
+message InsertUserRequest{
+    uint64 UserId=1;
+}
+message Empty{
+
+}
+
+message FetchGlobalNewsFeedRequest{
+    uint64 UserId=1;
+    int64 Limit=2;
+   // float LastScore=3;
+   int64 Offset=3;
+}
+message PostUserDataWithTrendingScore{
+    uint64 PostId=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    uint64 UserId=4;
+    string Caption=5;
+    string PostStatus=6;
+    repeated string MediaUrls=7;
+    uint64 LikesCount=8;
+    uint64 CommentsCount=9;
+    string PostAge=10;
+    bool IsLiked=11;
+    float TrendingScore=12;
+    UserMetaData userMetaData=13;
+}
+message FetchGlobalNewsFeedResponse{
+    repeated PostUserDataWithTrendingScore postUserData=1;
+    float NextCursor=2;
+    bool HasMore=3;
+}
+message FetchNewsFeedRequest{
+    uint64 UserId=1;
+    int64 Limit=2;
+    uint64 LastId=3;
+    bool PullToRefresh=4;
+}
+message PostUserData{
+    uint64 PostId=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    uint64 UserId=4;
+    string Caption=5;
+    string PostStatus=6;
+    repeated string MediaUrls=7;
+    uint64 LikesCount=8;
+    uint64 CommentsCount=9;
+    string PostAge=10;
+    bool IsLiked=11;
+    UserMetaData userMetaData=12;
+}
+message FetchNewsFeedResponse{
+    repeated PostUserData postUserData=1;
+    uint64 NextCursor=2;
+    bool HasMore=3;
 }
 message FetchFollowingRequest{
     uint64 UserId=1;
+    int64 Limit=2;
+    int64 Offset=3;
 }
 message FetchFollowingResponse{
     repeated UserMetaData userMetaData=1;
 }
 message FetchFollowersRequest{
     uint64 UserId=1;
+    int64 Limit=2;
+    int64 Offset=3;
 }
 message FetchFollowersResponse{
     repeated UserMetaData userMetaData=1;
 }
+message FetchPostRequest{
+    uint64 PostId=1;
+    uint64 UserId=2;
+}
+message FetchPostResponse{
+    uint64 PostId=1;
+    google.protobuf.Timestamp CreatedAt=2;
+    google.protobuf.Timestamp UpdatedAt=3;
+    uint64 UserId=4;
+    string Caption=5;
+    repeated string MediaUrls=6;
+    uint64 LikesCount=7;
+    uint64 CommentsCount=8;
+    string PostAge=9;
+    bool IsLiked=10;
+}
 message FetchAllPostsRequest{
     uint64 CurrentUserId=1;
     uint64 TargetUserId=2;
+    int64 Limit=3;
+    int64 Offset=4;
 }
 message FetchAllPostsResponse{
     repeated Post posts=1;
@@ -66,6 +160,8 @@ message PostFollowCountResponse{
 
 message FetchCommentsRequest{
     uint64 PostId=1;
+    int64 Limit=2;
+    int64 Offset=3;
 }
 message UserMetaData{
     uint64 UserId=1;

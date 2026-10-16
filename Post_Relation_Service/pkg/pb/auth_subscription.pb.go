@@ -231,7 +231,7 @@ func (x *CheckUserExistsRequest) GetUserId() uint64 {
 
 type CheckUserExistsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	Exists        bool                   `protobuf:"varint,1,opt,name=Exists,proto3" json:"Exists,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -266,11 +266,11 @@ func (*CheckUserExistsResponse) Descriptor() ([]byte, []int) {
 	return file_pkg_pb_auth_subscription_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *CheckUserExistsResponse) GetUserId() uint64 {
+func (x *CheckUserExistsResponse) GetExists() bool {
 	if x != nil {
-		return x.UserId
+		return x.Exists
 	}
-	return 0
+	return false
 }
 
 var File_pkg_pb_auth_subscription_proto protoreflect.FileDescriptor
@@ -295,7 +295,7 @@ const file_pkg_pb_auth_subscription_proto_rawDesc = "" +
 	"\x16CheckUserExistsRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"1\n" +
 	"\x17CheckUserExistsResponse\x12\x16\n" +
-	"\x06UserId\x18\x01 \x01(\x04R\x06UserId2\xe6\x01\n" +
+	"\x06Exists\x18\x01 \x01(\bR\x06Exists2\xe6\x01\n" +
 	"\x17AuthSubscriptionService\x12h\n" +
 	"\x0fCheckUserExists\x12).auth_subscription.CheckUserExistsRequest\x1a*.auth_subscription.CheckUserExistsResponse\x12a\n" +
 	"\x11FetchUserMetaData\x12\x1e.auth_subscription.UserDataReq\x1a,.auth_subscription.BatchUserMetadataResponseB\n" +

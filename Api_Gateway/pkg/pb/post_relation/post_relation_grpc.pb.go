@@ -19,21 +19,25 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PostRelationService_CreatePost_FullMethodName      = "/post_relation.PostRelationService/CreatePost"
-	PostRelationService_FetchAllPosts_FullMethodName   = "/post_relation.PostRelationService/FetchAllPosts"
-	PostRelationService_EditPost_FullMethodName        = "/post_relation.PostRelationService/EditPost"
-	PostRelationService_DeletePost_FullMethodName      = "/post_relation.PostRelationService/DeletePost"
-	PostRelationService_LikePost_FullMethodName        = "/post_relation.PostRelationService/LikePost"
-	PostRelationService_UnlikePost_FullMethodName      = "/post_relation.PostRelationService/UnlikePost"
-	PostRelationService_AddComment_FullMethodName      = "/post_relation.PostRelationService/AddComment"
-	PostRelationService_FetchComments_FullMethodName   = "/post_relation.PostRelationService/FetchComments"
-	PostRelationService_EditComment_FullMethodName     = "/post_relation.PostRelationService/EditComment"
-	PostRelationService_DeleteComment_FullMethodName   = "/post_relation.PostRelationService/DeleteComment"
-	PostRelationService_Follow_FullMethodName          = "/post_relation.PostRelationService/Follow"
-	PostRelationService_Unfollow_FullMethodName        = "/post_relation.PostRelationService/Unfollow"
-	PostRelationService_FetchFollowers_FullMethodName  = "/post_relation.PostRelationService/FetchFollowers"
-	PostRelationService_FetchFollowing_FullMethodName  = "/post_relation.PostRelationService/FetchFollowing"
-	PostRelationService_PostFollowCount_FullMethodName = "/post_relation.PostRelationService/PostFollowCount"
+	PostRelationService_CreatePost_FullMethodName          = "/post_relation.PostRelationService/CreatePost"
+	PostRelationService_FetchAllPosts_FullMethodName       = "/post_relation.PostRelationService/FetchAllPosts"
+	PostRelationService_FetchPostByPostID_FullMethodName   = "/post_relation.PostRelationService/FetchPostByPostID"
+	PostRelationService_EditPost_FullMethodName            = "/post_relation.PostRelationService/EditPost"
+	PostRelationService_DeletePost_FullMethodName          = "/post_relation.PostRelationService/DeletePost"
+	PostRelationService_LikePost_FullMethodName            = "/post_relation.PostRelationService/LikePost"
+	PostRelationService_UnlikePost_FullMethodName          = "/post_relation.PostRelationService/UnlikePost"
+	PostRelationService_AddComment_FullMethodName          = "/post_relation.PostRelationService/AddComment"
+	PostRelationService_FetchComments_FullMethodName       = "/post_relation.PostRelationService/FetchComments"
+	PostRelationService_EditComment_FullMethodName         = "/post_relation.PostRelationService/EditComment"
+	PostRelationService_DeleteComment_FullMethodName       = "/post_relation.PostRelationService/DeleteComment"
+	PostRelationService_Follow_FullMethodName              = "/post_relation.PostRelationService/Follow"
+	PostRelationService_Unfollow_FullMethodName            = "/post_relation.PostRelationService/Unfollow"
+	PostRelationService_FetchFollowers_FullMethodName      = "/post_relation.PostRelationService/FetchFollowers"
+	PostRelationService_FetchFollowing_FullMethodName      = "/post_relation.PostRelationService/FetchFollowing"
+	PostRelationService_PostFollowCount_FullMethodName     = "/post_relation.PostRelationService/PostFollowCount"
+	PostRelationService_FetchNewsFeed_FullMethodName       = "/post_relation.PostRelationService/FetchNewsFeed"
+	PostRelationService_FetchGlobalNewsFeed_FullMethodName = "/post_relation.PostRelationService/FetchGlobalNewsFeed"
+	PostRelationService_PanicInPost_FullMethodName         = "/post_relation.PostRelationService/PanicInPost"
 )
 
 // PostRelationServiceClient is the client API for PostRelationService service.
@@ -42,6 +46,7 @@ const (
 type PostRelationServiceClient interface {
 	CreatePost(ctx context.Context, in *CreatePostRequest, opts ...grpc.CallOption) (*CreatePostResponse, error)
 	FetchAllPosts(ctx context.Context, in *FetchAllPostsRequest, opts ...grpc.CallOption) (*FetchAllPostsResponse, error)
+	FetchPostByPostID(ctx context.Context, in *FetchPostRequest, opts ...grpc.CallOption) (*FetchPostResponse, error)
 	EditPost(ctx context.Context, in *EditPostRequest, opts ...grpc.CallOption) (*EditPostResponse, error)
 	DeletePost(ctx context.Context, in *DeletePostRequest, opts ...grpc.CallOption) (*DeletePostResponse, error)
 	LikePost(ctx context.Context, in *LikePostRequest, opts ...grpc.CallOption) (*LikePostResponse, error)
@@ -55,6 +60,9 @@ type PostRelationServiceClient interface {
 	FetchFollowers(ctx context.Context, in *FetchFollowersRequest, opts ...grpc.CallOption) (*FetchFollowersResponse, error)
 	FetchFollowing(ctx context.Context, in *FetchFollowingRequest, opts ...grpc.CallOption) (*FetchFollowingResponse, error)
 	PostFollowCount(ctx context.Context, in *PostFollowCountRequest, opts ...grpc.CallOption) (*PostFollowCountResponse, error)
+	FetchNewsFeed(ctx context.Context, in *FetchNewsFeedRequest, opts ...grpc.CallOption) (*FetchNewsFeedResponse, error)
+	FetchGlobalNewsFeed(ctx context.Context, in *FetchGlobalNewsFeedRequest, opts ...grpc.CallOption) (*FetchGlobalNewsFeedResponse, error)
+	PanicInPost(ctx context.Context, in *PanicInPostReq, opts ...grpc.CallOption) (*PanicInPostRes, error)
 }
 
 type postRelationServiceClient struct {
@@ -79,6 +87,16 @@ func (c *postRelationServiceClient) FetchAllPosts(ctx context.Context, in *Fetch
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(FetchAllPostsResponse)
 	err := c.cc.Invoke(ctx, PostRelationService_FetchAllPosts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *postRelationServiceClient) FetchPostByPostID(ctx context.Context, in *FetchPostRequest, opts ...grpc.CallOption) (*FetchPostResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FetchPostResponse)
+	err := c.cc.Invoke(ctx, PostRelationService_FetchPostByPostID_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -215,12 +233,43 @@ func (c *postRelationServiceClient) PostFollowCount(ctx context.Context, in *Pos
 	return out, nil
 }
 
+func (c *postRelationServiceClient) FetchNewsFeed(ctx context.Context, in *FetchNewsFeedRequest, opts ...grpc.CallOption) (*FetchNewsFeedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FetchNewsFeedResponse)
+	err := c.cc.Invoke(ctx, PostRelationService_FetchNewsFeed_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *postRelationServiceClient) FetchGlobalNewsFeed(ctx context.Context, in *FetchGlobalNewsFeedRequest, opts ...grpc.CallOption) (*FetchGlobalNewsFeedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FetchGlobalNewsFeedResponse)
+	err := c.cc.Invoke(ctx, PostRelationService_FetchGlobalNewsFeed_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *postRelationServiceClient) PanicInPost(ctx context.Context, in *PanicInPostReq, opts ...grpc.CallOption) (*PanicInPostRes, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PanicInPostRes)
+	err := c.cc.Invoke(ctx, PostRelationService_PanicInPost_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PostRelationServiceServer is the server API for PostRelationService service.
 // All implementations must embed UnimplementedPostRelationServiceServer
 // for forward compatibility.
 type PostRelationServiceServer interface {
 	CreatePost(context.Context, *CreatePostRequest) (*CreatePostResponse, error)
 	FetchAllPosts(context.Context, *FetchAllPostsRequest) (*FetchAllPostsResponse, error)
+	FetchPostByPostID(context.Context, *FetchPostRequest) (*FetchPostResponse, error)
 	EditPost(context.Context, *EditPostRequest) (*EditPostResponse, error)
 	DeletePost(context.Context, *DeletePostRequest) (*DeletePostResponse, error)
 	LikePost(context.Context, *LikePostRequest) (*LikePostResponse, error)
@@ -234,6 +283,9 @@ type PostRelationServiceServer interface {
 	FetchFollowers(context.Context, *FetchFollowersRequest) (*FetchFollowersResponse, error)
 	FetchFollowing(context.Context, *FetchFollowingRequest) (*FetchFollowingResponse, error)
 	PostFollowCount(context.Context, *PostFollowCountRequest) (*PostFollowCountResponse, error)
+	FetchNewsFeed(context.Context, *FetchNewsFeedRequest) (*FetchNewsFeedResponse, error)
+	FetchGlobalNewsFeed(context.Context, *FetchGlobalNewsFeedRequest) (*FetchGlobalNewsFeedResponse, error)
+	PanicInPost(context.Context, *PanicInPostReq) (*PanicInPostRes, error)
 	mustEmbedUnimplementedPostRelationServiceServer()
 }
 
@@ -249,6 +301,9 @@ func (UnimplementedPostRelationServiceServer) CreatePost(context.Context, *Creat
 }
 func (UnimplementedPostRelationServiceServer) FetchAllPosts(context.Context, *FetchAllPostsRequest) (*FetchAllPostsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FetchAllPosts not implemented")
+}
+func (UnimplementedPostRelationServiceServer) FetchPostByPostID(context.Context, *FetchPostRequest) (*FetchPostResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchPostByPostID not implemented")
 }
 func (UnimplementedPostRelationServiceServer) EditPost(context.Context, *EditPostRequest) (*EditPostResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EditPost not implemented")
@@ -288,6 +343,15 @@ func (UnimplementedPostRelationServiceServer) FetchFollowing(context.Context, *F
 }
 func (UnimplementedPostRelationServiceServer) PostFollowCount(context.Context, *PostFollowCountRequest) (*PostFollowCountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostFollowCount not implemented")
+}
+func (UnimplementedPostRelationServiceServer) FetchNewsFeed(context.Context, *FetchNewsFeedRequest) (*FetchNewsFeedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchNewsFeed not implemented")
+}
+func (UnimplementedPostRelationServiceServer) FetchGlobalNewsFeed(context.Context, *FetchGlobalNewsFeedRequest) (*FetchGlobalNewsFeedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchGlobalNewsFeed not implemented")
+}
+func (UnimplementedPostRelationServiceServer) PanicInPost(context.Context, *PanicInPostReq) (*PanicInPostRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PanicInPost not implemented")
 }
 func (UnimplementedPostRelationServiceServer) mustEmbedUnimplementedPostRelationServiceServer() {}
 func (UnimplementedPostRelationServiceServer) testEmbeddedByValue()                             {}
@@ -342,6 +406,24 @@ func _PostRelationService_FetchAllPosts_Handler(srv interface{}, ctx context.Con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PostRelationServiceServer).FetchAllPosts(ctx, req.(*FetchAllPostsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PostRelationService_FetchPostByPostID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchPostRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostRelationServiceServer).FetchPostByPostID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostRelationService_FetchPostByPostID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostRelationServiceServer).FetchPostByPostID(ctx, req.(*FetchPostRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -580,6 +662,60 @@ func _PostRelationService_PostFollowCount_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PostRelationService_FetchNewsFeed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchNewsFeedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostRelationServiceServer).FetchNewsFeed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostRelationService_FetchNewsFeed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostRelationServiceServer).FetchNewsFeed(ctx, req.(*FetchNewsFeedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PostRelationService_FetchGlobalNewsFeed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchGlobalNewsFeedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostRelationServiceServer).FetchGlobalNewsFeed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostRelationService_FetchGlobalNewsFeed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostRelationServiceServer).FetchGlobalNewsFeed(ctx, req.(*FetchGlobalNewsFeedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PostRelationService_PanicInPost_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PanicInPostReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostRelationServiceServer).PanicInPost(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostRelationService_PanicInPost_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostRelationServiceServer).PanicInPost(ctx, req.(*PanicInPostReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PostRelationService_ServiceDesc is the grpc.ServiceDesc for PostRelationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -594,6 +730,10 @@ var PostRelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FetchAllPosts",
 			Handler:    _PostRelationService_FetchAllPosts_Handler,
+		},
+		{
+			MethodName: "FetchPostByPostID",
+			Handler:    _PostRelationService_FetchPostByPostID_Handler,
 		},
 		{
 			MethodName: "EditPost",
@@ -646,6 +786,18 @@ var PostRelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PostFollowCount",
 			Handler:    _PostRelationService_PostFollowCount_Handler,
+		},
+		{
+			MethodName: "FetchNewsFeed",
+			Handler:    _PostRelationService_FetchNewsFeed_Handler,
+		},
+		{
+			MethodName: "FetchGlobalNewsFeed",
+			Handler:    _PostRelationService_FetchGlobalNewsFeed_Handler,
+		},
+		{
+			MethodName: "PanicInPost",
+			Handler:    _PostRelationService_PanicInPost_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

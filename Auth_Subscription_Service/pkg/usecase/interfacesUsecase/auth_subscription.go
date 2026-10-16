@@ -1,12 +1,14 @@
 package interfacesUsecase
 
 import (
+	"context"
+
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/responsemodels"
 )
 
 type AuthSubscriptionUsecase interface{
-	AdminLogin(admin requestmodels.AdminLoginRequest)(responsemodels.AdminLoginResponse,error)
+	AdminLogin(ctx context.Context,admin requestmodels.AdminLoginRequest)(responsemodels.AdminLoginResponse,error)
 	BlockUser(requestmodels.BlockUserRequest)(responsemodels.BlockUserResponse,error)
 	UnblockUser(requestmodels.UnblockUserRequest)(responsemodels.UnblockUserResponse,error)
 	GetAllUsers(requestmodels.GetAllUsersRequest)(responsemodels.GetAllUsersResponse,error)
@@ -15,20 +17,19 @@ type AuthSubscriptionUsecase interface{
 	DeactivateSubscriptionPlan(requestmodels.DeactivateSubscriptionPlanRequest)(responsemodels.DeactivateSubscriptionPlanResponse,error)
 	GetAllSubscriptionPlans(requestmodels.GetAllSubscriptionPlansRequest)(responsemodels.GetAllSubscriptionPlansResponse,error)
 	
-	UserSignUp(requestmodels.UserSignUpRequest)(responsemodels.UserSignupResponse,error)
-	VerifyOtp(requestmodels.OtpRequest)(responsemodels.OtpVerificationResponse,error)
-	ResendOtp(requestmodels.ResendOtpRequest)(responsemodels.ResendOtpResponse,error)
+	UserSignUp(ctx context.Context,userReq requestmodels.UserSignUpRequest)(responsemodels.UserSignupResponse,error)
+	VerifyOtp(ctx context.Context,req requestmodels.OtpRequest)(responsemodels.OtpVerificationResponse,error)
+	ResendOtp(ctx context.Context,resendOtpReq requestmodels.ResendOtpRequest)(responsemodels.ResendOtpResponse,error)
 	AccessRegenerator(requestmodels.AccessRegeneratorRequest)(responsemodels.AccessRegeneratorResponse,error)
-	ForgotPassword(requestmodels.ForgotPasswordRequest)(responsemodels.ForgotPassordResponse,error)
+	ForgotPassword(ctx context.Context,req requestmodels.ForgotPasswordRequest)(responsemodels.ForgotPassordResponse,error)
 	ResetPassword(requestmodels.ResetPasswordRequest)(responsemodels.ResetPasswordResponse,error)
-	UserLogin(requestmodels.UserLoginRequest)(responsemodels.UserLoginResponse,error)
+	UserLogin(ctx context.Context,req requestmodels.UserLoginRequest)(responsemodels.UserLoginResponse,error)
 	GetAllActiveSubscriptionPlans(requestmodels.GetAllActiveSubscriptionPlansRequest)(responsemodels.GetAllActiveSubscriptionPlansResponse,error)
 	Subscribe(requestmodels.SubscribeRequest)(responsemodels.SubscribeResponse,error)
-	VerifySubscriptionPayment(requestmodels.VerifySubscriptionPaymentRequest)(responsemodels.VerifySubscriptionPaymentResponse,error)
+	//VerifySubscriptionPayment(requestmodels.VerifySubscriptionPaymentRequest)(responsemodels.VerifySubscriptionPaymentResponse,error)
 	Unsubscribe(requestmodels.UnsubscribeRequest)(responsemodels.UnsubscribeResponse,error)
 	SetProfileImage(requestmodels.SetProfileImageRequest)(responsemodels.SetProfileImageResponse,error)
-	//Webhook(requestmodels.WebhookRequest)(responsemodels.WebhookResponse,error)
-
+	
 	ChangePassword(requestmodels.ChangePassword)(responsemodels.ChangePasswordResponse,error)
 
 	SearchUser(requestmodels.SearchUser)(responsemodels.SearchUserResponse,error)
@@ -41,4 +42,22 @@ type AuthSubscriptionUsecase interface{
 	FetchUserPublicData(userid uint64)(responsemodels.UserPublicDataResponse,error)
 
 	FetchUserMetaData([]uint64)(map[uint64]responsemodels.UserMetaData,error)
+	CheckUserListExists(userids []uint64)([]uint64,error)
+
+	GetSubscriptionDetails(requestmodels.GetSubscriptionDetails)(responsemodels.GetSubscriptionDetails,error)
+
+	WebhookSubscriptionActivated(requestmodels.WebhookSubscriptionActivatedRequest)(responsemodels.WebhookSubscriptionActivatedResponse,error)
+
+	WebhookSubscriptionCharged(requestmodels.WebhookSubscriptionChargedRequest)(responsemodels.WebhookSubscriptionChargedResponse,error)
+
+	WebhookSubscriptionHalted(requestmodels.WebhookSubscriptionHaltedRequest)(responsemodels.WebhookSubscriptionHaltedResponse,error)
+
+	WebhookSubscriptionCancelled(requestmodels.WebhookSubscriptionCancelledRequest)(responsemodels.WebhookSubscriptionCancelledResponse,error)
+
+	WebhookSubscriptionCompleted(requestmodels.WebhookSubscriptionCompletedRequest)(responsemodels.WebhookSubscriptionCompletedResponse,error)
+
+	DoesUserExists(userid uint64)(bool,error)
+
+	CheckAllUsersExists([]uint64)([]uint64,error)
+
 }

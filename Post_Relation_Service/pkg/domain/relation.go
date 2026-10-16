@@ -17,6 +17,15 @@ type Relation struct {
 
 	RelationType RelationType `gorm:"type:varchar(20);not null;default:'follows'"`
 
+	IsFollowingIdCelebrity bool
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+type Follow_Count struct {
+	UserID         uint `gorm:"primaryKey"`
+	FollowCount    uint
+	FollowingCount uint
+	UpdatedAt      time.Time
 }

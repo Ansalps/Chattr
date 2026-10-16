@@ -1,34 +1,99 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/Ansalps/Chattr_Post_Relation_Service/infrastructure/kafka"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/infrastructure/logger"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/middleware"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/di"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/pb"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	config, err := config.LoadConfig()
+	// 1️⃣ Initialize logger
+	log, err := logger.NewZapLogger()
 	if err != nil {
-		log.Fatal("cannot load config", err)
-	}
-	PostRelationServiceServer, err := di.DependencyIndjection(config)
-	if err != nil {
-		log.Fatal("cannot start server: ", err)
-	}
-	lis, err := net.Listen("tcp", config.PortMngr.RunnerPort)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Post_Relation_Service started on:", config.PortMngr.RunnerPort)
-	grpcServer := grpc.NewServer()
-	pb.RegisterPostRelationServiceServer(grpcServer, PostRelationServiceServer)
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to start: %v", err)
+		panic(err)
 	}
 
+	// ✅ start pprof server
+	go func() {
+		log.Info("pprof running on 127.0.0.1:6062")
+		if err := http.ListenAndServe("127.0.0.1:6062", nil); err != nil {
+			log.Error("pprof server failed",
+				logger.Field{Key: "error", Value: err})
+		}
+	}()
+
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatal("cannot load config",
+			logger.Field{Key: "error", Value: err},
+		)
+	}
+	PostRelationServiceServer,feedUsecase, err := di.DependencyInjection(cfg, log)
+	if err != nil {
+		log.Fatal("cannot start server",
+			logger.Field{Key: "error", Value: err},
+		)
+	}
+	lis, err := net.Listen("tcp", cfg.PortMngr.RunnerPort)
+	if err != nil {
+		log.Fatal("failed to listen",
+			logger.Field{Key: "error", Value: err},
+		)
+	}
+	go func() {
+		log.Info("Starting Feed Consumer...")
+		kafka.StartFeedConsumer(
+			cfg.Kafka.Brokers,
+			"post-events",
+			"feed-group",
+			feedUsecase,
+			[]byte(cfg.Kafka.CACert),
+			[]byte(cfg.Kafka.AccessCert),
+			[]byte(cfg.Kafka.AccessKey),
+		)
+	}()
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(
+			grpc_middleware.ChainUnaryServer(
+				middleware.RecoveryInterceptor,
+				middleware.LoggerInterceptor(log),
+			),
+		),
+	)
+	pb.RegisterPostRelationServiceServer(grpcServer, PostRelationServiceServer)
+
+	log.Info("Post Relation Service started",
+		logger.Field{Key: "port", Value: cfg.PortMngr.RunnerPort},
+	)
+
+	// start server in goroutine
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatal("failed to start grpc server",
+				logger.Field{Key: "error", Value: err})
+		}
+	}()
+
+	// wait for signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	<-quit
+	log.Info("Shutting down gRPC server...")
+
+	grpcServer.GracefulStop()
+
+	log.Info("gRPC server stopped")
 }

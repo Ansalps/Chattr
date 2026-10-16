@@ -97,6 +97,40 @@ type PostWithCounts struct {
 	IsLiked       bool   `gorm:"column:is_liked"` // New field
 	Age           string `json:"age"` // Added this
 }
+type PostWithStatus struct{
+	domain.Post
+	PostStatus string 
+	LikesCount    int64  `gorm:"column:likes_count"`
+	CommentsCount int64  `gorm:"column:comments_count"`
+	IsLiked       bool   `gorm:"column:is_liked"` // New field
+	Age           string `json:"age" gorm:"-"` // Ignore in DB scan
+    UserDetails   UserMetaData `gorm:"-"`      // Ignore in DB scan
+}
+type PostMedia struct {
+    ID        uint `gorm:"primarykey"`
+    CreatedAt time.Time
+    UpdatedAt time.Time
+    PostID    uint `gorm:"not null; index"`
+    Post      Post `gorm:"constraint:OnDelete:CASCADE"`
+    MediaUrl  string
+}
+type PostWithStatusWithTrendingScore struct{
+	domain.Post
+	//ID         uint `gorm:"primarykey"`
+    //CreatedAt  time.Time
+    //UpdatedAt  time.Time
+    //UserID     uint `gorm:"not null"`
+    //Caption    string
+    // This tells GORM there's a relationship
+    //Media []PostMedia `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
+	PostStatus string 
+	LikesCount    int64  `gorm:"column:likes_count"`
+	CommentsCount int64  `gorm:"column:comments_count"`
+	IsLiked       bool   `gorm:"column:is_liked"` // New field
+	Age           string `json:"age" gorm:"-"` // Ignore in DB scan
+	TrendingScore float64    `json:"trending_score" gorm:"column:trending_score;->"`
+    UserDetails   UserMetaData `gorm:"-"`      // Ignore in DB scan
+}
 type FetchAllPostsResponse struct {
 	Posts []Post
 }
@@ -120,4 +154,14 @@ type FollowerIds struct{
 }
 type FollowingIds struct{
 	FollowingID uint64
+}
+type FetchNewsFeedResponse struct{
+	PostUserData []PostWithStatus
+	NextCursor uint64
+	HasMore bool
+}
+type FetchGlobalNewsFeedResponse struct{
+	PostUserData []PostWithStatusWithTrendingScore
+	NextCursor float64
+	HasMore bool
 }

@@ -2,17 +2,12 @@ package services
 
 import (
 	"context"
-	"fmt"
-	"log"
 
-	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/domain"
+	"github.com/Ansalps/Chattr_Post_Relation_Service/infrastructure/logger"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/pb"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/requestmodels"
-	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase/interfacesUsecase"
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/utils"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type PostRelationServer struct {
@@ -26,8 +21,16 @@ func NewPostRelationSever(useCase interfacesUsecase.PostRelationUsecase) *PostRe
 	}
 }
 
+func (as *PostRelationServer) InsertUserIntoFollowCount(ctx context.Context, req *pb.InsertUserRequest) (*pb.Empty, error) {
+	err := as.PostRelationUsecase.InsertUserIntoFollowCount(req.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return nil, err
+}
+
 func (as *PostRelationServer) CreatePost(ctx context.Context, req *pb.CreatePostRequest) (*pb.CreatePostResponse, error) {
-	fmt.Println("in service print print urls request",req.MediaUrls)
+	//fmt.Println("in service print print urls request",req.MediaUrls)
 	createPostReq := requestmodels.CreatePostRequest{
 		UserID:    req.UserId,
 		Caption:   req.Caption,
@@ -35,7 +38,7 @@ func (as *PostRelationServer) CreatePost(ctx context.Context, req *pb.CreatePost
 	}
 	createPostRes, err := as.PostRelationUsecase.CreatePost(createPostReq)
 	if err != nil {
-		return &pb.CreatePostResponse{}, nil
+		return nil, err
 	}
 	return &pb.CreatePostResponse{
 		PostId: createPostRes.PostID,
@@ -50,10 +53,7 @@ func (as *PostRelationServer) EditPost(ctx context.Context, req *pb.EditPostRequ
 	}
 	editPostRes, err := as.PostRelationUsecase.EditPost(editPostReq)
 	if err != nil {
-		if err == usecase.ErrPostNotFound {
-			return nil, status.Error(codes.NotFound, "post not found")
-		}
-		return nil, status.Error(codes.Internal, "internal server error")
+		return nil, err
 	}
 	return &pb.EditPostResponse{
 		Caption: editPostRes.Caption,
@@ -66,10 +66,7 @@ func (as *PostRelationServer) DeletePost(ctx context.Context, req *pb.DeletePost
 	}
 	deletPostRes, err := as.PostRelationUsecase.DeletePost(deletePostReq)
 	if err != nil {
-		if err == usecase.ErrPostNotFound {
-			return nil, status.Error(codes.NotFound, "post not found")
-		}
-		return nil, status.Error(codes.Internal, "internal server error")
+		return nil, err
 	}
 	return &pb.DeletePostResponse{
 		PostId: deletPostRes.PostID,
@@ -77,15 +74,22 @@ func (as *PostRelationServer) DeletePost(ctx context.Context, req *pb.DeletePost
 }
 
 func (as *PostRelationServer) LikePost(ctx context.Context, req *pb.LikePostRequest) (*pb.LikePostResponse, error) {
+	log := utils.GetLogger(ctx)
 	likePostReq := requestmodels.LikePostRequest{
 		UserID: req.UserId,
 		PostID: req.PostId,
 	}
 	likePostRes, err := as.PostRelationUsecase.LikePost(likePostReq)
 	if err != nil {
-
-		log.Println("internal error", err)
-		return nil, status.Error(codes.Internal, "internal server error")
+		log.Info("user id",logger.Field{
+			Key: "user_id",Value: req.UserId,
+		})
+		log.Info("post_id",logger.Field{
+			Key: "post_id",Value: req.PostId,
+		})
+		log.Error("Client/server Error", logger.Field{Key: "details", Value: err})
+		//fmt.Println("hi hwillo")
+		return nil, err
 	}
 	return &pb.LikePostResponse{
 		PostId: likePostRes.PostID,
@@ -99,11 +103,7 @@ func (as *PostRelationServer) UnlikePost(ctx context.Context, req *pb.UnlikePost
 	}
 	unlikePostResponse, err := as.PostRelationUsecase.UnlikePost(unlikePostReq)
 	if err != nil {
-		if err == usecase.ErrPostLikeNotFound {
-			return nil, status.Error(codes.NotFound, "post like not found")
-		}
-		log.Println("error in service", err)
-		return nil, status.Error(codes.Internal, "internal server error")
+		return nil, err
 	}
 	return &pb.UnlikePostResponse{
 		PostId: unlikePostResponse.PostID,
@@ -117,24 +117,12 @@ func (as *PostRelationServer) AddComment(ctx context.Context, req *pb.AddComment
 		CommentText:     req.CommentText,
 		ParentCommentId: req.ParentCommentId,
 	}
-	fmt.Println("befor going to usecase")
+	//fmt.Println("befor going to usecase")
 	addCommentRes, err := as.PostRelationUsecase.AddComment(addCommentReq)
 	if err != nil {
-		switch err {
-		case usecase.ErrRecursiveComment:
-			return nil, status.Error(codes.FailedPrecondition, "can't reply to a comment reply")
-		case domain.ErrForeignKeyViolationCommentPost:
-			return nil, status.Error(codes.NotFound, err.Error())
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
-		// if err == usecase.ErrRecursiveComment {
-		// 	return nil, status.Error(codes.FailedPrecondition, "can't reply to a comment reply")
-		// } else if err==domain.ErrForeignKeyViolationCommentPost{
-		// 	return nil,status.Error(codes.NotFound,err.Error())
-		// }
+		return nil, err
 	}
-	fmt.Println("is it reaching here", addCommentRes)
+	//fmt.Println("is it reaching here", addCommentRes)
 
 	return &pb.AddCommentResponse{
 		UserId:          addCommentRes.UserID,
@@ -154,13 +142,9 @@ func (as *PostRelationServer) EditComment(ctx context.Context, req *pb.EditComme
 	}
 	editCommentRes, err := as.PostRelationUsecase.EditComment(editCommentReq)
 	if err != nil {
-		log.Println("error in servic :", err)
-		if err == usecase.ErrCommentNotFound {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
 		return nil, err
 	}
-	fmt.Println("check in api for response", editCommentRes)
+
 	return &pb.EditCommentResponse{
 		PostId:      editCommentReq.PostID,
 		CommentId:   editCommentRes.CommentID,
@@ -168,7 +152,7 @@ func (as *PostRelationServer) EditComment(ctx context.Context, req *pb.EditComme
 	}, nil
 }
 func (as *PostRelationServer) DeleteComment(ctx context.Context, req *pb.DeleteCommentRequest) (*pb.DeleteCommentResponse, error) {
-	fmt.Println("what is actually the issue?")
+
 	deleteCommentReq := requestmodels.DeleteCommentRequest{
 		UserID:    req.UserId,
 		PostID:    req.PostId,
@@ -176,9 +160,6 @@ func (as *PostRelationServer) DeleteComment(ctx context.Context, req *pb.DeleteC
 	}
 	deleteCommentRes, err := as.PostRelationUsecase.DeleteComment(deleteCommentReq)
 	if err != nil {
-		if err == usecase.ErrCommentNotFound {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
 		return nil, err
 	}
 	return &pb.DeleteCommentResponse{
@@ -193,7 +174,7 @@ func (as *PostRelationServer) Follow(ctx context.Context, req *pb.FollowRequest)
 	}
 	followResponse, err := as.PostRelationUsecase.Follow(followReq)
 	if err != nil {
-		log.Println("error in service", err)
+		return nil, err
 	}
 	return &pb.FollowResponse{
 		FollowingUserId: followResponse.FollowingUserID,
@@ -206,7 +187,7 @@ func (as *PostRelationServer) Unfollow(ctx context.Context, req *pb.UnfollowRequ
 	}
 	unfollowResponse, err := as.PostRelationUsecase.Unfollow(unfollowReq)
 	if err != nil {
-		log.Println("error in service")
+		return nil, err
 	}
 	return &pb.UnfollowResponse{
 		UnfollowingUserId: unfollowResponse.UnfollowingUserID,
@@ -215,13 +196,11 @@ func (as *PostRelationServer) Unfollow(ctx context.Context, req *pb.UnfollowRequ
 func (as *PostRelationServer) FetchComments(ctx context.Context, req *pb.FetchCommentsRequest) (*pb.FetchCommentsResponse, error) {
 	fetchCommentsReq := requestmodels.FetchCommentsReqeust{
 		PostID: req.PostId,
+		Limit:  int(req.Limit),
+		Offset: int(req.Offset),
 	}
 	fetchCommentsResponse, err := as.PostRelationUsecase.FetchComments(fetchCommentsReq)
 	if err != nil {
-		if err == usecase.ErrNoComments {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
-		log.Println("error in service", err)
 		return nil, err
 	}
 	comments := make([]*pb.Comment, len(fetchCommentsResponse.Comments))
@@ -279,28 +258,62 @@ func (as *PostRelationServer) PostFollowCount(ctx context.Context, req *pb.PostF
 		FollowingCount: resp.FollowingCount,
 	}, nil
 }
-func (as *PostRelationServer) FetchAllPosts(ctx context.Context, req *pb.FetchAllPostsRequest) (*pb.FetchAllPostsResponse, error) {
-	resp, err := as.PostRelationUsecase.FetchAllPosts(req.CurrentUserId,req.TargetUserId)
+func (as *PostRelationServer)FetchPostByPostID(ctx context.Context,req *pb.FetchPostRequest)(*pb.FetchPostResponse,error){
+	fetchPostReq:=requestmodels.FetchPostByPostIDRequest{
+		PostID:req.PostId,
+		UserID: req.UserId,
+	}
+	resp, err := as.PostRelationUsecase.FetchPostByPostID(fetchPostReq)
 	if err != nil {
 		return nil, err
 	}
-	s:=make([]*pb.Post,len(resp))
-	for i,v:=range resp{
+	return &pb.FetchPostResponse{
+		PostId:        uint64(resp.ID),
+		CreatedAt:     utils.ToProtoTimestamp(resp.CreatedAt),
+		UpdatedAt:     utils.ToProtoTimestamp(resp.UpdatedAt),
+		UserId:        uint64(resp.UserID),
+		Caption:       resp.Caption,
+		MediaUrls:     func() []string {
+			var s1 []string
+			for _, v := range resp.Media {
+				s1 = append(s1, v.MediaUrl)
+			}
+			return s1
+		}(),
+		LikesCount:    uint64(resp.LikesCount),
+		CommentsCount: uint64(resp.CommentsCount),
+		PostAge:       resp.Age,
+		IsLiked:       resp.IsLiked,
+	},nil
+}
+func (as *PostRelationServer) FetchAllPosts(ctx context.Context, req *pb.FetchAllPostsRequest) (*pb.FetchAllPostsResponse, error) {
+	fetchPostsReq := requestmodels.FetchAllPostsReq{
+		CurrentUserID: req.CurrentUserId,
+		TargetUserID:  req.TargetUserId,
+		Limit:         int(req.Limit),
+		Offset:        int(req.Offset),
+	}
+	resp, err := as.PostRelationUsecase.FetchAllPosts(fetchPostsReq)
+	if err != nil {
+		return nil, err
+	}
+	s := make([]*pb.Post, len(resp))
+	for i, v := range resp {
 		var s1 []string
-		for _,v:=range resp[i].Media{
-			s1=append(s1, v.MediaUrl)
+		for _, v := range resp[i].Media {
+			s1 = append(s1, v.MediaUrl)
 		}
-		s[i]=&pb.Post{
-			PostId: uint64(v.ID),
-			CreatedAt: utils.ToProtoTimestamp(v.CreatedAt),
-			UpdatedAt: utils.ToProtoTimestamp(v.UpdatedAt),
-			UserId: uint64(v.UserID),
-			Caption: v.Caption,
-			MediaUrls: s1,
-			LikesCount: uint64(v.LikesCount),
+		s[i] = &pb.Post{
+			PostId:        uint64(v.ID),
+			CreatedAt:     utils.ToProtoTimestamp(v.CreatedAt),
+			UpdatedAt:     utils.ToProtoTimestamp(v.UpdatedAt),
+			UserId:        uint64(v.UserID),
+			Caption:       v.Caption,
+			MediaUrls:     s1,
+			LikesCount:    uint64(v.LikesCount),
 			CommentsCount: uint64(v.CommentsCount),
-			PostAge: v.Age,
-			Isliked: v.IsLiked,
+			PostAge:       v.Age,
+			Isliked:       v.IsLiked,
 		}
 	}
 	return &pb.FetchAllPostsResponse{
@@ -308,50 +321,147 @@ func (as *PostRelationServer) FetchAllPosts(ctx context.Context, req *pb.FetchAl
 	}, nil
 }
 
-func (as *PostRelationServer)FetchFollowers(ctx context.Context,req *pb.FetchFollowersRequest)(*pb.FetchFollowersResponse,error){
-	resp,err:=as.PostRelationUsecase.FetchFollowers(req.UserId)
-	if err!=nil{
-		if err==domain.ErrNoFollowers{
-			return nil,status.Error(codes.NotFound,err.Error())
-		}
-		return nil,err
+func (as *PostRelationServer) FetchFollowers(ctx context.Context, req *pb.FetchFollowersRequest) (*pb.FetchFollowersResponse, error) {
+	fetchFollowersReq := requestmodels.FetchFollowersRequest{
+		UserID: req.UserId,
+		Limit:  int(req.Limit),
+		Offset: int(req.Offset),
 	}
-	c:=make([]*pb.UserMetaData,len(resp.Followers))
-	for i,v:=range resp.Followers{
-		c[i]=&pb.UserMetaData{
-			UserId: v.UserID,
-			UserName: v.UserName,
-			Name: v.Name,
+	resp, err := as.PostRelationUsecase.FetchFollowers(fetchFollowersReq)
+	if err != nil {
+		return nil, err
+	}
+	c := make([]*pb.UserMetaData, len(resp.Followers))
+	for i, v := range resp.Followers {
+		c[i] = &pb.UserMetaData{
+			UserId:        v.UserID,
+			UserName:      v.UserName,
+			Name:          v.Name,
 			ProfileImgUrl: v.ProfileImgUrl,
-			BlueTick: v.BlueTick,
+			BlueTick:      v.BlueTick,
 		}
 	}
 	return &pb.FetchFollowersResponse{
 		UserMetaData: c,
-	},nil
+	}, nil
 }
 
-func (as *PostRelationServer)FetchFollowing(ctx context.Context,req *pb.FetchFollowingRequest)(*pb.FetchFollowingResponse,error){
-	resp,err:=as.PostRelationUsecase.FetchFollowing(req.UserId)
-	if err!=nil{
-		if err==domain.ErrNoFollowers{
-			return nil,status.Error(codes.NotFound,err.Error())
-		}
-		return nil,err
+func (as *PostRelationServer) FetchFollowing(ctx context.Context, req *pb.FetchFollowingRequest) (*pb.FetchFollowingResponse, error) {
+	fetchFollowingReq := requestmodels.FetchFollowingRequest{
+		UserID: req.UserId,
+		Limit:  int(req.Limit),
+		Offset: int(req.Offset),
 	}
-	fmt.Println("following",resp)
-	c:=make([]*pb.UserMetaData,len(resp.Following))
-	for i,v:=range resp.Following{
-		c[i]=&pb.UserMetaData{
-			UserId: v.UserID,
-			UserName: v.UserName,
-			Name: v.Name,
+	resp, err := as.PostRelationUsecase.FetchFollowing(fetchFollowingReq)
+	if err != nil {
+		return nil, err
+	}
+	c := make([]*pb.UserMetaData, len(resp.Following))
+	for i, v := range resp.Following {
+		c[i] = &pb.UserMetaData{
+			UserId:        v.UserID,
+			UserName:      v.UserName,
+			Name:          v.Name,
 			ProfileImgUrl: v.ProfileImgUrl,
-			BlueTick: v.BlueTick,
+			BlueTick:      v.BlueTick,
 		}
 	}
-	fmt.Println("user metadata slice",c)
 	return &pb.FetchFollowingResponse{
 		UserMetaData: c,
-	},nil
+	}, nil
+}
+func (as *PostRelationServer) FetchNewsFeed(ctx context.Context, req *pb.FetchNewsFeedRequest) (*pb.FetchNewsFeedResponse, error) {
+	newsfeedReq := requestmodels.FetchNewsFeedRequest{
+		UserID:        req.UserId,
+		Limit:         req.Limit,
+		LastID:        req.LastId,
+		PullToRefresh: req.PullToRefresh,
+	}
+	resp, err := as.PostRelationUsecase.FetchPostUserDataForNewsFeed(newsfeedReq)
+	if err != nil {
+		//fmt.Println("inside service,",err)
+		return nil, err
+	}
+	//fmt.Println("resp ",resp)
+	c := make([]*pb.PostUserData, len(resp.PostUserData))
+	for i, v := range resp.PostUserData {
+		var s1 []string
+		for _, v := range resp.PostUserData[i].Media {
+			s1 = append(s1, v.MediaUrl)
+		}
+		c[i] = &pb.PostUserData{
+			PostId:        uint64(v.ID),
+			CreatedAt:     utils.ToProtoTimestamp(v.CreatedAt),
+			UpdatedAt:     utils.ToProtoTimestamp(v.UpdatedAt),
+			UserId:        uint64(v.UserID),
+			Caption:       v.Caption,
+			PostStatus:    v.PostStatus,
+			MediaUrls:     s1,
+			LikesCount:    uint64(v.LikesCount),
+			CommentsCount: uint64(v.CommentsCount),
+			PostAge:       v.Age,
+			IsLiked:       v.IsLiked,
+			UserMetaData: &pb.UserMetaData{
+				UserId:        v.UserDetails.UserID,
+				UserName:      v.UserDetails.UserName,
+				Name:          v.UserDetails.Name,
+				ProfileImgUrl: v.UserDetails.ProfileImgUrl,
+				BlueTick:      v.UserDetails.BlueTick,
+			},
+		}
+	}
+	return &pb.FetchNewsFeedResponse{
+		PostUserData: c,
+		NextCursor:   resp.NextCursor,
+		HasMore:      resp.HasMore,
+	}, nil
+}
+
+func (as *PostRelationServer) FetchGlobalNewsFeed(ctx context.Context, req *pb.FetchGlobalNewsFeedRequest) (*pb.FetchGlobalNewsFeedResponse, error) {
+	newsfeedReq := requestmodels.GlobalNewsFeedRequest{
+		UserID: req.UserId,
+		Limit:  int(req.Limit),
+		Offset: int(req.Offset),
+	}
+	resp, err := as.PostRelationUsecase.FetchGlobalNewsFeed(newsfeedReq)
+	if err != nil {
+		return nil, err
+	}
+	c := make([]*pb.PostUserDataWithTrendingScore, len(resp.PostUserData))
+	for i, v := range resp.PostUserData {
+		var s1 []string
+		for _, v := range resp.PostUserData[i].Media {
+			s1 = append(s1, v.MediaUrl)
+		}
+		c[i] = &pb.PostUserDataWithTrendingScore{
+			PostId:        uint64(v.ID),
+			CreatedAt:     utils.ToProtoTimestamp(v.CreatedAt),
+			UpdatedAt:     utils.ToProtoTimestamp(v.UpdatedAt),
+			UserId:        uint64(v.UserID),
+			Caption:       v.Caption,
+			PostStatus:    v.PostStatus,
+			MediaUrls:     s1,
+			LikesCount:    uint64(v.LikesCount),
+			CommentsCount: uint64(v.CommentsCount),
+			PostAge:       v.Age,
+			IsLiked:       v.IsLiked,
+			TrendingScore: float32(v.TrendingScore),
+			UserMetaData: &pb.UserMetaData{
+				UserId:        v.UserDetails.UserID,
+				UserName:      v.UserDetails.UserName,
+				Name:          v.UserDetails.Name,
+				ProfileImgUrl: v.UserDetails.ProfileImgUrl,
+				BlueTick:      v.UserDetails.BlueTick,
+			},
+		}
+	}
+	return &pb.FetchGlobalNewsFeedResponse{
+		PostUserData: c,
+		NextCursor:   float32(resp.NextCursor),
+		HasMore:      resp.HasMore,
+	}, nil
+}
+
+func (as *PostRelationServer) PanicInPost(ctx context.Context, req *pb.PanicInPostReq) (*pb.PanicInPostRes, error) {
+	panic("intentional test panic in post relation service")
 }

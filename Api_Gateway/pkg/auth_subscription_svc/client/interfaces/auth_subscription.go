@@ -1,34 +1,36 @@
 package interfaces
 
 import (
+	"context"
+
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/requestmodels"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/responsemodels"
 )
 
 type AuthSubscriptionClientInterface interface{
-	AdminLogin(requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse,error)
+	AdminLogin(context.Context,requestmodels.AdminLoginRequest) (responsemodels.AdminLoginResponse,error)
 	BlockUser(requestmodels.BlockUserRequest)(responsemodels.BlockUserResponse,error)
 	UnblockUser(requestmodels.UnblockUserRequest)(responsemodels.UnblockUserResponse,error)
-	GetAllUsers(requestmodels.GetAllUsersRequest)(responsemodels.GetAllUsersResponse,error)
+	GetAllUsers(requestmodels.GetAllUsersRequest,int)(responsemodels.GetAllUsersResponse,error)
 	CreateSubscriptionPlan(requestmodels.CreateSubscriptionPlanRequest)(responsemodels.CreateSubscriptionPlanResponse,error)
 	
 	ActivateSubscriptionPlan(requestmodels.ActivateSubscriptionPlanRequest)(responsemodels.ActivateSubscriptionPlanResponse,error)
 	DeactivateSubscriptionPlan(requestmodels.DeactivateSubscriptionPlanRequest)(responsemodels.DeactivateSubscriptionPlanResponse,error)
-	GetAllSubscriptionPlans(requestmodels.GetAllSubscriptionPlansRequest)(responsemodels.GetAllSubscriptionPlansResponse,error)
+	GetAllSubscriptionPlans(requestmodels.GetAllSubscriptionPlansRequest,int)(responsemodels.GetAllSubscriptionPlansResponse,error)
 
-	UserSignUp(requestmodels.UserSignUpRequest)(responsemodels.UserSignupResponse,error)
-	VerifyOtp(requestmodels.OtpRequest)(responsemodels.OtpVerificationResponse,error)
-	ResendOtp(requestmodels.ResendOtpRequest)(responsemodels.ResendOtpResponse,error)
+	UserSignUp(ctx context.Context,user requestmodels.UserSignUpRequest)(responsemodels.UserSignupResponse,error)
+	VerifyOtp(ctx context.Context,req requestmodels.OtpRequest)(responsemodels.OtpVerificationResponse,error)
+	ResendOtp(ctx context.Context,resendOtpReq requestmodels.ResendOtpRequest)(responsemodels.ResendOtpResponse,error)
 	AccessRegenerator(requestmodels.AccessRegeneratorRequest)(responsemodels.AccessRegeneratorResponse,error)
-	ForgotPassword(requestmodels.ForgotPasswordRequest)(responsemodels.ForgetPassordResponse,error)
+	ForgotPassword(ctx context.Context,forgetPasswordReq requestmodels.ForgotPasswordRequest)(responsemodels.ForgetPassordResponse,error)
 	ResetPassword(requestmodels.ResetPasswordRequest)(responsemodels.ResetPasswordResponse,error)
-	UserLogin(requestmodels.UserLoginRequest)(responsemodels.UserLoginResponse,error)
-	GetAllActiveSubscriptionPlans(requestmodels.GetAllActiveSubscriptionPlansRequest)(responsemodels.GetAllActiveSubscriptionPlansResponse,error)
+	UserLogin(ctx context.Context,req requestmodels.UserLoginRequest)(responsemodels.UserLoginResponse,error)
+	GetAllActiveSubscriptionPlans(requestmodels.GetAllActiveSubscriptionPlansRequest,int)(responsemodels.GetAllActiveSubscriptionPlansResponse,error)
 	Subscribe(requestmodels.SubscribeRequest)(responsemodels.SubscribeResponse,error)
 	VerifySubscriptionPayment(requestmodels.VerifySubscriptionPaymentRequest)(responsemodels.VerifySubscriptionPaymentResponse,error)
 	Unsubscribe(requestmodels.UnsubscribeRequest)(responsemodels.UnsubscribeResponse,error)
 	SetProfileImage(requestmodels.SetProfileImageRequest)(responsemodels.SetProfileImageResponse,error)
-	//Webhook(requestmodels.WebhookRequest)(responsemodels.WebhookResponse,error)
 
 	GetProfileInformation(requestmodels.GetProfileInformationRequest)(responsemodels.GetProfileInformationResponse,error)
+
 }

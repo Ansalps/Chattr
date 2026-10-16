@@ -70,6 +70,27 @@ type Comment struct {
 }
 type FetchCommentsResponse struct {
 	Comments []Comment
+	Pagination PagingationDetails 
+}
+type FetchFollowersResponse struct{
+	UserMetaData []UserMetaData
+	Pagingation PagingationDetails
+}
+type FetchFollowingResponse struct {
+	UserMetaData []UserMetaData
+	Pagingation PagingationDetails
+}
+type FetchPostByIdResponse struct{
+	PostID uint64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID uint64
+	Caption string
+	MediaUrls []string
+	LikeCount     uint64
+	CommentsCount uint64
+	IsLiked bool
+	PostAge       string
 }
 type Post struct{
 	PostID uint64
@@ -85,7 +106,10 @@ type Post struct{
 type FetchAllPostsResponse struct{
 	Posts []Post
 }
-
+type PagingationDetails struct{
+	CurrentPage int
+	PageSize int
+}
 type PostData struct{
 	PostID uint64
 	CreatedAt time.Time
@@ -98,4 +122,30 @@ type PostData struct{
 	PostAge       string
 	IsLiked bool
 	UserData UserMetaData
+	Pagination *PagingationDetails `json:"pagination,omitempty"`
+}
+
+
+type FetchNewsFeedResponse struct{
+	PostUserData []PostData
+	NextCursor uint64
+	HasMore bool
+}
+type PostDataWithTrendingScore struct{
+	PostID uint64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID uint64
+	Caption string
+	MediaUrls []string
+	LikeCount     uint64
+	CommentsCount uint64
+	PostAge       string
+	IsLiked bool
+	TrendingScore float64
+	UserData UserMetaData
+}
+type FetchGlobalNewsFeedResponse struct{
+	PostUserData []PostDataWithTrendingScore
+	Pagination PagingationDetails
 }
