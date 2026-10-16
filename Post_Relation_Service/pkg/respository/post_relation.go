@@ -115,20 +115,47 @@ func (ad *PostRelationRepository) UnlikePostById(unlikePostReq requestmodels.Unl
 	}, nil
 }
 
-func (ad *PostRelationRepository) CheckCommentHieracrchy(commentId *uint64) (bool, error) {
-	var parentId *uint64
-	query := `SELECT parent_comment_id FROM comments WHERE id=?`
-	res := ad.DB.Raw(query, commentId).Scan(&parentId)
-	if res.Error!= nil {
-		return false, res.Error
-	}
-	if res.RowsAffected==0{
-		return false,gorm.ErrRecordNotFound
-	}
-	if parentId == nil {
-		return false, nil
-	}
-	return true, nil
+// func (ad *PostRelationRepository) CheckCommentHieracrchy(commentId *uint64) (bool, error) {
+// 	var parentId *uint64
+// 	query := `SELECT parent_comment_id FROM comments WHERE id=?`
+// 	res := ad.DB.Raw(query, commentId).Scan(&parentId)
+// 	if res.Error!= nil {
+// 		fmt.Println("is it reaching in error")
+// 		return false, res.Error
+// 	}
+// 	if res.RowsAffected==0{
+// 		fmt.Println("no rows affected, comment id might be wrong")
+// 		return false,gorm.ErrRecordNotFound
+// 	}
+// 	if parentId == nil {
+// 		fmt.Println("or is parentId just nil")
+// 		return false, nil
+// 	}
+// 	return true, nil
+// }
+func (ad *PostRelationRepository) IsSubComment(commentId *uint64) (bool, error) {
+    // We use a struct or a map to capture the result safely
+    var result struct {
+        ParentCommentID *uint64 `gorm:"column:parent_comment_id"`
+    }
+    
+    // .Table() specifies the table
+    // .Select() picks only the column we need
+    // .Where() filters by the comment the user is trying to reply to
+    // .Take() fetches one record or returns gorm.ErrRecordNotFound if empty
+    err := ad.DB.Table("comments").
+        Select("parent_comment_id").
+        Where("id = ?", commentId).
+        Take(&result).Error
+
+    if err != nil {
+        // This will now properly catch cases where the comment doesn't exist
+        return false, err 
+    }
+
+    // Logic: If ParentCommentID is NOT nil, it means the comment found
+    // is already a sub-comment.
+    return result.ParentCommentID != nil, nil
 }
 func (ad *PostRelationRepository) AddComment(addCommentReq requestmodels.AddCommentRequest) (responsemodels.AddCommentResponse, error) {
 	var commetId uint64
@@ -238,7 +265,23 @@ func (ad *PostRelationRepository) FetchFollowCountByUserId(userid uint64) (respo
 	return resp, nil
 }
 
+func (as *PostRelationRepository) FetchPostByPostID(req requestmodels.FetchPostByPostIDRequest) (responsemodels.PostWithCounts, error) {
+	var post responsemodels.PostWithCounts
 
+	err := as.DB.Model(&domain.Post{}).
+		Select("posts.*, "+
+			"(SELECT COUNT(*) FROM post_likes WHERE post_likes.post_id = posts.id) as likes_count, "+
+			"(SELECT COUNT(*) FROM comments WHERE comments.post_id = posts.id) as comments_count, "+
+			"EXISTS(SELECT 1 FROM post_likes WHERE post_likes.post_id = posts.id AND post_likes.user_id = ?) as is_liked",
+			req.UserID).
+		Where("id = ?", req.PostID).
+		Preload("Media").
+		First(&post).Error
+	if err != nil {
+		return responsemodels.PostWithCounts{}, err
+	}
+	return post, nil
+}
 func (ad *PostRelationRepository) FetchAllPosts(req requestmodels.FetchAllPostsReq) ([]responsemodels.PostWithCounts, error) {
 	var posts []responsemodels.PostWithCounts
 
