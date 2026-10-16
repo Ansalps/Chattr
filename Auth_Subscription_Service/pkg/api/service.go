@@ -2,13 +2,13 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/models/requestmodels"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/pb"
-	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/usecase"
 	"github.com/Ansalps/Chattr_Auth_Subscription_Service/pkg/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,29 +28,38 @@ func NewAuthSubscriptionServer(useCase interfacesUsecase.AuthSubscriptionUsecase
 	}
 }
 
+func (as *AuthSubscriptionServer) CheckAllUsersExists(ctx context.Context, req *pb.UserDataReq) (*pb.UsersNotExistsResponse, error) {
+	resp, err := as.AuthSubscriptionUsecase.CheckAllUsersExists(req.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UsersNotExistsResponse{
+		UserId: resp,
+	}, nil
+}
+func (as *AuthSubscriptionServer) DoesUserExists(ctx context.Context, req *pb.DoesUserExistsRequest) (*pb.DoesUserExistsResponse, error) {
+	resp, err := as.AuthSubscriptionUsecase.DoesUserExists(req.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.DoesUserExistsResponse{
+		Exists: resp,
+	}, nil
+}
 func (as *AuthSubscriptionServer) AdminLogin(ctx context.Context, req *pb.AdminLoginRequest) (*pb.AdminLoginResponse, error) {
 	adminLogin := requestmodels.AdminLoginRequest{
 		Email:    req.Email,
 		Password: req.Password,
 	}
-	admin, err := as.AuthSubscriptionUsecase.AdminLogin(adminLogin)
+	admin, err := as.AuthSubscriptionUsecase.AdminLogin(ctx, adminLogin)
 	if err != nil {
-		log.Printf("AdminLogin failed for email=%s: %v", req.Email, err)
-		switch {
-		case errors.Is(err, usecase.ErrUserNotFound):
-			return nil, status.Error(codes.NotFound, "user not found")
-		case errors.Is(err, usecase.ErrInvalidCredentials):
-			return nil, status.Error(codes.Unauthenticated, "invalid credentials")
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		// interceptor handles errors
+		return nil, err
 	}
 	adminDetails := &pb.AdminDetails{
 		Id:    uint64(admin.Admin.ID),
 		Email: admin.Admin.Email,
 	}
-	fmt.Println("adminDetails", adminDetails)
-	fmt.Println("adminToken", admin.AccessToken)
 	return &pb.AdminLoginResponse{
 		AdminDetails: adminDetails,
 		AccessToken:  admin.AccessToken,
@@ -64,15 +73,7 @@ func (as *AuthSubscriptionServer) BlockUser(ctx context.Context, req *pb.BlockUs
 	}
 	blockUserResponse, err := as.AuthSubscriptionUsecase.BlockUser(blockUserReq)
 	if err != nil {
-		log.Printf("Block user failed for user id %d : %v", blockUserReq.UserId, err)
-		switch {
-		case errors.Is(err, usecase.ErrUserNotActive):
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case errors.Is(err, usecase.ErrUserNotFound):
-			return nil, status.Errorf(codes.NotFound, "user not found for user id: %v", blockUserReq.UserId)
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil, err
 	}
 	return &pb.BlockUserResponse{
 		UserId: blockUserResponse.UserId,
@@ -85,15 +86,7 @@ func (as *AuthSubscriptionServer) UnblockUser(ctx context.Context, req *pb.Unblo
 	}
 	unblockUserResponse, err := as.AuthSubscriptionUsecase.UnblockUser(unblockUserReq)
 	if err != nil {
-		log.Printf("Unblock user failed for user id %d : %v", unblockUserReq.UserId, err)
-		switch {
-		case errors.Is(err, usecase.ErrUserNotBlocked):
-			return nil, status.Error(codes.FailedPrecondition, err.Error())
-		case errors.Is(err, usecase.ErrUserNotFound):
-			return nil, status.Errorf(codes.NotFound, "user not found for user id: %v", unblockUserReq.UserId)
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil, err
 	}
 	return &pb.UnblockUserResponse{
 		UserId: unblockUserResponse.UserId,
@@ -107,11 +100,7 @@ func (as *AuthSubscriptionServer) GetAllUsers(ctx context.Context, req *pb.GetAl
 	}
 	users, err := as.AuthSubscriptionUsecase.GetAllUsers(getAllUsersReq)
 	if err != nil {
-		log.Printf("Get All Users failed : %v", err)
-		switch {
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil, err
 	}
 	pbUsers := make([]*pb.User, len(users.Users))
 	for i, user := range users.Users {
@@ -138,19 +127,11 @@ func (as *AuthSubscriptionServer) UserSignUp(ctx context.Context, req *pb.UserSi
 		Email:           req.Email,
 		Password:        req.Password,
 		ConfirmPassword: req.ConfirmPassword,
+		Phone:           req.Phone,
 	}
-	userResponse, err := as.AuthSubscriptionUsecase.UserSignUp(userSignup)
+	userResponse, err := as.AuthSubscriptionUsecase.UserSignUp(ctx, userSignup)
 	if err != nil {
-		log.Printf("UsersignUp failed for email=%s and username=%s: %v", req.Email, req.UserName, err)
-		switch {
-		case errors.Is(err, usecase.ErrUserAlreadyExistsByEmail):
-			return nil, status.Errorf(codes.AlreadyExists, "user with email=%s already exist", req.Email)
-		case errors.Is(err, usecase.ErrUserAlreadyExistsByUsername):
-			return nil, status.Errorf(codes.AlreadyExists, "username %s is already taken", req.UserName)
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
-
+		return nil, err
 	}
 	return &pb.UserSignUpResponse{
 		Id:                   uint64(userResponse.ID),
@@ -169,23 +150,12 @@ func (as *AuthSubscriptionServer) VerifyOtp(ctx context.Context, req *pb.OtpRequ
 		Email:   req.Email,
 		Purpose: req.Purpose,
 	}
-	otpResponse, err := as.AuthSubscriptionUsecase.VerifyOtp(otpReq)
+	otpResponse, err := as.AuthSubscriptionUsecase.VerifyOtp(ctx, otpReq)
 	if err != nil {
-		log.Printf("OTP verification failed for email %s (reason: mismatch): %v", otpReq.Email, err)
-		switch {
-		case errors.Is(err, usecase.ErrUserNotFound):
-			return nil, status.Errorf(codes.NotFound, "user not found")
-		case errors.Is(err, usecase.ErrInvalidCredentials):
-			return nil, status.Errorf(codes.InvalidArgument, "invalid otp")
-		case errors.Is(err, usecase.ErrOtpExpired):
-			return nil, status.Error(codes.FailedPrecondition, "otp expired")
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		fmt.Println("error",err)
+		return nil, err
 	}
-	fmt.Println("in service Access Token", otpResponse.AccessToken)
-	fmt.Println("in service Refresh Token", otpResponse.RefreshToken)
-	fmt.Println("in service Temp Token", otpResponse.TempToken)
+
 	return &pb.OtpVerificationResponse{
 		Email:        otpResponse.Email,
 		Status:       otpResponse.Status,
@@ -199,7 +169,7 @@ func (as *AuthSubscriptionServer) ResendOtp(ctx context.Context, req *pb.ResendO
 	resendOtpReq := requestmodels.ResendOtpRequest{
 		Email: req.Email,
 	}
-	resendOtpResponse, err := as.AuthSubscriptionUsecase.ResendOtp(resendOtpReq)
+	resendOtpResponse, err := as.AuthSubscriptionUsecase.ResendOtp(ctx, resendOtpReq)
 	if err != nil {
 		log.Printf("Resend otp failed for email %s : %v", resendOtpReq.Email, err)
 		switch {
@@ -220,11 +190,7 @@ func (as *AuthSubscriptionServer) AccessRegenerator(ctx context.Context, req *pb
 	}
 	accessRegeneratorResponse, err := as.AuthSubscriptionUsecase.AccessRegenerator(accessRegeneratorReq)
 	if err != nil {
-		log.Printf("new access regeneration failed for email %s : %v", accessRegeneratorReq.Email, err)
-		switch {
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil, err
 	}
 	return &pb.AccessRegeneratorResponse{
 		Id:             accessRegeneratorResponse.Id,
@@ -233,19 +199,14 @@ func (as *AuthSubscriptionServer) AccessRegenerator(ctx context.Context, req *pb
 		NewAccessToken: accessRegeneratorResponse.NewAccessToken,
 	}, nil
 }
+
 func (as *AuthSubscriptionServer) ForgetPassword(ctx context.Context, req *pb.ForgotPasswordReqeust) (*pb.ForgotPasswordResponse, error) {
 	forgotPasswordReq := requestmodels.ForgotPasswordRequest{
 		Email: req.Email,
 	}
-	forgotPasswordRes, err := as.AuthSubscriptionUsecase.ForgotPassword(forgotPasswordReq)
+	forgotPasswordRes, err := as.AuthSubscriptionUsecase.ForgotPassword(ctx, forgotPasswordReq)
 	if err != nil {
-		log.Printf("OTP Forgot Password failed for email %s (reason: mismatch): %v", forgotPasswordReq.Email, err)
-		switch {
-		case errors.Is(err, usecase.ErrUserNotFound):
-			return nil, status.Errorf(codes.NotFound, "user not found")
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil, err
 	}
 	return &pb.ForgotPasswordResponse{
 		Email:     forgotPasswordRes.Email,
@@ -259,13 +220,7 @@ func (as *AuthSubscriptionServer) ResetPassword(ctx context.Context, req *pb.Res
 	}
 	resetPasswordResponse, err := as.AuthSubscriptionUsecase.ResetPassword(resetPasswordReq)
 	if err != nil {
-		log.Printf("Reset password failed for email %s : %v", resetPasswordReq.Email, err)
-		switch {
-		case errors.Is(err, usecase.ErrUserNotFound):
-			return nil, status.Errorf(codes.NotFound, "user not found")
-		default:
-			return nil, status.Error(codes.Internal, "internal server error")
-		}
+		return nil, err
 	}
 	return &pb.ResetPasswordResponse{
 		Email: resetPasswordResponse.Email,
@@ -277,21 +232,9 @@ func (as *AuthSubscriptionServer) UserLogin(ctx context.Context, req *pb.UserLog
 		Email:    req.Email,
 		Password: req.Password,
 	}
-	user, err := as.AuthSubscriptionUsecase.UserLogin(userLoginReq)
+	user, err := as.AuthSubscriptionUsecase.UserLogin(ctx, userLoginReq)
 	if err != nil {
-		log.Printf("User Login failed for email=%s: %v", req.Email, err)
-		switch {
-		case errors.Is(err, usecase.ErrUserNotFound):
-			return nil, status.Error(codes.NotFound, "user not found")
-		case errors.Is(err, usecase.ErrInvalidCredentials):
-			return nil, status.Error(codes.Unauthenticated, "invalid credentials")
-		case errors.Is(err, usecase.ErrBlockedLogin):
-			return nil, status.Error(codes.PermissionDenied, "user account is blocked by admin, cannot login")
-		case errors.Is(err, usecase.ErrPendingLogin):
-			return nil, status.Error(codes.FailedPrecondition, "email verification pending")
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil, err
 	}
 	userDetails := &pb.UserDetails{
 		Id:       user.User.Id,
@@ -319,11 +262,7 @@ func (as *AuthSubscriptionServer) CreateSubscriptionPlan(ctx context.Context, re
 	}
 	createSubscriptionPlanResponse, err := as.AuthSubscriptionUsecase.CreateSubscriptionPlan(createSubscriptionPlanReq)
 	if err != nil {
-		log.Printf("Create Subscription paln failed for subscription paln =%s: %v", req.Name, err)
-		switch {
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil, err
 	}
 	return &pb.CreateSubscriptionPlanResponse{
 		Id:          createSubscriptionPlanResponse.ID,
@@ -345,13 +284,7 @@ func (as *AuthSubscriptionServer) ActivateSubscriptionPlan(ctx context.Context, 
 	}
 	activateSubscriptionPlanResponse, err := as.AuthSubscriptionUsecase.ActivateSubscriptionPlan(activateSubscriptionPlanReq)
 	if err != nil {
-		log.Printf("Actvate Subscription paln failed for subscription paln with id =%d: %v", req.Id, err)
-		switch {
-		case errors.Is(err, usecase.ErrSubscriptionPlanAlreadyActive):
-			return nil, status.Error(codes.FailedPrecondition, "subscription plan is already active")
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil, err
 	}
 	return &pb.ActivateSubscriptionPlanResponse{
 		Id:             activateSubscriptionPlanResponse.ID,
@@ -374,13 +307,7 @@ func (as *AuthSubscriptionServer) DeactivateSubscriptionPlan(ctx context.Context
 	}
 	deactivateSubscriptionPlanResponse, err := as.AuthSubscriptionUsecase.DeactivateSubscriptionPlan(deactivateSubscriptionPlanReq)
 	if err != nil {
-		log.Printf("Actvate Subscription paln failed for subscription paln with id =%d: %v", req.Id, err)
-		switch {
-		case errors.Is(err, usecase.ErrSubscriptionPlanAlreadyDeactive):
-			return nil, status.Error(codes.FailedPrecondition, "subscription plan is already deactive")
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil, err
 	}
 	return &pb.DeactivateSubscriptionPlanResponse{
 		Id:             deactivateSubscriptionPlanResponse.ID,
@@ -404,11 +331,7 @@ func (as *AuthSubscriptionServer) GetAllSubscriptionPlans(ctx context.Context, r
 	}
 	subscriptionPlans, err := as.AuthSubscriptionUsecase.GetAllSubscriptionPlans(getAllSubscriptionPlanReq)
 	if err != nil {
-		log.Printf("Get All Subscription Plans failed : %v", err)
-		switch {
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil, err
 	}
 	pbSubscriptionPlans := make([]*pb.SubscriptioPlan, len(subscriptionPlans.SubscriptionPlans))
 	for i, subscriptionPlan := range subscriptionPlans.SubscriptionPlans {
@@ -438,11 +361,7 @@ func (as *AuthSubscriptionServer) GetAllActiveSubscriptionPlans(ctx context.Cont
 	}
 	subscriptionPlans, err := as.AuthSubscriptionUsecase.GetAllActiveSubscriptionPlans(getAllActiveSubscriptionPlansReq)
 	if err != nil {
-		log.Printf("Get All Active Subscription Plans failed : %v", err)
-		switch {
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
+		return nil, err
 	}
 	pbSubscriptionPlans := make([]*pb.SubscriptioPlan, len(subscriptionPlans.SubscriptionPlans))
 	for i, subscriptionPlan := range subscriptionPlans.SubscriptionPlans {
@@ -467,85 +386,83 @@ func (as *AuthSubscriptionServer) GetAllActiveSubscriptionPlans(ctx context.Cont
 
 func (as *AuthSubscriptionServer) Subscribe(ctx context.Context, req *pb.SubscribeReqeust) (*pb.SubscribeResponse, error) {
 	subscribeReq := requestmodels.SubscribeRequest{
-		UserId: req.UserId,
-		PlanId: req.PlanId,
+		UserId:     req.UserId,
+		PlanId:     req.PlanId,
+		UserEmail:  req.UserEmail,
+		TotalCount: req.TotalCount,
 	}
 	subscribeRes, err := as.AuthSubscriptionUsecase.Subscribe(subscribeReq)
 	if err != nil {
-
+		return nil, err
 	}
 	return &pb.SubscribeResponse{
-		Id:                    subscribeRes.ID,
-		CreatedAt:             utils.ToProtoTimestamp(subscribeRes.CreatedAt),
-		UpdatedAt:             utils.ToProtoTimestamp(subscribeRes.UpdatedAt),
-		UserId:                subscribeRes.ID,
+		Id:        subscribeRes.ID,
+		CreatedAt: utils.ToProtoTimestamp(subscribeRes.CreatedAt),
+		UpdatedAt: utils.ToProtoTimestamp(subscribeRes.UpdatedAt),
+
+		UserId: subscribeRes.ID,
+
 		RazorpaySubcriptionId: subscribeRes.RazorpaySubscriptionId,
-		Status:                subscribeRes.Status,
-		TotalCount:            int64(subscribeRes.TotalCount),
-		RemainingCount:        int64(subscribeRes.RemainingCount),
-		PaidCount:             int64(subscribeRes.PaidCount),
+		SubscriptionPlanId:    subscribeRes.SubscriptionPlanID,
+		RazorpayPlanId:        subscribeRes.RazorpayPlanId,
+
+		Status:   subscribeRes.Status,
+		ShortUrl: subscribeRes.ShortUrl,
+
+		TotalCount:     int64(subscribeRes.TotalCount),
+		RemainingCount: int64(subscribeRes.RemainingCount),
+		PaidCount:      int64(subscribeRes.PaidCount),
 	}, nil
 }
 
-func (as *AuthSubscriptionServer) VerifySubscriptionPayment(ctx context.Context, req *pb.VerifySubscriptionPaymentRequest) (*pb.VerifySubscriptionPaymentResponse, error) {
-	verifySubscriptionPaymentReq := requestmodels.VerifySubscriptionPaymentRequest{
-		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
-		RazorpayPaymentId:      req.RazorpayPaymentId,
-	}
-	verifySubscriptionPaymentRes, err := as.AuthSubscriptionUsecase.VerifySubscriptionPayment(verifySubscriptionPaymentReq)
-	if err != nil {
-		log.Printf("Get All Subscription Plans failed : %v", err)
-		switch {
-		default:
-			return nil, status.Error(codes.Internal, "interanal server error")
-		}
-	}
-	fmt.Println("print start at", verifySubscriptionPaymentRes.StartAt, utils.ToProtoTimestamp(verifySubscriptionPaymentRes.StartAt))
-	return &pb.VerifySubscriptionPaymentResponse{
-		Id:                    verifySubscriptionPaymentRes.ID,
-		CreatedAt:             utils.ToProtoTimestamp(verifySubscriptionPaymentRes.CreatedAt),
-		UpdatedAt:             utils.ToProtoTimestamp(verifySubscriptionPaymentRes.UpdatedAt),
-		UserId:                verifySubscriptionPaymentRes.UserID,
-		RazorpaySubcriptionId: verifySubscriptionPaymentReq.RazorpaySubscriptionId,
-		Status:                verifySubscriptionPaymentRes.Status,
-		StartAt:               utils.ToProtoTimestamp(verifySubscriptionPaymentRes.StartAt),
-		EndAt:                 utils.ToProtoTimestamp(verifySubscriptionPaymentRes.EndAt),
-		NextChargeAt:          utils.ToProtoTimestamp(verifySubscriptionPaymentRes.NextChargeAt),
-		TotalCount:            int64(verifySubscriptionPaymentRes.TotalCount),
-		RemainingCount:        int64(verifySubscriptionPaymentRes.RemainingCount),
-		PaidCount:             int64(verifySubscriptionPaymentRes.PaidCount),
-	}, nil
-}
+// func (as *AuthSubscriptionServer) VerifySubscriptionPayment(ctx context.Context, req *pb.VerifySubscriptionPaymentRequest) (*pb.VerifySubscriptionPaymentResponse, error) {
+// 	verifySubscriptionPaymentReq := requestmodels.VerifySubscriptionPaymentRequest{
+// 		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
+// 		RazorpayPaymentId:      req.RazorpayPaymentId,
+// 	}
+// 	verifySubscriptionPaymentRes, err := as.AuthSubscriptionUsecase.VerifySubscriptionPayment(verifySubscriptionPaymentReq)
+// 	if err != nil {
+// 		log.Printf("Get All Subscription Plans failed : %v", err)
+// 		switch {
+// 		default:
+// 			return nil, status.Error(codes.Internal, "interanal server error")
+// 		}
+// 	}
+// 	fmt.Println("print start at", verifySubscriptionPaymentRes.StartAt, utils.ToProtoTimestamp(verifySubscriptionPaymentRes.StartAt))
+// 	return &pb.VerifySubscriptionPaymentResponse{
+// 		Id:                    verifySubscriptionPaymentRes.ID,
+// 		CreatedAt:             utils.ToProtoTimestamp(verifySubscriptionPaymentRes.CreatedAt),
+// 		UpdatedAt:             utils.ToProtoTimestamp(verifySubscriptionPaymentRes.UpdatedAt),
+// 		UserId:                verifySubscriptionPaymentRes.UserID,
+// 		RazorpaySubcriptionId: verifySubscriptionPaymentReq.RazorpaySubscriptionId,
+// 		Status:                verifySubscriptionPaymentRes.Status,
+// 		StartAt:               utils.ToProtoTimestamp(verifySubscriptionPaymentRes.StartAt),
+// 		EndAt:                 utils.ToProtoTimestamp(verifySubscriptionPaymentRes.EndAt),
+// 		NextChargeAt:          utils.ToProtoTimestamp(verifySubscriptionPaymentRes.NextChargeAt),
+// 		TotalCount:            int64(verifySubscriptionPaymentRes.TotalCount),
+// 		RemainingCount:        int64(verifySubscriptionPaymentRes.RemainingCount),
+// 		PaidCount:             int64(verifySubscriptionPaymentRes.PaidCount),
+// 	}, nil
+// }
 
 func (as *AuthSubscriptionServer) Unsubscribe(ctx context.Context, req *pb.UnsubscribeRequest) (*pb.UnsubscribeResponse, error) {
 	unsubscribeReq := requestmodels.UnsubscribeRequest{
-		SubId:        req.SubId,
-		CancelReason: req.CancelReason,
+		//SubId:        req.SubId,
+		UserID:           req.UserId,
+		CancelReason:     req.CancelReason,
+		CancelAtCycleEnd: req.CancelAtCycleEnd,
 	}
 	unsubscribeRes, err := as.AuthSubscriptionUsecase.Unsubscribe(unsubscribeReq)
 	if err != nil {
-
+		return nil, err
 	}
 	return &pb.UnsubscribeResponse{
-		Id:                    unsubscribeRes.ID,
-		CreatedAt:             utils.ToProtoTimestamp(unsubscribeRes.CreatedAt),
-		UpdatedAt:             utils.ToProtoTimestamp(unsubscribeRes.UpdatedAt),
-		UserId:                unsubscribeRes.UserID,
-		RazorpaySubcriptionId: unsubscribeRes.RazorpaySubscriptionId,
-		Status:                unsubscribeRes.Status,
-		StartAt:               utils.ToProtoTimestamp(unsubscribeRes.StartAt),
-		EndAt:                 utils.ToProtoTimestamp(unsubscribeRes.EndAt),
-		NextChargeAt:          utils.ToProtoTimestamp(unsubscribeRes.NextChargeAt),
-		TotalCount:            int64(unsubscribeRes.TotalCount),
-		RemainingCount:        int64(unsubscribeRes.RemainingCount),
-		PaidCount:             int64(unsubscribeRes.PaidCount),
-		CancelledAt:           utils.ToProtoTimestamp(unsubscribeRes.CancelledAt),
-		CancelReason:          unsubscribeReq.CancelReason,
+		SubId: unsubscribeRes.SubId,
 	}, nil
 }
 
 func (as *AuthSubscriptionServer) SetProfileImage(ctx context.Context, req *pb.SetProfileImageRequest) (*pb.SetProfileImageResponse, error) {
-	fmt.Println("inside service print type", req.ContentType)
+	//fmt.Println("inside service print type", req.ContentType)
 	setProfileImageReq := requestmodels.SetProfileImageRequest{
 		UserId:      req.UserId,
 		ContentType: req.ContentType,
@@ -553,9 +470,9 @@ func (as *AuthSubscriptionServer) SetProfileImage(ctx context.Context, req *pb.S
 	}
 	setProfileImageRes, err := as.AuthSubscriptionUsecase.SetProfileImage(setProfileImageReq)
 	if err != nil {
-		log.Println("is there any error from usercase", err)
+		return nil, err
 	}
-	fmt.Println("in service printing image url", setProfileImageRes.ImageUrl)
+	//fmt.Println("in service printing image url", setProfileImageRes.ImageUrl)
 	return &pb.SetProfileImageResponse{
 		ImageUrl: setProfileImageRes.ImageUrl,
 	}, nil
@@ -563,20 +480,18 @@ func (as *AuthSubscriptionServer) SetProfileImage(ctx context.Context, req *pb.S
 
 func (as *AuthSubscriptionServer) CheckUserExists(ctx context.Context, req *pb.CheckUserExistsRequest) (*pb.CheckUserExistsResponse, error) {
 
-	_, err := as.AuthSubscriptionUsecase.CheckUserExists(req.UserId)
+	exists, err := as.AuthSubscriptionUsecase.CheckUserExists(req.UserId)
 	if err != nil {
-		if err == usecase.ErrUserNotFound {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
 		return nil, err
 	}
 
 	return &pb.CheckUserExistsResponse{
-		UserId: req.UserId,
+		Exists: exists,
 	}, nil
 }
 
 func (as *AuthSubscriptionServer) GetProfileInformation(ctx context.Context, req *pb.ProfileInfoReq) (*pb.ProfileInfoRes, error) {
+
 	profileReq := requestmodels.GetProfileInformationRequest{
 		UserId: req.UserId,
 	}
@@ -584,7 +499,7 @@ func (as *AuthSubscriptionServer) GetProfileInformation(ctx context.Context, req
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("resp in service", resp)
+	//fmt.Println("resp in service", resp)
 	return &pb.ProfileInfoRes{
 		UserId:          resp.UserID,
 		Name:            resp.Name,
@@ -594,23 +509,28 @@ func (as *AuthSubscriptionServer) GetProfileInformation(ctx context.Context, req
 		ProfileImageUrl: resp.ProfileImgUrl,
 		Links:           resp.Links,
 		BlueTick:        resp.BlueTick,
+		Phone:           resp.Phone,
 	}, nil
 }
 func (as *AuthSubscriptionServer) EditProfileInfromation(ctx context.Context, req *pb.EditProfileReq) (*pb.EditProfileRes, error) {
 	updateData := make(map[string]interface{})
 	if req.Name != nil {
-		fmt.Println("here *")
+		//fmt.Println("here *")
 		updateData["name"] = *req.Name
 	}
 	if req.Bio != nil {
-		fmt.Println("here **")
+		//fmt.Println("here **")
 		updateData["bio"] = *req.Bio
 	}
 	if req.Links != nil {
-		fmt.Println("here **")
+		//fmt.Println("here ***")
 		updateData["links"] = *req.Links
 	}
-	fmt.Println("update data", updateData)
+	if req.Phone != nil {
+		//fmt.Println("here ****")
+		updateData["phone"] = *req.Phone
+	}
+	//fmt.Println("update data", updateData)
 	resp, err := as.AuthSubscriptionUsecase.EditProfileInformation(req.UserId, updateData)
 	if err != nil {
 		return nil, err
@@ -640,8 +560,8 @@ func (as *AuthSubscriptionServer) ChangePassword(ctx context.Context, req *pb.Ch
 func (as *AuthSubscriptionServer) SearchUser(ctx context.Context, req *pb.SearchUserRequest) (*pb.SearchUserResponse, error) {
 	searchUserReq := requestmodels.SearchUser{
 		SearchText: req.SearchText,
-		Limit: req.Limit,
-		Offset: req.Offset,
+		Limit:      req.Limit,
+		Offset:     req.Offset,
 	}
 	resp, err := as.AuthSubscriptionUsecase.SearchUser(searchUserReq)
 	if err != nil {
@@ -649,10 +569,10 @@ func (as *AuthSubscriptionServer) SearchUser(ctx context.Context, req *pb.Search
 	}
 	c := make([]*pb.UserMetaData, len(resp.Usermetadata))
 	for i, v := range resp.Usermetadata {
-		c[i]=&pb.UserMetaData{
-			UserId: v.UserID,
-			UserName: v.UserName,
-			Name: v.Name,
+		c[i] = &pb.UserMetaData{
+			UserId:        v.UserID,
+			UserName:      v.UserName,
+			Name:          v.Name,
 			ProfileImgUrl: v.ProfileImgUrl,
 		}
 	}
@@ -660,65 +580,267 @@ func (as *AuthSubscriptionServer) SearchUser(ctx context.Context, req *pb.Search
 		UserMetaData: c,
 	}, nil
 }
-func (as *AuthSubscriptionServer)UserPublicData(ctx context.Context,req *pb.UserPublicDataRequest)(*pb.UserPublicDataResponse,error){
-	resp,err:=as.AuthSubscriptionUsecase.FetchUserPublicData(req.UserId)
-	if err!=nil{
-		return &pb.UserPublicDataResponse{},err
+func (as *AuthSubscriptionServer) UserPublicData(ctx context.Context, req *pb.UserPublicDataRequest) (*pb.UserPublicDataResponse, error) {
+	//fmt.Println("is it not even entering here?")
+	resp, err := as.AuthSubscriptionUsecase.FetchUserPublicData(req.UserId)
+	if err != nil {
+		//log.Println("show error", err)
+		return nil, err
 	}
-	return &pb.UserPublicDataResponse{
-		UserId: resp.UserID,
-		UserName: resp.UserName,
-		Name: resp.Name,
+	//fmt.Println("resp in UserPublicData",resp)
+	resp1:=&pb.UserPublicDataResponse{
+		UserId:        resp.UserID,
+		UserName:      resp.UserName,
+		Name:          resp.Name,
 		ProfileImgUrl: resp.ProfileImgUrl,
-		Bio: resp.Bio,
-		Links: resp.Links,
-		BlueTick: resp.BlueTick,
-	},nil
+		Bio:           resp.Bio,
+		Links:         resp.Links,
+		BlueTick:      resp.BlueTick,
+	}
+	//fmt.Println("resp1 printing in service",resp1)
+	return resp1, nil
 }
 
-func (as *AuthSubscriptionServer) FetchUserMetaData(ctx context.Context,req *pb.UserDataReq)(*pb.BatchUserMetadataResponse,error){
+func (as *AuthSubscriptionServer) FetchUserMetaData(ctx context.Context, req *pb.UserDataReq) (*pb.BatchUserMetadataResponse, error) {
 	var userids []uint64
-	userids=req.UserId
-	resp,err:=as.AuthSubscriptionUsecase.FetchUserMetaData(userids)
-	if err!=nil{
-		if err==usecase.ErrUserNotFound{
-			return nil,status.Error(codes.NotFound,err.Error())
-		}
-		return nil,err
+	userids = req.UserId
+	resp, err := as.AuthSubscriptionUsecase.FetchUserMetaData(userids)
+	if err != nil {
+		return nil, err
 	}
-	pbMap:=make(map[uint64]*pb.UserMetaData)
-	for id,r:=range resp{
-		pbMap[id]=&pb.UserMetaData{
-			UserId: r.UserID,
-			UserName: r.UserName,
-			Name: r.Name,
+	pbMap := make(map[uint64]*pb.UserMetaData)
+	for id, r := range resp {
+		pbMap[id] = &pb.UserMetaData{
+			UserId:        r.UserID,
+			UserName:      r.UserName,
+			Name:          r.Name,
 			ProfileImgUrl: r.ProfileImgUrl,
-			BlueTick: r.BlueTick,
+			BlueTick:      r.BlueTick,
 		}
 	}
 	return &pb.BatchUserMetadataResponse{
 		Users: pbMap,
-	},nil
+	}, nil
 }
-// func (as *AuthSubscriptionServer)Webhook(ctx context.Context,req *pb.WebhookRequest)(*pb.WebhookResponse,error){
-// 	webhookRequest:=requestmodels.WebhookRequest{
-// 		Event: req.Event,
-// 	}
-// 	if webhookRequest.Event!="subscription.completed"{
-// 		fmt.Println("please return")
-// 		return &pb.WebhookResponse{},nil
-// 	}
-// 	//  Prevent nil pointer panic
-// 	if req.Payload != nil && req.Payload.Subscription != nil {
-// 		webhookRequest.Payload.Subscription.ID = req.Payload.Subscription.Id
-// 	}
-// 	webhoodRes,err:=as.AuthSubscriptionUsecase.Webhook(webhookRequest)
-// 	if err!=nil{
-// 		fmt.Print("error in service",err)
-// 		return &pb.WebhookResponse{},nil
-// 	}
-// 	return &pb.WebhookResponse{
-// 		Event: webhoodRes.Event,
-// 		RazorpaySubscriptionId: webhoodRes.RazropaySubscriptinId,
-// 	},nil
-// }
+
+func (as *AuthSubscriptionServer) CheckUserListExists(ctx context.Context, req *pb.UserDataReq) (*pb.BatchUserExistResponse, error) {
+	var userids []uint64
+	userids = req.UserId
+	resp, err := as.AuthSubscriptionUsecase.CheckUserListExists(userids)
+	if err != nil {
+		if err == domain.ErrNoUsersFound {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		return nil, err
+	}
+	return &pb.BatchUserExistResponse{
+		UserId: resp,
+	}, nil
+}
+func (as *AuthSubscriptionServer) GetSubscriptionDetails(ctx context.Context, req *pb.GetSubscriptionDetailsRequest) (*pb.GetSubscriptionDetailsResponse, error) {
+	// request:=requestmodels.GetSubscriptionDetails{
+	// 	UserID: req.UserId,
+	// }
+	getSubcripitonReq := requestmodels.GetSubscriptionDetails{
+		UserID: req.UserId,
+		//SubID: req.SubId,
+	}
+	resp, err := as.AuthSubscriptionUsecase.GetSubscriptionDetails(getSubcripitonReq)
+	if err != nil {
+		return nil, err
+	}
+	//	fmt.Println("resp.cancelled at",*resp.CancelledAt)
+	return &pb.GetSubscriptionDetailsResponse{
+		SubsciptionPlan: &pb.SubscriptioPlan{
+			Id:             resp.FetchSubscriptionPlan.ID,
+			CreatedAt:      utils.ToProtoTimestamp(resp.FetchSubscriptionPlan.CreatedAt),
+			UpdatedAt:      utils.ToProtoTimestamp(resp.FetchSubscriptionPlan.UpdatedAt),
+			RazorpayPlanId: resp.FetchSubscriptionPlan.RazorpayPlanId,
+			Name:           resp.FetchSubscriptionPlan.Name,
+			Price:          resp.FetchSubscriptionPlan.Price,
+			Currency:       resp.FetchSubscriptionPlan.Currency,
+			Period:         resp.FetchSubscriptionPlan.Period,
+			Interval:       resp.FetchSubscriptionPlan.Interval,
+			Description:    resp.FetchSubscriptionPlan.Description,
+			IsActive:       resp.FetchSubscriptionPlan.IsActive,
+		},
+		UserId:                 resp.UserID,
+		SubscriptionId:         resp.ID,
+		CreatedAt:              utils.ToProtoTimestamp(resp.CreatedAt),
+		UpdatedAt:              utils.ToProtoTimestamp(resp.UpdatedAt),
+		RazorpaySubscriptionId: resp.RazorpaySubscriptionId,
+		Status:                 resp.Status,
+		ShorUrl:                resp.ShortUrl,
+		StartAt:                utils.ToProtoTimestampPtr(resp.StartAt),
+		EndAt:                  utils.ToProtoTimestampPtr(resp.EndAt),
+		NextChargeAt:           utils.ToProtoTimestampPtr(resp.NextChargeAt),
+		TotalCount:             int64(resp.TotalCount),
+		RemainingCount:         int64(resp.RemainingCount),
+		PaidCount:              int64(resp.PaidCount),
+		CancelledAt:            utils.ToProtoTimestampPtr(resp.CancelledAt),
+		CancelReason:           resp.CancelReason,
+	}, nil
+}
+
+func (as *AuthSubscriptionServer) WebhookSubscriptionActivated(ctx context.Context, req *pb.WebhookSubscriptionActivatedRequest) (*pb.WebhookSubscriptionActivatedResponse, error) {
+
+	// if req.StartAt == nil {
+	// 	fmt.Println("10000")
+	// }
+	// if req.EndAt == nil {
+	// 	fmt.Println("20000")
+	// }
+	// fmt.Println("subscription activated in auth service")
+	// loc, _ := time.LoadLocation("Asia/Kolkata")
+		fmt.Println("req",req)
+	fmt.Println("1. Entered WebhookSubscriptionActivated")
+    
+    // 1. Safe Time Conversion
+    var startAt time.Time
+    if req.StartAt != nil {
+		fmt.Println("req.StartAt is not nil")
+        // Only call AsTime() if the pointer is not nil
+        startAt = req.StartAt.AsTime()
+    } else {
+        fmt.Println("Warning: CancelledAt is nil in the request")
+        startAt = time.Now() // Fallback or handle as error
+    }
+	fmt.Println("time to start loading location")
+    // 2. Handle Location (ensure tzdata is in your Dockerfile!)
+    loc, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+        fmt.Printf("Error loading location: %v. Defaulting to UTC.\n", err)
+        loc = time.UTC
+    }
+	fmt.Println("reached after loading location",loc)
+    // Apply the timezone
+    startAt = startAt.In(loc)
+
+	webhookReq := requestmodels.WebhookSubscriptionActivatedRequest{
+		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
+		Status:                 req.Status,
+		PaidCount:              int(req.PaidCount),
+		RemainingCount:         int(req.RemainingCount),
+		StartAt:                req.StartAt.AsTime().In(loc),
+		EndAt:                  req.EndAt.AsTime().In(loc),
+		UserID:                 req.UserId,
+	}
+	fmt.Println("just before calling usecase activated")
+	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionActivated(webhookReq)
+	if err != nil {
+		fmt.Println("is there any error in activated usecase activated",err)
+		return nil, err
+	}
+	fmt.Println("just before calling usecase activated")
+	return &pb.WebhookSubscriptionActivatedResponse{
+		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
+	}, nil
+}
+
+func (as *AuthSubscriptionServer) WebhookSubscriptionCharged(ctx context.Context, req *pb.WebhookSubscriptionChargedRequest) (*pb.WebhookSubscriptionChargedResponse, error) {
+	fmt.Println("subscription charged in auth service")
+	loc, err := time.LoadLocation("Asia/Kolkata")
+	if err!=nil{
+		fmt.Printf("Error loading location: %v. Defaulting to UTC.\n", err)
+        loc = time.UTC
+	}
+	webhookReq := requestmodels.WebhookSubscriptionChargedRequest{
+		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
+		RazorpayPlanId:         req.RazorpayPlanId,
+		NextChargeAt:           req.NextChargeAt.AsTime().In(loc),
+		InvoiceID:              req.InvoiceId,
+		Amount:                 req.Amount,
+		Currency:               req.Currency,
+		Method:                 req.Method,
+		Status:                 req.Status,
+		PaidCount:              int(req.PaidCount),
+		RemainingCount:         int(req.RemainingCount),
+		TransactionDate:        req.TransactionDate.AsTime().In(loc),
+		PaymentID:              req.PaymentId,
+		UserID:                 req.UserId,
+	}
+	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionCharged(webhookReq)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.WebhookSubscriptionChargedResponse{
+		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
+	}, nil
+}
+
+func (as *AuthSubscriptionServer) WebhookSubscriptionHalted(ctx context.Context, req *pb.WebhookSubscriptionHaltedRequest) (*pb.WebhookSubscriptionHaltedResponse, error) {
+	fmt.Println("subscription halted in auth service")
+	webhookreq := requestmodels.WebhookSubscriptionHaltedRequest{
+		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
+		Status:                 req.Status,
+		UserId:                 req.UserId,
+	}
+	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionHalted(webhookreq)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.WebhookSubscriptionHaltedResponse{
+		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
+	}, nil
+}
+
+func (as *AuthSubscriptionServer) WebhookSubscriptionCancelled(ctx context.Context, req *pb.WebhookSubscriptionCancelledRequest) (*pb.WebhookSubscriptionCancelledResponse, error) {
+	// fmt.Println("subscription cancelled in auth service")
+	// loc, _ := time.LoadLocation("Asia/Kolkata")
+	fmt.Println("1. Entered WebhookSubscriptionCancelled")
+    
+    // 1. Safe Time Conversion
+    var cancelledTime time.Time
+    if req.CancelledAt != nil {
+        // Only call AsTime() if the pointer is not nil
+        cancelledTime = req.CancelledAt.AsTime()
+    } else {
+        fmt.Println("Warning: CancelledAt is nil in the request")
+        cancelledTime = time.Now() // Fallback or handle as error
+    }
+    // 2. Handle Location (ensure tzdata is in your Dockerfile!)
+    loc, err := time.LoadLocation("Asia/Kolkata")
+    if err != nil {
+        fmt.Printf("Error loading location: %v. Defaulting to UTC.\n", err)
+        loc = time.UTC
+    }
+    // Apply the timezone
+    cancelledTime = cancelledTime.In(loc)
+
+	webhookreq := requestmodels.WebhookSubscriptionCancelledRequest{
+		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
+		Status:                 req.Status,
+		CancelledAt:            req.CancelledAt.AsTime().In(loc),
+		UserId:                 req.UserId,
+	}
+	
+	fmt.Println("just before calling usecase cancelled")
+	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionCancelled(webhookreq)
+	if err != nil {
+		fmt.Println("is there any error in calling usecase cancelled",err)
+		return nil, err
+	}
+	fmt.Println("just after calling usecase cancelled")
+	return &pb.WebhookSubscriptionCancelledResponse{
+		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
+	}, nil
+}
+func (as *AuthSubscriptionServer) WebhookSubscriptionCompleted(ctx context.Context, req *pb.WebhookSubscriptionCompletedRequest) (*pb.WebhookSubscriptionCompletedResponse, error) {
+	fmt.Println("subscription completed in auth service")
+	webhookReq := requestmodels.WebhookSubscriptionCompletedRequest{
+		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
+		Status:                 req.Status,
+		UserId:                 req.UserId,
+	}
+	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionCompleted(webhookReq)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.WebhookSubscriptionCompletedResponse{
+		RazorpaySubscriptionId: resp.RazorpaySubcriptionId,
+	}, nil
+}
+
+func (as *AuthSubscriptionServer) PanicInAuth(ctx context.Context, req *pb.PanicInAuthReq) (*pb.PanicInAuthRes, error) {
+	panic("intentional test panic in auth subscription service")
+}

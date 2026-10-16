@@ -2,6 +2,7 @@ package AwsS3
 
 import (
 	"context"
+	"log"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -27,9 +28,11 @@ func NewS3Client(awsAccess, awsSecretAccess, awsRegion string) (*s3.Client, erro
 		),
 	)
 	if err != nil {
+		log.Println("print the error in NewS3Client", err)
 		return nil, err
 	}
 
 	s3Client := s3.NewFromConfig(cfg)
+	//fmt.Println("s3Client", s3Client)
 	return s3Client, nil
 }

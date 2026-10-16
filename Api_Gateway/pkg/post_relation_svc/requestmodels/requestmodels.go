@@ -54,6 +54,8 @@ type UnfollowRequest struct{
 }
 type FetchCommentsReqeust struct{
 	PostID uint64
+	Limit int
+	Offset int
 }
 type FetchCommentsOfCommentReqeust struct{
 	PostID uint64
@@ -62,4 +64,18 @@ type FetchCommentsOfCommentReqeust struct{
 type FetchAllPostsReq struct{
 	CurrentUserID uint64
 	TargetUserID uint64
+	Limit int
+	Offset int
+}
+type FetchNewsFeedRequest struct{
+	UserID uint64
+	Limit int
+	LastID uint64
+	PullToRefresh bool
+}
+type GlobalNewsFeedRequest struct{
+	UserID uint64
+	Limit int
+	//LastScore float64
+	Offset int
 }

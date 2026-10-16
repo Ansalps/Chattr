@@ -23,5 +23,5 @@ message CheckUserExistsRequest{
     uint64 UserId=1;
 }
 message CheckUserExistsResponse{
-    uint64 UserId=1;
+    bool Exists=1;
 }

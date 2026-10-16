@@ -24,7 +24,6 @@ service AuthSubscriptionService{
     rpc VerifySubscriptionPayment(VerifySubscriptionPaymentRequest) returns (VerifySubscriptionPaymentResponse);
     rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
     rpc SetProfileImage(SetProfileImageRequest) returns (SetProfileImageResponse);
-    rpc Webhook(WebhookRequest) returns (WebhookResponse);
 
     rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
 
@@ -33,6 +32,119 @@ service AuthSubscriptionService{
 
     rpc SearchUser(SearchUserRequest) returns (SearchUserResponse);
     rpc UserPublicData(UserPublicDataRequest) returns (UserPublicDataResponse);
+
+    rpc GetSubscriptionDetails(GetSubscriptionDetailsRequest) returns (GetSubscriptionDetailsResponse);
+
+    rpc WebhookSubscriptionActivated(WebhookSubscriptionActivatedRequest) returns (WebhookSubscriptionActivatedResponse);
+
+    rpc WebhookSubscriptionCharged(WebhookSubscriptionChargedRequest) returns (WebhookSubscriptionChargedResponse);
+
+    rpc WebhookSubscriptionHalted(WebhookSubscriptionHaltedRequest) returns (WebhookSubscriptionHaltedResponse);
+
+    rpc WebhookSubscriptionCancelled(WebhookSubscriptionCancelledRequest) returns (WebhookSubscriptionCancelledResponse);
+
+    rpc WebhookSubscriptionCompleted(WebhookSubscriptionCompletedRequest) returns (WebhookSubscriptionCompletedResponse);
+
+    rpc PanicInAuth(PanicInAuthReq) returns (PanicInAuthRes);
+}
+message PanicInAuthReq{
+
+}
+message PanicInAuthRes{
+    
+}
+message WebhookSubscriptionCompletedRequest{
+    string RazorpaySubscriptionId=1;
+    string Status=2;
+    uint64 UserId=4;
+}
+message WebhookSubscriptionCompletedResponse{
+    string RazorpaySubscriptionId=1;
+}
+message WebhookSubscriptionCancelledRequest{
+    string RazorpaySubscriptionId=1;
+    string Status=2;
+    google.protobuf.Timestamp CancelledAt=3;
+    uint64 UserId=4;
+}
+message WebhookSubscriptionCancelledResponse{
+    string RazorpaySubscriptionId=1;
+}
+message WebhookSubscriptionHaltedRequest{
+    string RazorpaySubscriptionId=1;
+    string Status=2;
+    uint64 UserId=3;
+}
+message WebhookSubscriptionHaltedResponse{
+    string RazorpaySubscriptionId=1;
+}
+message WebhookSubscriptionChargedRequest{
+    string RazorpaySubscriptionId=1;
+    string RazorpayPlanId=2;
+    google.protobuf.Timestamp NextChargeAt=3;
+    int64 PaidCount=4;
+    int64 RemainingCount=5;
+    string InvoiceId=6;
+    int64 Amount=7;
+    string Currency=8;
+    string Method=9;
+    string Status=10;
+    google.protobuf.Timestamp TransactionDate=11;
+    string PaymentId=12;
+    uint64 UserId=13;
+}
+message WebhookSubscriptionChargedResponse{
+    string RazorpaySubscriptionId=1;
+}
+message WebhookSubscriptionActivatedRequest{
+    string RazorpaySubscriptionId=1;
+    string Status=2;
+    int64 PaidCount=3;
+    int64 RemainingCount=4;
+    google.protobuf.Timestamp StartAt=5;
+    google.protobuf.Timestamp EndAt=6;
+    uint64 UserId=7;
+}
+message WebhookSubscriptionActivatedResponse{
+    string RazorpaySubscriptionId=1;
+}
+message SubscriptionPlan{
+    uint64 Id=1;
+    google.protobuf.Timestamp CreatedAt = 2;
+    google.protobuf.Timestamp UpdatedAt = 3;
+    string RazorpayPlanId=4;
+    string Name=5;
+    int64 Price=6;
+    string Currency=7;
+    string Period=8;
+    uint64 Interval=9;
+    string Description=10;
+    bool IsActive=11;
+}
+message GetSubscriptionDetailsRequest{
+    uint64 UserId=1;
+   // uint64 SubId=2;
+}
+message GetSubscriptionDetailsResponse{
+    SubscriptioPlan subsciptionPlan=1;
+    uint64 UserId=2;
+    uint64 SubscriptionId=3;
+    //uint64 SubscriptionPlanId=3;
+    google.protobuf.Timestamp CreatedAt=4;
+    google.protobuf.Timestamp UpdatedAt=5;
+    string RazorpaySubscriptionId=6;
+    //string RazorpayPlanId=7;
+    string Status=7;
+    string ShortUrl=8;
+    google.protobuf.Timestamp StartAt=9;
+    google.protobuf.Timestamp EndAt=10;
+    google.protobuf.Timestamp NextChargeAt=11;
+    int64 TotalCount=12;
+    int64 RemainingCount=13;
+    int64 PaidCount=14;
+    google.protobuf.Timestamp CancelledAt=15;
+    string CancelReason=16;
+
 }
 message UserPublicDataRequest{
     uint64 UserId=1;
@@ -74,6 +186,7 @@ message EditProfileReq{
     optional string Name=2;
     optional string Bio=3;
     optional string Links=4;
+    optional string Phone=5;
 }
 message EditProfileRes{
     uint64 UserId=1;
@@ -93,22 +206,9 @@ message ProfileInfoRes{
     string ProfileImageUrl=6;
     string Links=7;
     bool BlueTick=8;
-}
-message WebhookRequest {
-    string event = 1;
-    Payload payload = 2;
-}
-message Payload {
-    Subscription subscription = 1;
-}
-message Subscription {
-    string id = 1;
+    string Phone=9;
 }
 
-message WebhookResponse{
-    string Event=1;
-    string RazorpaySubscriptionId=2;
-}
 message SetProfileImageRequest{
     uint64 UserId=1;
     string ContentType=2;
@@ -118,25 +218,30 @@ message SetProfileImageResponse{
     string ImageUrl=1;
 }
 message UnsubscribeRequest{
-    uint64 SubId=1;
+   // uint64 SubId=1;
+   uint64 UserId=1;
     string CancelReason =2;
+    bool CancelAtCycleEnd=3;
 }
 message UnsubscribeResponse{
-    uint64 Id=1;
-    google.protobuf.Timestamp CreatedAt=2;
-    google.protobuf.Timestamp UpdatedAt=3;
-    uint64 UserId=4;
-    string RazorpaySubcriptionId=5;
-    string Status=6;
-    google.protobuf.Timestamp StartAt=7;
-    google.protobuf.Timestamp EndAt=8;
-    google.protobuf.Timestamp NextChargeAt=9;
-    int64 TotalCount=10;
-    int64 RemainingCount=11;
-    int64 PaidCount=12;
-    google.protobuf.Timestamp CancelledAt=13;
-    string CancelReason=14;
+    uint64 SubId=1;
 }
+// message UnsubscribeResponse{
+//     uint64 Id=1;
+//     google.protobuf.Timestamp CreatedAt=2;
+//     google.protobuf.Timestamp UpdatedAt=3;
+//     uint64 UserId=4;
+//     string RazorpaySubcriptionId=5;
+//     string Status=6;
+//     google.protobuf.Timestamp StartAt=7;
+//     google.protobuf.Timestamp EndAt=8;
+//     google.protobuf.Timestamp NextChargeAt=9;
+//     int64 TotalCount=10;
+//     int64 RemainingCount=11;
+//     int64 PaidCount=12;
+//     google.protobuf.Timestamp CancelledAt=13;
+//     string CancelReason=14;
+// }
 
 message VerifySubscriptionPaymentRequest{
     string RazorpaySubscriptionId=1;
@@ -167,18 +272,27 @@ message ForgotPasswordResponse{
 message SubscribeReqeust{
     uint64 UserId=1;
     uint64 PlanId=2;
+    string UserEmail=3;
+    uint64 TotalCount=4;
 }
 
 message SubscribeResponse{
     uint64 Id=1;
     google.protobuf.Timestamp CreatedAt=2;
     google.protobuf.Timestamp UpdatedAt=3;
+
     uint64 UserId=4;
+
     string RazorpaySubcriptionId=5;
-    string Status=6;
-    int64 TotalCount=7;
-    int64 RemainingCount=8;
-    int64 PaidCount=9;
+    uint64 SubscriptionPlanId=6;
+    string RazorpayPlanId=7;
+
+    string Status=8;
+    string ShortUrl=9;
+
+    int64 TotalCount=10;
+    int64 RemainingCount=11;
+    int64 PaidCount=12;
 }
 message GetAllUsersRequest{
     uint64 limit=1;
@@ -346,6 +460,7 @@ message UserSignUpRequest{
     string Email =3;
     string Password = 4;
     string ConfirmPassword = 5;
+    string Phone=6;
 }
 
 message UserSignUpResponse{

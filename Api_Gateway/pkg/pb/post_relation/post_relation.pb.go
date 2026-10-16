@@ -22,16 +22,611 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type PanicInPostReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PanicInPostReq) Reset() {
+	*x = PanicInPostReq{}
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PanicInPostReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PanicInPostReq) ProtoMessage() {}
+
+func (x *PanicInPostReq) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PanicInPostReq.ProtoReflect.Descriptor instead.
+func (*PanicInPostReq) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{0}
+}
+
+type PanicInPostRes struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PanicInPostRes) Reset() {
+	*x = PanicInPostRes{}
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PanicInPostRes) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PanicInPostRes) ProtoMessage() {}
+
+func (x *PanicInPostRes) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PanicInPostRes.ProtoReflect.Descriptor instead.
+func (*PanicInPostRes) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{1}
+}
+
+type FetchGlobalNewsFeedRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	UserId uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	Limit  int64                  `protobuf:"varint,2,opt,name=Limit,proto3" json:"Limit,omitempty"`
+	// float LastScore=3;
+	Offset        int64 `protobuf:"varint,3,opt,name=Offset,proto3" json:"Offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FetchGlobalNewsFeedRequest) Reset() {
+	*x = FetchGlobalNewsFeedRequest{}
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FetchGlobalNewsFeedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchGlobalNewsFeedRequest) ProtoMessage() {}
+
+func (x *FetchGlobalNewsFeedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchGlobalNewsFeedRequest.ProtoReflect.Descriptor instead.
+func (*FetchGlobalNewsFeedRequest) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *FetchGlobalNewsFeedRequest) GetUserId() uint64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *FetchGlobalNewsFeedRequest) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *FetchGlobalNewsFeedRequest) GetOffset() int64 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type PostUserDataWithTrendingScore struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        uint64                 `protobuf:"varint,1,opt,name=PostId,proto3" json:"PostId,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=CreatedAt,proto3" json:"CreatedAt,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=UpdatedAt,proto3" json:"UpdatedAt,omitempty"`
+	UserId        uint64                 `protobuf:"varint,4,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	Caption       string                 `protobuf:"bytes,5,opt,name=Caption,proto3" json:"Caption,omitempty"`
+	PostStatus    string                 `protobuf:"bytes,6,opt,name=PostStatus,proto3" json:"PostStatus,omitempty"`
+	MediaUrls     []string               `protobuf:"bytes,7,rep,name=MediaUrls,proto3" json:"MediaUrls,omitempty"`
+	LikesCount    uint64                 `protobuf:"varint,8,opt,name=LikesCount,proto3" json:"LikesCount,omitempty"`
+	CommentsCount uint64                 `protobuf:"varint,9,opt,name=CommentsCount,proto3" json:"CommentsCount,omitempty"`
+	PostAge       string                 `protobuf:"bytes,10,opt,name=PostAge,proto3" json:"PostAge,omitempty"`
+	IsLiked       bool                   `protobuf:"varint,11,opt,name=IsLiked,proto3" json:"IsLiked,omitempty"`
+	TrendingScore float32                `protobuf:"fixed32,12,opt,name=TrendingScore,proto3" json:"TrendingScore,omitempty"`
+	UserMetaData  *UserMetaData          `protobuf:"bytes,13,opt,name=userMetaData,proto3" json:"userMetaData,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PostUserDataWithTrendingScore) Reset() {
+	*x = PostUserDataWithTrendingScore{}
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PostUserDataWithTrendingScore) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PostUserDataWithTrendingScore) ProtoMessage() {}
+
+func (x *PostUserDataWithTrendingScore) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PostUserDataWithTrendingScore.ProtoReflect.Descriptor instead.
+func (*PostUserDataWithTrendingScore) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *PostUserDataWithTrendingScore) GetPostId() uint64 {
+	if x != nil {
+		return x.PostId
+	}
+	return 0
+}
+
+func (x *PostUserDataWithTrendingScore) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *PostUserDataWithTrendingScore) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *PostUserDataWithTrendingScore) GetUserId() uint64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *PostUserDataWithTrendingScore) GetCaption() string {
+	if x != nil {
+		return x.Caption
+	}
+	return ""
+}
+
+func (x *PostUserDataWithTrendingScore) GetPostStatus() string {
+	if x != nil {
+		return x.PostStatus
+	}
+	return ""
+}
+
+func (x *PostUserDataWithTrendingScore) GetMediaUrls() []string {
+	if x != nil {
+		return x.MediaUrls
+	}
+	return nil
+}
+
+func (x *PostUserDataWithTrendingScore) GetLikesCount() uint64 {
+	if x != nil {
+		return x.LikesCount
+	}
+	return 0
+}
+
+func (x *PostUserDataWithTrendingScore) GetCommentsCount() uint64 {
+	if x != nil {
+		return x.CommentsCount
+	}
+	return 0
+}
+
+func (x *PostUserDataWithTrendingScore) GetPostAge() string {
+	if x != nil {
+		return x.PostAge
+	}
+	return ""
+}
+
+func (x *PostUserDataWithTrendingScore) GetIsLiked() bool {
+	if x != nil {
+		return x.IsLiked
+	}
+	return false
+}
+
+func (x *PostUserDataWithTrendingScore) GetTrendingScore() float32 {
+	if x != nil {
+		return x.TrendingScore
+	}
+	return 0
+}
+
+func (x *PostUserDataWithTrendingScore) GetUserMetaData() *UserMetaData {
+	if x != nil {
+		return x.UserMetaData
+	}
+	return nil
+}
+
+type FetchGlobalNewsFeedResponse struct {
+	state                         protoimpl.MessageState           `protogen:"open.v1"`
+	PostUserDataWithTrendingScore []*PostUserDataWithTrendingScore `protobuf:"bytes,1,rep,name=PostUserDataWithTrendingScore,proto3" json:"PostUserDataWithTrendingScore,omitempty"`
+	NextCursor                    float32                          `protobuf:"fixed32,2,opt,name=NextCursor,proto3" json:"NextCursor,omitempty"`
+	HasMore                       bool                             `protobuf:"varint,3,opt,name=HasMore,proto3" json:"HasMore,omitempty"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
+}
+
+func (x *FetchGlobalNewsFeedResponse) Reset() {
+	*x = FetchGlobalNewsFeedResponse{}
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FetchGlobalNewsFeedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchGlobalNewsFeedResponse) ProtoMessage() {}
+
+func (x *FetchGlobalNewsFeedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchGlobalNewsFeedResponse.ProtoReflect.Descriptor instead.
+func (*FetchGlobalNewsFeedResponse) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *FetchGlobalNewsFeedResponse) GetPostUserDataWithTrendingScore() []*PostUserDataWithTrendingScore {
+	if x != nil {
+		return x.PostUserDataWithTrendingScore
+	}
+	return nil
+}
+
+func (x *FetchGlobalNewsFeedResponse) GetNextCursor() float32 {
+	if x != nil {
+		return x.NextCursor
+	}
+	return 0
+}
+
+func (x *FetchGlobalNewsFeedResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
+}
+
+type FetchNewsFeedRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	Limit         int64                  `protobuf:"varint,2,opt,name=Limit,proto3" json:"Limit,omitempty"`
+	LastId        uint64                 `protobuf:"varint,3,opt,name=LastId,proto3" json:"LastId,omitempty"`
+	PullToRefresh bool                   `protobuf:"varint,4,opt,name=PullToRefresh,proto3" json:"PullToRefresh,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FetchNewsFeedRequest) Reset() {
+	*x = FetchNewsFeedRequest{}
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FetchNewsFeedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchNewsFeedRequest) ProtoMessage() {}
+
+func (x *FetchNewsFeedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchNewsFeedRequest.ProtoReflect.Descriptor instead.
+func (*FetchNewsFeedRequest) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *FetchNewsFeedRequest) GetUserId() uint64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *FetchNewsFeedRequest) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *FetchNewsFeedRequest) GetLastId() uint64 {
+	if x != nil {
+		return x.LastId
+	}
+	return 0
+}
+
+func (x *FetchNewsFeedRequest) GetPullToRefresh() bool {
+	if x != nil {
+		return x.PullToRefresh
+	}
+	return false
+}
+
+type PostUserData struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        uint64                 `protobuf:"varint,1,opt,name=PostId,proto3" json:"PostId,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=CreatedAt,proto3" json:"CreatedAt,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=UpdatedAt,proto3" json:"UpdatedAt,omitempty"`
+	UserId        uint64                 `protobuf:"varint,4,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	Caption       string                 `protobuf:"bytes,5,opt,name=Caption,proto3" json:"Caption,omitempty"`
+	PostStatus    string                 `protobuf:"bytes,6,opt,name=PostStatus,proto3" json:"PostStatus,omitempty"`
+	MediaUrls     []string               `protobuf:"bytes,7,rep,name=MediaUrls,proto3" json:"MediaUrls,omitempty"`
+	LikesCount    uint64                 `protobuf:"varint,8,opt,name=LikesCount,proto3" json:"LikesCount,omitempty"`
+	CommentsCount uint64                 `protobuf:"varint,9,opt,name=CommentsCount,proto3" json:"CommentsCount,omitempty"`
+	PostAge       string                 `protobuf:"bytes,10,opt,name=PostAge,proto3" json:"PostAge,omitempty"`
+	IsLiked       bool                   `protobuf:"varint,11,opt,name=IsLiked,proto3" json:"IsLiked,omitempty"`
+	UserMetaData  *UserMetaData          `protobuf:"bytes,12,opt,name=userMetaData,proto3" json:"userMetaData,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PostUserData) Reset() {
+	*x = PostUserData{}
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PostUserData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PostUserData) ProtoMessage() {}
+
+func (x *PostUserData) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PostUserData.ProtoReflect.Descriptor instead.
+func (*PostUserData) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *PostUserData) GetPostId() uint64 {
+	if x != nil {
+		return x.PostId
+	}
+	return 0
+}
+
+func (x *PostUserData) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *PostUserData) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *PostUserData) GetUserId() uint64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *PostUserData) GetCaption() string {
+	if x != nil {
+		return x.Caption
+	}
+	return ""
+}
+
+func (x *PostUserData) GetPostStatus() string {
+	if x != nil {
+		return x.PostStatus
+	}
+	return ""
+}
+
+func (x *PostUserData) GetMediaUrls() []string {
+	if x != nil {
+		return x.MediaUrls
+	}
+	return nil
+}
+
+func (x *PostUserData) GetLikesCount() uint64 {
+	if x != nil {
+		return x.LikesCount
+	}
+	return 0
+}
+
+func (x *PostUserData) GetCommentsCount() uint64 {
+	if x != nil {
+		return x.CommentsCount
+	}
+	return 0
+}
+
+func (x *PostUserData) GetPostAge() string {
+	if x != nil {
+		return x.PostAge
+	}
+	return ""
+}
+
+func (x *PostUserData) GetIsLiked() bool {
+	if x != nil {
+		return x.IsLiked
+	}
+	return false
+}
+
+func (x *PostUserData) GetUserMetaData() *UserMetaData {
+	if x != nil {
+		return x.UserMetaData
+	}
+	return nil
+}
+
+type FetchNewsFeedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostUserData  []*PostUserData        `protobuf:"bytes,1,rep,name=postUserData,proto3" json:"postUserData,omitempty"`
+	NextCursor    uint64                 `protobuf:"varint,2,opt,name=NextCursor,proto3" json:"NextCursor,omitempty"`
+	HasMore       bool                   `protobuf:"varint,3,opt,name=HasMore,proto3" json:"HasMore,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FetchNewsFeedResponse) Reset() {
+	*x = FetchNewsFeedResponse{}
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FetchNewsFeedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchNewsFeedResponse) ProtoMessage() {}
+
+func (x *FetchNewsFeedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchNewsFeedResponse.ProtoReflect.Descriptor instead.
+func (*FetchNewsFeedResponse) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *FetchNewsFeedResponse) GetPostUserData() []*PostUserData {
+	if x != nil {
+		return x.PostUserData
+	}
+	return nil
+}
+
+func (x *FetchNewsFeedResponse) GetNextCursor() uint64 {
+	if x != nil {
+		return x.NextCursor
+	}
+	return 0
+}
+
+func (x *FetchNewsFeedResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
+}
+
 type FetchFollowingRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	Limit         int64                  `protobuf:"varint,2,opt,name=Limit,proto3" json:"Limit,omitempty"`
+	Offset        int64                  `protobuf:"varint,3,opt,name=Offset,proto3" json:"Offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *FetchFollowingRequest) Reset() {
 	*x = FetchFollowingRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[0]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +638,7 @@ func (x *FetchFollowingRequest) String() string {
 func (*FetchFollowingRequest) ProtoMessage() {}
 
 func (x *FetchFollowingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[0]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,12 +651,26 @@ func (x *FetchFollowingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchFollowingRequest.ProtoReflect.Descriptor instead.
 func (*FetchFollowingRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{0}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *FetchFollowingRequest) GetUserId() uint64 {
 	if x != nil {
 		return x.UserId
+	}
+	return 0
+}
+
+func (x *FetchFollowingRequest) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *FetchFollowingRequest) GetOffset() int64 {
+	if x != nil {
+		return x.Offset
 	}
 	return 0
 }
@@ -75,7 +684,7 @@ type FetchFollowingResponse struct {
 
 func (x *FetchFollowingResponse) Reset() {
 	*x = FetchFollowingResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[1]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -87,7 +696,7 @@ func (x *FetchFollowingResponse) String() string {
 func (*FetchFollowingResponse) ProtoMessage() {}
 
 func (x *FetchFollowingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[1]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -100,7 +709,7 @@ func (x *FetchFollowingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchFollowingResponse.ProtoReflect.Descriptor instead.
 func (*FetchFollowingResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{1}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *FetchFollowingResponse) GetUserMetaData() []*UserMetaData {
@@ -113,13 +722,15 @@ func (x *FetchFollowingResponse) GetUserMetaData() []*UserMetaData {
 type FetchFollowersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	Limit         int64                  `protobuf:"varint,2,opt,name=Limit,proto3" json:"Limit,omitempty"`
+	Offset        int64                  `protobuf:"varint,3,opt,name=Offset,proto3" json:"Offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *FetchFollowersRequest) Reset() {
 	*x = FetchFollowersRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[2]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -131,7 +742,7 @@ func (x *FetchFollowersRequest) String() string {
 func (*FetchFollowersRequest) ProtoMessage() {}
 
 func (x *FetchFollowersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[2]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -144,12 +755,26 @@ func (x *FetchFollowersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchFollowersRequest.ProtoReflect.Descriptor instead.
 func (*FetchFollowersRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{2}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *FetchFollowersRequest) GetUserId() uint64 {
 	if x != nil {
 		return x.UserId
+	}
+	return 0
+}
+
+func (x *FetchFollowersRequest) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *FetchFollowersRequest) GetOffset() int64 {
+	if x != nil {
+		return x.Offset
 	}
 	return 0
 }
@@ -163,7 +788,7 @@ type FetchFollowersResponse struct {
 
 func (x *FetchFollowersResponse) Reset() {
 	*x = FetchFollowersResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[3]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -175,7 +800,7 @@ func (x *FetchFollowersResponse) String() string {
 func (*FetchFollowersResponse) ProtoMessage() {}
 
 func (x *FetchFollowersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[3]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -188,7 +813,7 @@ func (x *FetchFollowersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchFollowersResponse.ProtoReflect.Descriptor instead.
 func (*FetchFollowersResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{3}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *FetchFollowersResponse) GetUserMetaData() []*UserMetaData {
@@ -198,17 +823,187 @@ func (x *FetchFollowersResponse) GetUserMetaData() []*UserMetaData {
 	return nil
 }
 
+type FetchPostRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        uint64                 `protobuf:"varint,1,opt,name=PostId,proto3" json:"PostId,omitempty"`
+	UserId        uint64                 `protobuf:"varint,2,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FetchPostRequest) Reset() {
+	*x = FetchPostRequest{}
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FetchPostRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchPostRequest) ProtoMessage() {}
+
+func (x *FetchPostRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchPostRequest.ProtoReflect.Descriptor instead.
+func (*FetchPostRequest) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *FetchPostRequest) GetPostId() uint64 {
+	if x != nil {
+		return x.PostId
+	}
+	return 0
+}
+
+func (x *FetchPostRequest) GetUserId() uint64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+type FetchPostResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        uint64                 `protobuf:"varint,1,opt,name=PostId,proto3" json:"PostId,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=CreatedAt,proto3" json:"CreatedAt,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=UpdatedAt,proto3" json:"UpdatedAt,omitempty"`
+	UserId        uint64                 `protobuf:"varint,4,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	Caption       string                 `protobuf:"bytes,5,opt,name=Caption,proto3" json:"Caption,omitempty"`
+	MediaUrls     []string               `protobuf:"bytes,6,rep,name=MediaUrls,proto3" json:"MediaUrls,omitempty"`
+	LikesCount    uint64                 `protobuf:"varint,7,opt,name=LikesCount,proto3" json:"LikesCount,omitempty"`
+	CommentsCount uint64                 `protobuf:"varint,8,opt,name=CommentsCount,proto3" json:"CommentsCount,omitempty"`
+	PostAge       string                 `protobuf:"bytes,9,opt,name=PostAge,proto3" json:"PostAge,omitempty"`
+	IsLiked       bool                   `protobuf:"varint,10,opt,name=IsLiked,proto3" json:"IsLiked,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FetchPostResponse) Reset() {
+	*x = FetchPostResponse{}
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FetchPostResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchPostResponse) ProtoMessage() {}
+
+func (x *FetchPostResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchPostResponse.ProtoReflect.Descriptor instead.
+func (*FetchPostResponse) Descriptor() ([]byte, []int) {
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *FetchPostResponse) GetPostId() uint64 {
+	if x != nil {
+		return x.PostId
+	}
+	return 0
+}
+
+func (x *FetchPostResponse) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *FetchPostResponse) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *FetchPostResponse) GetUserId() uint64 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *FetchPostResponse) GetCaption() string {
+	if x != nil {
+		return x.Caption
+	}
+	return ""
+}
+
+func (x *FetchPostResponse) GetMediaUrls() []string {
+	if x != nil {
+		return x.MediaUrls
+	}
+	return nil
+}
+
+func (x *FetchPostResponse) GetLikesCount() uint64 {
+	if x != nil {
+		return x.LikesCount
+	}
+	return 0
+}
+
+func (x *FetchPostResponse) GetCommentsCount() uint64 {
+	if x != nil {
+		return x.CommentsCount
+	}
+	return 0
+}
+
+func (x *FetchPostResponse) GetPostAge() string {
+	if x != nil {
+		return x.PostAge
+	}
+	return ""
+}
+
+func (x *FetchPostResponse) GetIsLiked() bool {
+	if x != nil {
+		return x.IsLiked
+	}
+	return false
+}
+
 type FetchAllPostsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	CurrentUserId uint64                 `protobuf:"varint,1,opt,name=CurrentUserId,proto3" json:"CurrentUserId,omitempty"`
 	TargetUserId  uint64                 `protobuf:"varint,2,opt,name=TargetUserId,proto3" json:"TargetUserId,omitempty"`
+	Limit         int64                  `protobuf:"varint,3,opt,name=Limit,proto3" json:"Limit,omitempty"`
+	Offset        int64                  `protobuf:"varint,4,opt,name=Offset,proto3" json:"Offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *FetchAllPostsRequest) Reset() {
 	*x = FetchAllPostsRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[4]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -220,7 +1015,7 @@ func (x *FetchAllPostsRequest) String() string {
 func (*FetchAllPostsRequest) ProtoMessage() {}
 
 func (x *FetchAllPostsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[4]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -233,7 +1028,7 @@ func (x *FetchAllPostsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchAllPostsRequest.ProtoReflect.Descriptor instead.
 func (*FetchAllPostsRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{4}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *FetchAllPostsRequest) GetCurrentUserId() uint64 {
@@ -250,6 +1045,20 @@ func (x *FetchAllPostsRequest) GetTargetUserId() uint64 {
 	return 0
 }
 
+func (x *FetchAllPostsRequest) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *FetchAllPostsRequest) GetOffset() int64 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type FetchAllPostsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Posts         []*Post                `protobuf:"bytes,1,rep,name=posts,proto3" json:"posts,omitempty"`
@@ -259,7 +1068,7 @@ type FetchAllPostsResponse struct {
 
 func (x *FetchAllPostsResponse) Reset() {
 	*x = FetchAllPostsResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[5]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -271,7 +1080,7 @@ func (x *FetchAllPostsResponse) String() string {
 func (*FetchAllPostsResponse) ProtoMessage() {}
 
 func (x *FetchAllPostsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[5]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -284,7 +1093,7 @@ func (x *FetchAllPostsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchAllPostsResponse.ProtoReflect.Descriptor instead.
 func (*FetchAllPostsResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{5}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *FetchAllPostsResponse) GetPosts() []*Post {
@@ -312,7 +1121,7 @@ type Post struct {
 
 func (x *Post) Reset() {
 	*x = Post{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[6]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -324,7 +1133,7 @@ func (x *Post) String() string {
 func (*Post) ProtoMessage() {}
 
 func (x *Post) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[6]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -337,7 +1146,7 @@ func (x *Post) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Post.ProtoReflect.Descriptor instead.
 func (*Post) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{6}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Post) GetPostId() uint64 {
@@ -419,7 +1228,7 @@ type PostFollowCountRequest struct {
 
 func (x *PostFollowCountRequest) Reset() {
 	*x = PostFollowCountRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[7]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -431,7 +1240,7 @@ func (x *PostFollowCountRequest) String() string {
 func (*PostFollowCountRequest) ProtoMessage() {}
 
 func (x *PostFollowCountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[7]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -444,7 +1253,7 @@ func (x *PostFollowCountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PostFollowCountRequest.ProtoReflect.Descriptor instead.
 func (*PostFollowCountRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{7}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *PostFollowCountRequest) GetUserId() uint64 {
@@ -465,7 +1274,7 @@ type PostFollowCountResponse struct {
 
 func (x *PostFollowCountResponse) Reset() {
 	*x = PostFollowCountResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[8]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -477,7 +1286,7 @@ func (x *PostFollowCountResponse) String() string {
 func (*PostFollowCountResponse) ProtoMessage() {}
 
 func (x *PostFollowCountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[8]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -490,7 +1299,7 @@ func (x *PostFollowCountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PostFollowCountResponse.ProtoReflect.Descriptor instead.
 func (*PostFollowCountResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{8}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *PostFollowCountResponse) GetPostCount() uint64 {
@@ -517,13 +1326,15 @@ func (x *PostFollowCountResponse) GetFollowingCount() uint64 {
 type FetchCommentsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PostId        uint64                 `protobuf:"varint,1,opt,name=PostId,proto3" json:"PostId,omitempty"`
+	Limit         int64                  `protobuf:"varint,2,opt,name=Limit,proto3" json:"Limit,omitempty"`
+	Offset        int64                  `protobuf:"varint,3,opt,name=Offset,proto3" json:"Offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *FetchCommentsRequest) Reset() {
 	*x = FetchCommentsRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[9]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -535,7 +1346,7 @@ func (x *FetchCommentsRequest) String() string {
 func (*FetchCommentsRequest) ProtoMessage() {}
 
 func (x *FetchCommentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[9]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -548,12 +1359,26 @@ func (x *FetchCommentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchCommentsRequest.ProtoReflect.Descriptor instead.
 func (*FetchCommentsRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{9}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *FetchCommentsRequest) GetPostId() uint64 {
 	if x != nil {
 		return x.PostId
+	}
+	return 0
+}
+
+func (x *FetchCommentsRequest) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *FetchCommentsRequest) GetOffset() int64 {
+	if x != nil {
+		return x.Offset
 	}
 	return 0
 }
@@ -571,7 +1396,7 @@ type UserMetaData struct {
 
 func (x *UserMetaData) Reset() {
 	*x = UserMetaData{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[10]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -583,7 +1408,7 @@ func (x *UserMetaData) String() string {
 func (*UserMetaData) ProtoMessage() {}
 
 func (x *UserMetaData) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[10]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -596,7 +1421,7 @@ func (x *UserMetaData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserMetaData.ProtoReflect.Descriptor instead.
 func (*UserMetaData) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{10}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *UserMetaData) GetUserId() uint64 {
@@ -650,7 +1475,7 @@ type Comment struct {
 
 func (x *Comment) Reset() {
 	*x = Comment{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[11]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -662,7 +1487,7 @@ func (x *Comment) String() string {
 func (*Comment) ProtoMessage() {}
 
 func (x *Comment) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[11]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -675,7 +1500,7 @@ func (x *Comment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Comment.ProtoReflect.Descriptor instead.
 func (*Comment) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{11}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *Comment) GetId() uint64 {
@@ -743,7 +1568,7 @@ type FetchCommentsResponse struct {
 
 func (x *FetchCommentsResponse) Reset() {
 	*x = FetchCommentsResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[12]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -755,7 +1580,7 @@ func (x *FetchCommentsResponse) String() string {
 func (*FetchCommentsResponse) ProtoMessage() {}
 
 func (x *FetchCommentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[12]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -768,7 +1593,7 @@ func (x *FetchCommentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchCommentsResponse.ProtoReflect.Descriptor instead.
 func (*FetchCommentsResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{12}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *FetchCommentsResponse) GetComments() []*Comment {
@@ -788,7 +1613,7 @@ type UnfollowRequest struct {
 
 func (x *UnfollowRequest) Reset() {
 	*x = UnfollowRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[13]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -800,7 +1625,7 @@ func (x *UnfollowRequest) String() string {
 func (*UnfollowRequest) ProtoMessage() {}
 
 func (x *UnfollowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[13]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -813,7 +1638,7 @@ func (x *UnfollowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnfollowRequest.ProtoReflect.Descriptor instead.
 func (*UnfollowRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{13}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *UnfollowRequest) GetUserId() uint64 {
@@ -839,7 +1664,7 @@ type UnfollowResponse struct {
 
 func (x *UnfollowResponse) Reset() {
 	*x = UnfollowResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[14]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -851,7 +1676,7 @@ func (x *UnfollowResponse) String() string {
 func (*UnfollowResponse) ProtoMessage() {}
 
 func (x *UnfollowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[14]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -864,7 +1689,7 @@ func (x *UnfollowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnfollowResponse.ProtoReflect.Descriptor instead.
 func (*UnfollowResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{14}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *UnfollowResponse) GetUnfollowingUserId() uint64 {
@@ -884,7 +1709,7 @@ type FollowRequest struct {
 
 func (x *FollowRequest) Reset() {
 	*x = FollowRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[15]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -896,7 +1721,7 @@ func (x *FollowRequest) String() string {
 func (*FollowRequest) ProtoMessage() {}
 
 func (x *FollowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[15]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -909,7 +1734,7 @@ func (x *FollowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FollowRequest.ProtoReflect.Descriptor instead.
 func (*FollowRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{15}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *FollowRequest) GetUserId() uint64 {
@@ -935,7 +1760,7 @@ type FollowResponse struct {
 
 func (x *FollowResponse) Reset() {
 	*x = FollowResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[16]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -947,7 +1772,7 @@ func (x *FollowResponse) String() string {
 func (*FollowResponse) ProtoMessage() {}
 
 func (x *FollowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[16]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -960,7 +1785,7 @@ func (x *FollowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FollowResponse.ProtoReflect.Descriptor instead.
 func (*FollowResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{16}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *FollowResponse) GetFollowingUserId() uint64 {
@@ -981,7 +1806,7 @@ type DeleteCommentRequest struct {
 
 func (x *DeleteCommentRequest) Reset() {
 	*x = DeleteCommentRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[17]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -993,7 +1818,7 @@ func (x *DeleteCommentRequest) String() string {
 func (*DeleteCommentRequest) ProtoMessage() {}
 
 func (x *DeleteCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[17]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1006,7 +1831,7 @@ func (x *DeleteCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCommentRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCommentRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{17}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *DeleteCommentRequest) GetUserId() uint64 {
@@ -1039,7 +1864,7 @@ type DeleteCommentResponse struct {
 
 func (x *DeleteCommentResponse) Reset() {
 	*x = DeleteCommentResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[18]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1051,7 +1876,7 @@ func (x *DeleteCommentResponse) String() string {
 func (*DeleteCommentResponse) ProtoMessage() {}
 
 func (x *DeleteCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[18]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1064,7 +1889,7 @@ func (x *DeleteCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCommentResponse.ProtoReflect.Descriptor instead.
 func (*DeleteCommentResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{18}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *DeleteCommentResponse) GetCommentId() uint64 {
@@ -1086,7 +1911,7 @@ type EditCommentRequest struct {
 
 func (x *EditCommentRequest) Reset() {
 	*x = EditCommentRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[19]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1098,7 +1923,7 @@ func (x *EditCommentRequest) String() string {
 func (*EditCommentRequest) ProtoMessage() {}
 
 func (x *EditCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[19]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1111,7 +1936,7 @@ func (x *EditCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EditCommentRequest.ProtoReflect.Descriptor instead.
 func (*EditCommentRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{19}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *EditCommentRequest) GetUserId() uint64 {
@@ -1153,7 +1978,7 @@ type EditCommentResponse struct {
 
 func (x *EditCommentResponse) Reset() {
 	*x = EditCommentResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[20]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1165,7 +1990,7 @@ func (x *EditCommentResponse) String() string {
 func (*EditCommentResponse) ProtoMessage() {}
 
 func (x *EditCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[20]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1178,7 +2003,7 @@ func (x *EditCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EditCommentResponse.ProtoReflect.Descriptor instead.
 func (*EditCommentResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{20}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *EditCommentResponse) GetPostId() uint64 {
@@ -1214,7 +2039,7 @@ type AddCommentRequest struct {
 
 func (x *AddCommentRequest) Reset() {
 	*x = AddCommentRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[21]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1226,7 +2051,7 @@ func (x *AddCommentRequest) String() string {
 func (*AddCommentRequest) ProtoMessage() {}
 
 func (x *AddCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[21]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1239,7 +2064,7 @@ func (x *AddCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddCommentRequest.ProtoReflect.Descriptor instead.
 func (*AddCommentRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{21}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *AddCommentRequest) GetUserId() uint64 {
@@ -1283,7 +2108,7 @@ type AddCommentResponse struct {
 
 func (x *AddCommentResponse) Reset() {
 	*x = AddCommentResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[22]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1295,7 +2120,7 @@ func (x *AddCommentResponse) String() string {
 func (*AddCommentResponse) ProtoMessage() {}
 
 func (x *AddCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[22]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1308,7 +2133,7 @@ func (x *AddCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddCommentResponse.ProtoReflect.Descriptor instead.
 func (*AddCommentResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{22}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *AddCommentResponse) GetUserId() uint64 {
@@ -1356,7 +2181,7 @@ type UnlikePostRequest struct {
 
 func (x *UnlikePostRequest) Reset() {
 	*x = UnlikePostRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[23]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1368,7 +2193,7 @@ func (x *UnlikePostRequest) String() string {
 func (*UnlikePostRequest) ProtoMessage() {}
 
 func (x *UnlikePostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[23]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1381,7 +2206,7 @@ func (x *UnlikePostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnlikePostRequest.ProtoReflect.Descriptor instead.
 func (*UnlikePostRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{23}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *UnlikePostRequest) GetUserId() uint64 {
@@ -1407,7 +2232,7 @@ type UnlikePostResponse struct {
 
 func (x *UnlikePostResponse) Reset() {
 	*x = UnlikePostResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[24]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1419,7 +2244,7 @@ func (x *UnlikePostResponse) String() string {
 func (*UnlikePostResponse) ProtoMessage() {}
 
 func (x *UnlikePostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[24]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1432,7 +2257,7 @@ func (x *UnlikePostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnlikePostResponse.ProtoReflect.Descriptor instead.
 func (*UnlikePostResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{24}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *UnlikePostResponse) GetPostId() uint64 {
@@ -1452,7 +2277,7 @@ type LikePostRequest struct {
 
 func (x *LikePostRequest) Reset() {
 	*x = LikePostRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[25]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1464,7 +2289,7 @@ func (x *LikePostRequest) String() string {
 func (*LikePostRequest) ProtoMessage() {}
 
 func (x *LikePostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[25]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1477,7 +2302,7 @@ func (x *LikePostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LikePostRequest.ProtoReflect.Descriptor instead.
 func (*LikePostRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{25}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *LikePostRequest) GetUserId() uint64 {
@@ -1503,7 +2328,7 @@ type LikePostResponse struct {
 
 func (x *LikePostResponse) Reset() {
 	*x = LikePostResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[26]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1515,7 +2340,7 @@ func (x *LikePostResponse) String() string {
 func (*LikePostResponse) ProtoMessage() {}
 
 func (x *LikePostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[26]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1528,7 +2353,7 @@ func (x *LikePostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LikePostResponse.ProtoReflect.Descriptor instead.
 func (*LikePostResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{26}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *LikePostResponse) GetPostId() uint64 {
@@ -1548,7 +2373,7 @@ type DeletePostRequest struct {
 
 func (x *DeletePostRequest) Reset() {
 	*x = DeletePostRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[27]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1560,7 +2385,7 @@ func (x *DeletePostRequest) String() string {
 func (*DeletePostRequest) ProtoMessage() {}
 
 func (x *DeletePostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[27]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1573,7 +2398,7 @@ func (x *DeletePostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePostRequest.ProtoReflect.Descriptor instead.
 func (*DeletePostRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{27}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *DeletePostRequest) GetUserId() uint64 {
@@ -1599,7 +2424,7 @@ type DeletePostResponse struct {
 
 func (x *DeletePostResponse) Reset() {
 	*x = DeletePostResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[28]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1611,7 +2436,7 @@ func (x *DeletePostResponse) String() string {
 func (*DeletePostResponse) ProtoMessage() {}
 
 func (x *DeletePostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[28]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1624,7 +2449,7 @@ func (x *DeletePostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeletePostResponse.ProtoReflect.Descriptor instead.
 func (*DeletePostResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{28}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *DeletePostResponse) GetPostId() uint64 {
@@ -1645,7 +2470,7 @@ type CreatePostRequest struct {
 
 func (x *CreatePostRequest) Reset() {
 	*x = CreatePostRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[29]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1657,7 +2482,7 @@ func (x *CreatePostRequest) String() string {
 func (*CreatePostRequest) ProtoMessage() {}
 
 func (x *CreatePostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[29]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1670,7 +2495,7 @@ func (x *CreatePostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePostRequest.ProtoReflect.Descriptor instead.
 func (*CreatePostRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{29}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *CreatePostRequest) GetUserId() uint64 {
@@ -1703,7 +2528,7 @@ type CreatePostResponse struct {
 
 func (x *CreatePostResponse) Reset() {
 	*x = CreatePostResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[30]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1715,7 +2540,7 @@ func (x *CreatePostResponse) String() string {
 func (*CreatePostResponse) ProtoMessage() {}
 
 func (x *CreatePostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[30]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1728,7 +2553,7 @@ func (x *CreatePostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePostResponse.ProtoReflect.Descriptor instead.
 func (*CreatePostResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{30}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *CreatePostResponse) GetPostId() uint64 {
@@ -1749,7 +2574,7 @@ type EditPostRequest struct {
 
 func (x *EditPostRequest) Reset() {
 	*x = EditPostRequest{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[31]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1761,7 +2586,7 @@ func (x *EditPostRequest) String() string {
 func (*EditPostRequest) ProtoMessage() {}
 
 func (x *EditPostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[31]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1774,7 +2599,7 @@ func (x *EditPostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EditPostRequest.ProtoReflect.Descriptor instead.
 func (*EditPostRequest) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{31}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *EditPostRequest) GetUserId() uint64 {
@@ -1807,7 +2632,7 @@ type EditPostResponse struct {
 
 func (x *EditPostResponse) Reset() {
 	*x = EditPostResponse{}
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[32]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1819,7 +2644,7 @@ func (x *EditPostResponse) String() string {
 func (*EditPostResponse) ProtoMessage() {}
 
 func (x *EditPostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_proto_post_relation_proto_msgTypes[32]
+	mi := &file_pkg_proto_post_relation_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1832,7 +2657,7 @@ func (x *EditPostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EditPostResponse.ProtoReflect.Descriptor instead.
 func (*EditPostResponse) Descriptor() ([]byte, []int) {
-	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{32}
+	return file_pkg_proto_post_relation_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *EditPostResponse) GetCaption() string {
@@ -1846,18 +2671,101 @@ var File_pkg_proto_post_relation_proto protoreflect.FileDescriptor
 
 const file_pkg_proto_post_relation_proto_rawDesc = "" +
 	"\n" +
-	"\x1dpkg/proto/post_relation.proto\x12\rpost_relation\x1a\x1fgoogle/protobuf/timestamp.proto\"/\n" +
+	"\x1dpkg/proto/post_relation.proto\x12\rpost_relation\x1a\x1fgoogle/protobuf/timestamp.proto\"\x10\n" +
+	"\x0ePanicInPostReq\"\x10\n" +
+	"\x0ePanicInPostRes\"b\n" +
+	"\x1aFetchGlobalNewsFeedRequest\x12\x16\n" +
+	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x14\n" +
+	"\x05Limit\x18\x02 \x01(\x03R\x05Limit\x12\x16\n" +
+	"\x06Offset\x18\x03 \x01(\x03R\x06Offset\"\xfc\x03\n" +
+	"\x1dPostUserDataWithTrendingScore\x12\x16\n" +
+	"\x06PostId\x18\x01 \x01(\x04R\x06PostId\x128\n" +
+	"\tCreatedAt\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tCreatedAt\x128\n" +
+	"\tUpdatedAt\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tUpdatedAt\x12\x16\n" +
+	"\x06UserId\x18\x04 \x01(\x04R\x06UserId\x12\x18\n" +
+	"\aCaption\x18\x05 \x01(\tR\aCaption\x12\x1e\n" +
+	"\n" +
+	"PostStatus\x18\x06 \x01(\tR\n" +
+	"PostStatus\x12\x1c\n" +
+	"\tMediaUrls\x18\a \x03(\tR\tMediaUrls\x12\x1e\n" +
+	"\n" +
+	"LikesCount\x18\b \x01(\x04R\n" +
+	"LikesCount\x12$\n" +
+	"\rCommentsCount\x18\t \x01(\x04R\rCommentsCount\x12\x18\n" +
+	"\aPostAge\x18\n" +
+	" \x01(\tR\aPostAge\x12\x18\n" +
+	"\aIsLiked\x18\v \x01(\bR\aIsLiked\x12$\n" +
+	"\rTrendingScore\x18\f \x01(\x02R\rTrendingScore\x12?\n" +
+	"\fuserMetaData\x18\r \x01(\v2\x1b.post_relation.UserMetaDataR\fuserMetaData\"\xcb\x01\n" +
+	"\x1bFetchGlobalNewsFeedResponse\x12r\n" +
+	"\x1dPostUserDataWithTrendingScore\x18\x01 \x03(\v2,.post_relation.PostUserDataWithTrendingScoreR\x1dPostUserDataWithTrendingScore\x12\x1e\n" +
+	"\n" +
+	"NextCursor\x18\x02 \x01(\x02R\n" +
+	"NextCursor\x12\x18\n" +
+	"\aHasMore\x18\x03 \x01(\bR\aHasMore\"\x82\x01\n" +
+	"\x14FetchNewsFeedRequest\x12\x16\n" +
+	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x14\n" +
+	"\x05Limit\x18\x02 \x01(\x03R\x05Limit\x12\x16\n" +
+	"\x06LastId\x18\x03 \x01(\x04R\x06LastId\x12$\n" +
+	"\rPullToRefresh\x18\x04 \x01(\bR\rPullToRefresh\"\xc5\x03\n" +
+	"\fPostUserData\x12\x16\n" +
+	"\x06PostId\x18\x01 \x01(\x04R\x06PostId\x128\n" +
+	"\tCreatedAt\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tCreatedAt\x128\n" +
+	"\tUpdatedAt\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tUpdatedAt\x12\x16\n" +
+	"\x06UserId\x18\x04 \x01(\x04R\x06UserId\x12\x18\n" +
+	"\aCaption\x18\x05 \x01(\tR\aCaption\x12\x1e\n" +
+	"\n" +
+	"PostStatus\x18\x06 \x01(\tR\n" +
+	"PostStatus\x12\x1c\n" +
+	"\tMediaUrls\x18\a \x03(\tR\tMediaUrls\x12\x1e\n" +
+	"\n" +
+	"LikesCount\x18\b \x01(\x04R\n" +
+	"LikesCount\x12$\n" +
+	"\rCommentsCount\x18\t \x01(\x04R\rCommentsCount\x12\x18\n" +
+	"\aPostAge\x18\n" +
+	" \x01(\tR\aPostAge\x12\x18\n" +
+	"\aIsLiked\x18\v \x01(\bR\aIsLiked\x12?\n" +
+	"\fuserMetaData\x18\f \x01(\v2\x1b.post_relation.UserMetaDataR\fuserMetaData\"\x92\x01\n" +
+	"\x15FetchNewsFeedResponse\x12?\n" +
+	"\fpostUserData\x18\x01 \x03(\v2\x1b.post_relation.PostUserDataR\fpostUserData\x12\x1e\n" +
+	"\n" +
+	"NextCursor\x18\x02 \x01(\x04R\n" +
+	"NextCursor\x12\x18\n" +
+	"\aHasMore\x18\x03 \x01(\bR\aHasMore\"]\n" +
 	"\x15FetchFollowingRequest\x12\x16\n" +
-	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"Y\n" +
+	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x14\n" +
+	"\x05Limit\x18\x02 \x01(\x03R\x05Limit\x12\x16\n" +
+	"\x06Offset\x18\x03 \x01(\x03R\x06Offset\"Y\n" +
 	"\x16FetchFollowingResponse\x12?\n" +
-	"\fuserMetaData\x18\x01 \x03(\v2\x1b.post_relation.UserMetaDataR\fuserMetaData\"/\n" +
+	"\fuserMetaData\x18\x01 \x03(\v2\x1b.post_relation.UserMetaDataR\fuserMetaData\"]\n" +
 	"\x15FetchFollowersRequest\x12\x16\n" +
-	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"Y\n" +
+	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x14\n" +
+	"\x05Limit\x18\x02 \x01(\x03R\x05Limit\x12\x16\n" +
+	"\x06Offset\x18\x03 \x01(\x03R\x06Offset\"Y\n" +
 	"\x16FetchFollowersResponse\x12?\n" +
-	"\fuserMetaData\x18\x01 \x03(\v2\x1b.post_relation.UserMetaDataR\fuserMetaData\"`\n" +
+	"\fuserMetaData\x18\x01 \x03(\v2\x1b.post_relation.UserMetaDataR\fuserMetaData\"B\n" +
+	"\x10FetchPostRequest\x12\x16\n" +
+	"\x06PostId\x18\x01 \x01(\x04R\x06PostId\x12\x16\n" +
+	"\x06UserId\x18\x02 \x01(\x04R\x06UserId\"\xe9\x02\n" +
+	"\x11FetchPostResponse\x12\x16\n" +
+	"\x06PostId\x18\x01 \x01(\x04R\x06PostId\x128\n" +
+	"\tCreatedAt\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tCreatedAt\x128\n" +
+	"\tUpdatedAt\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tUpdatedAt\x12\x16\n" +
+	"\x06UserId\x18\x04 \x01(\x04R\x06UserId\x12\x18\n" +
+	"\aCaption\x18\x05 \x01(\tR\aCaption\x12\x1c\n" +
+	"\tMediaUrls\x18\x06 \x03(\tR\tMediaUrls\x12\x1e\n" +
+	"\n" +
+	"LikesCount\x18\a \x01(\x04R\n" +
+	"LikesCount\x12$\n" +
+	"\rCommentsCount\x18\b \x01(\x04R\rCommentsCount\x12\x18\n" +
+	"\aPostAge\x18\t \x01(\tR\aPostAge\x12\x18\n" +
+	"\aIsLiked\x18\n" +
+	" \x01(\bR\aIsLiked\"\x8e\x01\n" +
 	"\x14FetchAllPostsRequest\x12$\n" +
 	"\rCurrentUserId\x18\x01 \x01(\x04R\rCurrentUserId\x12\"\n" +
-	"\fTargetUserId\x18\x02 \x01(\x04R\fTargetUserId\"B\n" +
+	"\fTargetUserId\x18\x02 \x01(\x04R\fTargetUserId\x12\x14\n" +
+	"\x05Limit\x18\x03 \x01(\x03R\x05Limit\x12\x16\n" +
+	"\x06Offset\x18\x04 \x01(\x03R\x06Offset\"B\n" +
 	"\x15FetchAllPostsResponse\x12)\n" +
 	"\x05posts\x18\x01 \x03(\v2\x13.post_relation.PostR\x05posts\"\xdc\x02\n" +
 	"\x04Post\x12\x16\n" +
@@ -1879,9 +2787,11 @@ const file_pkg_proto_post_relation_proto_rawDesc = "" +
 	"\x17PostFollowCountResponse\x12\x1c\n" +
 	"\tPostCount\x18\x01 \x01(\x04R\tPostCount\x12$\n" +
 	"\rFollowerCount\x18\x02 \x01(\x04R\rFollowerCount\x12&\n" +
-	"\x0eFollowingCount\x18\x03 \x01(\x04R\x0eFollowingCount\".\n" +
+	"\x0eFollowingCount\x18\x03 \x01(\x04R\x0eFollowingCount\"\\\n" +
 	"\x14FetchCommentsRequest\x12\x16\n" +
-	"\x06PostId\x18\x01 \x01(\x04R\x06PostId\"\x98\x01\n" +
+	"\x06PostId\x18\x01 \x01(\x04R\x06PostId\x12\x14\n" +
+	"\x05Limit\x18\x02 \x01(\x03R\x05Limit\x12\x16\n" +
+	"\x06Offset\x18\x03 \x01(\x03R\x06Offset\"\x98\x01\n" +
 	"\fUserMetaData\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x1a\n" +
 	"\bUserName\x18\x02 \x01(\tR\bUserName\x12\x12\n" +
@@ -1967,12 +2877,12 @@ const file_pkg_proto_post_relation_proto_rawDesc = "" +
 	"\x06PostId\x18\x02 \x01(\x04R\x06PostId\x12\x18\n" +
 	"\aCaption\x18\x03 \x01(\tR\aCaption\",\n" +
 	"\x10EditPostResponse\x12\x18\n" +
-	"\aCaption\x18\x01 \x01(\tR\aCaption2\x99\n" +
-	"\n" +
+	"\aCaption\x18\x01 \x01(\tR\aCaption2\x88\r\n" +
 	"\x13PostRelationService\x12Q\n" +
 	"\n" +
 	"CreatePost\x12 .post_relation.CreatePostRequest\x1a!.post_relation.CreatePostResponse\x12Z\n" +
-	"\rFetchAllPosts\x12#.post_relation.FetchAllPostsRequest\x1a$.post_relation.FetchAllPostsResponse\x12K\n" +
+	"\rFetchAllPosts\x12#.post_relation.FetchAllPostsRequest\x1a$.post_relation.FetchAllPostsResponse\x12V\n" +
+	"\x11FetchPostByPostID\x12\x1f.post_relation.FetchPostRequest\x1a .post_relation.FetchPostResponse\x12K\n" +
 	"\bEditPost\x12\x1e.post_relation.EditPostRequest\x1a\x1f.post_relation.EditPostResponse\x12Q\n" +
 	"\n" +
 	"DeletePost\x12 .post_relation.DeletePostRequest\x1a!.post_relation.DeletePostResponse\x12K\n" +
@@ -1988,7 +2898,10 @@ const file_pkg_proto_post_relation_proto_rawDesc = "" +
 	"\bUnfollow\x12\x1e.post_relation.UnfollowRequest\x1a\x1f.post_relation.UnfollowResponse\x12]\n" +
 	"\x0eFetchFollowers\x12$.post_relation.FetchFollowersRequest\x1a%.post_relation.FetchFollowersResponse\x12]\n" +
 	"\x0eFetchFollowing\x12$.post_relation.FetchFollowingRequest\x1a%.post_relation.FetchFollowingResponse\x12`\n" +
-	"\x0fPostFollowCount\x12%.post_relation.PostFollowCountRequest\x1a&.post_relation.PostFollowCountResponseB\x18Z\x16./pkg/pb/post_relationb\x06proto3"
+	"\x0fPostFollowCount\x12%.post_relation.PostFollowCountRequest\x1a&.post_relation.PostFollowCountResponse\x12Z\n" +
+	"\rFetchNewsFeed\x12#.post_relation.FetchNewsFeedRequest\x1a$.post_relation.FetchNewsFeedResponse\x12l\n" +
+	"\x13FetchGlobalNewsFeed\x12).post_relation.FetchGlobalNewsFeedRequest\x1a*.post_relation.FetchGlobalNewsFeedResponse\x12K\n" +
+	"\vPanicInPost\x12\x1d.post_relation.PanicInPostReq\x1a\x1d.post_relation.PanicInPostResB\x18Z\x16./pkg/pb/post_relationb\x06proto3"
 
 var (
 	file_pkg_proto_post_relation_proto_rawDescOnce sync.Once
@@ -2002,88 +2915,116 @@ func file_pkg_proto_post_relation_proto_rawDescGZIP() []byte {
 	return file_pkg_proto_post_relation_proto_rawDescData
 }
 
-var file_pkg_proto_post_relation_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_pkg_proto_post_relation_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
 var file_pkg_proto_post_relation_proto_goTypes = []any{
-	(*FetchFollowingRequest)(nil),   // 0: post_relation.FetchFollowingRequest
-	(*FetchFollowingResponse)(nil),  // 1: post_relation.FetchFollowingResponse
-	(*FetchFollowersRequest)(nil),   // 2: post_relation.FetchFollowersRequest
-	(*FetchFollowersResponse)(nil),  // 3: post_relation.FetchFollowersResponse
-	(*FetchAllPostsRequest)(nil),    // 4: post_relation.FetchAllPostsRequest
-	(*FetchAllPostsResponse)(nil),   // 5: post_relation.FetchAllPostsResponse
-	(*Post)(nil),                    // 6: post_relation.Post
-	(*PostFollowCountRequest)(nil),  // 7: post_relation.PostFollowCountRequest
-	(*PostFollowCountResponse)(nil), // 8: post_relation.PostFollowCountResponse
-	(*FetchCommentsRequest)(nil),    // 9: post_relation.FetchCommentsRequest
-	(*UserMetaData)(nil),            // 10: post_relation.UserMetaData
-	(*Comment)(nil),                 // 11: post_relation.Comment
-	(*FetchCommentsResponse)(nil),   // 12: post_relation.FetchCommentsResponse
-	(*UnfollowRequest)(nil),         // 13: post_relation.UnfollowRequest
-	(*UnfollowResponse)(nil),        // 14: post_relation.UnfollowResponse
-	(*FollowRequest)(nil),           // 15: post_relation.FollowRequest
-	(*FollowResponse)(nil),          // 16: post_relation.FollowResponse
-	(*DeleteCommentRequest)(nil),    // 17: post_relation.DeleteCommentRequest
-	(*DeleteCommentResponse)(nil),   // 18: post_relation.DeleteCommentResponse
-	(*EditCommentRequest)(nil),      // 19: post_relation.EditCommentRequest
-	(*EditCommentResponse)(nil),     // 20: post_relation.EditCommentResponse
-	(*AddCommentRequest)(nil),       // 21: post_relation.AddCommentRequest
-	(*AddCommentResponse)(nil),      // 22: post_relation.AddCommentResponse
-	(*UnlikePostRequest)(nil),       // 23: post_relation.UnlikePostRequest
-	(*UnlikePostResponse)(nil),      // 24: post_relation.UnlikePostResponse
-	(*LikePostRequest)(nil),         // 25: post_relation.LikePostRequest
-	(*LikePostResponse)(nil),        // 26: post_relation.LikePostResponse
-	(*DeletePostRequest)(nil),       // 27: post_relation.DeletePostRequest
-	(*DeletePostResponse)(nil),      // 28: post_relation.DeletePostResponse
-	(*CreatePostRequest)(nil),       // 29: post_relation.CreatePostRequest
-	(*CreatePostResponse)(nil),      // 30: post_relation.CreatePostResponse
-	(*EditPostRequest)(nil),         // 31: post_relation.EditPostRequest
-	(*EditPostResponse)(nil),        // 32: post_relation.EditPostResponse
-	(*timestamppb.Timestamp)(nil),   // 33: google.protobuf.Timestamp
+	(*PanicInPostReq)(nil),                // 0: post_relation.PanicInPostReq
+	(*PanicInPostRes)(nil),                // 1: post_relation.PanicInPostRes
+	(*FetchGlobalNewsFeedRequest)(nil),    // 2: post_relation.FetchGlobalNewsFeedRequest
+	(*PostUserDataWithTrendingScore)(nil), // 3: post_relation.PostUserDataWithTrendingScore
+	(*FetchGlobalNewsFeedResponse)(nil),   // 4: post_relation.FetchGlobalNewsFeedResponse
+	(*FetchNewsFeedRequest)(nil),          // 5: post_relation.FetchNewsFeedRequest
+	(*PostUserData)(nil),                  // 6: post_relation.PostUserData
+	(*FetchNewsFeedResponse)(nil),         // 7: post_relation.FetchNewsFeedResponse
+	(*FetchFollowingRequest)(nil),         // 8: post_relation.FetchFollowingRequest
+	(*FetchFollowingResponse)(nil),        // 9: post_relation.FetchFollowingResponse
+	(*FetchFollowersRequest)(nil),         // 10: post_relation.FetchFollowersRequest
+	(*FetchFollowersResponse)(nil),        // 11: post_relation.FetchFollowersResponse
+	(*FetchPostRequest)(nil),              // 12: post_relation.FetchPostRequest
+	(*FetchPostResponse)(nil),             // 13: post_relation.FetchPostResponse
+	(*FetchAllPostsRequest)(nil),          // 14: post_relation.FetchAllPostsRequest
+	(*FetchAllPostsResponse)(nil),         // 15: post_relation.FetchAllPostsResponse
+	(*Post)(nil),                          // 16: post_relation.Post
+	(*PostFollowCountRequest)(nil),        // 17: post_relation.PostFollowCountRequest
+	(*PostFollowCountResponse)(nil),       // 18: post_relation.PostFollowCountResponse
+	(*FetchCommentsRequest)(nil),          // 19: post_relation.FetchCommentsRequest
+	(*UserMetaData)(nil),                  // 20: post_relation.UserMetaData
+	(*Comment)(nil),                       // 21: post_relation.Comment
+	(*FetchCommentsResponse)(nil),         // 22: post_relation.FetchCommentsResponse
+	(*UnfollowRequest)(nil),               // 23: post_relation.UnfollowRequest
+	(*UnfollowResponse)(nil),              // 24: post_relation.UnfollowResponse
+	(*FollowRequest)(nil),                 // 25: post_relation.FollowRequest
+	(*FollowResponse)(nil),                // 26: post_relation.FollowResponse
+	(*DeleteCommentRequest)(nil),          // 27: post_relation.DeleteCommentRequest
+	(*DeleteCommentResponse)(nil),         // 28: post_relation.DeleteCommentResponse
+	(*EditCommentRequest)(nil),            // 29: post_relation.EditCommentRequest
+	(*EditCommentResponse)(nil),           // 30: post_relation.EditCommentResponse
+	(*AddCommentRequest)(nil),             // 31: post_relation.AddCommentRequest
+	(*AddCommentResponse)(nil),            // 32: post_relation.AddCommentResponse
+	(*UnlikePostRequest)(nil),             // 33: post_relation.UnlikePostRequest
+	(*UnlikePostResponse)(nil),            // 34: post_relation.UnlikePostResponse
+	(*LikePostRequest)(nil),               // 35: post_relation.LikePostRequest
+	(*LikePostResponse)(nil),              // 36: post_relation.LikePostResponse
+	(*DeletePostRequest)(nil),             // 37: post_relation.DeletePostRequest
+	(*DeletePostResponse)(nil),            // 38: post_relation.DeletePostResponse
+	(*CreatePostRequest)(nil),             // 39: post_relation.CreatePostRequest
+	(*CreatePostResponse)(nil),            // 40: post_relation.CreatePostResponse
+	(*EditPostRequest)(nil),               // 41: post_relation.EditPostRequest
+	(*EditPostResponse)(nil),              // 42: post_relation.EditPostResponse
+	(*timestamppb.Timestamp)(nil),         // 43: google.protobuf.Timestamp
 }
 var file_pkg_proto_post_relation_proto_depIdxs = []int32{
-	10, // 0: post_relation.FetchFollowingResponse.userMetaData:type_name -> post_relation.UserMetaData
-	10, // 1: post_relation.FetchFollowersResponse.userMetaData:type_name -> post_relation.UserMetaData
-	6,  // 2: post_relation.FetchAllPostsResponse.posts:type_name -> post_relation.Post
-	33, // 3: post_relation.Post.CreatedAt:type_name -> google.protobuf.Timestamp
-	33, // 4: post_relation.Post.UpdatedAt:type_name -> google.protobuf.Timestamp
-	33, // 5: post_relation.Comment.CreatedAt:type_name -> google.protobuf.Timestamp
-	10, // 6: post_relation.Comment.UserDetails:type_name -> post_relation.UserMetaData
-	11, // 7: post_relation.Comment.childComment:type_name -> post_relation.Comment
-	11, // 8: post_relation.FetchCommentsResponse.Comments:type_name -> post_relation.Comment
-	29, // 9: post_relation.PostRelationService.CreatePost:input_type -> post_relation.CreatePostRequest
-	4,  // 10: post_relation.PostRelationService.FetchAllPosts:input_type -> post_relation.FetchAllPostsRequest
-	31, // 11: post_relation.PostRelationService.EditPost:input_type -> post_relation.EditPostRequest
-	27, // 12: post_relation.PostRelationService.DeletePost:input_type -> post_relation.DeletePostRequest
-	25, // 13: post_relation.PostRelationService.LikePost:input_type -> post_relation.LikePostRequest
-	23, // 14: post_relation.PostRelationService.UnlikePost:input_type -> post_relation.UnlikePostRequest
-	21, // 15: post_relation.PostRelationService.AddComment:input_type -> post_relation.AddCommentRequest
-	9,  // 16: post_relation.PostRelationService.FetchComments:input_type -> post_relation.FetchCommentsRequest
-	19, // 17: post_relation.PostRelationService.EditComment:input_type -> post_relation.EditCommentRequest
-	17, // 18: post_relation.PostRelationService.DeleteComment:input_type -> post_relation.DeleteCommentRequest
-	15, // 19: post_relation.PostRelationService.Follow:input_type -> post_relation.FollowRequest
-	13, // 20: post_relation.PostRelationService.Unfollow:input_type -> post_relation.UnfollowRequest
-	2,  // 21: post_relation.PostRelationService.FetchFollowers:input_type -> post_relation.FetchFollowersRequest
-	0,  // 22: post_relation.PostRelationService.FetchFollowing:input_type -> post_relation.FetchFollowingRequest
-	7,  // 23: post_relation.PostRelationService.PostFollowCount:input_type -> post_relation.PostFollowCountRequest
-	30, // 24: post_relation.PostRelationService.CreatePost:output_type -> post_relation.CreatePostResponse
-	5,  // 25: post_relation.PostRelationService.FetchAllPosts:output_type -> post_relation.FetchAllPostsResponse
-	32, // 26: post_relation.PostRelationService.EditPost:output_type -> post_relation.EditPostResponse
-	28, // 27: post_relation.PostRelationService.DeletePost:output_type -> post_relation.DeletePostResponse
-	26, // 28: post_relation.PostRelationService.LikePost:output_type -> post_relation.LikePostResponse
-	24, // 29: post_relation.PostRelationService.UnlikePost:output_type -> post_relation.UnlikePostResponse
-	22, // 30: post_relation.PostRelationService.AddComment:output_type -> post_relation.AddCommentResponse
-	12, // 31: post_relation.PostRelationService.FetchComments:output_type -> post_relation.FetchCommentsResponse
-	20, // 32: post_relation.PostRelationService.EditComment:output_type -> post_relation.EditCommentResponse
-	18, // 33: post_relation.PostRelationService.DeleteComment:output_type -> post_relation.DeleteCommentResponse
-	16, // 34: post_relation.PostRelationService.Follow:output_type -> post_relation.FollowResponse
-	14, // 35: post_relation.PostRelationService.Unfollow:output_type -> post_relation.UnfollowResponse
-	3,  // 36: post_relation.PostRelationService.FetchFollowers:output_type -> post_relation.FetchFollowersResponse
-	1,  // 37: post_relation.PostRelationService.FetchFollowing:output_type -> post_relation.FetchFollowingResponse
-	8,  // 38: post_relation.PostRelationService.PostFollowCount:output_type -> post_relation.PostFollowCountResponse
-	24, // [24:39] is the sub-list for method output_type
-	9,  // [9:24] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	43, // 0: post_relation.PostUserDataWithTrendingScore.CreatedAt:type_name -> google.protobuf.Timestamp
+	43, // 1: post_relation.PostUserDataWithTrendingScore.UpdatedAt:type_name -> google.protobuf.Timestamp
+	20, // 2: post_relation.PostUserDataWithTrendingScore.userMetaData:type_name -> post_relation.UserMetaData
+	3,  // 3: post_relation.FetchGlobalNewsFeedResponse.PostUserDataWithTrendingScore:type_name -> post_relation.PostUserDataWithTrendingScore
+	43, // 4: post_relation.PostUserData.CreatedAt:type_name -> google.protobuf.Timestamp
+	43, // 5: post_relation.PostUserData.UpdatedAt:type_name -> google.protobuf.Timestamp
+	20, // 6: post_relation.PostUserData.userMetaData:type_name -> post_relation.UserMetaData
+	6,  // 7: post_relation.FetchNewsFeedResponse.postUserData:type_name -> post_relation.PostUserData
+	20, // 8: post_relation.FetchFollowingResponse.userMetaData:type_name -> post_relation.UserMetaData
+	20, // 9: post_relation.FetchFollowersResponse.userMetaData:type_name -> post_relation.UserMetaData
+	43, // 10: post_relation.FetchPostResponse.CreatedAt:type_name -> google.protobuf.Timestamp
+	43, // 11: post_relation.FetchPostResponse.UpdatedAt:type_name -> google.protobuf.Timestamp
+	16, // 12: post_relation.FetchAllPostsResponse.posts:type_name -> post_relation.Post
+	43, // 13: post_relation.Post.CreatedAt:type_name -> google.protobuf.Timestamp
+	43, // 14: post_relation.Post.UpdatedAt:type_name -> google.protobuf.Timestamp
+	43, // 15: post_relation.Comment.CreatedAt:type_name -> google.protobuf.Timestamp
+	20, // 16: post_relation.Comment.UserDetails:type_name -> post_relation.UserMetaData
+	21, // 17: post_relation.Comment.childComment:type_name -> post_relation.Comment
+	21, // 18: post_relation.FetchCommentsResponse.Comments:type_name -> post_relation.Comment
+	39, // 19: post_relation.PostRelationService.CreatePost:input_type -> post_relation.CreatePostRequest
+	14, // 20: post_relation.PostRelationService.FetchAllPosts:input_type -> post_relation.FetchAllPostsRequest
+	12, // 21: post_relation.PostRelationService.FetchPostByPostID:input_type -> post_relation.FetchPostRequest
+	41, // 22: post_relation.PostRelationService.EditPost:input_type -> post_relation.EditPostRequest
+	37, // 23: post_relation.PostRelationService.DeletePost:input_type -> post_relation.DeletePostRequest
+	35, // 24: post_relation.PostRelationService.LikePost:input_type -> post_relation.LikePostRequest
+	33, // 25: post_relation.PostRelationService.UnlikePost:input_type -> post_relation.UnlikePostRequest
+	31, // 26: post_relation.PostRelationService.AddComment:input_type -> post_relation.AddCommentRequest
+	19, // 27: post_relation.PostRelationService.FetchComments:input_type -> post_relation.FetchCommentsRequest
+	29, // 28: post_relation.PostRelationService.EditComment:input_type -> post_relation.EditCommentRequest
+	27, // 29: post_relation.PostRelationService.DeleteComment:input_type -> post_relation.DeleteCommentRequest
+	25, // 30: post_relation.PostRelationService.Follow:input_type -> post_relation.FollowRequest
+	23, // 31: post_relation.PostRelationService.Unfollow:input_type -> post_relation.UnfollowRequest
+	10, // 32: post_relation.PostRelationService.FetchFollowers:input_type -> post_relation.FetchFollowersRequest
+	8,  // 33: post_relation.PostRelationService.FetchFollowing:input_type -> post_relation.FetchFollowingRequest
+	17, // 34: post_relation.PostRelationService.PostFollowCount:input_type -> post_relation.PostFollowCountRequest
+	5,  // 35: post_relation.PostRelationService.FetchNewsFeed:input_type -> post_relation.FetchNewsFeedRequest
+	2,  // 36: post_relation.PostRelationService.FetchGlobalNewsFeed:input_type -> post_relation.FetchGlobalNewsFeedRequest
+	0,  // 37: post_relation.PostRelationService.PanicInPost:input_type -> post_relation.PanicInPostReq
+	40, // 38: post_relation.PostRelationService.CreatePost:output_type -> post_relation.CreatePostResponse
+	15, // 39: post_relation.PostRelationService.FetchAllPosts:output_type -> post_relation.FetchAllPostsResponse
+	13, // 40: post_relation.PostRelationService.FetchPostByPostID:output_type -> post_relation.FetchPostResponse
+	42, // 41: post_relation.PostRelationService.EditPost:output_type -> post_relation.EditPostResponse
+	38, // 42: post_relation.PostRelationService.DeletePost:output_type -> post_relation.DeletePostResponse
+	36, // 43: post_relation.PostRelationService.LikePost:output_type -> post_relation.LikePostResponse
+	34, // 44: post_relation.PostRelationService.UnlikePost:output_type -> post_relation.UnlikePostResponse
+	32, // 45: post_relation.PostRelationService.AddComment:output_type -> post_relation.AddCommentResponse
+	22, // 46: post_relation.PostRelationService.FetchComments:output_type -> post_relation.FetchCommentsResponse
+	30, // 47: post_relation.PostRelationService.EditComment:output_type -> post_relation.EditCommentResponse
+	28, // 48: post_relation.PostRelationService.DeleteComment:output_type -> post_relation.DeleteCommentResponse
+	26, // 49: post_relation.PostRelationService.Follow:output_type -> post_relation.FollowResponse
+	24, // 50: post_relation.PostRelationService.Unfollow:output_type -> post_relation.UnfollowResponse
+	11, // 51: post_relation.PostRelationService.FetchFollowers:output_type -> post_relation.FetchFollowersResponse
+	9,  // 52: post_relation.PostRelationService.FetchFollowing:output_type -> post_relation.FetchFollowingResponse
+	18, // 53: post_relation.PostRelationService.PostFollowCount:output_type -> post_relation.PostFollowCountResponse
+	7,  // 54: post_relation.PostRelationService.FetchNewsFeed:output_type -> post_relation.FetchNewsFeedResponse
+	4,  // 55: post_relation.PostRelationService.FetchGlobalNewsFeed:output_type -> post_relation.FetchGlobalNewsFeedResponse
+	1,  // 56: post_relation.PostRelationService.PanicInPost:output_type -> post_relation.PanicInPostRes
+	38, // [38:57] is the sub-list for method output_type
+	19, // [19:38] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_pkg_proto_post_relation_proto_init() }
@@ -2091,16 +3032,16 @@ func file_pkg_proto_post_relation_proto_init() {
 	if File_pkg_proto_post_relation_proto != nil {
 		return
 	}
-	file_pkg_proto_post_relation_proto_msgTypes[11].OneofWrappers = []any{}
 	file_pkg_proto_post_relation_proto_msgTypes[21].OneofWrappers = []any{}
-	file_pkg_proto_post_relation_proto_msgTypes[22].OneofWrappers = []any{}
+	file_pkg_proto_post_relation_proto_msgTypes[31].OneofWrappers = []any{}
+	file_pkg_proto_post_relation_proto_msgTypes[32].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_proto_post_relation_proto_rawDesc), len(file_pkg_proto_post_relation_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   33,
+			NumMessages:   43,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

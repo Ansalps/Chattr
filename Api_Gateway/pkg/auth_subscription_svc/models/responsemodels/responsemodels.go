@@ -37,7 +37,7 @@ type OtpVerificationResponse struct {
 	Status   string
 	AccessToken string
 	RefreshToken string
-	TempToken string
+	TempToken string `json:"TempToken,omitempty"`
 }
 
 type ResendOtpResponse struct{
@@ -91,8 +91,10 @@ type User struct{
 	Status string
 }
 
+
 type GetAllUsersResponse struct{
 	Users []User
+	Pagination PaginationDetails
 }
 
 type CreateSubscriptionPlanResponse struct{
@@ -162,13 +164,18 @@ type SubscriptionPlan struct{
 	Description string
 	IsActive bool
 }
-
+type PaginationDetails struct{
+	CurrentPage int
+	PageSize int
+}
 type GetAllSubscriptionPlansResponse struct{
 	SubscriptionPlans []SubscriptionPlan
+	Pagination PaginationDetails
 }
 
 type GetAllActiveSubscriptionPlansResponse struct{
 	SubscriptionPlans []SubscriptionPlan
+	Pagination PaginationDetails
 }
 
 // type SubscribeResponse struct{
@@ -178,12 +185,20 @@ type SubscribeResponse struct{
 	ID uint64
 	CreatedAt time.Time
 	UpdatedAt time.Time
+
 	UserID uint64
+
 	RazorpaySubscriptionId string
+	SubscriptionPlanID uint64
+	RazorpayPlanId string
+
 	Status string
+	ShortUrl string
+
 	TotalCount int
 	RemainingCount int
 	PaidCount int
+	
 }
 
 type VerifySubscriptionPaymentResponse struct{
@@ -200,28 +215,25 @@ type VerifySubscriptionPaymentResponse struct{
 	RemainingCount int
 	PaidCount int
 }
-
 type UnsubscribeResponse struct{
-	ID uint64
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	UserID uint64
-	RazorpaySubscriptionId string
-	Status string
-	StartAt time.Time
-	EndAt	time.Time
-	NextChargeAt time.Time
-	TotalCount int
-	RemainingCount int
-	PaidCount int
-	CancelledAt time.Time
-	CancelReason string
+	SubId uint64
 }
-
-type WebhookResponse struct{
-	Event string
-	RazropaySubscriptinId string
-}
+// type UnsubscribeResponse struct{
+// 	ID uint64
+// 	CreatedAt time.Time
+// 	UpdatedAt time.Time
+// 	UserID uint64
+// 	RazorpaySubscriptionId string
+// 	Status string
+// 	StartAt time.Time
+// 	EndAt	time.Time
+// 	NextChargeAt time.Time
+// 	TotalCount int
+// 	RemainingCount int
+// 	PaidCount int
+// 	CancelledAt time.Time
+// 	CancelReason string
+// }
 
 type SetProfileImageResponse struct{
 	ImageUrl string
@@ -236,10 +248,58 @@ type GetProfileInformationResponse struct{
 	ProfileImgUrl string
 	Links         string
 	BlueTick	bool	
+	Phone string
 }
 type EditProfile struct{
 	UserID uint64	`json:"user_id"`
 	Name *string	`json:"name,omitempty"`
 	Bio *string	`json:"bio,omitempty"`
 	Links *string `json:"links,omitempty"`
+}
+// type SubscriptionPlan struct{
+
+// }
+type GetSubscriptionDetails struct{
+	SubscriptionPlan SubscriptionPlan
+	ID uint64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID uint64
+	RazorpaySubscriptionId string
+	Status string
+	ShortUrl string
+	StartAt *time.Time	`json:"StartAt,omitempty"`
+	EndAt	*time.Time	`json:"EndAt,omitempty"`
+	NextChargeAt *time.Time	`json:"NextChargeAt,omitempty"`
+	TotalCount int
+	RemainingCount int
+	PaidCount int
+	CancelledAt *time.Time `json:"CancelledAt,omitempty"`
+	CancelReason string `json:"CancelReason,omitempty"`
+}
+
+type WebhookResponse struct {
+    Event                  string `json:"event"`
+    RazorpaySubscriptionId string `json:"razorpay_subscription_id"`
+    Message                string `json:"message,omitempty"` // Added for better feedback
+}
+
+type AuthData struct{
+	UserId uint64
+	UserName string
+	Name string
+	ProfileImgUrl string
+	BlueTick bool
+	Bio string
+	Links string
+}
+type UserMetaData struct{
+	UserId uint64
+	UserName string
+	Name string
+	ProfileImgUrl string
+}
+type SearchUserResponse struct{
+	UserMeataData []UserMetaData
+	Pagingation PaginationDetails
 }

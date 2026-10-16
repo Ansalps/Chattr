@@ -7,7 +7,8 @@ import (
 
 type PostRelationUsecase interface {
 	CreatePost(requestmodels.CreatePostRequest) (responsemodels.CreatePostResponse, error)
-	FetchAllPosts(currentuserid uint64,targetuserid uint64) ([]responsemodels.PostWithCounts, error)
+	FetchAllPosts(requestmodels.FetchAllPostsReq) ([]responsemodels.PostWithCounts, error)
+	FetchPostByPostID(requestmodels.FetchPostByPostIDRequest) (responsemodels.PostWithCounts, error)
 	EditPost(requestmodels.EditPostRequest) (responsemodels.EditPostResponse, error)
 	DeletePost(requestmodels.DeletePostRequest) (responsemodels.DeletePostResponse, error)
 
@@ -21,8 +22,13 @@ type PostRelationUsecase interface {
 
 	Follow(requestmodels.FollowRequest) (responsemodels.FollowResponse, error)
 	Unfollow(requestmodels.UnfollowRequest) (responsemodels.UnfollowResponse, error)
-	FetchFollowers(uint64)(responsemodels.FetchFollowersResponse,error)
-	FetchFollowing(uint64)(responsemodels.FetchFollowingResponse,error)
+	FetchFollowers(requestmodels.FetchFollowersRequest)(responsemodels.FetchFollowersResponse,error)
+	FetchFollowing(requestmodels.FetchFollowingRequest)(responsemodels.FetchFollowingResponse,error)
 
 	PostFollowCount(uint64) (responsemodels.PostFollowCountResponse, error)
+
+	FetchPostUserDataForNewsFeed(requestmodels.FetchNewsFeedRequest)(responsemodels.FetchNewsFeedResponse,error)
+	FetchGlobalNewsFeed(requestmodels.GlobalNewsFeedRequest)(responsemodels.FetchGlobalNewsFeedResponse,error)
+
+	InsertUserIntoFollowCount(userid uint64)(error)
 }
