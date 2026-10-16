@@ -20,4 +20,5 @@ type RedisRepository interface {
     ZRevRangeByScore(ctx context.Context, key string, opt *redis.ZRangeBy) ([]string, error)
 
 	PullCelebPostIDsFromRedis(ctx context.Context, celebIDs []uint64, lastID uint64, limit int) ([]uint64, error)
+	PullNormalUserPostIDsFromRedis(ctx context.Context, userID uint64, lastID uint64, limit int) ([]uint64, error)
 }

@@ -258,6 +258,34 @@ func (as *PostRelationServer) PostFollowCount(ctx context.Context, req *pb.PostF
 		FollowingCount: resp.FollowingCount,
 	}, nil
 }
+func (as *PostRelationServer)FetchPostByPostID(ctx context.Context,req *pb.FetchPostRequest)(*pb.FetchPostResponse,error){
+	fetchPostReq:=requestmodels.FetchPostByPostIDRequest{
+		PostID:req.PostId,
+		UserID: req.UserId,
+	}
+	resp, err := as.PostRelationUsecase.FetchPostByPostID(fetchPostReq)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.FetchPostResponse{
+		PostId:        uint64(resp.ID),
+		CreatedAt:     utils.ToProtoTimestamp(resp.CreatedAt),
+		UpdatedAt:     utils.ToProtoTimestamp(resp.UpdatedAt),
+		UserId:        uint64(resp.UserID),
+		Caption:       resp.Caption,
+		MediaUrls:     func() []string {
+			var s1 []string
+			for _, v := range resp.Media {
+				s1 = append(s1, v.MediaUrl)
+			}
+			return s1
+		}(),
+		LikesCount:    uint64(resp.LikesCount),
+		CommentsCount: uint64(resp.CommentsCount),
+		PostAge:       resp.Age,
+		IsLiked:       resp.IsLiked,
+	},nil
+}
 func (as *PostRelationServer) FetchAllPosts(ctx context.Context, req *pb.FetchAllPostsRequest) (*pb.FetchAllPostsResponse, error) {
 	fetchPostsReq := requestmodels.FetchAllPostsReq{
 		CurrentUserID: req.CurrentUserId,

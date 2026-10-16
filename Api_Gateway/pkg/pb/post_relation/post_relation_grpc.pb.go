@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	PostRelationService_CreatePost_FullMethodName          = "/post_relation.PostRelationService/CreatePost"
 	PostRelationService_FetchAllPosts_FullMethodName       = "/post_relation.PostRelationService/FetchAllPosts"
+	PostRelationService_FetchPostByPostID_FullMethodName   = "/post_relation.PostRelationService/FetchPostByPostID"
 	PostRelationService_EditPost_FullMethodName            = "/post_relation.PostRelationService/EditPost"
 	PostRelationService_DeletePost_FullMethodName          = "/post_relation.PostRelationService/DeletePost"
 	PostRelationService_LikePost_FullMethodName            = "/post_relation.PostRelationService/LikePost"
@@ -45,6 +46,7 @@ const (
 type PostRelationServiceClient interface {
 	CreatePost(ctx context.Context, in *CreatePostRequest, opts ...grpc.CallOption) (*CreatePostResponse, error)
 	FetchAllPosts(ctx context.Context, in *FetchAllPostsRequest, opts ...grpc.CallOption) (*FetchAllPostsResponse, error)
+	FetchPostByPostID(ctx context.Context, in *FetchPostRequest, opts ...grpc.CallOption) (*FetchPostResponse, error)
 	EditPost(ctx context.Context, in *EditPostRequest, opts ...grpc.CallOption) (*EditPostResponse, error)
 	DeletePost(ctx context.Context, in *DeletePostRequest, opts ...grpc.CallOption) (*DeletePostResponse, error)
 	LikePost(ctx context.Context, in *LikePostRequest, opts ...grpc.CallOption) (*LikePostResponse, error)
@@ -85,6 +87,16 @@ func (c *postRelationServiceClient) FetchAllPosts(ctx context.Context, in *Fetch
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(FetchAllPostsResponse)
 	err := c.cc.Invoke(ctx, PostRelationService_FetchAllPosts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *postRelationServiceClient) FetchPostByPostID(ctx context.Context, in *FetchPostRequest, opts ...grpc.CallOption) (*FetchPostResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FetchPostResponse)
+	err := c.cc.Invoke(ctx, PostRelationService_FetchPostByPostID_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -257,6 +269,7 @@ func (c *postRelationServiceClient) PanicInPost(ctx context.Context, in *PanicIn
 type PostRelationServiceServer interface {
 	CreatePost(context.Context, *CreatePostRequest) (*CreatePostResponse, error)
 	FetchAllPosts(context.Context, *FetchAllPostsRequest) (*FetchAllPostsResponse, error)
+	FetchPostByPostID(context.Context, *FetchPostRequest) (*FetchPostResponse, error)
 	EditPost(context.Context, *EditPostRequest) (*EditPostResponse, error)
 	DeletePost(context.Context, *DeletePostRequest) (*DeletePostResponse, error)
 	LikePost(context.Context, *LikePostRequest) (*LikePostResponse, error)
@@ -288,6 +301,9 @@ func (UnimplementedPostRelationServiceServer) CreatePost(context.Context, *Creat
 }
 func (UnimplementedPostRelationServiceServer) FetchAllPosts(context.Context, *FetchAllPostsRequest) (*FetchAllPostsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FetchAllPosts not implemented")
+}
+func (UnimplementedPostRelationServiceServer) FetchPostByPostID(context.Context, *FetchPostRequest) (*FetchPostResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchPostByPostID not implemented")
 }
 func (UnimplementedPostRelationServiceServer) EditPost(context.Context, *EditPostRequest) (*EditPostResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EditPost not implemented")
@@ -390,6 +406,24 @@ func _PostRelationService_FetchAllPosts_Handler(srv interface{}, ctx context.Con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PostRelationServiceServer).FetchAllPosts(ctx, req.(*FetchAllPostsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PostRelationService_FetchPostByPostID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchPostRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostRelationServiceServer).FetchPostByPostID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PostRelationService_FetchPostByPostID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostRelationServiceServer).FetchPostByPostID(ctx, req.(*FetchPostRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -696,6 +730,10 @@ var PostRelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FetchAllPosts",
 			Handler:    _PostRelationService_FetchAllPosts_Handler,
+		},
+		{
+			MethodName: "FetchPostByPostID",
+			Handler:    _PostRelationService_FetchPostByPostID_Handler,
 		},
 		{
 			MethodName: "EditPost",

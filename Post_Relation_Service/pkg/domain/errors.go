@@ -32,4 +32,5 @@ var (
 	ErrUsersNotFound=errors.New("No users are found")
 
 	CelebPostsNotFound=errors.New("Celeb posts not foun")
+	NormalUserPostsNotFound=errors.New("Normal user posts not foun")
 )

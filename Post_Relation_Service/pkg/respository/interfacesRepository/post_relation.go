@@ -8,13 +8,15 @@ import (
 type PostRelationRepository interface {
 	CreatePost(requestmodels.CreatePostRequest) (responsemodels.CreatePostResponse, error)
 	FetchAllPosts(requestmodels.FetchAllPostsReq) ([]responsemodels.PostWithCounts, error)
+	FetchPostByPostID(requestmodels.FetchPostByPostIDRequest) (responsemodels.PostWithCounts, error)
 	EditPostById(requestmodels.EditPostRequest) (responsemodels.EditPostResponse, error)
 	DeletePostById(requestmodels.DeletePostRequest) (responsemodels.DeletePostResponse, error)
 
 	LikePostById(requestmodels.LikePostRequest) (responsemodels.LikePostResponse, error)
 	FetchPostOwnerIdByPostId(uint64)(uint64,error)
 	UnlikePostById(requestmodels.UnlikePostRequest) (responsemodels.UnlikePostResponse, error)
-	CheckCommentHieracrchy(*uint64) (bool, error)
+	//CheckCommentHieracrchy(*uint64) (bool, error)
+	IsSubComment(commentId *uint64) (bool, error)
 	AddComment(requestmodels.AddCommentRequest) (responsemodels.AddCommentResponse, error)
 	EditComment(requestmodels.EditCommentRequest) (responsemodels.EditCommentResponse, error)
 	DeleteCommentById(requestmodels.DeleteCommentRequest) (responsemodels.DeleteCommentResponse, error)
@@ -46,4 +48,8 @@ type PostRelationRepository interface {
 	UpdatFollowCountOnUnFollow(uint64,uint64)(uint64,error)
 
 	InsertUserIntoFollowCount(userid uint64)(error)
+
+	GetFollowedNormalUsersIDs(userID uint64) ([]uint64, error)
+	IsUserCelebrity(userid uint64)(bool,error)
+	FetchPostData(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error)
 }

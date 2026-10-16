@@ -903,6 +903,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 			errChan <- err
 			return
 		}
+		fmt.Println("printing authresp in handler",authresp)
 		authChan <- authresp
 	}()
 	go func() {
@@ -953,6 +954,8 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 		Name:          authData.Name,
 		ProfileImgUrl: authData.ProfileImgUrl,
 		BlueTick:      authData.BlueTick,
+		Bio: authData.Bio,
+		Links: authData.Links,
 	}
 
 	// 2. Optional Data: Did we get stats?
