@@ -466,7 +466,9 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", domain.ErrInternal, err)
 	}
-
+	if len(convs)==0{
+		return []responsemodels.ChatProfileResponse{},nil
+	}
 	// 2. Separate Group IDs and unique User IDs
 	var individualUserIDs []uint64
 	var groupIDs []string
@@ -477,6 +479,7 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 			for _, pID := range c.Participants {
 				if pID != req.UserID && !userIDsMap[pID] {
 					individualUserIDs = append(individualUserIDs, pID)
+					individualUserIDs=append(individualUserIDs, req.UserID)
 					userIDsMap[pID] = true
 				}
 			}
@@ -499,42 +502,17 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 			}
 		}
 	}
-	// 3. Batch Call to Auth Service
-	// Request: { user_ids: [10, 11, ...] }
-	// Response: { user_metadata_map: { "10": {name: "Ansal", img: "..."}, "11": {...} } }
-	//fmt.Println("individualUserIDs", individualUserIDs)
 
-	authRes, err := client.FetchUserMetaData(
+	var authRes *pb.BatchUserMetadataResponse
+	if len(individualUserIDs)>0{
+	authRes, err = client.FetchUserMetaData(
 		as.AuthClient,
 		individualUserIDs,
 	)
 	if err != nil {
 		return nil, err
 	}
-	// authRes, err := as.AuthClient.FetchUserMetaData(context.Background(), &pb.UserDataReq{
-	// 	UserId: individualUserIDs})
-	// if err != nil {
-	// 	st, ok := status.FromError(err)
-	// 	if !ok {
-	// 		// Not a gRPC error
-	// 		return nil,
-	// 			fmt.Errorf("%w: %v", domain.ErrInternal, err)
-	// 	}
-
-	// 	switch st.Code() {
-
-	// 	case codes.NotFound:
-	// 		return nil, domain.ErrUsersNotFound
-
-	// 	case codes.Internal:
-	// 		return nil,
-	// 			fmt.Errorf("%w: %v", domain.ErrDatabase, err)
-
-	// 	default:
-	// 		return nil,
-	// 			fmt.Errorf("%w: %v", domain.ErrInternal, err)
-	// 	}
-	// }
+}
 
 	// 4. Build the final response list
 	var finalProfiles []responsemodels.ChatProfileResponse
@@ -551,10 +529,17 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 
 			profile.ChatName = meta.Name
 			profile.ChatImage = meta.ImageURL // empty if not set
+			profile.GroupID=conv.GroupID
 		} else {
 			// Find the "other" person in this chat
-			for _, pID := range conv.Participants {
+			for i, pID := range conv.Participants {
 				if pID != req.UserID {
+					if meta, ok := authRes.Users[pID]; ok {
+						profile.ChatName = meta.UserName
+						profile.ChatImage = meta.ProfileImgUrl
+					}
+					break
+				} else if conv.Participants[i]==req.UserID && conv.Participants[i+1]==req.UserID{
 					if meta, ok := authRes.Users[pID]; ok {
 						profile.ChatName = meta.UserName
 						profile.ChatImage = meta.ProfileImgUrl
