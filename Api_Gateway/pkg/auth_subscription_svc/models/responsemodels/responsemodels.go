@@ -290,6 +290,8 @@ type AuthData struct{
 	Name string
 	ProfileImgUrl string
 	BlueTick bool
+	Bio string
+	Links string
 }
 type UserMetaData struct{
 	UserId uint64

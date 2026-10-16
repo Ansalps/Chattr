@@ -588,7 +588,7 @@ func (as *AuthSubscriptionServer) UserPublicData(ctx context.Context, req *pb.Us
 		return nil, err
 	}
 	//fmt.Println("resp in UserPublicData",resp)
-	return &pb.UserPublicDataResponse{
+	resp1:=&pb.UserPublicDataResponse{
 		UserId:        resp.UserID,
 		UserName:      resp.UserName,
 		Name:          resp.Name,
@@ -596,7 +596,9 @@ func (as *AuthSubscriptionServer) UserPublicData(ctx context.Context, req *pb.Us
 		Bio:           resp.Bio,
 		Links:         resp.Links,
 		BlueTick:      resp.BlueTick,
-	}, nil
+	}
+	//fmt.Println("resp1 printing in service",resp1)
+	return resp1, nil
 }
 
 func (as *AuthSubscriptionServer) FetchUserMetaData(ctx context.Context, req *pb.UserDataReq) (*pb.BatchUserMetadataResponse, error) {

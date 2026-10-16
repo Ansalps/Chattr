@@ -374,7 +374,7 @@ func (ad *ChatRepository) StoreOrUpdateGroupChatInConversation(conv domain.Conve
 func (ad *ChatRepository) GetUserConversation(req requestmodels.RecentChatProfilesRequest) ([]domain.Conversation, error) {
 	collection := ad.MongoClient.Database("chat").Collection("conversations")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	// 1. Filter: Find all conversations where the UserID is in the participants array
@@ -453,14 +453,20 @@ func (ad *ChatRepository) GetGroupMetaBatch(groupIDs []string) (map[string]respo
 			Name     string `bson:"groupname"`
 			ImageURL string `bson:"groupimageurl"`
 		}
-		// results[temp.ID] = responsemodels.GroupMeta{
-		// 	Name:     temp.Name,
-		// 	ImageURL: temp.ImageURL, // may be empty
-		// }
+		
 		if err := cursor.Decode(&temp); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error decoding group: %w", err)
 		}
+		// 2. Assign to map SECOND
+        results[temp.ID] = responsemodels.GroupMeta{
+            Name:     temp.Name,
+            ImageURL: temp.ImageURL,
+        }
 	}
+	// Check for errors that occurred during iteration
+    if err := cursor.Err(); err != nil {
+        return nil, fmt.Errorf("cursor error: %w", err)
+    }
 
 	return results, nil
 }

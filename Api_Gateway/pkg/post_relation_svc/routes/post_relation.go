@@ -9,6 +9,7 @@ import (
 
 func PostRelationRoutes(router *gin.Engine,postRelationHandler *handler.PostRelationHandler,cfg *config.Config,authMiddleware *middleware.AuthMiddleware){
 	router.POST("/user/post",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.CreatePost)
+	router.GET("/user/post/:post_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchPostByPostId)
 	router.GET("/user/posts",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchAllPosts)
 	router.GET("/user/:user_id/posts",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.FetchAllPosts)
 	router.PATCH("/user/post/:post_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),postRelationHandler.EditPost)

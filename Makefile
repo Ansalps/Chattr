@@ -32,9 +32,9 @@ chatws:
 notws:
 	wscat -c "ws://localhost:3000/user/notification/ws" -H "Authorization: Bearer $(TOKEN)"
 gkechatws:
-	wscat -c "wss://chattr.shop/user/ws" -H "Authorization: Bearer $(TOKEN)"
+	wscat -c "ws://chattr.shop/user/ws" -H "Authorization: Bearer $(TOKEN)"
 gkenotws:
-	wscat -c "wss://chattr.shop/user/notification/ws" -H "Authorization: Bearer $(TOKEN)"
+	wscat -c "ws://chattr.shop/user/notification/ws" -H "Authorization: Bearer $(TOKEN)"
 dap:
 	docker build -t ansalps/chattr-api_gateway ./Api_Gateway
 klap:

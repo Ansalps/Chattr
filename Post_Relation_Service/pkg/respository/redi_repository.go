@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"time"
 
@@ -43,6 +44,48 @@ func (r *redisRepository) CacheGet(ctx context.Context, cacheKey string) (string
 func (r *redisRepository) CacheSet(ctx context.Context, cacheKey string, dataToCache []byte, expiration time.Duration) error {
 	// r.Client is your *redis.Client (go-redis)
 	return r.rdb.Set(ctx, cacheKey, dataToCache, expiration).Err()
+}
+func (r *redisRepository) PullNormalUserPostIDsFromRedis(ctx context.Context, userID uint64, lastID uint64, limit int) ([]uint64, error) {
+    // The key is specific to the user viewing the feed
+    key := fmt.Sprintf("feed:user:%d", userID)
+
+    // Define pagination range
+    // We want posts with scores (timestamps) lower than the last post seen
+    maxScore := "+inf"
+    if lastID > 0 {
+        // Fetch the score of the lastID to use as the pivot for the next page
+        score, err := r.rdb.ZScore(ctx, key, strconv.FormatUint(lastID, 10)).Result()
+        if err == nil {
+            maxScore = fmt.Sprintf("(%f", score)
+        }
+    }
+
+    // Fetch from the Sorted Set in descending order (newest first)
+    // ZRevRangeByScore gives us the high scores first
+    ids, err := r.rdb.ZRevRangeByScore(ctx, key, &redis.ZRangeBy{
+        Max:    maxScore,
+        Min:    "-inf",
+        Offset: 0,
+        Count:  int64(limit),
+    }).Result()
+
+    if err != nil {
+        if err == redis.Nil {
+            return []uint64{}, nil
+        }
+        return nil, fmt.Errorf("failed to fetch normal feed from redis: %v", err)
+    }
+
+    // Convert string slice to uint64 slice
+    resultIDs := make([]uint64, 0, len(ids))
+    for _, idStr := range ids {
+        id, err := strconv.ParseUint(idStr, 10, 64)
+        if err == nil {
+            resultIDs = append(resultIDs, id)
+        }
+    }
+
+    return resultIDs, nil
 }
 func (r *redisRepository) PullCelebPostIDsFromRedis(ctx context.Context, celebIDs []uint64, lastID uint64, limit int) ([]uint64, error) {
 	pipe := r.rdb.Pipeline()
@@ -88,7 +131,14 @@ func (r *redisRepository) PullCelebPostIDsFromRedis(ctx context.Context, celebID
 			}
 		}
 	}
+	sort.Slice(resultIDs, func(i, j int) bool {
+		return resultIDs[i] > resultIDs[j] // Sort descending (newest first)
+	})
 
+	// After sorting, trim to the limit again
+	if len(resultIDs) > limit {
+		resultIDs = resultIDs[:limit]
+	}
 	return resultIDs, nil
 }
 func (r *redisRepository) ExtendTTL(ctx context.Context, key string, ttl time.Duration) error {
@@ -107,5 +157,3 @@ func (r *redisRepository) ZRem(ctx context.Context, key string, member interface
 func (r *redisRepository) ZRevRangeByScore(ctx context.Context, key string, opt *redis.ZRangeBy) ([]string, error) {
 	return r.rdb.ZRevRangeByScore(ctx, key, opt).Result()
 }
-
-

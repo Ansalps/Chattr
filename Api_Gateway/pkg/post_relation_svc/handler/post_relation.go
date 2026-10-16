@@ -568,6 +568,55 @@ func (as *PostRelationHandler) FetchComments(c *gin.Context) {
 	//fetchCommentsResponse.Comments.CreatedAt=
 	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "comments fetched successfully", resp))
 }
+func (as *PostRelationHandler) FetchPostByPostId(c *gin.Context){
+	log := utils.GetLogger(c)
+	postIdStr := c.Param("post_id")
+	postId, err := strconv.ParseUint(postIdStr, 10, 64)
+	if err != nil {
+		utils.LogAdminApi(log, 400, "invalid post id")
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid post id", nil))
+		return
+	}
+	claims, exists := c.Get("claims")
+	if !exists {
+		utils.LogAdminApi(log, 401, "Calims not found")
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "Claims not found", nil))
+		return
+	}
+	jwtClaims, ok := claims.(authResponseModel.JwtClaims)
+	if !ok {
+		utils.LogAdminApi(log, 401, "invalid claims")
+		c.JSON(http.StatusUnauthorized, response.ClientResponse(http.StatusUnauthorized, "invalide claims", nil))
+		return
+	}
+	postResp, err := as.DirectPostClient.Client.FetchPostByPostID(context.Background(),&post_relation.FetchPostRequest{
+		PostId: postId,
+		UserId: jwtClaims.ID,
+	})
+	if err != nil {
+		code, msg := utils.GRPCtoHTTP(err)
+		utils.LogAdminApi(log, code, msg)
+		c.JSON(code, response.ClientResponse(code, msg, nil))
+		return
+	}
+	var mediaUrls []string
+	for _, v := range postResp.MediaUrls {
+		mediaUrls = append(mediaUrls, v)
+	}
+	resp := responsemodels.FetchPostByIdResponse{
+		PostID:        postResp.PostId,
+		CreatedAt:     postResp.CreatedAt.AsTime().Local(),
+		UpdatedAt:	 postResp.UpdatedAt.AsTime().Local(),
+		UserID:        postResp.UserId,
+		Caption:       postResp.Caption,
+		MediaUrls:     mediaUrls,
+		LikeCount:     postResp.LikesCount,
+		CommentsCount: postResp.CommentsCount,
+		IsLiked:       postResp.IsLiked,
+		PostAge:       postResp.PostAge,
+	}
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "post fetched successfully", resp))
+}
 func (as *PostRelationHandler) FetchAllPosts(c *gin.Context) {
 	log := utils.GetLogger(c)
 	limit, offset, page, err := utils.SetPageLimit(c, log)
