@@ -60,7 +60,32 @@ func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
-	success := response.ClientResponse(http.StatusOK, "Admin authenticated successfully", admin)
+	c.SetCookie(
+		"jwt_admin_access_token",
+		admin.AccessToken,
+		86400,
+		"/",
+		"",
+		false,
+		true,
+	)
+	c.SetCookie(
+		"jwt_admin_refresh_token",
+		admin.RefreshToken,
+		86400,
+		"/",
+		"",
+		false,
+		true,
+	)
+	success := response.ClientResponse(
+        http.StatusOK,
+        "Admin authenticated successfully",
+        map[string]interface{}{
+            "id":    admin.Admin.ID,
+            "email": admin.Admin.Email,
+        },
+    )
 	c.JSON(success.StatusCode, success)
 }
 
@@ -96,6 +121,15 @@ func (as *AuthSubscriptionHandler) UserSignUp(c *gin.Context) {
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
+	c.SetCookie(
+		"jwt_otpverification_token",
+		userResponse.OtpVerificationToken,
+		86400,
+		"/",
+		"",
+		false,
+		true,
+	)
 	success := response.ClientResponse(http.StatusOK, "Otp Sent Successfully to email address provided, verify your otp within 5 minutes before getting expired", userResponse)
 	c.JSON(success.StatusCode, success)
 }

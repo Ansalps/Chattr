@@ -8,8 +8,8 @@ import (
 )
 
 func NotificationRoutes(router *gin.Engine, notificationHandler *notificationServiceHandler.NotificationHandler, cfg *config.Config, authMiddleware *middleware.AuthMiddleware) {
-	router.GET("/user/notification/ws", authMiddleware.VerifyJwt([]string{"user"}, "access", cfg.Token.UserSecurityKey), notificationHandler.WebSocketConnection)
-	router.GET("/user/notifications", authMiddleware.VerifyJwt([]string{"user"}, "access", cfg.Token.UserSecurityKey), notificationHandler.GetAllNotifications)
+	router.GET("/user/notification/ws", authMiddleware.VerifyJwt("user", "access", cfg.Token.UserSecurityKey), notificationHandler.WebSocketConnection)
+	router.GET("/user/notifications", authMiddleware.VerifyJwt("user", "access", cfg.Token.UserSecurityKey), notificationHandler.GetAllNotifications)
 
-	router.POST("/notification/panic",notificationHandler.PanicInNotification)
+	router.POST("/notification/panic", notificationHandler.PanicInNotification)
 }

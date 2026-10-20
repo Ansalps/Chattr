@@ -8,14 +8,14 @@ import (
 )
 
 func ChatRoutes(router *gin.Engine, chatHandler *chatServiceHandler.ChatHandler, cfg *config.Config, authMiddleware *middleware.AuthMiddleware) {
-	router.GET("/user/ws",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.WebSocketConnection)
-	router.POST("/user/group",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.CreateGroup)
-	router.POST("/user/group/:group_id/add-members",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.AddMembers)
-	router.DELETE("/user/group/:group_id/remove-member/:member_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.RemoveMember)
-	router.GET("/user/group/:group_id/members",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.GetGroupMembers)
-	router.GET("/user/get-recent-chat-profiles",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.RecentChatProfiles)
-	router.GET("/user/chat/:conv_id",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.GetChat)
-	router.PATCH("/user/group/:group_id/set-group-profile-image",authMiddleware.VerifyJwt([]string{"user"},"access",cfg.Token.UserSecurityKey),chatHandler.SetGroupProfileImage)
+	router.GET("/user/ws", authMiddleware.VerifyJwt("user", "access", cfg.Token.UserSecurityKey), chatHandler.WebSocketConnection)
+	router.POST("/user/group", authMiddleware.VerifyJwt("user", "access", cfg.Token.UserSecurityKey), chatHandler.CreateGroup)
+	router.POST("/user/group/:group_id/add-members", authMiddleware.VerifyJwt("user", "access", cfg.Token.UserSecurityKey), chatHandler.AddMembers)
+	router.DELETE("/user/group/:group_id/remove-member/:member_id", authMiddleware.VerifyJwt("user", "access", cfg.Token.UserSecurityKey), chatHandler.RemoveMember)
+	router.GET("/user/group/:group_id/members", authMiddleware.VerifyJwt("user", "access", cfg.Token.UserSecurityKey), chatHandler.GetGroupMembers)
+	router.GET("/user/get-recent-chat-profiles", authMiddleware.VerifyJwt("user", "access", cfg.Token.UserSecurityKey), chatHandler.RecentChatProfiles)
+	router.GET("/user/chat/:conv_id", authMiddleware.VerifyJwt("user", "access", cfg.Token.UserSecurityKey), chatHandler.GetChat)
+	router.PATCH("/user/group/:group_id/set-group-profile-image", authMiddleware.VerifyJwt("user", "access", cfg.Token.UserSecurityKey), chatHandler.SetGroupProfileImage)
 
-	router.POST("/chat/panic",chatHandler.PanicInChat)
+	router.POST("/chat/panic", chatHandler.PanicInChat)
 }

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/Ansalps/Chattr_Api_Gateway/infrastructure/logger"
 	"github.com/Ansalps/Chattr_Api_Gateway/pkg/auth_subscription_svc/models/responsemodels"
@@ -163,25 +162,50 @@ func NewAuthMiddlware(redisRepo interfacesRepository.RedisRepository) *AuthMiddl
 //			c.Next()
 //		}
 //	}
-func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tokenSecurityKey string) gin.HandlerFunc {
+func (m *AuthMiddleware) VerifyJwt(requiredRole string, tokenType string, tokenSecurityKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		//log := utils.GetLogger(c)
+		cookieName := "jwt_user_token"
+		switch requiredRole {
+		case "admin":
+			switch tokenType {
+			case "access":
+				cookieName = "jwt_admin_access_token"
+			case "refresh":
+				cookieName = "jwt_admin_refresh_token"
+			}
+		case "user":
+			switch tokenType {
+			case "access":
+				cookieName = "jwt_user_access_token"
+			case "refresh":
+				cookieName = "jwt_user_refresh_token"
+			}
+		case "otpverification":
+			cookieName = "jwt_otpverification_token"
+		case "resetpassword":
+			cookieName = "jwt_resetpassword_token"
+		}
+		
 
-		tokenString := c.GetHeader("Authorization")
+		tokenString, err := c.Cookie(cookieName)
+		if err != nil {
+
+			tokenString, err = c.Cookie("jwt_token")
+			if err != nil {
+
+				c.JSON(http.StatusUnauthorized, gin.H{"message": "Please Log In"})
+				c.Abort()
+				return
+			}
+		}
+
 		if tokenString == "" {
 			//log.Warn("missing authorization header")
-			response.AbortWithError(c, http.StatusUnauthorized, "Authorization header missing")
+			response.AbortWithError(c, http.StatusUnauthorized, "Authorization cookie missing")
 			return
 		}
-
-		if !strings.HasPrefix(tokenString, "Bearer ") {
-			//log.Warn("invalid token format")
-			response.AbortWithError(c, http.StatusUnauthorized, "Invalid token format")
-			return
-		}
-
-		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 
 		var jwtClaims responsemodels.JwtClaims
 		token, err := jwt.ParseWithClaims(tokenString, &jwtClaims, func(token *jwt.Token) (interface{}, error) {
@@ -261,12 +285,11 @@ func (m *AuthMiddleware) VerifyJwt(requiredRoles []string, tokenType string, tok
 
 		// Role authorization
 		authorized := false
-		for _, r := range requiredRoles {
-			fmt.Println("jwstClaims.Role", jwtClaims.Role)
-			if jwtClaims.Role == r {
-				authorized = true
-				break
-			}
+
+		fmt.Println("jwstClaims.Role", jwtClaims.Role)
+		if jwtClaims.Role == requiredRole {
+			authorized = true
+
 		}
 
 		if !authorized {

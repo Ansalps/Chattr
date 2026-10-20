@@ -56,16 +56,16 @@ export default function LandingPage() {
 
         <div className="flex items-center gap-3">
           <Link
-            to="/admin/login"
+            to="/login"
             className="rounded-full border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-50"
           >
-            Admin Login
+            User Login
           </Link>
           <Link
-            to="/admin/login"
+            to="/signup"
             className="rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-300/40 transition hover:brightness-105"
           >
-            Get started
+            User Sign up
           </Link>
         </div>
       </header>
@@ -87,17 +87,17 @@ export default function LandingPage() {
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link
-                to="/admin/login"
+                to="/signup"
                 className="rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-sky-300/40 transition hover:brightness-105"
               >
-                Start now
+                User Sign up
               </Link>
-              <a
-                href="#features"
+              <Link
+                to="/login"
                 className="rounded-full border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
               >
-                Explore features
-              </a>
+                User Login
+              </Link>
             </div>
 
             <div className="mt-10 grid max-w-lg grid-cols-2 gap-4 sm:grid-cols-4">
