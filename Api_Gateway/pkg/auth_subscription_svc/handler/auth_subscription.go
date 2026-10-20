@@ -49,6 +49,7 @@ func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
 	if err != nil {
 		return
 	}
+	fmt.Println("hi")
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
 	admin, err := as.GPPC_Client.AdminLogin(ctx, adminDetails)

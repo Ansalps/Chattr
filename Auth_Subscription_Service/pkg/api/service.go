@@ -47,6 +47,7 @@ func (as *AuthSubscriptionServer) DoesUserExists(ctx context.Context, req *pb.Do
 	}, nil
 }
 func (as *AuthSubscriptionServer) AdminLogin(ctx context.Context, req *pb.AdminLoginRequest) (*pb.AdminLoginResponse, error) {
+	fmt.Println("hello")
 	adminLogin := requestmodels.AdminLoginRequest{
 		Email:    req.Email,
 		Password: req.Password,
@@ -60,6 +61,7 @@ func (as *AuthSubscriptionServer) AdminLogin(ctx context.Context, req *pb.AdminL
 		Id:    uint64(admin.Admin.ID),
 		Email: admin.Admin.Email,
 	}
+	fmt.Println("nice")
 	return &pb.AdminLoginResponse{
 		AdminDetails: adminDetails,
 		AccessToken:  admin.AccessToken,
