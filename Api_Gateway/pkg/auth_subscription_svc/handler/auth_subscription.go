@@ -130,7 +130,15 @@ func (as *AuthSubscriptionHandler) UserSignUp(c *gin.Context) {
 		false,
 		true,
 	)
-	success := response.ClientResponse(http.StatusOK, "Otp Sent Successfully to email address provided, verify your otp within 5 minutes before getting expired", userResponse)
+	success := response.ClientResponse(http.StatusOK,
+		 "Otp Sent Successfully to email address provided, verify your otp within 5 minutes before getting expired",
+		map[string]interface{}{
+			"id": userResponse.ID,
+			"name":userResponse.Name,
+			"username":userResponse.UserName,
+			"email":userResponse.Email,
+		},
+	 )
 	c.JSON(success.StatusCode, success)
 }
 
@@ -165,7 +173,33 @@ func (as *AuthSubscriptionHandler) VerifyOtp(c *gin.Context) {
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
-	success := response.ClientResponse(http.StatusOK, "Otp verifeid successfully", otpResponse)
+
+	c.SetCookie(
+		"jwt_user_access_token",
+		otpResponse.AccessToken,
+		86400,
+		"/",
+		"",
+		false,
+		true,
+	)
+	c.SetCookie(
+		"jwt_user_refresh_token",
+		otpResponse.RefreshToken,
+		86400,
+		"/",
+		"",
+		false,
+		true,
+	)
+
+	success := response.ClientResponse(http.StatusOK, 
+		"Otp verifeid successfully", 
+		map[string]interface{}{
+			"email":otpResponse.Email,
+			"status":otpResponse.Status,
+		},
+	)
 	c.JSON(success.StatusCode, success)
 }
 
@@ -222,7 +256,35 @@ func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
-	success := response.ClientResponse(http.StatusOK, "New Access token generated", accessRegeneratorResponse)
+	if accessRegeneratorResponse.Role=="admin"{
+		c.SetCookie(
+		"jwt_admin_access_token",
+		accessRegeneratorResponse.NewAccessToken,
+		86400,
+		"/",
+		"",
+		false,
+		true,
+	)
+	} else if accessRegeneratorResponse.Role=="user"{
+		c.SetCookie(
+		"jwt_user_access_token",
+		accessRegeneratorResponse.NewAccessToken,
+		86400,
+		"/",
+		"",
+		false,
+		true,
+	)
+	}
+	success := response.ClientResponse(http.StatusOK, 
+		"New Access token generated",
+		map[string]interface{}{
+			"id":accessRegeneratorResponse.Id,
+			"email":accessRegeneratorResponse.Email,
+			"role":accessRegeneratorResponse.Role,
+		},
+	)
 	c.JSON(success.StatusCode, success)
 }
 
@@ -242,7 +304,22 @@ func (as *AuthSubscriptionHandler) ForgotPassword(c *gin.Context) {
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
-	success := response.ClientResponse(http.StatusOK, "Otp code sent successully to the email provided", forgotPasswordRes)
+	c.SetCookie(
+		"jwt_otpverification_token",
+		forgotPasswordRes.TempToken,
+		86400,
+		"/",
+		"",
+		false,
+		true,
+	)
+	success := response.ClientResponse(
+		http.StatusOK, 
+		"Otp code sent successully to the email provided",
+		 map[string]interface{}{
+			"email":forgotPasswordRes.Email,
+		 },
+		)
 	c.JSON(success.StatusCode, success)
 }
 
@@ -279,6 +356,7 @@ func (as *AuthSubscriptionHandler) ResetPassword(c *gin.Context) {
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
+	
 	success := response.ClientResponse(http.StatusOK, "password reset successful, please login again with new password", resetPasswordResponse)
 	c.JSON(success.StatusCode, success)
 }

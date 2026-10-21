@@ -52,7 +52,7 @@ func main() {
 	ca := []byte(cfg.Kafka.CACert)
 	cert := []byte(cfg.Kafka.AccessCert)
 	key := []byte(cfg.Kafka.AccessKey)
-	fmt.Println("ca:", string(ca), "cert:", string(cert), "key:", string(key))
+	//fmt.Println("ca:", string(ca), "cert:", string(cert), "key:", string(key))
 	go kafka.StartNotificationConsumer(cfg.Kafka.Brokers, "post-events", hub, notificationUsecase, log, ca, cert, key)
 	go kafka.StartNotificationConsumer(cfg.Kafka.Brokers, "user-events", hub, notificationUsecase, log, ca, cert, key)
 	go kafka.StartNotificationConsumer(cfg.Kafka.Brokers, "chat-events", hub, notificationUsecase, log, ca, cert, key)

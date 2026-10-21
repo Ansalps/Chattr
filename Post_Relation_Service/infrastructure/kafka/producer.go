@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net"
 	"time"
 
 	"github.com/Ansalps/Chattr_Post_Relation_Service/pkg/usecase/interfacesUsecase"
@@ -15,12 +14,12 @@ import (
 )
 
 type kafkaProducer struct {
-	dialer  *kafka.Dialer   // ✅ add this
-	brokers []string        // ✅ add this
+	writer  *kafka.Writer
+	brokers []string
 }
 
 func NewKafkaProducer(brokers []string, caCert, accessCert, accessKey []byte) interfacesUsecase.KafkaProducer {
-	// 1. Setup TLS
+	// 1. Setup TLS (same as before)
 	cert, err := tls.X509KeyPair(accessCert, accessKey)
 	if err != nil {
 		log.Fatalf("KAFKA: Failed to load client cert/key: %v", err)
@@ -34,45 +33,64 @@ func NewKafkaProducer(brokers []string, caCert, accessCert, accessKey []byte) in
 		RootCAs:      caCertPool,
 	}
 
-	// 2. Shared Transport & Dialer
 	dialer := &kafka.Dialer{
 		Timeout:   10 * time.Second,
 		DualStack: true,
 		TLS:       tlsConfig,
 		ClientID:  "chattr-producer",
 	}
-	// Using one transport prevents the "Unknown Topic" error caused by metadata lag
-	sharedTransport := &kafka.Transport{
-		TLS: tlsConfig,
-		Dial: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return dialer.DialContext(ctx, network, addr)
-		},
+
+	// 2. Quick Connection Test & Auto-Topic Creation (same as before)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	metaConn, err := dialer.DialContext(ctx, "tcp", brokers[0])
+	if err != nil {
+		log.Fatalf("❌ Failed to connect to broker for metadata: %v", err)
+	}
+	defer metaConn.Close()
+
+	partitions, err := metaConn.ReadPartitions()
+	if err != nil {
+		log.Fatalf("❌ Failed to read cluster partitions: %v", err)
 	}
 
-	// 3. Quick Connection Test (Bootstrapping)
-	conn, err := sharedTransport.Dial(context.Background(), "tcp", brokers[0])
-	if err != nil {
-		log.Fatalf("KAFKA AUTH ERROR: Connection failed: %v", err)
+	topicExists := false
+	for _, p := range partitions {
+		if p.Topic == "post-events" {
+			topicExists = true
+			break
+		}
 	}
-	conn.Close()
-	log.Println("KAFKA AUTH SUCCESS: TLS Handshake complete.")
 
-	conn, err = dialer.DialLeader(
-		context.Background(),
-		"tcp",
-		brokers[0],
-		"post-events",
-		0, // partition
-	)
-	if err != nil {
-		log.Fatalf("❌ Topic NOT reachable: %v", err)
+	if !topicExists {
+		log.Println("⚠️ Topic 'post-events' not found. Attempting to create it...")
+		err = metaConn.CreateTopics(kafka.TopicConfig{
+			Topic:             "post-events",
+			NumPartitions:     1,
+			ReplicationFactor: 1,
+		})
+		if err != nil {
+			log.Fatalf("❌ Failed to create topic 'post-events': %v", err)
+		}
+		log.Println("✅ Successfully created topic 'post-events'")
+	} else {
+		log.Println("✅ Topic 'post-events' exists and is reachable")
 	}
-	defer conn.Close()
-	
-	log.Println("✅ Topic is reachable and partition exists")
-	// 4. Return Producer with a dynamic Writer
+
+	// 3. Initialize a persistent kafka.Writer (Best Practice)
+	writer := &kafka.Writer{
+		Addr:         kafka.TCP(brokers...),
+		Balancer:     &kafka.LeastBytes{}, // Distributes load efficiently
+		Transport:    &kafka.Transport{TLS: tlsConfig},
+		BatchTimeout: 10 * time.Millisecond, // Flushes batches quickly for low latency
+		RequiredAcks: kafka.RequireOne,      // Appropriate for single-node / free tier
+	}
+
+	log.Println("✅ Kafka Producer initialized successfully with a shared Writer")
+
 	return &kafkaProducer{
-		dialer:dialer,
+		writer:  writer,
 		brokers: brokers,
 	}
 }
@@ -83,27 +101,18 @@ func (p *kafkaProducer) PublishEvent(topic string, message interface{}) error {
 		return fmt.Errorf("failed to marshal kafka message: %w", err)
 	}
 
-	conn, err := p.dialer.DialLeader(
-		context.Background(),
-		"tcp",
-		p.brokers[0],
-		topic,
-		0,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to dial leader: %w", err)
-	}
-	defer conn.Close()
+	// Create a context with a timeout for sending the message
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	_, err = conn.WriteMessages(
-		kafka.Message{
-			Value: payload,
-			Time:  time.Now(),
-		},
-	)
+	err = p.writer.WriteMessages(ctx, kafka.Message{
+		Topic: topic,
+		Value: payload,
+		Time:  time.Now(),
+	})
 
 	if err != nil {
-		return fmt.Errorf("failed to write message to kafka: %w", err)
+		return fmt.Errorf("failed to write message to kafka topic %s: %w", topic, err)
 	}
 
 	log.Printf("KAFKA: Event published successfully to topic: %s", topic)

@@ -154,7 +154,7 @@ func (as *AuthSubscriptionServer) VerifyOtp(ctx context.Context, req *pb.OtpRequ
 	}
 	otpResponse, err := as.AuthSubscriptionUsecase.VerifyOtp(ctx, otpReq)
 	if err != nil {
-		fmt.Println("error",err)
+		fmt.Println("error ----!!!",err)
 		return nil, err
 	}
 

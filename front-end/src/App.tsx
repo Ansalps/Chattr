@@ -5,6 +5,7 @@ import LandingPage from './pages/LandingPage';
 import UserLogin from './pages/UserLogin';
 import UserSignup from './pages/UserSignup';
 import VerifyOtp from './pages/VerifyOtp';
+import NewsFeedPage from './pages/NewsFeedPage';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/login" element={<UserLogin />} />
         <Route path="/signup" element={<UserSignup />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/newsfeed" element={<NewsFeedPage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
 

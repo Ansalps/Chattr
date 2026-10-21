@@ -68,16 +68,6 @@ export default function AdminLogin() {
         id: rawAdmin.id ?? rawAdmin.ID,
         email: rawAdmin.email ?? rawAdmin.Email,
       };
-      const accessToken = payload.data?.access_token ?? payload.data?.AccessToken ?? '';
-      const refreshToken = payload.data?.refresh_token ?? payload.data?.RefreshToken ?? '';
-
-      if (accessToken) {
-        localStorage.setItem('chattr_admin_access_token', accessToken);
-      }
-
-      if (refreshToken) {
-        localStorage.setItem('chattr_admin_refresh_token', refreshToken);
-      }
 
       if (admin.email) {
         localStorage.setItem('chattr_admin_user', JSON.stringify(admin));

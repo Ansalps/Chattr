@@ -183,6 +183,7 @@ func (m *AuthMiddleware) VerifyJwt(requiredRole string, tokenType string, tokenS
 				cookieName = "jwt_user_refresh_token"
 			}
 		case "otpverification":
+			
 			cookieName = "jwt_otpverification_token"
 		case "resetpassword":
 			cookieName = "jwt_resetpassword_token"
@@ -191,7 +192,7 @@ func (m *AuthMiddleware) VerifyJwt(requiredRole string, tokenType string, tokenS
 
 		tokenString, err := c.Cookie(cookieName)
 		if err != nil {
-
+			
 			tokenString, err = c.Cookie("jwt_token")
 			if err != nil {
 
@@ -200,12 +201,15 @@ func (m *AuthMiddleware) VerifyJwt(requiredRole string, tokenType string, tokenS
 				return
 			}
 		}
-
+		
 		if tokenString == "" {
 			//log.Warn("missing authorization header")
+			
 			response.AbortWithError(c, http.StatusUnauthorized, "Authorization cookie missing")
 			return
 		}
+
+		
 
 		var jwtClaims responsemodels.JwtClaims
 		token, err := jwt.ParseWithClaims(tokenString, &jwtClaims, func(token *jwt.Token) (interface{}, error) {
@@ -213,7 +217,6 @@ func (m *AuthMiddleware) VerifyJwt(requiredRole string, tokenType string, tokenS
 		})
 
 		if err != nil {
-			fmt.Println("jwstClaims.Role", jwtClaims.Role)
 			if errors.Is(err, jwt.ErrTokenExpired) {
 				//log.Warn("token expired")
 				response.AbortWithError(c, http.StatusUnauthorized, "Session expired, repeat the process to get new otp again")
@@ -221,6 +224,7 @@ func (m *AuthMiddleware) VerifyJwt(requiredRole string, tokenType string, tokenS
 			}
 			if errors.Is(err, jwt.ErrTokenSignatureInvalid) {
 				//log.Warn("token signature invalid")
+				fmt.Println("is it in here?")
 				response.AbortWithError(c, http.StatusUnauthorized, "token signature invalid")
 				return
 			}

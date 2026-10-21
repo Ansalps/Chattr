@@ -296,7 +296,7 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(ctx context.Context, otpReq request
 			UserId: otpReq.UserId,
 		})
 	if err!=nil{
-		fmt.Println("error in ")
+		fmt.Println("error in ",err)
 		return responsemodels.OtpVerificationResponse{},fmt.Errorf("%w: %v:",domain.ErrInternal,err)
 	}
 	return responsemodels.OtpVerificationResponse{
@@ -399,13 +399,13 @@ func (as *AuthSubscriptionUsecase) ForgotPassword(ctx context.Context, forgotPas
 			log.Printf("Failed to send email to %s: %v", forgotPasswordReq.Email, err)
 		}
 	}()
-	otpVerificationToken, err := as.JwtProvider.GenerateToken(as.Config.Token.OtpVerificationSecurityKey, uint64(user.ID), user.Email, "otpverification", "access", 5*time.Minute)
+	resetPasswordToken, err := as.JwtProvider.GenerateToken(as.Config.Token.ResetPasswordSecurityKey, uint64(user.ID), user.Email, "resetpassword", "access", 5*time.Minute)
 	if err != nil {
 		return responsemodels.ForgotPassordResponse{}, fmt.Errorf("%w: %v:", domain.ErrVerifyOtpTokenFail, err)
 	}
 	return responsemodels.ForgotPassordResponse{
 		Email:     user.Email,
-		TempToken: otpVerificationToken,
+		TempToken: resetPasswordToken,
 	}, nil
 }
 func (as *AuthSubscriptionUsecase) ResetPassword(resetPasswordReq requestmodels.ResetPasswordRequest) (responsemodels.ResetPasswordResponse, error) {

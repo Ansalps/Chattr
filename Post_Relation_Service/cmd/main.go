@@ -40,7 +40,9 @@ func main() {
 			logger.Field{Key: "error", Value: err},
 		)
 	}
+	log.Info("Starting dependency injection...")
 	PostRelationServiceServer,feedUsecase, err := di.DependencyInjection(cfg, log)
+	log.Info("Dependency injection completed successfully")
 	if err != nil {
 		log.Fatal("cannot start server",
 			logger.Field{Key: "error", Value: err},

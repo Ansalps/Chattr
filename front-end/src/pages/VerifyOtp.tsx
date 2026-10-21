@@ -38,12 +38,10 @@ export default function VerifyOtp() {
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem('chattr_user_access_token');
       const response = await fetch(`${API_BASE_URL}/user/verify-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -60,7 +58,6 @@ export default function VerifyOtp() {
       }
 
       setSuccessMessage(payload.message || 'OTP verified successfully. Redirecting...');
-      localStorage.removeItem('chattr_pending_signup_email');
       sessionStorage.removeItem('chattr_pending_signup_email');
 
       window.setTimeout(() => {

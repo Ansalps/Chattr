@@ -64,10 +64,6 @@ export default function UserSignup() {
       setConfirmPassword('');
 
       sessionStorage.setItem('chattr_pending_signup_email', email);
-      if (payload.data?.access_token || payload.data?.AccessToken) {
-        const token = payload.data?.access_token ?? payload.data?.AccessToken;
-        localStorage.setItem('chattr_user_access_token', token);
-      }
 
       window.setTimeout(() => {
         navigate('/verify-otp', { state: { email } });

@@ -22,13 +22,29 @@ export default function UserLogin() {
     setIsLoading(true);
 
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 400));
-      setSuccessMessage('User login successful. Redirecting...');
+      const response = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/user/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok || payload.status_code >= 400) {
+        throw new Error(payload.message || 'User login failed.');
+      }
+
+      setSuccessMessage(payload.message || 'User login successful. Redirecting...');
       setEmail('');
       setPassword('');
-      window.setTimeout(() => navigate('/'), 600);
-    } catch {
-      setError('Unable to sign in right now. Please try again.');
+      window.setTimeout(() => navigate('/newsfeed'), 600);
+    } catch (loginError) {
+      const message =
+        loginError instanceof Error ? loginError.message : 'Unable to sign in right now. Please try again.';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
