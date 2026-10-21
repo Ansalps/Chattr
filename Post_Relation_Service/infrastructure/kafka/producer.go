@@ -14,85 +14,85 @@ import (
 )
 
 type kafkaProducer struct {
-	writer  *kafka.Writer
-	brokers []string
+    writer  *kafka.Writer
+    brokers []string
 }
 
 func NewKafkaProducer(brokers []string, caCert, accessCert, accessKey []byte) interfacesUsecase.KafkaProducer {
-	// 1. Setup TLS (same as before)
-	cert, err := tls.X509KeyPair(accessCert, accessKey)
-	if err != nil {
-		log.Fatalf("KAFKA: Failed to load client cert/key: %v", err)
-	}
+    // 1. Setup TLS (same as before)
+    cert, err := tls.X509KeyPair(accessCert, accessKey)
+    if err != nil {
+        log.Fatalf("KAFKA: Failed to load client cert/key: %v", err)
+    }
 
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
+    caCertPool := x509.NewCertPool()
+    caCertPool.AppendCertsFromPEM(caCert)
 
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-		RootCAs:      caCertPool,
-	}
+    tlsConfig := &tls.Config{
+        Certificates: []tls.Certificate{cert},
+        RootCAs:      caCertPool,
+    }
 
-	dialer := &kafka.Dialer{
-		Timeout:   10 * time.Second,
-		DualStack: true,
-		TLS:       tlsConfig,
-		ClientID:  "chattr-producer",
-	}
+    dialer := &kafka.Dialer{
+        Timeout:   10 * time.Second,
+        DualStack: true,
+        TLS:       tlsConfig,
+        ClientID:  "chattr-producer",
+    }
 
 	// 2. Quick Connection Test & Auto-Topic Creation (same as before)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+    defer cancel()
 
-	metaConn, err := dialer.DialContext(ctx, "tcp", brokers[0])
-	if err != nil {
-		log.Fatalf("❌ Failed to connect to broker for metadata: %v", err)
-	}
-	defer metaConn.Close()
+    metaConn, err := dialer.DialContext(ctx, "tcp", brokers[0])
+    if err != nil {
+        log.Fatalf("❌ Failed to connect to broker for metadata: %v", err)
+    }
+    defer metaConn.Close()
 
 	partitions, err := metaConn.ReadPartitions()
-	if err != nil {
-		log.Fatalf("❌ Failed to read cluster partitions: %v", err)
-	}
+    if err != nil {
+        log.Fatalf("❌ Failed to read cluster partitions: %v", err)
+    }
 
-	topicExists := false
-	for _, p := range partitions {
-		if p.Topic == "post-events" {
-			topicExists = true
-			break
-		}
-	}
+    topicExists := false
+    for _, p := range partitions {
+        if p.Topic == "post-events" {
+            topicExists = true
+            break
+        }
+    }
 
 	if !topicExists {
-		log.Println("⚠️ Topic 'post-events' not found. Attempting to create it...")
-		err = metaConn.CreateTopics(kafka.TopicConfig{
-			Topic:             "post-events",
-			NumPartitions:     1,
-			ReplicationFactor: 1,
-		})
-		if err != nil {
-			log.Fatalf("❌ Failed to create topic 'post-events': %v", err)
-		}
-		log.Println("✅ Successfully created topic 'post-events'")
-	} else {
-		log.Println("✅ Topic 'post-events' exists and is reachable")
-	}
+        log.Println("⚠️ Topic 'post-events' not found. Attempting to create it...")
+        err = metaConn.CreateTopics(kafka.TopicConfig{
+            Topic:             "post-events",
+            NumPartitions:     1,
+            ReplicationFactor: 1,
+        })
+        if err != nil {
+            log.Fatalf("❌ Failed to create topic 'post-events': %v", err)
+        }
+        log.Println("✅ Successfully created topic 'post-events'")
+    } else {
+        log.Println("✅ Topic 'post-events' exists and is reachable")
+    }
 
 	// 3. Initialize a persistent kafka.Writer (Best Practice)
-	writer := &kafka.Writer{
-		Addr:         kafka.TCP(brokers...),
-		Balancer:     &kafka.LeastBytes{}, // Distributes load efficiently
-		Transport:    &kafka.Transport{TLS: tlsConfig},
-		BatchTimeout: 10 * time.Millisecond, // Flushes batches quickly for low latency
-		RequiredAcks: kafka.RequireOne,      // Appropriate for single-node / free tier
-	}
+    writer := &kafka.Writer{
+        Addr:         kafka.TCP(brokers...),
+        Balancer:     &kafka.LeastBytes{}, // Distributes load efficiently
+        Transport:    &kafka.Transport{TLS: tlsConfig},
+        BatchTimeout: 10 * time.Millisecond, // Flushes batches quickly for low latency
+        RequiredAcks: kafka.RequireOne,      // Appropriate for single-node / free tier
+    }
 
-	log.Println("✅ Kafka Producer initialized successfully with a shared Writer")
+    log.Println("✅ Kafka Producer initialized successfully with a shared Writer")
 
-	return &kafkaProducer{
-		writer:  writer,
-		brokers: brokers,
-	}
+    return &kafkaProducer{
+        writer:  writer,
+        brokers: brokers,
+    }
 }
 
 func (p *kafkaProducer) PublishEvent(topic string, message interface{}) error {

@@ -858,8 +858,13 @@ func (as *PostRelationHandler) FetchNewsFeed(c *gin.Context) {
 	req.UserID = jwtClaims.ID
 
 	limitStr := c.Query("limit")
-
-	limit, err := strconv.Atoi(limitStr)
+	var limit int
+	var err error
+	if limitStr == "" {
+		limit = 10 // Default limit if not provided
+	} else {
+		limit, err = strconv.Atoi(limitStr)
+	}
 
 	if err != nil || limit < 1 || limit > 100 {
 		if err != nil {
