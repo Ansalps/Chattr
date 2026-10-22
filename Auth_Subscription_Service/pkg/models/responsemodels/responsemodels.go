@@ -229,6 +229,9 @@ type GetProfileInformationResponse struct{
 	Links         string
 	BlueTick	bool	
 	Phone string
+	PostCount uint
+	FollowerCount uint
+	FollowingCount uint
 }
 
 type EditProfile struct{

@@ -413,7 +413,36 @@ func (as *AuthSubscriptionHandler) UserLogin(c *gin.Context) {
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
-	success := response.ClientResponse(http.StatusOK, "User authenticated successfully", user)
+	c.SetCookie(
+		"jwt_user_access_token",
+		user.AccessToken,
+		86400,
+		"/",
+		"",
+		false,
+		true,
+	)
+	c.SetCookie(
+		"jwt_user_refresh_token",
+		user.RefreshToken,
+		86400,
+		"/",
+		"",
+		false,
+		true,
+	)
+	success := response.ClientResponse(
+		http.StatusOK, 
+		"User authenticated successfully", 
+		map[string]interface{}{
+			"id":user.User.Id,
+			"name":user.User.Name,
+			"user_name":user.User.UserName,
+			"email":user.User.Email,
+			"status":user.User.Status,
+			"blue_tick":user.User.BlueTick,
+		},
+	)
 	c.JSON(success.StatusCode, success)
 }
 

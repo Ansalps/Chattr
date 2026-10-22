@@ -8,6 +8,8 @@ papipost:
 	cd Api_Gateway && protoc --go_out=. --go-grpc_out=. ./pkg/proto/post_relation.proto
 pauthauth:
 	cd Auth_Subscription_Service && protoc --go_out=. --go-grpc_out=. ./pkg/pb/auth_subscription.proto
+pauthpost:
+	cd Auth_Subscription_Service && protoc --go_out=. --go-grpc_out=. ./pkg/pb/post_relation.proto
 ppostpost:
 	cd Post_Relation_Service && protoc --go_out=. --go-grpc_out=. ./pkg/pb/post_relation.proto
 Run:

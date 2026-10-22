@@ -6,6 +6,8 @@ import UserLogin from './pages/UserLogin';
 import UserSignup from './pages/UserSignup';
 import VerifyOtp from './pages/VerifyOtp';
 import NewsFeedPage from './pages/NewsFeedPage';
+import ProfilePage from './pages/ProfilePage';
+import EditProfilePage from './pages/EditProfilePage';
 
 function App() {
   return (
@@ -16,6 +18,9 @@ function App() {
         <Route path="/signup" element={<UserSignup />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
         <Route path="/newsfeed" element={<NewsFeedPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/edit" element={<EditProfilePage />} />
+        <Route path="/profile/:userId" element={<ProfilePage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
 

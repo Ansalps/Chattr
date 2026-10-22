@@ -1,14 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
+type FeedComment = {
+  id: string;
+  author: string;
+  text: string;
+  time: string;
+  replyCount?: number;
+  replies?: FeedComment[];
+};
+
 type FeedPost = {
   id: string;
+  userId?: string;
   author: string;
   handle: string;
   time: string;
   content: string;
   imageUrls: string[];
+  profileImageUrl?: string;
+  isLiked: boolean;
   likes: number;
   comments: number;
   shares: number;
@@ -25,6 +38,7 @@ const fallbackPosts: FeedPost[] = [
     content:
       'Welcome to your new home feed. Start following creators, share updates, and keep the conversation moving with your community.',
     imageUrls: [],
+    isLiked: false,
     likes: 324,
     comments: 19,
     shares: 12,
@@ -39,6 +53,7 @@ const fallbackPosts: FeedPost[] = [
     content:
       'Designing clearer digital experiences for small teams. Small product choices really do build trust over time.',
     imageUrls: [],
+    isLiked: true,
     likes: 188,
     comments: 24,
     shares: 8,
@@ -53,6 +68,7 @@ const fallbackPosts: FeedPost[] = [
     content:
       'Shipping one thoughtful feature a day beats chasing every idea. Keep it simple, measurable, and useful.',
     imageUrls: [],
+    isLiked: false,
     likes: 542,
     comments: 38,
     shares: 21,
@@ -63,6 +79,15 @@ const fallbackPosts: FeedPost[] = [
 
 const formatCount = (value: number) =>
   new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+
+const getInitials = (value: string) =>
+  value
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase() || 'A';
 
 const normalizeStringArray = (value: unknown): string[] => {
   if (Array.isArray(value)) {
@@ -118,6 +143,14 @@ const normalizeFeedPosts = (value: unknown): FeedPost[] => {
         (typeof userMeta.username === 'string' && userMeta.username) ||
         'Chattr User';
 
+      const profileImageUrl =
+        (typeof source.profile_image_url === 'string' && source.profile_image_url) ||
+        (typeof source.profileImageUrl === 'string' && source.profileImageUrl) ||
+        (typeof source.ProfileImgUrl === 'string' && source.ProfileImgUrl) ||
+        (typeof userMeta.profile_image_url === 'string' && userMeta.profile_image_url) ||
+        (typeof userMeta.ProfileImgUrl === 'string' && userMeta.ProfileImgUrl) ||
+        '';
+
       const handle =
         (typeof source.handle === 'string' && source.handle) ||
         (typeof source.Handle === 'string' && source.Handle) ||
@@ -145,6 +178,8 @@ const normalizeFeedPosts = (value: unknown): FeedPost[] => {
           source.Images,
       );
 
+      const isLiked = Boolean(source.isLiked ?? source.IsLiked ?? source.is_liked ?? false);
+
       const likes = Number(
         source.likes ??
           source.LikesCount ??
@@ -169,6 +204,16 @@ const normalizeFeedPosts = (value: unknown): FeedPost[] => {
           0,
       ) || 0;
 
+      const userId = String(
+        source.user_id ??
+          source.UserID ??
+          source.userId ??
+          source.userID ??
+          (userMeta.user_id as string | number | undefined) ??
+          (userMeta.UserID as string | number | undefined) ??
+          'me',
+      );
+
       return {
         id: String(
           source.id ??
@@ -177,6 +222,7 @@ const normalizeFeedPosts = (value: unknown): FeedPost[] => {
             source.PostId ??
             `${author}-${Math.random()}`,
         ),
+        userId,
         author,
         handle,
         time: String(
@@ -188,6 +234,8 @@ const normalizeFeedPosts = (value: unknown): FeedPost[] => {
         ),
         content,
         imageUrls,
+        profileImageUrl,
+        isLiked,
         likes,
         comments,
         shares,
@@ -202,6 +250,7 @@ const normalizeFeedPosts = (value: unknown): FeedPost[] => {
 };
 
 export default function NewsFeedPage() {
+  const navigate = useNavigate();
   const [posts, setPosts] = useState<FeedPost[]>(fallbackPosts);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -211,6 +260,13 @@ export default function NewsFeedPage() {
   const [isPosting, setIsPosting] = useState(false);
   const [composerError, setComposerError] = useState('');
   const [composerSuccess, setComposerSuccess] = useState('');
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [replyingToComment, setReplyingToComment] = useState<Record<string, string | null>>({});
+  const [expandedRepliesByComment, setExpandedRepliesByComment] = useState<Record<string, boolean>>({});
+  const [openCommentFor, setOpenCommentFor] = useState<string | null>(null);
+  const [commentsByPost, setCommentsByPost] = useState<Record<string, FeedComment[]>>({});
+  const [commentLoading, setCommentLoading] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchNewsFeed = async () => {
@@ -279,6 +335,217 @@ export default function NewsFeedPage() {
     { name: 'Aisha Noor', role: 'Community Builder', accent: 'from-violet-400 to-purple-500' },
   ];
 
+  const handleToggleLike = async (postId: string, currentLiked: boolean) => {
+    try {
+      const endpoint = `${API_BASE_URL}/user/post/${postId}/${currentLiked ? 'unlike' : 'like'}`;
+      const response = await fetch(endpoint, {
+        method: currentLiked ? 'DELETE' : 'POST',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.message || payload.error || 'Unable to update like status.');
+      }
+
+      setPosts((currentPosts) =>
+        currentPosts.map((post) => {
+          if (post.id !== postId) return post;
+          const nextLiked = !currentLiked;
+          return {
+            ...post,
+            isLiked: nextLiked,
+            likes: Math.max(0, post.likes + (nextLiked ? 1 : -1)),
+          };
+        }),
+      );
+    } catch (error) {
+      console.error('toggle like failed', error);
+    }
+  };
+
+  const fetchCommentsForPost = async (postId: string) => {
+    if (commentLoading[postId]) return;
+
+    setCommentLoading((current) => ({ ...current, [postId]: true }));
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/post/${postId}/comment?limit=20&offset=0`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok || payload.status_code >= 400) {
+        throw new Error(payload.message || payload.error || 'Unable to load comments.');
+      }
+
+      const data = payload.data ?? payload;
+      const commentList = Array.isArray(data?.Comments)
+        ? data.Comments
+        : Array.isArray(data?.comments)
+          ? data.comments
+          : Array.isArray(payload.Comments)
+            ? payload.Comments
+            : Array.isArray(payload.comments)
+              ? payload.comments
+              : [];
+
+      const normalizedComments: FeedComment[] = commentList.map((comment: Record<string, unknown>, index: number) => {
+        const userDetails =
+          (comment.UserDetails as Record<string, unknown>) ||
+          (comment.userDetails as Record<string, unknown>) ||
+          (comment.user_details as Record<string, unknown>) ||
+          {};
+
+        const author =
+          (typeof comment.Name === 'string' && comment.Name) ||
+          (typeof comment.name === 'string' && comment.name) ||
+          (typeof userDetails.Name === 'string' && userDetails.Name) ||
+          (typeof userDetails.name === 'string' && userDetails.name) ||
+          (typeof userDetails.UserName === 'string' && userDetails.UserName) ||
+          (typeof userDetails.userName === 'string' && userDetails.userName) ||
+          'User';
+
+        const text =
+          (typeof comment.CommentText === 'string' && comment.CommentText) ||
+          (typeof comment.comment_text === 'string' && comment.comment_text) ||
+          (typeof comment.commentText === 'string' && comment.commentText) ||
+          'Comment';
+
+        const time =
+          (typeof comment.CommentAge === 'string' && comment.CommentAge) ||
+          (typeof comment.comment_age === 'string' && comment.comment_age) ||
+          'just now';
+
+        const rawChildComments = Array.isArray(comment.ChildComment)
+          ? comment.ChildComment
+          : Array.isArray(comment.childComment)
+            ? comment.childComment
+            : [];
+
+        const replies = rawChildComments.map((child: Record<string, unknown>, childIndex: number) => {
+          const childUserDetails =
+            (child.UserDetails as Record<string, unknown>) ||
+            (child.userDetails as Record<string, unknown>) ||
+            (child.user_details as Record<string, unknown>) ||
+            {};
+
+          const childAuthor =
+            (typeof child.Name === 'string' && child.Name) ||
+            (typeof child.name === 'string' && child.name) ||
+            (typeof childUserDetails.Name === 'string' && childUserDetails.Name) ||
+            (typeof childUserDetails.name === 'string' && childUserDetails.name) ||
+            (typeof childUserDetails.UserName === 'string' && childUserDetails.UserName) ||
+            (typeof childUserDetails.userName === 'string' && childUserDetails.userName) ||
+            'User';
+
+          const childText =
+            (typeof child.CommentText === 'string' && child.CommentText) ||
+            (typeof child.comment_text === 'string' && child.comment_text) ||
+            (typeof child.commentText === 'string' && child.commentText) ||
+            'Comment';
+
+          const childTime =
+            (typeof child.CommentAge === 'string' && child.CommentAge) ||
+            (typeof child.comment_age === 'string' && child.comment_age) ||
+            'just now';
+
+          return {
+            id: String(child.CommentID ?? child.comment_id ?? child.id ?? `${postId}-${index}-${childIndex}`),
+            author: childAuthor,
+            text: childText,
+            time: childTime,
+          };
+        });
+
+        return {
+          id: String(comment.CommentID ?? comment.comment_id ?? comment.id ?? `${postId}-${index}`),
+          author,
+          text,
+          time,
+          replyCount: Number(comment.ChildCommentCount ?? comment.child_comment_count ?? replies.length) || replies.length,
+          replies,
+        };
+      });
+
+      setCommentsByPost((current) => ({ ...current, [postId]: normalizedComments }));
+    } catch (error) {
+      console.error('fetch comments failed', error);
+      setCommentsByPost((current) => ({ ...current, [postId]: [] }));
+    } finally {
+      setCommentLoading((current) => ({ ...current, [postId]: false }));
+    }
+  };
+
+  const handleOpenComments = async (postId: string) => {
+    if (openCommentFor === postId) {
+      setOpenCommentFor(null);
+      return;
+    }
+
+    await fetchCommentsForPost(postId);
+    setOpenCommentFor(postId);
+  };
+
+  const handleAddComment = async (postId: string, parentCommentId?: string) => {
+    const draftKey = parentCommentId ? `${postId}:${parentCommentId}` : postId;
+    const commentText = (parentCommentId ? (replyDrafts[draftKey] ?? '') : (commentDrafts[postId] ?? '')).trim();
+    if (!commentText) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/post/${postId}/comment`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          comment_text: commentText,
+          ...(parentCommentId ? { parent_comment_id: Number(parentCommentId) } : {}),
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.message || payload.error || 'Unable to add your comment.');
+      }
+
+      setPosts((currentPosts) =>
+        currentPosts.map((post) =>
+          post.id === postId
+            ? { ...post, comments: post.comments + 1 }
+            : post,
+        ),
+      );
+
+      if (parentCommentId) {
+        setReplyDrafts((currentDrafts) => ({ ...currentDrafts, [draftKey]: '' }));
+        setReplyingToComment((current) => ({ ...current, [postId]: null }));
+      } else {
+        setCommentDrafts((currentDrafts) => ({ ...currentDrafts, [postId]: '' }));
+      }
+
+      await fetchCommentsForPost(postId);
+    } catch (error) {
+      console.error('add comment failed', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/user/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('logout failed', error);
+    } finally {
+      window.location.href = '/login';
+    }
+  };
+
   const handleCreatePost = async () => {
     if (!postText.trim() && selectedFiles.length === 0) {
       setComposerError('Please add a caption or at least one media file.');
@@ -322,6 +589,7 @@ export default function NewsFeedPage() {
         time: 'just now',
         content: postText.trim() || 'Shared a new update with the community.',
         imageUrls: selectedFiles.length > 0 ? selectedFiles.map((file) => URL.createObjectURL(file)) : [],
+        isLiked: false,
         likes: 0,
         comments: 0,
         shares: 0,
@@ -349,9 +617,14 @@ export default function NewsFeedPage() {
         <header className="mb-6 rounded-[28px] border border-sky-100 bg-white/90 p-4 shadow-[0_20px_50px_rgba(14,116,144,0.08)] backdrop-blur-xl">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-lg font-black text-white shadow-lg shadow-sky-300/40">
-                C
-              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/profile')}
+                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-lg font-black text-white shadow-lg shadow-sky-300/40 transition hover:scale-[1.02]"
+                aria-label="View profile"
+              >
+                A
+              </button>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-600">Chattr</p>
                 <h1 className="text-2xl font-black tracking-tight text-slate-900">News feed</h1>
@@ -367,6 +640,13 @@ export default function NewsFeedPage() {
                 className="rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-300/40"
               >
                 Create Post
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+              >
+                Logout
               </button>
             </div>
           </div>
@@ -437,15 +717,21 @@ export default function NewsFeedPage() {
                 <article key={post.id} className="rounded-[28px] border border-sky-100 bg-white p-5 shadow-sm">
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${post.accent} text-sm font-bold text-white`}>
-                        {post.author
-                          .split(' ')
-                          .slice(0, 2)
-                          .map((part) => part[0])
-                          .join('')
-                          .slice(0, 2)
-                          .toUpperCase()}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/profile/${encodeURIComponent(post.userId ?? 'me')}`)}
+                        className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br text-sm font-bold text-white shadow-sm ring-1 ring-sky-100 transition hover:scale-[1.02]"
+                        aria-label={`View ${post.author}'s profile`}
+                        style={{ backgroundImage: post.profileImageUrl ? 'none' : undefined }}
+                      >
+                        {post.profileImageUrl ? (
+                          <img src={post.profileImageUrl} alt={post.author} className="h-full w-full object-cover" />
+                        ) : (
+                          <span className={`flex h-full w-full items-center justify-center bg-gradient-to-br ${post.accent}`}>
+                            {getInitials(post.author)}
+                          </span>
+                        )}
+                      </button>
 
                       <div>
                         <div className="flex items-center gap-2">
@@ -485,13 +771,169 @@ export default function NewsFeedPage() {
                   )}
 
                   <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-sm text-slate-500">
-                    <div className="flex items-center gap-5">
-                      <span>♥ {formatCount(post.likes)}</span>
-                      <span>💬 {formatCount(post.comments)}</span>
-                      <span>↻ {formatCount(post.shares)}</span>
+                    <div className="flex items-center gap-2 sm:gap-5">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleLike(post.id, post.isLiked)}
+                        className={`flex cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 transition ${post.isLiked ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-600'} `}
+                      >
+                        <span>{post.isLiked ? '♥' : '♡'}</span>
+                        <span>{formatCount(post.likes)}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenComments(post.id)}
+                        className="flex cursor-pointer items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-slate-600 transition hover:bg-sky-50 hover:text-sky-700"
+                      >
+                        <span>💬</span>
+                        <span>{formatCount(post.comments)}</span>
+                      </button>
+                      <span className="flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5">
+                        <span>↻</span>
+                        <span>{formatCount(post.shares)}</span>
+                      </span>
                     </div>
                     <button className="rounded-full bg-sky-50 px-3 py-1.5 font-medium text-sky-700">View post</button>
                   </div>
+
+                  {openCommentFor === post.id && (
+                    <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/60 p-3">
+                      <div className="mb-3 rounded-2xl border border-sky-200 bg-white p-3">
+                        <textarea
+                          value={commentDrafts[post.id] ?? ''}
+                          onChange={(event) =>
+                            setCommentDrafts((currentDrafts) => ({
+                              ...currentDrafts,
+                              [post.id]: event.target.value,
+                            }))
+                          }
+                          rows={3}
+                          placeholder="Write a comment..."
+                          className="w-full resize-none border-0 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
+                        />
+                        <div className="mt-2 flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setOpenCommentFor(null)}
+                            className="cursor-pointer rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-500"
+                          >
+                            Close
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAddComment(post.id)}
+                            className="cursor-pointer rounded-full bg-sky-600 px-3 py-1.5 text-sm font-semibold text-white"
+                          >
+                            Post comment
+                          </button>
+                        </div>
+                      </div>
+
+                      {commentLoading[post.id] ? (
+                        <div className="py-2 text-sm text-slate-500">Loading comments...</div>
+                      ) : (commentsByPost[post.id] ?? []).length > 0 ? (
+                        <div className="space-y-3">
+                          {(commentsByPost[post.id] ?? []).map((comment) => {
+                            const replyDraftKey = `${post.id}:${comment.id}`;
+                            const isReplying = replyingToComment[post.id] === comment.id;
+                            const isExpanded = expandedRepliesByComment[`${post.id}:${comment.id}`] ?? false;
+
+                            return (
+                              <div key={comment.id} className="rounded-2xl bg-white px-3 py-2 shadow-sm ring-1 ring-slate-100">
+                                <div className="mb-1 flex items-center justify-between gap-3">
+                                  <span className="text-sm font-semibold text-slate-800">{comment.author}</span>
+                                  <span className="text-[11px] text-slate-400">{comment.time}</span>
+                                </div>
+                                <p className="text-sm leading-6 text-slate-600">{comment.text}</p>
+
+                                {comment.replyCount && comment.replyCount > 0 ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setExpandedRepliesByComment((current) => ({
+                                        ...current,
+                                        [`${post.id}:${comment.id}`]: !isExpanded,
+                                      }))
+                                    }
+                                    className="mt-2 cursor-pointer text-xs font-medium text-sky-700 hover:text-sky-800"
+                                  >
+                                    {isExpanded ? 'Hide ' : ''}
+                                    {comment.replyCount} {comment.replyCount === 1 ? 'reply' : 'replies'}
+                                  </button>
+                                ) : null}
+
+                                <div className="mt-2 flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setReplyingToComment((current) => ({
+                                        ...current,
+                                        [post.id]: isReplying ? null : comment.id,
+                                      }))
+                                    }
+                                    className="cursor-pointer text-xs font-medium text-sky-700 hover:text-sky-800"
+                                  >
+                                    {isReplying ? 'Cancel' : 'Reply'}
+                                  </button>
+                                </div>
+
+                                {isReplying && (
+                                  <div className="mt-3 rounded-2xl border border-sky-200 bg-sky-50 p-2">
+                                    <textarea
+                                      value={replyDrafts[replyDraftKey] ?? ''}
+                                      onChange={(event) =>
+                                        setReplyDrafts((currentDrafts) => ({
+                                          ...currentDrafts,
+                                          [replyDraftKey]: event.target.value,
+                                        }))
+                                      }
+                                      rows={2}
+                                      placeholder={`Reply to ${comment.author}...`}
+                                      className="w-full resize-none border-0 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
+                                    />
+                                    <div className="mt-2 flex items-center justify-end gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setReplyingToComment((current) => ({ ...current, [post.id]: null }))}
+                                        className="cursor-pointer rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-500"
+                                      >
+                                        Close
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAddComment(post.id, comment.id)}
+                                        className="cursor-pointer rounded-full bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white"
+                                      >
+                                        Post reply
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {isExpanded && (comment.replies ?? []).length > 0 && (
+                                  <div className="mt-3 space-y-2 border-l border-sky-200 pl-3">
+                                    {(comment.replies ?? []).map((reply) => (
+                                      <div key={reply.id} className="rounded-xl bg-sky-50 px-2.5 py-2">
+                                        <div className="mb-1 flex items-center justify-between gap-3">
+                                          <span className="text-xs font-semibold text-slate-800">{reply.author}</span>
+                                          <span className="text-[10px] text-slate-400">{reply.time}</span>
+                                        </div>
+                                        <p className="text-xs leading-5 text-slate-600">{reply.text}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl bg-white px-3 py-2 text-sm text-slate-500 ring-1 ring-slate-100">
+                          No comments yet. Be the first to share your thought.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </article>
               ))
             )}

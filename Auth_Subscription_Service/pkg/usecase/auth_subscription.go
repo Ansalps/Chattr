@@ -862,6 +862,16 @@ func (as *AuthSubscriptionUsecase) GetProfileInformation(req requestmodels.GetPr
 		}
 		return responsemodels.GetProfileInformationResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
+	resp1,err:=as.PostRelationClient.PostFollowCount(context.Background(),&pb.PostFollowCountRequest{
+		UserId: req.UserId,
+	})
+	if err!=nil{
+		fmt.Println("error in ",err)
+		return resp,fmt.Errorf("%w: %v:",domain.ErrInternal,err)
+	}
+	resp.PostCount=uint(resp1.PostCount)
+	resp.FollowerCount=uint(resp1.FollowerCount)
+	resp.FollowingCount=uint(resp1.FollowingCount)
 	return resp, nil
 }
 func (as *AuthSubscriptionUsecase) EditProfileInformation(userId uint64, updateData map[string]interface{}) (responsemodels.EditProfile, error) {

@@ -4,6 +4,8 @@ option go_package="./pkg/pb";
 
 service PostRelationService{
     rpc InsertUserIntoFollowCount(InsertUserRequest) returns(Empty);
+    rpc PostFollowCount(PostFollowCountRequest) returns (PostFollowCountResponse);
+
 }
 
 message InsertUserRequest{
@@ -11,4 +13,13 @@ message InsertUserRequest{
 }
 message Empty{
 
+}
+
+message PostFollowCountRequest{
+    uint64 UserId=1;
+}
+message PostFollowCountResponse{
+    uint64 PostCount=1;
+    uint64 FollowerCount=2;
+    uint64 FollowingCount=3;
 }

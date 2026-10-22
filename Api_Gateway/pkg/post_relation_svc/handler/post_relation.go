@@ -493,9 +493,11 @@ func (as *PostRelationHandler) Unfollow(c *gin.Context) {
 }
 
 func (as *PostRelationHandler) FetchComments(c *gin.Context) {
+	fmt.Println("hi-hi-hi-")
 	log := utils.GetLogger(c)
 	limit, offset, page, err := utils.SetPageLimit(c, log)
 	if err != nil {
+		fmt.Println("error is ",err)
 		return
 	}
 	postIdStr := c.Param("post_id")

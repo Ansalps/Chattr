@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -9,21 +10,38 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetPageLimit(c *gin.Context, log logger.Logger) (int, int,int,error) {
+func SetPageLimit(c *gin.Context, log logger.Logger) (int, int, int, error) {
 	pageStr := c.Query("page")
 	limitStr := c.Query("limit")
 
-	page, err := strconv.Atoi(pageStr)
+	var page int
+	var err error
+	if pageStr == "" {
+		page = 1 // Default limit if not provided
+	} else {
+		page, err = strconv.Atoi(pageStr)
+		
+	}
+
 	if err != nil || page < 1 {
 		if err != nil {
 			//log.Printf("Error while string to int conversion(page), error: %v", err)
 			LogAdminApi(log, 400, "Error while string to int conversion(page), error:"+err.Error())
 		}
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page value", nil))
-		return 0,0,0,err
+		return 0, 0, 0, err
 	}
-
-	limit, err := strconv.Atoi(limitStr)
+	fmt.Println("hello-hello-hello")
+	var limit int
+	if limitStr == "" {
+		limit = 10 // Default limit if not provided
+	} else {
+		limit, err = strconv.Atoi(limitStr)
+		if err != nil {
+			fmt.Println("lim", limitStr)
+			fmt.Println("error", err)
+		}
+	}
 
 	if err != nil || limit < 1 || limit > 100 {
 		if err != nil {
@@ -31,10 +49,10 @@ func SetPageLimit(c *gin.Context, log logger.Logger) (int, int,int,error) {
 			LogAdminApi(log, 400, "Error while string to int conversion(limit), error:"+err.Error())
 		}
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid limit value, must be between 1 and 100", nil))
-		return 0,0,0,err
+		return 0, 0, 0, err
 	}
 
 	offset := (page - 1) * limit
 
-	return limit, offset,page,nil
+	return limit, offset, page, nil
 }
