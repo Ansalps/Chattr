@@ -80,6 +80,46 @@ const fallbackPosts: FeedPost[] = [
 const formatCount = (value: number) =>
   new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
 
+const formatFriendlyTime = (value: unknown): string => {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return 'just now';
+
+    const lower = trimmed.toLowerCase();
+    if (lower.includes('ago') || lower.includes('just now') || lower.includes('today') || lower.includes('yesterday')) {
+      return trimmed;
+    }
+
+    const parsedDate = new Date(trimmed);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      const diffMs = parsedDate.getTime() - Date.now();
+      const diffMinutes = Math.round(diffMs / 60000);
+      const diffHours = Math.round(diffMs / 3600000);
+      const diffDays = Math.round(diffMs / 86400000);
+
+      if (Math.abs(diffMinutes) < 60) {
+        return `${Math.abs(diffMinutes) || 1}m ago`;
+      }
+      if (Math.abs(diffHours) < 24) {
+        return `${Math.abs(diffHours) || 1}h ago`;
+      }
+      if (Math.abs(diffDays) < 7) {
+        return `${Math.abs(diffDays) || 1}d ago`;
+      }
+
+      return parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    return trimmed;
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return formatFriendlyTime(value.toISOString());
+  }
+
+  return 'just now';
+};
+
 const PROFILE_STORAGE_KEY = 'chattr_profile_info';
 
 const readStoredProfile = () => {
@@ -259,12 +299,14 @@ const normalizeFeedPosts = (value: unknown): FeedPost[] => {
         userId,
         author,
         handle,
-        time: String(
-          source.time ??
+        time: formatFriendlyTime(
+          source.post_age ??
+            source.PostAge ??
+            source.time ??
             source.created_at ??
             source.createdAt ??
             source.CreatedAt ??
-            'just now',
+            new Date().toISOString(),
         ),
         content,
         imageUrls,
@@ -625,7 +667,7 @@ export default function NewsFeedPage() {
         id: String(payload.res?.post_id ?? payload.data?.post_id ?? Date.now()),
         author: 'Jane Doe',
         handle: '@janedoe',
-        time: 'just now',
+        time: formatFriendlyTime(new Date().toISOString()),
         content: postText.trim(),
         imageUrls: selectedFiles.length > 0 ? selectedFiles.map((file) => URL.createObjectURL(file)) : [],
         isLiked: false,
