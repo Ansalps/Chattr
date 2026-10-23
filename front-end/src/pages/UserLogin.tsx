@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+const PROFILE_STORAGE_KEY = 'chattr_profile_info';
+
 export default function UserLogin() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -37,6 +39,7 @@ export default function UserLogin() {
         throw new Error(payload.message || 'User login failed.');
       }
 
+      localStorage.removeItem(PROFILE_STORAGE_KEY);
       setSuccessMessage(payload.message || 'User login successful. Redirecting...');
       setEmail('');
       setPassword('');

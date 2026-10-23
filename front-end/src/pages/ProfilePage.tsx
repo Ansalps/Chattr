@@ -181,7 +181,8 @@ export default function ProfilePage() {
 
     const fetchProfile = async () => {
       try {
-        const profileEndpoint = targetUserId ? `${API_BASE_URL}/user/${targetUserId}/posts` : `${API_BASE_URL}/user/posts`;
+        const isOwnProfileRequest = !targetUserId || targetUserId === 'me';
+        const profileEndpoint = isOwnProfileRequest ? `${API_BASE_URL}/user/posts` : `${API_BASE_URL}/user/${targetUserId}/posts`;
         const response = await fetch(profileEndpoint, {
           method: 'GET',
           credentials: 'include',

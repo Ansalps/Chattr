@@ -125,16 +125,23 @@ const PROFILE_STORAGE_KEY = 'chattr_profile_info';
 const readStoredProfile = () => {
   try {
     const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
-    if (!raw) return { name: '', username: '', profileImageUrl: '' };
+    if (!raw) return { id: '', name: '', username: '', profileImageUrl: '' };
 
-    const parsed = JSON.parse(raw) as Partial<{ name?: string; username?: string; profileImageUrl?: string }>;
+    const parsed = JSON.parse(raw) as Partial<{
+      id?: string | number;
+      userId?: string | number;
+      name?: string;
+      username?: string;
+      profileImageUrl?: string;
+    }>;
     return {
+      id: parsed.id !== undefined && parsed.id !== null ? String(parsed.id) : parsed.userId !== undefined && parsed.userId !== null ? String(parsed.userId) : '',
       name: typeof parsed.name === 'string' ? parsed.name : '',
       username: typeof parsed.username === 'string' ? parsed.username : '',
       profileImageUrl: typeof parsed.profileImageUrl === 'string' ? parsed.profileImageUrl : '',
     };
   } catch (error) {
-    return { name: '', username: '', profileImageUrl: '' };
+    return { id: '', name: '', username: '', profileImageUrl: '' };
   }
 };
 
@@ -150,6 +157,12 @@ const getInitials = (value: string) =>
 const getUsernameInitial = (value: string) => {
   const trimmed = value.replace(/^@/, '').trim();
   return trimmed ? trimmed.charAt(0).toUpperCase() : 'A';
+};
+
+const normalizeUsername = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '@user';
+  return trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
 };
 
 const normalizeStringArray = (value: unknown): string[] => {
@@ -230,15 +243,36 @@ const normalizeFeedPosts = (value: unknown): FeedPost[] => {
         (source.userData as Record<string, unknown>) ||
         {};
 
-      const author =
-        (typeof source.author === 'string' && source.author) ||
+      const nestedUserData =
+        (source.UserData as Record<string, unknown>) ||
+        (source.userData as Record<string, unknown>) ||
+        {};
+
+      const rawName =
         (typeof source.name === 'string' && source.name) ||
-        (typeof source.UserName === 'string' && source.UserName) ||
-        (typeof source.username === 'string' && source.username) ||
+        (typeof source.Name === 'string' && source.Name) ||
+        (typeof source.full_name === 'string' && source.full_name) ||
+        (typeof source.FullName === 'string' && source.FullName) ||
         (typeof userMeta.name === 'string' && userMeta.name) ||
+        (typeof userMeta.Name === 'string' && userMeta.Name) ||
+        (typeof userMeta.full_name === 'string' && userMeta.full_name) ||
+        (typeof userMeta.FullName === 'string' && userMeta.FullName) ||
+        '';
+
+      const rawUsername =
+        (typeof source.UserName === 'string' && source.UserName) ||
+        (typeof source.userName === 'string' && source.userName) ||
+        (typeof source.username === 'string' && source.username) ||
+        (typeof source.handle === 'string' && source.handle) ||
+        (typeof source.Handle === 'string' && source.Handle) ||
         (typeof userMeta.UserName === 'string' && userMeta.UserName) ||
+        (typeof userMeta.userName === 'string' && userMeta.userName) ||
         (typeof userMeta.username === 'string' && userMeta.username) ||
-        'Chattr User';
+        (typeof userMeta.handle === 'string' && userMeta.handle) ||
+        (typeof userMeta.Handle === 'string' && userMeta.Handle) ||
+        '';
+
+      const author = rawName || rawUsername.replace(/^@/, '') || 'Chattr User';
 
       const profileImageUrl =
         (typeof source.profile_image_url === 'string' && source.profile_image_url) ||
@@ -249,11 +283,12 @@ const normalizeFeedPosts = (value: unknown): FeedPost[] => {
         '';
 
       const handle =
-        (typeof source.handle === 'string' && source.handle) ||
-        (typeof source.Handle === 'string' && source.Handle) ||
-        (typeof userMeta.username === 'string' && `@${userMeta.username}`) ||
-        (typeof userMeta.UserName === 'string' && `@${userMeta.UserName}`) ||
-        `@${author.toLowerCase().replace(/\s+/g, '') || 'user'}`;
+        (typeof source.handle === 'string' && normalizeUsername(source.handle)) ||
+        (typeof source.Handle === 'string' && normalizeUsername(source.Handle)) ||
+        (typeof userMeta.username === 'string' && normalizeUsername(userMeta.username)) ||
+        (typeof userMeta.UserName === 'string' && normalizeUsername(userMeta.UserName)) ||
+        (typeof userMeta.userName === 'string' && normalizeUsername(userMeta.userName)) ||
+        (rawUsername ? normalizeUsername(rawUsername) : `@${author.toLowerCase().replace(/\s+/g, '') || 'user'}`);
 
       const content =
         (typeof source.content === 'string' && source.content) ||
@@ -317,8 +352,11 @@ const normalizeFeedPosts = (value: unknown): FeedPost[] => {
           source.UserID ??
           source.userId ??
           source.userID ??
+          (nestedUserData.UserID as string | number | undefined) ??
+          (nestedUserData.userID as string | number | undefined) ??
           (userMeta.user_id as string | number | undefined) ??
           (userMeta.UserID as string | number | undefined) ??
+          (userMeta.userID as string | number | undefined) ??
           'me',
       );
 
@@ -377,13 +415,119 @@ export default function NewsFeedPage() {
   const [openCommentFor, setOpenCommentFor] = useState<string | null>(null);
   const [commentsByPost, setCommentsByPost] = useState<Record<string, FeedComment[]>>({});
   const [commentLoading, setCommentLoading] = useState<Record<string, boolean>>({});
+  const [postMenuOpenFor, setPostMenuOpenFor] = useState<string | null>(null);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState({
+    id: '',
+    name: '',
+    username: '',
+    profileImageUrl: '',
+    followerCount: 0,
+    followingCount: 0,
+    postCount: 0,
+  });
 
   const storedProfile = readStoredProfile();
-  const currentUserName = storedProfile.name || 'Jane Doe';
-  const currentUserHandle = storedProfile.username || '@janedoe';
-  const currentProfileImageUrl = storedProfile.profileImageUrl || '';
+  const currentUserId = currentUserProfile.id || storedProfile.id || '';
+  const storedDisplayName = (storedProfile.name || '').trim();
+  const storedUserName = (storedProfile.username || '').replace(/^@/, '').trim();
+  const currentUserName = (() => {
+    const liveDisplayName = (currentUserProfile.name || '').trim();
+    const liveUserName = (currentUserProfile.username || '').replace(/^@/, '').trim();
+
+    if (liveDisplayName && liveDisplayName.toLowerCase() !== liveUserName.toLowerCase()) {
+      return liveDisplayName;
+    }
+
+    if (storedDisplayName && storedDisplayName.toLowerCase() !== storedUserName.toLowerCase()) {
+      return storedDisplayName;
+    }
+
+    return 'User Profile';
+  })();
+  const currentUserHandle =
+    currentUserProfile.username || storedProfile.username || '@user';
+  const currentProfileImageUrl =
+    (currentUserProfile.profileImageUrl ? currentUserProfile.profileImageUrl : storedProfile.profileImageUrl) || '';
 
   useEffect(() => {
+    const fetchCurrentUserProfile = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/user/get-profile-information`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok || payload.status_code >= 400) {
+          throw new Error(payload.message || 'Unable to load your profile details.');
+        }
+
+        const rawProfile =
+          (payload && typeof payload === 'object' && 'response' in payload ? (payload as Record<string, unknown>).response : undefined) ||
+          (payload && typeof payload === 'object' && 'reponse' in payload ? (payload as Record<string, unknown>).reponse : undefined) ||
+          (payload && typeof payload === 'object' && 'data' in payload ? (payload as Record<string, unknown>).data : undefined) ||
+          payload;
+
+        const profileInfo = (rawProfile && typeof rawProfile === 'object' ? rawProfile as Record<string, unknown> : {}) || {};
+        const storedName = (storedProfile.name || '').trim();
+        const storedUsername = (storedProfile.username || '').replace(/^@/, '').trim();
+        const resolvedId = String(profileInfo.UserID ?? profileInfo.userID ?? profileInfo.user_id ?? storedProfile.id ?? '');
+        const resolvedName = String(
+          profileInfo.Name ??
+            profileInfo.name ??
+            (storedName && storedName.toLowerCase() !== storedUsername.toLowerCase() ? storedName : '') ??
+            'User Profile',
+        );
+        const resolvedUsername = normalizeUsername(
+          String(
+            profileInfo.UserName ??
+              profileInfo.userName ??
+              profileInfo.username ??
+              storedProfile.username ??
+              'user',
+          ),
+        );
+        const resolvedProfileImageUrl =
+          (typeof profileInfo.ProfileImgUrl === 'string' && profileInfo.ProfileImgUrl) ||
+          (typeof profileInfo.profile_image_url === 'string' && profileInfo.profile_image_url) ||
+          (typeof profileInfo.profileImageUrl === 'string' && profileInfo.profileImageUrl) ||
+          storedProfile.profileImageUrl ||
+          '';
+        const resolvedFollowerCount = Number(profileInfo.FollowerCount ?? profileInfo.follower_count ?? 0) || 0;
+        const resolvedFollowingCount = Number(profileInfo.FollowingCount ?? profileInfo.following_count ?? 0) || 0;
+        const resolvedPostCount = Number(profileInfo.PostCount ?? profileInfo.post_count ?? 0) || 0;
+
+        const nextProfile = {
+          id: resolvedId,
+          name: resolvedName,
+          username: resolvedUsername,
+          profileImageUrl: resolvedProfileImageUrl,
+          followerCount: resolvedFollowerCount,
+          followingCount: resolvedFollowingCount,
+          postCount: resolvedPostCount,
+        };
+
+        setCurrentUserProfile(nextProfile);
+        localStorage.setItem(
+          PROFILE_STORAGE_KEY,
+          JSON.stringify({
+            ...storedProfile,
+            id: resolvedId,
+            name: resolvedName,
+            username: resolvedUsername.startsWith('@') ? resolvedUsername.slice(1) : resolvedUsername,
+            profileImageUrl: resolvedProfileImageUrl,
+          }),
+        );
+      } catch (profileError) {
+        console.error('fetch user profile info failed', profileError);
+      }
+    };
+
     const fetchNewsFeed = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/user/newsfeed`, {
@@ -431,17 +575,17 @@ export default function NewsFeedPage() {
       }
     };
 
+    fetchCurrentUserProfile();
     fetchNewsFeed();
   }, []);
 
   const quickStats = useMemo(
     () => [
-      { label: 'Followers', value: '18.4K' },
-      { label: 'Following', value: '612' },
-      { label: 'Posts', value: '1.2K' },
-      { label: 'Reach', value: '92.6K' },
+      { label: 'Followers', value: formatCount(currentUserProfile.followerCount) },
+      { label: 'Following', value: formatCount(currentUserProfile.followingCount) },
+      { label: 'Posts', value: formatCount(currentUserProfile.postCount) },
     ],
-    [],
+    [currentUserProfile.followerCount, currentUserProfile.followingCount, currentUserProfile.postCount],
   );
 
   const sidebarPeople = [
@@ -649,6 +793,43 @@ export default function NewsFeedPage() {
     }
   };
 
+  const handleDeletePost = async (postId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/post/${postId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || payload.status_code >= 400) {
+        throw new Error(payload.message || payload.error || 'Unable to delete this post.');
+      }
+
+      setPosts((currentPosts) => currentPosts.filter((post) => post.id !== postId));
+      setPostMenuOpenFor(null);
+    } catch (error) {
+      console.error('delete post failed', error);
+    }
+  };
+
+  const handleEditPost = (post: FeedPost) => {
+    setEditingPostId(post.id);
+    setPostText(post.content || '');
+    setSelectedFiles([]);
+    setComposerError('');
+    setComposerSuccess('');
+    setIsComposerOpen(true);
+    setPostMenuOpenFor(null);
+  };
+
+  const closeComposer = () => {
+    setIsComposerOpen(false);
+    setEditingPostId(null);
+    setPostText('');
+    setSelectedFiles([]);
+    setComposerError('');
+  };
+
   const handleLogout = async () => {
     try {
       await fetch(`${API_BASE_URL}/user/logout`, {
@@ -658,12 +839,18 @@ export default function NewsFeedPage() {
     } catch (error) {
       console.error('logout failed', error);
     } finally {
+      localStorage.removeItem(PROFILE_STORAGE_KEY);
       window.location.href = '/login';
     }
   };
 
   const handleCreatePost = async () => {
-    if (!postText.trim() && selectedFiles.length === 0) {
+    if (editingPostId) {
+      if (!postText.trim()) {
+        setComposerError('Please add a caption to update your post.');
+        return;
+      }
+    } else if (!postText.trim() && selectedFiles.length === 0) {
       setComposerError('Please add a caption or at least one media file.');
       return;
     }
@@ -678,6 +865,34 @@ export default function NewsFeedPage() {
     setComposerSuccess('');
 
     try {
+      if (editingPostId) {
+        const response = await fetch(`${API_BASE_URL}/user/post/${editingPostId}`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            caption: postText.trim(),
+          }),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok || payload.status_code >= 400) {
+          throw new Error(payload.message || payload.error || 'Unable to update your post.');
+        }
+
+        setPosts((currentPosts) =>
+          currentPosts.map((post) =>
+            post.id === editingPostId ? { ...post, content: postText.trim() || post.content } : post,
+          ),
+        );
+        setComposerSuccess('Post updated successfully.');
+        closeComposer();
+        return;
+      }
+
       const formData = new FormData();
       if (postText.trim()) {
         formData.append('caption', postText.trim());
@@ -720,7 +935,7 @@ export default function NewsFeedPage() {
       setPostText('');
       setSelectedFiles([]);
       setComposerSuccess('Post created successfully.');
-      setIsComposerOpen(false);
+      closeComposer();
     } catch (postError) {
       const message =
         postError instanceof Error ? postError.message : 'Unable to create your post right now.';
@@ -761,7 +976,14 @@ export default function NewsFeedPage() {
                 Search creators, topics, and communities…
               </div>
               <button
-                onClick={() => setIsComposerOpen(true)}
+                onClick={() => {
+                  setEditingPostId(null);
+                  setPostText('');
+                  setSelectedFiles([]);
+                  setComposerError('');
+                  setComposerSuccess('');
+                  setIsComposerOpen(true);
+                }}
                 className="rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-300/40"
               >
                 Create Post
@@ -821,7 +1043,14 @@ export default function NewsFeedPage() {
             <div className="rounded-[28px] border border-sky-100 bg-white p-4 shadow-sm">
               <button
                 type="button"
-                onClick={() => setIsComposerOpen(true)}
+                onClick={() => {
+                  setEditingPostId(null);
+                  setPostText('');
+                  setSelectedFiles([]);
+                  setComposerError('');
+                  setComposerSuccess('');
+                  setIsComposerOpen(true);
+                }}
                 className="flex w-full items-center gap-3 text-left"
               >
                 <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 text-sm font-bold text-white">
@@ -883,9 +1112,55 @@ export default function NewsFeedPage() {
                       </div>
                     </div>
 
-                    <button className="rounded-full border border-slate-200 px-2 py-1 text-xs font-medium text-slate-500">
-                      •••
-                    </button>
+                    {(() => {
+                      const normalizedPostUserId = String(post.userId ?? '').trim();
+                      const normalizedCurrentHandle = currentUserHandle.toLowerCase();
+                      const normalizedPostHandle = post.handle.toLowerCase();
+                      const nestedUserIdFromPayload = String((post as FeedPost & { UserData?: { UserID?: string | number } }).UserData?.UserID ?? '').trim();
+
+                      const isOwnPost =
+                        !!currentUserId &&
+                        (normalizedPostUserId === currentUserId ||
+                          nestedUserIdFromPayload === currentUserId ||
+                          (!normalizedPostUserId &&
+                            (post.author === currentUserName ||
+                              normalizedPostHandle === normalizedCurrentHandle ||
+                              post.profileImageUrl === currentProfileImageUrl)));
+
+                      if (!isOwnPost) return null;
+
+                      return (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setPostMenuOpenFor((current) => (current === post.id ? null : post.id))}
+                            className="rounded-full border border-slate-200 px-2 py-1 text-xs font-medium text-slate-500 transition hover:border-sky-200 hover:text-sky-700"
+                            aria-label={`More options for ${post.author}'s post`}
+                          >
+                            •••
+                          </button>
+
+                          {postMenuOpenFor === post.id && (
+                            <div className="absolute right-0 top-full z-20 mt-2 min-w-[120px] overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-lg">
+                              <button
+                                type="button"
+                                onClick={() => handleEditPost(post)}
+                                className="block w-full px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-sky-50 hover:text-sky-700"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePost(post.id)}
+                                className="block w-full px-3 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <p className="text-[15px] leading-7 text-slate-700">{post.content}</p>
@@ -1117,12 +1392,16 @@ export default function NewsFeedPage() {
           <div className="w-full max-w-xl rounded-[30px] border border-sky-100 bg-white p-5 shadow-[0_25px_80px_rgba(15,23,42,0.2)]">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600">Create post</p>
-                <h2 className="mt-2 text-2xl font-black text-slate-900">Share an update</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600">
+                  {editingPostId ? 'Edit post' : 'Create post'}
+                </p>
+                <h2 className="mt-2 text-2xl font-black text-slate-900">
+                  {editingPostId ? 'Update your post' : 'Share an update'}
+                </h2>
               </div>
               <button
                 type="button"
-                onClick={() => setIsComposerOpen(false)}
+                onClick={closeComposer}
                 className="rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-500"
               >
                 Close
@@ -1134,25 +1413,27 @@ export default function NewsFeedPage() {
                 value={postText}
                 onChange={(e) => setPostText(e.target.value)}
                 rows={5}
-                placeholder="What would you like to share with your community?"
+                placeholder={editingPostId ? 'Edit your caption...' : 'What would you like to share with your community?'}
                 className="w-full rounded-2xl border border-sky-200 bg-sky-50/60 px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200"
               />
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Add media</label>
-                <input
-                  type="file"
-                  accept="image/*,video/*,audio/*"
-                  multiple
-                  onChange={(event) => setSelectedFiles(Array.from(event.target.files ?? []))}
-                  className="block w-full rounded-2xl border border-dashed border-sky-200 bg-sky-50 p-3 text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-sky-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sky-700"
-                />
-                {selectedFiles.length > 0 && (
-                  <div className="mt-2 text-xs text-slate-500">
-                    {selectedFiles.length} file(s) selected
-                  </div>
-                )}
-              </div>
+              {!editingPostId && (
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Add media</label>
+                  <input
+                    type="file"
+                    accept="image/*,video/*,audio/*"
+                    multiple
+                    onChange={(event) => setSelectedFiles(Array.from(event.target.files ?? []))}
+                    className="block w-full rounded-2xl border border-dashed border-sky-200 bg-sky-50 p-3 text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-sky-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sky-700"
+                  />
+                  {selectedFiles.length > 0 && (
+                    <div className="mt-2 text-xs text-slate-500">
+                      {selectedFiles.length} file(s) selected
+                    </div>
+                  )}
+                </div>
+              )}
 
               {composerError && (
                 <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -1172,7 +1453,7 @@ export default function NewsFeedPage() {
                 onClick={handleCreatePost}
                 className="flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-3.5 text-base font-semibold text-white shadow-lg shadow-sky-300/40 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {isPosting ? 'Posting...' : 'Create Post'}
+                {isPosting ? (editingPostId ? 'Updating...' : 'Posting...') : editingPostId ? 'Update Post' : 'Create Post'}
               </button>
             </div>
           </div>

@@ -40,7 +40,7 @@ type PostLike struct {
 
 	CreatedAt time.Time
 
-	Post Post `gorm:"foreignKey:PostID"`
+	Post Post `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE;"`
 }
 
 type Comment struct{
