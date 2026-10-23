@@ -201,22 +201,33 @@ const normalizeFeedPosts = (value: unknown): FeedPost[] => {
           source.Images,
       );
 
-      const isLiked = Boolean(source.isLiked ?? source.IsLiked ?? source.is_liked ?? false);
+      const isLiked = Boolean(
+        source.isLiked ??
+          source.IsLiked ??
+          source.is_liked ??
+          source.Isliked ??
+          source.isLiked ??
+          false,
+      );
 
       const likes = Number(
         source.likes ??
-          source.LikesCount ??
-          source.like_count ??
-          source.likesCount ??
           source.Likes ??
+          source.LikeCount ??
+          source.likeCount ??
+          source.like_count ??
+          source.likes_count ??
+          source.LikesCount ??
+          source.likesCount ??
           0,
       ) || 0;
       const comments = Number(
         source.comments ??
-          source.CommentsCount ??
-          source.comment_count ??
-          source.commentCount ??
           source.Comments ??
+          source.CommentsCount ??
+          source.commentsCount ??
+          source.comment_count ??
+          source.comments_count ??
           0,
       ) || 0;
       const shares = Number(
