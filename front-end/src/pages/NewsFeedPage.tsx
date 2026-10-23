@@ -173,6 +173,40 @@ const normalizeStringArray = (value: unknown): string[] => {
   return [];
 };
 
+const getPostIdFromResponse = (value: unknown): string | null => {
+  if (!value || typeof value !== 'object') return null;
+
+  const source = value as Record<string, unknown>;
+  const candidates = [
+    source.res,
+    source.data,
+    source,
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== 'object') continue;
+
+    const item = candidate as Record<string, unknown>;
+    const rawId =
+      item.post_id ??
+      item.PostId ??
+      item.postId ??
+      item.PostID ??
+      item.post_id ??
+      item.id ??
+      item.ID;
+
+    if (rawId === undefined || rawId === null || rawId === '') continue;
+
+    const asNumber = Number(rawId);
+    if (Number.isFinite(asNumber)) {
+      return String(asNumber);
+    }
+  }
+
+  return null;
+};
+
 const normalizeFeedPosts = (value: unknown): FeedPost[] => {
   const list = Array.isArray(value)
     ? value
@@ -419,6 +453,7 @@ export default function NewsFeedPage() {
   const handleToggleLike = async (postId: string, currentLiked: boolean) => {
     try {
       const endpoint = `${API_BASE_URL}/user/post/${postId}/${currentLiked ? 'unlike' : 'like'}`;
+      console.log(`post Id: ${postId}`)
       const response = await fetch(endpoint, {
         method: currentLiked ? 'DELETE' : 'POST',
         credentials: 'include',
@@ -663,13 +698,16 @@ export default function NewsFeedPage() {
         throw new Error(payload.message || payload.error || 'Unable to create your post.');
       }
 
+      const createdPostId = getPostIdFromResponse(payload) ?? `local-${Date.now()}`;
+
       const createdPost: FeedPost = {
-        id: String(payload.res?.post_id ?? payload.data?.post_id ?? Date.now()),
-        author: 'Jane Doe',
-        handle: '@janedoe',
+        id: createdPostId,
+        author: currentUserName,
+        handle: currentUserHandle || '@user',
         time: formatFriendlyTime(new Date().toISOString()),
         content: postText.trim(),
         imageUrls: selectedFiles.length > 0 ? selectedFiles.map((file) => URL.createObjectURL(file)) : [],
+        profileImageUrl: currentProfileImageUrl || undefined,
         isLiked: false,
         likes: 0,
         comments: 0,
