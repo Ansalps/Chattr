@@ -3,22 +3,24 @@ import { useNavigate } from 'react-router-dom';
 
 const PROFILE_STORAGE_KEY = 'chattr_profile_info';
 
+type CustomLink = {
+  id: string;
+  label: string;
+  url: string;
+};
+
 type ProfileFormState = {
   name: string;
   bio: string;
   profileImageUrl: string;
-  website: string;
-  linkedin: string;
-  instagram: string;
+  customLinks: CustomLink[];
 };
 
 const emptyForm: ProfileFormState = {
   name: '',
   bio: '',
   profileImageUrl: '',
-  website: '',
-  linkedin: '',
-  instagram: '',
+  customLinks: [],
 };
 
 const readStoredProfile = (): ProfileFormState => {
@@ -29,13 +31,34 @@ const readStoredProfile = (): ProfileFormState => {
     }
 
     const parsed = JSON.parse(raw) as Partial<ProfileFormState & { username?: string; links?: Record<string, string> }>;
+
+    const storedCustomLinks = Array.isArray(parsed.customLinks)
+      ? (parsed.customLinks
+          .filter((entry) => Boolean(entry) && typeof entry === 'object') as Array<Record<string, unknown>>)
+          .map((entry, index) => ({
+            id: typeof entry.id === 'string' ? entry.id : `link-${index}`,
+            label: typeof entry.label === 'string' ? entry.label : 'Link',
+            url: typeof entry.url === 'string' ? entry.url : '',
+          }))
+          .filter((entry) => entry.url.trim())
+      : [];
+
+    const legacyLinks = parsed.links && typeof parsed.links === 'object' ? parsed.links : {};
+    const legacyEntries = Object.entries(legacyLinks)
+      .filter(([, value]) => typeof value === 'string' && value.trim())
+      .map(([key, value], index) => ({
+        id: `legacy-${index}`,
+        label: key
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (char) => char.toUpperCase()),
+        url: value,
+      }));
+
     return {
       name: typeof parsed.name === 'string' ? parsed.name : '',
       bio: typeof parsed.bio === 'string' ? parsed.bio : '',
       profileImageUrl: typeof parsed.profileImageUrl === 'string' ? parsed.profileImageUrl : '',
-      website: typeof parsed.website === 'string' ? parsed.website : typeof parsed.links?.website === 'string' ? parsed.links.website : '',
-      linkedin: typeof parsed.linkedin === 'string' ? parsed.linkedin : typeof parsed.links?.linkedin === 'string' ? parsed.links.linkedin : '',
-      instagram: typeof parsed.instagram === 'string' ? parsed.instagram : typeof parsed.links?.instagram === 'string' ? parsed.links.instagram : '',
+      customLinks: storedCustomLinks.length > 0 ? storedCustomLinks : legacyEntries,
     };
   } catch (error) {
     return emptyForm;
@@ -56,6 +79,29 @@ export default function EditProfilePage() {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const addCustomLink = () => {
+    setForm((current) => ({
+      ...current,
+      customLinks: [...current.customLinks, { id: `link-${Date.now()}`, label: '', url: '' }],
+    }));
+  };
+
+  const updateCustomLink = (id: string, field: 'label' | 'url', value: string) => {
+    setForm((current) => ({
+      ...current,
+      customLinks: current.customLinks.map((link) =>
+        link.id === id ? { ...link, [field]: value } : link,
+      ),
+    }));
+  };
+
+  const removeCustomLink = (id: string) => {
+    setForm((current) => ({
+      ...current,
+      customLinks: current.customLinks.filter((link) => link.id !== id),
+    }));
+  };
+
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -73,14 +119,22 @@ export default function EditProfilePage() {
     event.preventDefault();
     setIsSaving(true);
 
+    const validLinks = form.customLinks
+      .filter((link) => link.label.trim() || link.url.trim())
+      .map((link) => ({
+        id: link.id,
+        label: link.label.trim(),
+        url: link.url.trim(),
+      }))
+      .filter((link) => link.url);
+
     const normalized = {
       ...form,
       username: '',
-      links: {
-        website: form.website,
-        linkedin: form.linkedin,
-        instagram: form.instagram,
-      },
+      customLinks: validLinks,
+      links: Object.fromEntries(
+        validLinks.map((link) => [link.label.toLowerCase().replace(/\s+/g, '_'), link.url]),
+      ),
     };
 
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(normalized));
@@ -163,38 +217,54 @@ export default function EditProfilePage() {
           </div>
 
           <div className="space-y-4 rounded-[28px] border border-slate-200 bg-slate-50 p-4">
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-600">Website</label>
-              <input
-                type="url"
-                value={form.website}
-                onChange={(event) => handleChange('website', event.target.value)}
-                placeholder="https://yourwebsite.com"
-                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-              />
+            <div className="flex items-center justify-between gap-3">
+              <label className="block text-sm font-semibold text-slate-600">Custom links</label>
+              <button
+                type="button"
+                onClick={addCustomLink}
+                className="rounded-full bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white"
+              >
+                + Add link
+              </button>
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-600">LinkedIn</label>
-              <input
-                type="url"
-                value={form.linkedin}
-                onChange={(event) => handleChange('linkedin', event.target.value)}
-                placeholder="https://linkedin.com/in/yourname"
-                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-              />
-            </div>
+            {form.customLinks.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-3 py-4 text-sm text-slate-500">
+                No links added yet.
+              </div>
+            ) : (
+              form.customLinks.map((link) => (
+                <div key={link.id} className="rounded-2xl border border-slate-200 bg-white p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Link</span>
+                    <button
+                      type="button"
+                      onClick={() => removeCustomLink(link.id)}
+                      className="text-xs font-medium text-red-500"
+                    >
+                      Remove
+                    </button>
+                  </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-600">Instagram</label>
-              <input
-                type="url"
-                value={form.instagram}
-                onChange={(event) => handleChange('instagram', event.target.value)}
-                placeholder="https://instagram.com/yourname"
-                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-              />
-            </div>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={link.label}
+                      onChange={(event) => updateCustomLink(link.id, 'label', event.target.value)}
+                      placeholder="Label (e.g. Portfolio, GitHub)"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+                    />
+                    <input
+                      type="url"
+                      value={link.url}
+                      onChange={(event) => updateCustomLink(link.id, 'url', event.target.value)}
+                      placeholder="https://example.com"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+                    />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">

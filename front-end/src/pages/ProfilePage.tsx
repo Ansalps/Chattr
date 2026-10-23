@@ -22,6 +22,12 @@ type ProfilePost = {
   isLiked?: boolean;
 };
 
+type CustomLink = {
+  id: string;
+  label: string;
+  url: string;
+};
+
 type ProfileUser = {
   id: string;
   name: string;
@@ -31,6 +37,7 @@ type ProfileUser = {
   website?: string;
   linkedin?: string;
   instagram?: string;
+  customLinks?: CustomLink[];
   followerCount?: number;
   followingCount?: number;
 };
@@ -44,7 +51,18 @@ const readStoredProfile = () => {
       return {} as Partial<ProfileUser>;
     }
 
-    const parsed = JSON.parse(raw) as Partial<ProfileUser> & { links?: Record<string, string> };
+    const parsed = JSON.parse(raw) as Partial<ProfileUser> & { links?: Record<string, string>; customLinks?: Array<{ id?: string; label?: string; url?: string }> };
+    const customLinks = Array.isArray(parsed.customLinks)
+      ? (parsed.customLinks
+          .filter((entry) => !!entry && typeof entry === 'object') as Array<Record<string, unknown>>)
+          .map((entry, index) => ({
+            id: typeof entry.id === 'string' ? entry.id : `link-${index}`,
+            label: typeof entry.label === 'string' ? entry.label : 'Link',
+            url: typeof entry.url === 'string' ? entry.url : '',
+          }))
+          .filter((entry) => entry.url.trim())
+      : [];
+
     return {
       name: typeof parsed.name === 'string' ? parsed.name : undefined,
       username: typeof parsed.username === 'string' ? parsed.username : undefined,
@@ -53,6 +71,7 @@ const readStoredProfile = () => {
       website: typeof parsed.website === 'string' ? parsed.website : typeof parsed.links?.website === 'string' ? parsed.links.website : undefined,
       linkedin: typeof parsed.linkedin === 'string' ? parsed.linkedin : typeof parsed.links?.linkedin === 'string' ? parsed.links.linkedin : undefined,
       instagram: typeof parsed.instagram === 'string' ? parsed.instagram : typeof parsed.links?.instagram === 'string' ? parsed.links.instagram : undefined,
+      customLinks: customLinks.length > 0 ? customLinks : undefined,
     };
   } catch (error) {
     return {} as Partial<ProfileUser>;
@@ -67,6 +86,8 @@ const getInitials = (value: string) =>
     .map((part) => part[0])
     .join('')
     .toUpperCase() || 'A';
+
+const normalizeLinkUrl = (value: string) => value.trim().replace(/\/+$/, '').toLowerCase();
 
 const normalizeProfilePosts = (value: unknown): ProfilePost[] => {
   const items = Array.isArray(value)
@@ -242,6 +263,19 @@ export default function ProfilePage() {
           storedProfile.instagram ||
           undefined;
 
+        const resolvedCustomLinks = Array.isArray(profileInfo.customLinks)
+          ? ((profileInfo.customLinks as Array<unknown>)
+              .filter((entry) => !!entry && typeof entry === 'object') as Array<Record<string, unknown>>)
+              .map((entry, index) => ({
+                id: typeof entry.id === 'string' ? entry.id : `link-${index}`,
+                label: typeof entry.label === 'string' ? entry.label : 'Link',
+                url: typeof entry.url === 'string' ? entry.url : '',
+              }))
+              .filter((entry) => entry.url.trim())
+          : Array.isArray(storedProfile.customLinks)
+            ? storedProfile.customLinks
+            : [];
+
         const resolvedProfileImageUrl =
           (typeof profileInfo.ProfileImgUrl === 'string' && profileInfo.ProfileImgUrl) ||
           (typeof profileInfo.profile_image_url === 'string' && profileInfo.profile_image_url) ||
@@ -265,6 +299,7 @@ export default function ProfilePage() {
           website: resolvedWebsite,
           linkedin: resolvedLinkedin,
           instagram: resolvedInstagram,
+          customLinks: resolvedCustomLinks,
           followerCount: resolvedFollowerCount,
           followingCount: resolvedFollowingCount,
         });
@@ -536,6 +571,17 @@ export default function ProfilePage() {
     [posts.length, followerCount, followingCount],
   );
 
+  const dedupedCustomLinks = useMemo(() => {
+    const socialUrls = [user.website, user.linkedin, user.instagram]
+      .filter((value): value is string => Boolean(value))
+      .map(normalizeLinkUrl);
+
+    return (user.customLinks ?? []).filter((link) => {
+      if (!link.url) return false;
+      return !socialUrls.includes(normalizeLinkUrl(link.url));
+    });
+  }, [user.customLinks, user.website, user.linkedin, user.instagram]);
+
   return (
     <div className="min-h-screen bg-[#f3f7fb] px-4 py-8 text-slate-800 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
@@ -609,7 +655,7 @@ export default function ProfilePage() {
                 <h1 className="mt-2 text-3xl font-black text-slate-900">{user.name}</h1>
                 <p className="text-sm text-slate-500">{user.username}</p>
                 {user.bio && <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">{user.bio}</p>}
-                {(user.website || user.linkedin || user.instagram) && (
+                {(user.website || user.linkedin || user.instagram || (user.customLinks && user.customLinks.length > 0)) && (
                   <div className="mt-3 flex flex-wrap gap-2 text-xs">
                     {user.website && (
                       <a
@@ -641,6 +687,17 @@ export default function ProfilePage() {
                         Instagram
                       </a>
                     )}
+                    {dedupedCustomLinks.map((link) => (
+                      <a
+                        key={link.id}
+                        href={link.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-full bg-sky-50 px-2.5 py-1 font-medium text-sky-700"
+                      >
+                        {link.label || link.url}
+                      </a>
+                    ))}
                   </div>
                 )}
               </div>
