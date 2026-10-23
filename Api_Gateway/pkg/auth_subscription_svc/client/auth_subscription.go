@@ -480,5 +480,8 @@ func (as *AuthSubscriptionClient) GetProfileInformation(req requestmodels.GetPro
 		Links:         resp.Links,
 		BlueTick:      resp.BlueTick,
 		Phone:         resp.Phone,
+		PostCount: uint(resp.PostCount),
+		FollowerCount: uint(resp.FollowerCount),
+		FollowingCount: uint(resp.FollowingCount),
 	}, nil
 }

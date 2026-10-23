@@ -1959,6 +1959,9 @@ type ProfileInfoRes struct {
 	Links           string                 `protobuf:"bytes,7,opt,name=Links,proto3" json:"Links,omitempty"`
 	BlueTick        bool                   `protobuf:"varint,8,opt,name=BlueTick,proto3" json:"BlueTick,omitempty"`
 	Phone           string                 `protobuf:"bytes,9,opt,name=Phone,proto3" json:"Phone,omitempty"`
+	PostCount       uint64                 `protobuf:"varint,10,opt,name=PostCount,proto3" json:"PostCount,omitempty"`
+	FollowerCount   uint64                 `protobuf:"varint,11,opt,name=FollowerCount,proto3" json:"FollowerCount,omitempty"`
+	FollowingCount  uint64                 `protobuf:"varint,12,opt,name=FollowingCount,proto3" json:"FollowingCount,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -2054,6 +2057,27 @@ func (x *ProfileInfoRes) GetPhone() string {
 		return x.Phone
 	}
 	return ""
+}
+
+func (x *ProfileInfoRes) GetPostCount() uint64 {
+	if x != nil {
+		return x.PostCount
+	}
+	return 0
+}
+
+func (x *ProfileInfoRes) GetFollowerCount() uint64 {
+	if x != nil {
+		return x.FollowerCount
+	}
+	return 0
+}
+
+func (x *ProfileInfoRes) GetFollowingCount() uint64 {
+	if x != nil {
+		return x.FollowingCount
+	}
+	return 0
 }
 
 type CheckUserExistsRequest struct {
@@ -5222,7 +5246,7 @@ const file_pkg_pb_auth_subscription_proto_rawDesc = "" +
 	"\x04_BioB\b\n" +
 	"\x06_Links\"(\n" +
 	"\x0eProfileInfoReq\x12\x16\n" +
-	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"\xf2\x01\n" +
+	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"\xde\x02\n" +
 	"\x0eProfileInfoRes\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x12\n" +
 	"\x04Name\x18\x02 \x01(\tR\x04Name\x12\x1a\n" +
@@ -5232,7 +5256,11 @@ const file_pkg_pb_auth_subscription_proto_rawDesc = "" +
 	"\x0fProfileImageUrl\x18\x06 \x01(\tR\x0fProfileImageUrl\x12\x14\n" +
 	"\x05Links\x18\a \x01(\tR\x05Links\x12\x1a\n" +
 	"\bBlueTick\x18\b \x01(\bR\bBlueTick\x12\x14\n" +
-	"\x05Phone\x18\t \x01(\tR\x05Phone\"0\n" +
+	"\x05Phone\x18\t \x01(\tR\x05Phone\x12\x1c\n" +
+	"\tPostCount\x18\n" +
+	" \x01(\x04R\tPostCount\x12$\n" +
+	"\rFollowerCount\x18\v \x01(\x04R\rFollowerCount\x12&\n" +
+	"\x0eFollowingCount\x18\f \x01(\x04R\x0eFollowingCount\"0\n" +
 	"\x16CheckUserExistsRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"1\n" +
 	"\x17CheckUserExistsResponse\x12\x16\n" +

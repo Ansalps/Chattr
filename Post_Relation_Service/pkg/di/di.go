@@ -20,31 +20,31 @@ func DependencyInjection(cfg *config.Config, log logger.Logger) (*services.PostR
 		fmt.Println("error connecting database", err)
 		return nil, nil, err
 	}
-	fmt.Println("11111")
+	
 	authSubscriptionClient, err := client.InitAuthSubscriptionServiceClient(cfg)
 	if err != nil {
 		fmt.Println("error connecting auth service", err)
 		return nil, nil, err
 	}
-	fmt.Println("22222")
+	
 	redisClient := client.NewRedisClient(cfg)
 	RedisRepository := repository.NewRedisRepository(redisClient)
-	fmt.Println("33333")
+	
 	// This reads much better: Config -> Kafka -> Brokers
 	// kafkaProducer := kafka.NewKafkaProducer([]string{cfg.Kafka.Brokers})
-	fmt.Println("ssssss")
+	
 	kafkaProducer := kafka.NewKafkaProducer(
 		[]string{cfg.Kafka.Brokers},
 		[]byte(cfg.Kafka.CACert),
 		[]byte(cfg.Kafka.AccessCert),
 		[]byte(cfg.Kafka.AccessKey),
 	)
-	fmt.Println("hmmmmmmhmmm")
+	
 	PostRelationRepository := repository.NewPostRelationRepository(gormDB)
 	fmt.Println("444444")
 	PostRelationUsecase := usecase.NewPostRelationUsecase(PostRelationRepository, authSubscriptionClient,
 		RedisRepository, kafkaProducer, log, cfg)
-		fmt.Println("kkkiiiii")
+		
 	// ✅ NEW: Feed Usecase
 	feedUsecase := usecase.NewFeedUsecase(
 		PostRelationRepository,
@@ -52,8 +52,8 @@ func DependencyInjection(cfg *config.Config, log logger.Logger) (*services.PostR
 		cfg,
 		log,
 	)
-	fmt.Println("hi hi hi")
+	
 	PostRelationServiceServer := services.NewPostRelationSever(PostRelationUsecase)
-	fmt.Println("helololo")
+	
 	return PostRelationServiceServer, feedUsecase, nil
 }

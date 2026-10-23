@@ -512,6 +512,9 @@ func (as *AuthSubscriptionServer) GetProfileInformation(ctx context.Context, req
 		Links:           resp.Links,
 		BlueTick:        resp.BlueTick,
 		Phone:           resp.Phone,
+		PostCount: uint64(resp.PostCount),
+		FollowerCount: uint64(resp.FollowerCount),
+		FollowingCount: uint64(resp.FollowingCount),
 	}, nil
 }
 func (as *AuthSubscriptionServer) EditProfileInfromation(ctx context.Context, req *pb.EditProfileReq) (*pb.EditProfileRes, error) {

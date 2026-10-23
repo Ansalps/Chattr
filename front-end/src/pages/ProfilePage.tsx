@@ -27,6 +27,12 @@ type ProfileUser = {
   name: string;
   username: string;
   profileImageUrl?: string;
+  bio?: string;
+  website?: string;
+  linkedin?: string;
+  instagram?: string;
+  followerCount?: number;
+  followingCount?: number;
 };
 
 const PROFILE_STORAGE_KEY = 'chattr_profile_info';
@@ -38,11 +44,15 @@ const readStoredProfile = () => {
       return {} as Partial<ProfileUser>;
     }
 
-    const parsed = JSON.parse(raw) as Partial<ProfileUser>;
+    const parsed = JSON.parse(raw) as Partial<ProfileUser> & { links?: Record<string, string> };
     return {
       name: typeof parsed.name === 'string' ? parsed.name : undefined,
       username: typeof parsed.username === 'string' ? parsed.username : undefined,
       profileImageUrl: typeof parsed.profileImageUrl === 'string' ? parsed.profileImageUrl : undefined,
+      bio: typeof parsed.bio === 'string' ? parsed.bio : undefined,
+      website: typeof parsed.website === 'string' ? parsed.website : typeof parsed.links?.website === 'string' ? parsed.links.website : undefined,
+      linkedin: typeof parsed.linkedin === 'string' ? parsed.linkedin : typeof parsed.links?.linkedin === 'string' ? parsed.links.linkedin : undefined,
+      instagram: typeof parsed.instagram === 'string' ? parsed.instagram : typeof parsed.links?.instagram === 'string' ? parsed.links.instagram : undefined,
     };
   } catch (error) {
     return {} as Partial<ProfileUser>;
@@ -105,6 +115,8 @@ export default function ProfilePage() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
   const [error, setError] = useState('');
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const isOwnProfile = !userId;
@@ -139,6 +151,36 @@ export default function ProfilePage() {
         const normalized = normalizeProfilePosts(data);
         setPosts(normalized);
 
+        let profileInfo: Record<string, unknown> = {};
+        try {
+          const profileInfoResponse = await fetch(`${API_BASE_URL}/user/get-profile-information`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (profileInfoResponse.ok) {
+            const profilePayload = await profileInfoResponse.json().catch(() => ({}));
+            const nestedProfileData =
+              (profilePayload && typeof profilePayload === 'object' && 'reponse' in profilePayload
+                ? (profilePayload as Record<string, unknown>).reponse
+                : undefined) ||
+              (profilePayload && typeof profilePayload === 'object' && 'response' in profilePayload
+                ? (profilePayload as Record<string, unknown>).response
+                : undefined) ||
+              (profilePayload && typeof profilePayload === 'object' && 'data' in profilePayload
+                ? (profilePayload as Record<string, unknown>).data
+                : undefined) ||
+              profilePayload;
+
+            profileInfo = nestedProfileData && typeof nestedProfileData === 'object' ? nestedProfileData as Record<string, unknown> : {};
+          }
+        } catch (profileInfoError) {
+          console.error('fetch profile info failed', profileInfoError);
+        }
+
         const firstItem = data[0] as Record<string, unknown> | undefined;
         const dynamicUserMeta =
           (firstItem?.user_data as Record<string, unknown>) ||
@@ -163,11 +205,68 @@ export default function ProfilePage() {
 
         const storedProfile = readStoredProfile();
 
+        const resolvedName =
+          (typeof profileInfo.Name === 'string' && profileInfo.Name) ||
+          (typeof profileInfo.name === 'string' && profileInfo.name) ||
+          storedProfile.name ||
+          profileName;
+
+        const resolvedUsername =
+          (typeof profileInfo.UserName === 'string' && `@${profileInfo.UserName}`) ||
+          (typeof profileInfo.userName === 'string' && `@${profileInfo.userName}`) ||
+          (typeof profileInfo.username === 'string' && `@${profileInfo.username}`) ||
+          storedProfile.username ||
+          profileUsername;
+
+        const resolvedBio =
+          (typeof profileInfo.Bio === 'string' && profileInfo.Bio) ||
+          (typeof profileInfo.bio === 'string' && profileInfo.bio) ||
+          storedProfile.bio ||
+          undefined;
+
+        const resolvedWebsite =
+          (typeof profileInfo.Website === 'string' && profileInfo.Website) ||
+          (typeof profileInfo.website === 'string' && profileInfo.website) ||
+          storedProfile.website ||
+          undefined;
+
+        const resolvedLinkedin =
+          (typeof profileInfo.LinkedIn === 'string' && profileInfo.LinkedIn) ||
+          (typeof profileInfo.linkedin === 'string' && profileInfo.linkedin) ||
+          storedProfile.linkedin ||
+          undefined;
+
+        const resolvedInstagram =
+          (typeof profileInfo.Instagram === 'string' && profileInfo.Instagram) ||
+          (typeof profileInfo.instagram === 'string' && profileInfo.instagram) ||
+          storedProfile.instagram ||
+          undefined;
+
+        const resolvedProfileImageUrl =
+          (typeof profileInfo.ProfileImgUrl === 'string' && profileInfo.ProfileImgUrl) ||
+          (typeof profileInfo.profile_image_url === 'string' && profileInfo.profile_image_url) ||
+          (typeof profileInfo.profileImageUrl === 'string' && profileInfo.profileImageUrl) ||
+          storedProfile.profileImageUrl ||
+          profileImageUrl ||
+          undefined;
+
+        const resolvedFollowerCount = Number(profileInfo.FollowerCount ?? profileInfo.follower_count ?? 0) || 0;
+        const resolvedFollowingCount = Number(profileInfo.FollowingCount ?? profileInfo.following_count ?? 0) || 0;
+
+        setFollowerCount(resolvedFollowerCount);
+        setFollowingCount(resolvedFollowingCount);
+
         setUser({
           id: String(targetUserId ?? 'me'),
-          name: storedProfile.name || profileName,
-          username: storedProfile.username || profileUsername,
-          profileImageUrl: storedProfile.profileImageUrl || profileImageUrl || undefined,
+          name: resolvedName,
+          username: resolvedUsername,
+          profileImageUrl: resolvedProfileImageUrl,
+          bio: resolvedBio,
+          website: resolvedWebsite,
+          linkedin: resolvedLinkedin,
+          instagram: resolvedInstagram,
+          followerCount: resolvedFollowerCount,
+          followingCount: resolvedFollowingCount,
         });
       } catch (fetchError) {
         const message = fetchError instanceof Error ? fetchError.message : 'Unable to load this profile.';
@@ -431,10 +530,10 @@ export default function ProfilePage() {
   const summary = useMemo(
     () => [
       { label: 'Posts', value: String(posts.length) },
-      { label: 'Likes', value: String(posts.reduce((total, post) => total + post.likes, 0)) },
-      { label: 'Comments', value: String(posts.reduce((total, post) => total + post.comments, 0)) },
+      { label: 'Followers', value: String(followerCount) },
+      { label: 'Following', value: String(followingCount) },
     ],
-    [posts],
+    [posts.length, followerCount, followingCount],
   );
 
   return (
@@ -509,6 +608,41 @@ export default function ProfilePage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">Profile</p>
                 <h1 className="mt-2 text-3xl font-black text-slate-900">{user.name}</h1>
                 <p className="text-sm text-slate-500">{user.username}</p>
+                {user.bio && <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">{user.bio}</p>}
+                {(user.website || user.linkedin || user.instagram) && (
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                    {user.website && (
+                      <a
+                        href={user.website}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-full bg-sky-50 px-2.5 py-1 font-medium text-sky-700"
+                      >
+                        Website
+                      </a>
+                    )}
+                    {user.linkedin && (
+                      <a
+                        href={user.linkedin}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-full bg-sky-50 px-2.5 py-1 font-medium text-sky-700"
+                      >
+                        LinkedIn
+                      </a>
+                    )}
+                    {user.instagram && (
+                      <a
+                        href={user.instagram}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-full bg-sky-50 px-2.5 py-1 font-medium text-sky-700"
+                      >
+                        Instagram
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

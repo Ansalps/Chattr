@@ -207,6 +207,9 @@ message ProfileInfoRes{
     string Links=7;
     bool BlueTick=8;
     string Phone=9;
+    uint64 PostCount=10;
+    uint64 FollowerCount=11;
+    uint64 FollowingCount=12;
 }
 
 message SetProfileImageRequest{

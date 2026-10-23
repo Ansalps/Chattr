@@ -80,6 +80,24 @@ const fallbackPosts: FeedPost[] = [
 const formatCount = (value: number) =>
   new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
 
+const PROFILE_STORAGE_KEY = 'chattr_profile_info';
+
+const readStoredProfile = () => {
+  try {
+    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+    if (!raw) return { name: '', username: '', profileImageUrl: '' };
+
+    const parsed = JSON.parse(raw) as Partial<{ name?: string; username?: string; profileImageUrl?: string }>;
+    return {
+      name: typeof parsed.name === 'string' ? parsed.name : '',
+      username: typeof parsed.username === 'string' ? parsed.username : '',
+      profileImageUrl: typeof parsed.profileImageUrl === 'string' ? parsed.profileImageUrl : '',
+    };
+  } catch (error) {
+    return { name: '', username: '', profileImageUrl: '' };
+  }
+};
+
 const getInitials = (value: string) =>
   value
     .split(/\s+/)
@@ -88,6 +106,11 @@ const getInitials = (value: string) =>
     .map((part) => part[0])
     .join('')
     .toUpperCase() || 'A';
+
+const getUsernameInitial = (value: string) => {
+  const trimmed = value.replace(/^@/, '').trim();
+  return trimmed ? trimmed.charAt(0).toUpperCase() : 'A';
+};
 
 const normalizeStringArray = (value: unknown): string[] => {
   if (Array.isArray(value)) {
@@ -267,6 +290,11 @@ export default function NewsFeedPage() {
   const [openCommentFor, setOpenCommentFor] = useState<string | null>(null);
   const [commentsByPost, setCommentsByPost] = useState<Record<string, FeedComment[]>>({});
   const [commentLoading, setCommentLoading] = useState<Record<string, boolean>>({});
+
+  const storedProfile = readStoredProfile();
+  const currentUserName = storedProfile.name || 'Jane Doe';
+  const currentUserHandle = storedProfile.username || '@janedoe';
+  const currentProfileImageUrl = storedProfile.profileImageUrl || '';
 
   useEffect(() => {
     const fetchNewsFeed = async () => {
@@ -620,10 +648,16 @@ export default function NewsFeedPage() {
               <button
                 type="button"
                 onClick={() => navigate('/profile')}
-                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-lg font-black text-white shadow-lg shadow-sky-300/40 transition hover:scale-[1.02]"
+                className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-lg font-black text-white shadow-lg shadow-sky-300/40 transition hover:scale-[1.02]"
                 aria-label="View profile"
               >
-                A
+                {currentProfileImageUrl ? (
+                  <img src={currentProfileImageUrl} alt={currentUserName} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-500 to-blue-600">
+                    {getUsernameInitial(currentUserHandle || currentUserName)}
+                  </span>
+                )}
               </button>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-600">Chattr</p>
@@ -656,12 +690,18 @@ export default function NewsFeedPage() {
           <aside className="space-y-6">
             <div className="rounded-[28px] border border-sky-100 bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-500 text-sm font-bold text-white">
-                  JD
+                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-500 text-sm font-bold text-white">
+                  {currentProfileImageUrl ? (
+                    <img src={currentProfileImageUrl} alt={currentUserName} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-400 to-indigo-500">
+                      {getUsernameInitial(currentUserHandle || currentUserName)}
+                    </span>
+                  )}
                 </div>
                 <div>
-                  <p className="font-bold text-slate-900">Jane Doe</p>
-                  <p className="text-sm text-slate-500">@janedoe</p>
+                  <p className="font-bold text-slate-900">{currentUserName}</p>
+                  <p className="text-sm text-slate-500">{currentUserHandle}</p>
                 </div>
               </div>
 
@@ -693,8 +733,14 @@ export default function NewsFeedPage() {
                 onClick={() => setIsComposerOpen(true)}
                 className="flex w-full items-center gap-3 text-left"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 text-sm font-bold text-white">
-                  JD
+                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 text-sm font-bold text-white">
+                  {currentProfileImageUrl ? (
+                    <img src={currentProfileImageUrl} alt={currentUserName} className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-400 to-blue-600">
+                      {getUsernameInitial(currentUserHandle || currentUserName)}
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-slate-500 transition hover:border-sky-200 hover:bg-sky-100">
                   Share something with your community...

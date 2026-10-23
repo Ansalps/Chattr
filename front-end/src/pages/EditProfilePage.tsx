@@ -1,20 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const PROFILE_STORAGE_KEY = 'chattr_profile_info';
 
 type ProfileFormState = {
   name: string;
-  username: string;
   bio: string;
   profileImageUrl: string;
+  website: string;
+  linkedin: string;
+  instagram: string;
 };
 
 const emptyForm: ProfileFormState = {
   name: '',
-  username: '',
   bio: '',
   profileImageUrl: '',
+  website: '',
+  linkedin: '',
+  instagram: '',
 };
 
 const readStoredProfile = (): ProfileFormState => {
@@ -24,12 +28,14 @@ const readStoredProfile = (): ProfileFormState => {
       return emptyForm;
     }
 
-    const parsed = JSON.parse(raw) as Partial<ProfileFormState>;
+    const parsed = JSON.parse(raw) as Partial<ProfileFormState & { username?: string; links?: Record<string, string> }>;
     return {
       name: typeof parsed.name === 'string' ? parsed.name : '',
-      username: typeof parsed.username === 'string' ? parsed.username : '',
       bio: typeof parsed.bio === 'string' ? parsed.bio : '',
       profileImageUrl: typeof parsed.profileImageUrl === 'string' ? parsed.profileImageUrl : '',
+      website: typeof parsed.website === 'string' ? parsed.website : typeof parsed.links?.website === 'string' ? parsed.links.website : '',
+      linkedin: typeof parsed.linkedin === 'string' ? parsed.linkedin : typeof parsed.links?.linkedin === 'string' ? parsed.links.linkedin : '',
+      instagram: typeof parsed.instagram === 'string' ? parsed.instagram : typeof parsed.links?.instagram === 'string' ? parsed.links.instagram : '',
     };
   } catch (error) {
     return emptyForm;
@@ -40,6 +46,7 @@ export default function EditProfilePage() {
   const navigate = useNavigate();
   const [form, setForm] = useState<ProfileFormState>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setForm(readStoredProfile());
@@ -49,13 +56,31 @@ export default function EditProfilePage() {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setForm((current) => ({ ...current, profileImageUrl: reader.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSaving(true);
 
     const normalized = {
       ...form,
-      username: form.username.startsWith('@') ? form.username : `@${form.username}`,
+      username: '',
+      links: {
+        website: form.website,
+        linkedin: form.linkedin,
+        instagram: form.instagram,
+      },
     };
 
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(normalized));
@@ -94,14 +119,24 @@ export default function EditProfilePage() {
             </div>
 
             <div className="flex-1">
-              <label className="mb-1 block text-sm font-semibold text-slate-600">Profile image URL</label>
-              <input
-                type="url"
-                value={form.profileImageUrl}
-                onChange={(event) => handleChange('profileImageUrl', event.target.value)}
-                placeholder="https://example.com/profile.jpg"
-                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-              />
+              <label className="mb-1 block text-sm font-semibold text-slate-600">Profile image</label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm"
+                >
+                  Upload image
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageSelect}
+                />
+                <span className="text-xs text-slate-500">{form.profileImageUrl ? 'Image selected' : 'No image selected'}</span>
+              </div>
             </div>
           </div>
 
@@ -117,17 +152,6 @@ export default function EditProfilePage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-600">Username</label>
-            <input
-              type="text"
-              value={form.username}
-              onChange={(event) => handleChange('username', event.target.value)}
-              placeholder="janedoe"
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
-            />
-          </div>
-
-          <div>
             <label className="mb-1 block text-sm font-semibold text-slate-600">Bio</label>
             <textarea
               value={form.bio}
@@ -136,6 +160,41 @@ export default function EditProfilePage() {
               placeholder="Tell people a little about yourself..."
               className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
             />
+          </div>
+
+          <div className="space-y-4 rounded-[28px] border border-slate-200 bg-slate-50 p-4">
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-slate-600">Website</label>
+              <input
+                type="url"
+                value={form.website}
+                onChange={(event) => handleChange('website', event.target.value)}
+                placeholder="https://yourwebsite.com"
+                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-slate-600">LinkedIn</label>
+              <input
+                type="url"
+                value={form.linkedin}
+                onChange={(event) => handleChange('linkedin', event.target.value)}
+                placeholder="https://linkedin.com/in/yourname"
+                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-semibold text-slate-600">Instagram</label>
+              <input
+                type="url"
+                value={form.instagram}
+                onChange={(event) => handleChange('instagram', event.target.value)}
+                placeholder="https://instagram.com/yourname"
+                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+              />
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">
