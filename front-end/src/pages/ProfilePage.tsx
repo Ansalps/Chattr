@@ -114,13 +114,38 @@ const normalizeProfilePosts = (value: unknown): ProfilePost[] => {
           ? source.MediaUrls.filter((entry): entry is string => typeof entry === 'string')
           : [];
 
+    const isLiked = Boolean(
+      source.isLiked ??
+        source.IsLiked ??
+        source.is_liked ??
+        source.Isliked ??
+        false,
+    );
+
     return {
       id: String(source.post_id ?? source.PostID ?? source.id ?? `${Date.now()}-${Math.random()}`),
       content,
       imageUrls,
-      likes: Number(source.like_count ?? source.LikesCount ?? source.likes ?? 0) || 0,
-      comments: Number(source.comments_count ?? source.CommentsCount ?? source.comments ?? 0) || 0,
+      likes: Number(
+        source.likes ??
+          source.Likes ??
+          source.LikeCount ??
+          source.likeCount ??
+          source.like_count ??
+          source.likes_count ??
+          source.LikesCount ??
+          0,
+      ) || 0,
+      comments: Number(
+        source.comments ??
+          source.Comments ??
+          source.comments_count ??
+          source.CommentsCount ??
+          source.comment_count ??
+          0,
+      ) || 0,
       time: String(source.post_age ?? source.PostAge ?? source.created_at ?? source.CreatedAt ?? 'just now'),
+      isLiked,
     };
   });
 };
@@ -754,7 +779,9 @@ export default function ProfilePage() {
                               className="h-full w-full object-cover transition duration-200 group-hover:scale-105"
                             />
                             <div className="absolute inset-0 flex items-center justify-center gap-4 bg-slate-900/45 opacity-0 transition duration-200 group-hover:opacity-100">
-                              <span className="text-sm font-semibold text-white">♥ {post.likes}</span>
+                              <span className={`text-sm font-semibold ${post.isLiked ? 'text-rose-500' : 'text-white'}`}>
+                                ♥ {post.likes}
+                              </span>
                               <span className="text-sm font-semibold text-white">💬 {post.comments}</span>
                             </div>
                           </button>

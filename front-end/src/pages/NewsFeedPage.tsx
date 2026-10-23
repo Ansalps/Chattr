@@ -187,7 +187,7 @@ const normalizeFeedPosts = (value: unknown): FeedPost[] => {
         (typeof source.caption === 'string' && source.caption) ||
         (typeof source.Caption === 'string' && source.Caption) ||
         (typeof source.description === 'string' && source.description) ||
-        'Shared a new update with the community.';
+        '';
 
       const imageUrls = normalizeStringArray(
         source.media_urls ??
@@ -626,7 +626,7 @@ export default function NewsFeedPage() {
         author: 'Jane Doe',
         handle: '@janedoe',
         time: 'just now',
-        content: postText.trim() || 'Shared a new update with the community.',
+        content: postText.trim(),
         imageUrls: selectedFiles.length > 0 ? selectedFiles.map((file) => URL.createObjectURL(file)) : [],
         isLiked: false,
         likes: 0,
