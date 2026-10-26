@@ -248,7 +248,7 @@ func (as *PostRelationServer) FetchComments(ctx context.Context, req *pb.FetchCo
 }
 
 func (as *PostRelationServer) PostFollowCount(ctx context.Context, req *pb.PostFollowCountRequest) (*pb.PostFollowCountResponse, error) {
-	resp, err := as.PostRelationUsecase.PostFollowCount(req.UserId)
+	resp, err := as.PostRelationUsecase.PostFollowCount(req.UserId,req.TargetUserId)
 	if err != nil {
 		return nil, err
 	}
@@ -256,6 +256,7 @@ func (as *PostRelationServer) PostFollowCount(ctx context.Context, req *pb.PostF
 		PostCount:      resp.PostCount,
 		FollowerCount:  resp.FollowerCount,
 		FollowingCount: resp.FollowingCount,
+		IsAlreadyFollowing: resp.IsAlreadyFollowing,
 	}, nil
 }
 func (as *PostRelationServer)FetchPostByPostID(ctx context.Context,req *pb.FetchPostRequest)(*pb.FetchPostResponse,error){

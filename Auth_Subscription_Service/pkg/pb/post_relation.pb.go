@@ -104,6 +104,7 @@ func (*Empty) Descriptor() ([]byte, []int) {
 type PostFollowCountRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	TargetUserId  uint64                 `protobuf:"varint,2,opt,name=TargetUserId,proto3" json:"TargetUserId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -145,13 +146,21 @@ func (x *PostFollowCountRequest) GetUserId() uint64 {
 	return 0
 }
 
+func (x *PostFollowCountRequest) GetTargetUserId() uint64 {
+	if x != nil {
+		return x.TargetUserId
+	}
+	return 0
+}
+
 type PostFollowCountResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	PostCount      uint64                 `protobuf:"varint,1,opt,name=PostCount,proto3" json:"PostCount,omitempty"`
-	FollowerCount  uint64                 `protobuf:"varint,2,opt,name=FollowerCount,proto3" json:"FollowerCount,omitempty"`
-	FollowingCount uint64                 `protobuf:"varint,3,opt,name=FollowingCount,proto3" json:"FollowingCount,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	PostCount          uint64                 `protobuf:"varint,1,opt,name=PostCount,proto3" json:"PostCount,omitempty"`
+	FollowerCount      uint64                 `protobuf:"varint,2,opt,name=FollowerCount,proto3" json:"FollowerCount,omitempty"`
+	FollowingCount     uint64                 `protobuf:"varint,3,opt,name=FollowingCount,proto3" json:"FollowingCount,omitempty"`
+	IsAlreadyFollowing bool                   `protobuf:"varint,4,opt,name=IsAlreadyFollowing,proto3" json:"IsAlreadyFollowing,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *PostFollowCountResponse) Reset() {
@@ -205,6 +214,13 @@ func (x *PostFollowCountResponse) GetFollowingCount() uint64 {
 	return 0
 }
 
+func (x *PostFollowCountResponse) GetIsAlreadyFollowing() bool {
+	if x != nil {
+		return x.IsAlreadyFollowing
+	}
+	return false
+}
+
 var File_pkg_pb_post_relation_proto protoreflect.FileDescriptor
 
 const file_pkg_pb_post_relation_proto_rawDesc = "" +
@@ -212,13 +228,15 @@ const file_pkg_pb_post_relation_proto_rawDesc = "" +
 	"\x1apkg/pb/post_relation.proto\x12\rpost_relation\"+\n" +
 	"\x11InsertUserRequest\x12\x16\n" +
 	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"\a\n" +
-	"\x05Empty\"0\n" +
+	"\x05Empty\"T\n" +
 	"\x16PostFollowCountRequest\x12\x16\n" +
-	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"\x85\x01\n" +
+	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\"\n" +
+	"\fTargetUserId\x18\x02 \x01(\x04R\fTargetUserId\"\xb5\x01\n" +
 	"\x17PostFollowCountResponse\x12\x1c\n" +
 	"\tPostCount\x18\x01 \x01(\x04R\tPostCount\x12$\n" +
 	"\rFollowerCount\x18\x02 \x01(\x04R\rFollowerCount\x12&\n" +
-	"\x0eFollowingCount\x18\x03 \x01(\x04R\x0eFollowingCount2\xcc\x01\n" +
+	"\x0eFollowingCount\x18\x03 \x01(\x04R\x0eFollowingCount\x12.\n" +
+	"\x12IsAlreadyFollowing\x18\x04 \x01(\bR\x12IsAlreadyFollowing2\xcc\x01\n" +
 	"\x13PostRelationService\x12S\n" +
 	"\x19InsertUserIntoFollowCount\x12 .post_relation.InsertUserRequest\x1a\x14.post_relation.Empty\x12`\n" +
 	"\x0fPostFollowCount\x12%.post_relation.PostFollowCountRequest\x1a&.post_relation.PostFollowCountResponseB\n" +

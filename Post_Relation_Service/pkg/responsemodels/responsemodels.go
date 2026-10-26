@@ -78,6 +78,7 @@ type PostFollowCountResponse struct {
 	PostCount      uint64
 	FollowerCount  uint64
 	FollowingCount uint64
+	IsAlreadyFollowing bool
 }
 type Post struct {
 	PostID        uint64

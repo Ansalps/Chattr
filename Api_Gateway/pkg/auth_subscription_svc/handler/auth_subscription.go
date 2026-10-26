@@ -1033,7 +1033,8 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 		return
 	}
 	var req requestmodels.GetPublicProfile
-	req.UserID = userId
+	req.UserID = jwtClaims.ID
+	req.TargetUserID = userId
 	//var resp *auth_subscription.GetPublicProfileResponse
 	authChan := make(chan *auth_subscription.UserPublicDataResponse, 1)
 	postChan := make(chan *post_relation.PostFollowCountResponse, 1)
@@ -1041,7 +1042,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 	//fmt.Println("user id print here please ", req.UserID)
 	go func() {
 		authresp, err := as.DirectClient.Client.UserPublicData(c.Request.Context(), &auth_subscription.UserPublicDataRequest{
-			UserId: req.UserID,
+			TargetUserId: req.TargetUserID,
 		})
 		if err != nil {
 			fmt.Println("authresp", authresp, err)
@@ -1054,6 +1055,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 	go func() {
 		postresp, err := as.PostDirectClient.Client.PostFollowCount(c.Request.Context(), &post_relation.PostFollowCountRequest{
 			UserId: req.UserID,
+			TargetUserId: req.TargetUserID,
 		})
 		if err != nil {
 			errChan <- err
@@ -1094,7 +1096,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 		return
 	}
 	user_info_resp := responsemodels.AuthData{
-		UserId:        authData.UserId,
+		TargetUserId:        authData.TargetUserId,
 		UserName:      authData.UserName,
 		Name:          authData.Name,
 		ProfileImgUrl: authData.ProfileImgUrl,
@@ -1105,10 +1107,12 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 
 	// 2. Optional Data: Did we get stats?
 	var followers, following, posts uint64
+	var isAlreadyFollowing bool
 	if postData != nil {
 		followers = postData.FollowerCount
 		following = postData.FollowingCount
 		posts = postData.PostCount
+		isAlreadyFollowing=postData.IsAlreadyFollowing
 	} else {
 		// Log that the post service is down, but don't stop the request
 		log.Warn("Warning: post_relation service unavailable for user",
@@ -1122,6 +1126,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 			"followers": followers,
 			"following": following,
 			"posts":     posts,
+			"is_already_following":isAlreadyFollowing,
 			"is_stale":  postData == nil, // Helpful for frontend to know data might be old
 		},
 	})

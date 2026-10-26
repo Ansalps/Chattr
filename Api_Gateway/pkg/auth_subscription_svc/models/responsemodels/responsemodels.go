@@ -288,7 +288,7 @@ type WebhookResponse struct {
 }
 
 type AuthData struct{
-	UserId uint64
+	TargetUserId uint64
 	UserName string
 	Name string
 	ProfileImgUrl string

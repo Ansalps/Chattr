@@ -1070,7 +1070,7 @@ func (x *GetSubscriptionDetailsResponse) GetCancelReason() string {
 
 type UserPublicDataRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	TargetUserId  uint64                 `protobuf:"varint,1,opt,name=TargetUserId,proto3" json:"TargetUserId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1105,16 +1105,16 @@ func (*UserPublicDataRequest) Descriptor() ([]byte, []int) {
 	return file_pkg_proto_auth_subscription_proto_rawDescGZIP(), []int{15}
 }
 
-func (x *UserPublicDataRequest) GetUserId() uint64 {
+func (x *UserPublicDataRequest) GetTargetUserId() uint64 {
 	if x != nil {
-		return x.UserId
+		return x.TargetUserId
 	}
 	return 0
 }
 
 type UserPublicDataResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        uint64                 `protobuf:"varint,1,opt,name=UserId,proto3" json:"UserId,omitempty"`
+	TargetUserId  uint64                 `protobuf:"varint,1,opt,name=TargetUserId,proto3" json:"TargetUserId,omitempty"`
 	UserName      string                 `protobuf:"bytes,2,opt,name=UserName,proto3" json:"UserName,omitempty"`
 	Name          string                 `protobuf:"bytes,3,opt,name=Name,proto3" json:"Name,omitempty"`
 	ProfileImgUrl string                 `protobuf:"bytes,4,opt,name=ProfileImgUrl,proto3" json:"ProfileImgUrl,omitempty"`
@@ -1155,9 +1155,9 @@ func (*UserPublicDataResponse) Descriptor() ([]byte, []int) {
 	return file_pkg_proto_auth_subscription_proto_rawDescGZIP(), []int{16}
 }
 
-func (x *UserPublicDataResponse) GetUserId() uint64 {
+func (x *UserPublicDataResponse) GetTargetUserId() uint64 {
 	if x != nil {
-		return x.UserId
+		return x.TargetUserId
 	}
 	return 0
 }
@@ -4800,11 +4800,11 @@ const file_pkg_proto_auth_subscription_proto_rawDesc = "" +
 	"\x0eRemainingCount\x18\r \x01(\x03R\x0eRemainingCount\x12\x1c\n" +
 	"\tPaidCount\x18\x0e \x01(\x03R\tPaidCount\x12<\n" +
 	"\vCancelledAt\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\vCancelledAt\x12\"\n" +
-	"\fCancelReason\x18\x10 \x01(\tR\fCancelReason\"/\n" +
-	"\x15UserPublicDataRequest\x12\x16\n" +
-	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\"\xca\x01\n" +
-	"\x16UserPublicDataResponse\x12\x16\n" +
-	"\x06UserId\x18\x01 \x01(\x04R\x06UserId\x12\x1a\n" +
+	"\fCancelReason\x18\x10 \x01(\tR\fCancelReason\";\n" +
+	"\x15UserPublicDataRequest\x12\"\n" +
+	"\fTargetUserId\x18\x01 \x01(\x04R\fTargetUserId\"\xd6\x01\n" +
+	"\x16UserPublicDataResponse\x12\"\n" +
+	"\fTargetUserId\x18\x01 \x01(\x04R\fTargetUserId\x12\x1a\n" +
 	"\bUserName\x18\x02 \x01(\tR\bUserName\x12\x12\n" +
 	"\x04Name\x18\x03 \x01(\tR\x04Name\x12$\n" +
 	"\rProfileImgUrl\x18\x04 \x01(\tR\rProfileImgUrl\x12\x10\n" +

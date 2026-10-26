@@ -147,10 +147,10 @@ message GetSubscriptionDetailsResponse{
 
 }
 message UserPublicDataRequest{
-    uint64 UserId=1;
+    uint64 TargetUserId=1;
 }
 message UserPublicDataResponse{
-    uint64 UserId=1;
+    uint64 TargetUserId=1;
     string UserName=2;
     string Name=3;
     string ProfileImgUrl=4;

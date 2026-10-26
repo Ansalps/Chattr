@@ -668,7 +668,7 @@ func (as *AuthSubscriptionUsecase) createAndSaveCustomer(userDetail responsemode
 
 	// 4. Update your local database
 	// This links your internal UserID to the Razorpay CustomerID forever
-	err = as.AuthSubscriptionRepository.UpdateUserRazorpayCustomerID(userDetail.UserID, customerID)
+	err = as.AuthSubscriptionRepository.UpdateUserRazorpayCustomerID(userDetail.TargetUserId, customerID)
 	if err != nil {
 		//log.Printf("Failed to save customerID %s to DB for user %d: %v", customerID, userDetail.UserID, err)
 		if err == gorm.ErrRecordNotFound {

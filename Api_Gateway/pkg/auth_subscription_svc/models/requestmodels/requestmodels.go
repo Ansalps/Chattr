@@ -144,6 +144,7 @@ type SearchUser struct{
 }
 type GetPublicProfile struct{
 	UserID uint64
+	TargetUserID uint64
 }
 
 type RazorpayEvent struct {

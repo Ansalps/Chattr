@@ -601,18 +601,25 @@ func (as *PostRelationUsecase) FetchComments(fetchCommentsReq requestmodels.Fetc
 	}, nil
 }
 
-func (as *PostRelationUsecase) PostFollowCount(userid uint64) (responsemodels.PostFollowCountResponse, error) {
-	postCount, err := as.PostRelationRepository.FetchPostCountByUserId(userid)
+func (as *PostRelationUsecase) PostFollowCount(userId,targetUserId uint64) (responsemodels.PostFollowCountResponse, error) {
+	postCount, err := as.PostRelationRepository.FetchPostCountByUserId(targetUserId)
 	if err != nil {
 		return responsemodels.PostFollowCountResponse{}, err
 	}
 	//fmt.Println("print post Count in usecase", postCount)
-	resp, err := as.PostRelationRepository.FetchFollowCountByUserId(userid)
+	//var resp responsemodels.PostFollowCountResponse
+	resp, err := as.PostRelationRepository.FetchFollowCountByUserId(targetUserId)
 	if err != nil {
 		return responsemodels.PostFollowCountResponse{}, err
 	}
 	//fmt.Println("resp print first in usecase", resp)
 	resp.PostCount = postCount
+
+	result,err:=as.PostRelationRepository.IsAlreadyFollowing(userId,targetUserId)
+	if err != nil {
+		return responsemodels.PostFollowCountResponse{}, err
+	}
+	resp.IsAlreadyFollowing=result
 	//fmt.Println("resp print second in usecase", resp, resp.PostCount)
 	return resp, nil
 }

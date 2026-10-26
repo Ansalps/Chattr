@@ -52,4 +52,6 @@ type PostRelationRepository interface {
 	GetFollowedNormalUsersIDs(userID uint64) ([]uint64, error)
 	IsUserCelebrity(userid uint64)(bool,error)
 	FetchPostData(newsfeedReq requestmodels.FetchNewsFeedRequest) ([]responsemodels.PostWithStatus, error)
+
+	IsAlreadyFollowing(userId,targetUserId uint64)(bool,error)
 }

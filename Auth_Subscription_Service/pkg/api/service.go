@@ -154,7 +154,7 @@ func (as *AuthSubscriptionServer) VerifyOtp(ctx context.Context, req *pb.OtpRequ
 	}
 	otpResponse, err := as.AuthSubscriptionUsecase.VerifyOtp(ctx, otpReq)
 	if err != nil {
-		fmt.Println("error ----!!!",err)
+		fmt.Println("error ----!!!", err)
 		return nil, err
 	}
 
@@ -512,9 +512,9 @@ func (as *AuthSubscriptionServer) GetProfileInformation(ctx context.Context, req
 		Links:           resp.Links,
 		BlueTick:        resp.BlueTick,
 		Phone:           resp.Phone,
-		PostCount: uint64(resp.PostCount),
-		FollowerCount: uint64(resp.FollowerCount),
-		FollowingCount: uint64(resp.FollowingCount),
+		PostCount:       uint64(resp.PostCount),
+		FollowerCount:   uint64(resp.FollowerCount),
+		FollowingCount:  uint64(resp.FollowingCount),
 	}, nil
 }
 func (as *AuthSubscriptionServer) EditProfileInfromation(ctx context.Context, req *pb.EditProfileReq) (*pb.EditProfileRes, error) {
@@ -587,14 +587,14 @@ func (as *AuthSubscriptionServer) SearchUser(ctx context.Context, req *pb.Search
 }
 func (as *AuthSubscriptionServer) UserPublicData(ctx context.Context, req *pb.UserPublicDataRequest) (*pb.UserPublicDataResponse, error) {
 	//fmt.Println("is it not even entering here?")
-	resp, err := as.AuthSubscriptionUsecase.FetchUserPublicData(req.UserId)
+	resp, err := as.AuthSubscriptionUsecase.FetchUserPublicData(req.TargetUserId)
 	if err != nil {
 		//log.Println("show error", err)
 		return nil, err
 	}
 	//fmt.Println("resp in UserPublicData",resp)
-	resp1:=&pb.UserPublicDataResponse{
-		UserId:        resp.UserID,
+	resp1 := &pb.UserPublicDataResponse{
+		TargetUserId:  resp.TargetUserId,
 		UserName:      resp.UserName,
 		Name:          resp.Name,
 		ProfileImgUrl: resp.ProfileImgUrl,
@@ -697,29 +697,29 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionActivated(ctx context.Conte
 	// }
 	// fmt.Println("subscription activated in auth service")
 	// loc, _ := time.LoadLocation("Asia/Kolkata")
-		fmt.Println("req",req)
+	fmt.Println("req", req)
 	fmt.Println("1. Entered WebhookSubscriptionActivated")
-    
-    // 1. Safe Time Conversion
-    var startAt time.Time
-    if req.StartAt != nil {
+
+	// 1. Safe Time Conversion
+	var startAt time.Time
+	if req.StartAt != nil {
 		fmt.Println("req.StartAt is not nil")
-        // Only call AsTime() if the pointer is not nil
-        startAt = req.StartAt.AsTime()
-    } else {
-        fmt.Println("Warning: CancelledAt is nil in the request")
-        startAt = time.Now() // Fallback or handle as error
-    }
+		// Only call AsTime() if the pointer is not nil
+		startAt = req.StartAt.AsTime()
+	} else {
+		fmt.Println("Warning: CancelledAt is nil in the request")
+		startAt = time.Now() // Fallback or handle as error
+	}
 	fmt.Println("time to start loading location")
-    // 2. Handle Location (ensure tzdata is in your Dockerfile!)
-    loc, err := time.LoadLocation("Asia/Kolkata")
+	// 2. Handle Location (ensure tzdata is in your Dockerfile!)
+	loc, err := time.LoadLocation("Asia/Kolkata")
 	if err != nil {
-        fmt.Printf("Error loading location: %v. Defaulting to UTC.\n", err)
-        loc = time.UTC
-    }
-	fmt.Println("reached after loading location",loc)
-    // Apply the timezone
-    startAt = startAt.In(loc)
+		fmt.Printf("Error loading location: %v. Defaulting to UTC.\n", err)
+		loc = time.UTC
+	}
+	fmt.Println("reached after loading location", loc)
+	// Apply the timezone
+	startAt = startAt.In(loc)
 
 	webhookReq := requestmodels.WebhookSubscriptionActivatedRequest{
 		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
@@ -733,7 +733,7 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionActivated(ctx context.Conte
 	fmt.Println("just before calling usecase activated")
 	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionActivated(webhookReq)
 	if err != nil {
-		fmt.Println("is there any error in activated usecase activated",err)
+		fmt.Println("is there any error in activated usecase activated", err)
 		return nil, err
 	}
 	fmt.Println("just before calling usecase activated")
@@ -745,9 +745,9 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionActivated(ctx context.Conte
 func (as *AuthSubscriptionServer) WebhookSubscriptionCharged(ctx context.Context, req *pb.WebhookSubscriptionChargedRequest) (*pb.WebhookSubscriptionChargedResponse, error) {
 	fmt.Println("subscription charged in auth service")
 	loc, err := time.LoadLocation("Asia/Kolkata")
-	if err!=nil{
+	if err != nil {
 		fmt.Printf("Error loading location: %v. Defaulting to UTC.\n", err)
-        loc = time.UTC
+		loc = time.UTC
 	}
 	webhookReq := requestmodels.WebhookSubscriptionChargedRequest{
 		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
@@ -793,24 +793,24 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionCancelled(ctx context.Conte
 	// fmt.Println("subscription cancelled in auth service")
 	// loc, _ := time.LoadLocation("Asia/Kolkata")
 	fmt.Println("1. Entered WebhookSubscriptionCancelled")
-    
-    // 1. Safe Time Conversion
-    var cancelledTime time.Time
-    if req.CancelledAt != nil {
-        // Only call AsTime() if the pointer is not nil
-        cancelledTime = req.CancelledAt.AsTime()
-    } else {
-        fmt.Println("Warning: CancelledAt is nil in the request")
-        cancelledTime = time.Now() // Fallback or handle as error
-    }
-    // 2. Handle Location (ensure tzdata is in your Dockerfile!)
-    loc, err := time.LoadLocation("Asia/Kolkata")
-    if err != nil {
-        fmt.Printf("Error loading location: %v. Defaulting to UTC.\n", err)
-        loc = time.UTC
-    }
-    // Apply the timezone
-    cancelledTime = cancelledTime.In(loc)
+
+	// 1. Safe Time Conversion
+	var cancelledTime time.Time
+	if req.CancelledAt != nil {
+		// Only call AsTime() if the pointer is not nil
+		cancelledTime = req.CancelledAt.AsTime()
+	} else {
+		fmt.Println("Warning: CancelledAt is nil in the request")
+		cancelledTime = time.Now() // Fallback or handle as error
+	}
+	// 2. Handle Location (ensure tzdata is in your Dockerfile!)
+	loc, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+		fmt.Printf("Error loading location: %v. Defaulting to UTC.\n", err)
+		loc = time.UTC
+	}
+	// Apply the timezone
+	cancelledTime = cancelledTime.In(loc)
 
 	webhookreq := requestmodels.WebhookSubscriptionCancelledRequest{
 		RazorpaySubscriptionId: req.RazorpaySubscriptionId,
@@ -818,11 +818,11 @@ func (as *AuthSubscriptionServer) WebhookSubscriptionCancelled(ctx context.Conte
 		CancelledAt:            req.CancelledAt.AsTime().In(loc),
 		UserId:                 req.UserId,
 	}
-	
+
 	fmt.Println("just before calling usecase cancelled")
 	resp, err := as.AuthSubscriptionUsecase.WebhookSubscriptionCancelled(webhookreq)
 	if err != nil {
-		fmt.Println("is there any error in calling usecase cancelled",err)
+		fmt.Println("is there any error in calling usecase cancelled", err)
 		return nil, err
 	}
 	fmt.Println("just after calling usecase cancelled")

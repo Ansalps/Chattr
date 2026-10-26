@@ -8,6 +8,7 @@ type FeedComment = {
   author: string;
   text: string;
   time: string;
+  profileImageUrl?: string;
   replyCount?: number;
   replies?: FeedComment[];
 };
@@ -426,6 +427,11 @@ export default function NewsFeedPage() {
     followingCount: 0,
     postCount: 0,
   });
+  const [userSearch, setUserSearch] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState<
+    Array<{ id: string; name: string; username: string; profileImageUrl: string }>
+  >([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
 
   const storedProfile = readStoredProfile();
   const currentUserId = currentUserProfile.id || storedProfile.id || '';
@@ -594,6 +600,107 @@ export default function NewsFeedPage() {
     { name: 'Aisha Noor', role: 'Community Builder', accent: 'from-violet-400 to-purple-500' },
   ];
 
+  const goToProfile = (userId?: string) => {
+    const safeUserId = String(userId ?? '').trim();
+    navigate(safeUserId && safeUserId !== 'me' ? `/profile/${encodeURIComponent(safeUserId)}` : '/profile');
+  };
+
+  const handleUserSearchSelect = (userId: string) => {
+    setUserSearch('');
+    setUserSearchResults([]);
+    navigate(`/profile/${encodeURIComponent(userId)}`);
+  };
+
+  useEffect(() => {
+    const trimmedQuery = userSearch.trim();
+    if (!trimmedQuery) {
+      setUserSearchResults([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        setIsSearchingUsers(true);
+        const response = await fetch(`${API_BASE_URL}/user/search?username=${encodeURIComponent(trimmedQuery)}&limit=5&offset=0`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok || payload.status_code >= 400) {
+          throw new Error(payload.message || 'Unable to search users.');
+        }
+
+        const dataPayload =
+          (payload && typeof payload === 'object' && 'data' in payload ? (payload as Record<string, unknown>).data : undefined) ||
+          (payload && typeof payload === 'object' && 'response' in payload ? (payload as Record<string, unknown>).response : undefined) ||
+          payload;
+
+        const userList: unknown[] =
+          Array.isArray((dataPayload as Record<string, unknown>)?.UserMeataData)
+            ? ((dataPayload as Record<string, unknown>).UserMeataData as unknown[])
+            : Array.isArray((dataPayload as Record<string, unknown>)?.userMeataData)
+              ? ((dataPayload as Record<string, unknown>).userMeataData as unknown[])
+              : Array.isArray((dataPayload as Record<string, unknown>)?.data)
+                ? ((dataPayload as Record<string, unknown>).data as unknown[])
+                : Array.isArray((dataPayload as Record<string, unknown>)?.Data)
+                  ? ((dataPayload as Record<string, unknown>).Data as unknown[])
+                  : [];
+
+        const normalizedResults = userList
+          .map((user) => {
+            const source = (user ?? {}) as Record<string, unknown>;
+            const userId = String(
+              source.UserId ?? source.userId ?? source.user_id ?? source.UserID ?? source.userID ?? '',
+            );
+            const name = String(
+              source.Name ?? source.name ?? source.FullName ?? source.full_name ?? source.UserName ?? source.userName ?? 'User',
+            );
+            const username = String(
+              source.UserName ?? source.userName ?? source.username ?? '@user',
+            );
+            const profileImageUrl =
+              (typeof source.ProfileImgUrl === 'string' && source.ProfileImgUrl) ||
+              (typeof source.profile_image_url === 'string' && source.profile_image_url) ||
+              (typeof source.profileImageUrl === 'string' && source.profileImageUrl) ||
+              '';
+
+            if (!userId && !name && !username) return null;
+
+            return {
+              id: userId || name || username,
+              name,
+              username: normalizeUsername(username),
+              profileImageUrl,
+            };
+          })
+          .filter(Boolean) as Array<{ id: string; name: string; username: string; profileImageUrl: string }>;
+
+        setUserSearchResults(normalizedResults);
+      } catch (searchError) {
+        if (searchError instanceof DOMException && searchError.name === 'AbortError') {
+          return;
+        }
+
+        console.error('search users failed', searchError);
+        setUserSearchResults([]);
+      } finally {
+        setIsSearchingUsers(false);
+      }
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [userSearch]);
+
   const handleToggleLike = async (postId: string, currentLiked: boolean) => {
     try {
       const endpoint = `${API_BASE_URL}/user/post/${postId}/${currentLiked ? 'unlike' : 'like'}`;
@@ -674,6 +781,15 @@ export default function NewsFeedPage() {
           (typeof comment.commentText === 'string' && comment.commentText) ||
           'Comment';
 
+        const profileImageUrl =
+          (typeof comment.ProfileImgUrl === 'string' && comment.ProfileImgUrl) ||
+          (typeof comment.profile_image_url === 'string' && comment.profile_image_url) ||
+          (typeof comment.profileImageUrl === 'string' && comment.profileImageUrl) ||
+          (typeof userDetails.ProfileImgUrl === 'string' && userDetails.ProfileImgUrl) ||
+          (typeof userDetails.profile_image_url === 'string' && userDetails.profile_image_url) ||
+          (typeof userDetails.profileImageUrl === 'string' && userDetails.profileImageUrl) ||
+          '';
+
         const time =
           (typeof comment.CommentAge === 'string' && comment.CommentAge) ||
           (typeof comment.comment_age === 'string' && comment.comment_age) ||
@@ -707,6 +823,15 @@ export default function NewsFeedPage() {
             (typeof child.commentText === 'string' && child.commentText) ||
             'Comment';
 
+          const childProfileImageUrl =
+            (typeof child.ProfileImgUrl === 'string' && child.ProfileImgUrl) ||
+            (typeof child.profile_image_url === 'string' && child.profile_image_url) ||
+            (typeof child.profileImageUrl === 'string' && child.profileImageUrl) ||
+            (typeof childUserDetails.ProfileImgUrl === 'string' && childUserDetails.ProfileImgUrl) ||
+            (typeof childUserDetails.profile_image_url === 'string' && childUserDetails.profile_image_url) ||
+            (typeof childUserDetails.profileImageUrl === 'string' && childUserDetails.profileImageUrl) ||
+            '';
+
           const childTime =
             (typeof child.CommentAge === 'string' && child.CommentAge) ||
             (typeof child.comment_age === 'string' && child.comment_age) ||
@@ -717,6 +842,7 @@ export default function NewsFeedPage() {
             author: childAuthor,
             text: childText,
             time: childTime,
+            profileImageUrl: childProfileImageUrl,
           };
         });
 
@@ -725,6 +851,7 @@ export default function NewsFeedPage() {
           author,
           text,
           time,
+          profileImageUrl,
           replyCount: Number(comment.ChildCommentCount ?? comment.child_comment_count ?? replies.length) || replies.length,
           replies,
         };
@@ -953,17 +1080,27 @@ export default function NewsFeedPage() {
             <div className="flex items-center gap-4">
               <button
                 type="button"
-                onClick={() => navigate('/profile')}
-                className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-lg font-black text-white shadow-lg shadow-sky-300/40 transition hover:scale-[1.02]"
-                aria-label="View profile"
+                onClick={() => navigate('/newsfeed')}
+                className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 via-cyan-500 to-blue-600 shadow-lg shadow-sky-300/40 transition hover:scale-[1.02]"
+                aria-label="Go to newsfeed"
               >
-                {currentProfileImageUrl ? (
-                  <img src={currentProfileImageUrl} alt={currentUserName} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-500 to-blue-600">
-                    {getUsernameInitial(currentUserHandle || currentUserName)}
-                  </span>
-                )}
+                <svg viewBox="0 0 64 64" className="h-8 w-8 drop-shadow-sm" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="chattr-logo-gradient" x1="0%" x2="100%" y1="0%" y2="100%">
+                      <stop offset="0%" stopColor="#ffffff" />
+                      <stop offset="100%" stopColor="#dff4ff" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    d="M18 18.5c0-5.2 4.3-9.5 9.5-9.5h8.8c5.2 0 9.5 4.3 9.5 9.5v15.4c0 5.2-4.3 9.5-9.5 9.5h-7.1L20.6 51c-1.1 1.3-3.2.4-3.2-1.5V34c0-5.2 4.3-9.5 9.5-9.5h-8.9Z"
+                    fill="url(#chattr-logo-gradient)"
+                    opacity="0.96"
+                  />
+                  <circle cx="25.5" cy="27.3" r="2.2" fill="#0ea5e9" />
+                  <circle cx="32.1" cy="27.3" r="2.2" fill="#0ea5e9" />
+                  <circle cx="38.7" cy="27.3" r="2.2" fill="#0ea5e9" />
+                  <path d="M22.5 35.5c2.2 2 5 3.1 9.3 3.1 4.7 0 7.7-1.2 9.8-3.2" stroke="#0ea5e9" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+                </svg>
               </button>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-600">Chattr</p>
@@ -971,9 +1108,45 @@ export default function NewsFeedPage() {
               </div>
             </div>
 
-            <div className="flex flex-1 items-center justify-end gap-3">
-              <div className="hidden w-full max-w-md rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-slate-500 md:block">
-                Search creators, topics, and communities…
+            <div className="flex w-full flex-1 items-center justify-end gap-3">
+              <div className="relative hidden flex-1 md:block">
+                <input
+                  type="text"
+                  value={userSearch}
+                  onChange={(event) => setUserSearch(event.target.value)}
+                  placeholder="Search creators, topics, and communities…"
+                  className="w-full rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                />
+                {userSearch.trim() && (
+                  <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 max-h-72 overflow-y-auto rounded-2xl border border-sky-100 bg-white shadow-[0_18px_50px_rgba(14,116,144,0.12)]">
+                    {isSearchingUsers ? (
+                      <div className="px-3 py-2 text-sm text-slate-500">Searching users…</div>
+                    ) : userSearchResults.length > 0 ? (
+                      userSearchResults.map((user) => (
+                        <button
+                          key={user.id}
+                          type="button"
+                          onClick={() => handleUserSearchSelect(user.id)}
+                          className="flex w-full cursor-pointer items-center gap-3 border-b border-slate-100 px-3 py-2.5 text-left transition hover:bg-sky-50 last:border-b-0"
+                        >
+                          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-sky-400 to-indigo-500 text-[10px] font-bold text-white">
+                            {user.profileImageUrl ? (
+                              <img src={user.profileImageUrl} alt={user.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <span>{getInitials(user.name || user.username)}</span>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-semibold text-slate-800">{user.name}</div>
+                            <div className="truncate text-xs text-slate-500">{user.username}</div>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-sm text-slate-500">No users found.</div>
+                    )}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => {
@@ -1002,7 +1175,11 @@ export default function NewsFeedPage() {
         <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
           <aside className="space-y-6">
             <div className="rounded-[28px] border border-sky-100 bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/profile')}
+                className="mb-4 flex w-full cursor-pointer items-center gap-3 rounded-2xl text-left transition hover:bg-sky-50/70"
+              >
                 <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-500 text-sm font-bold text-white">
                   {currentProfileImageUrl ? (
                     <img src={currentProfileImageUrl} alt={currentUserName} className="h-full w-full object-cover" />
@@ -1016,7 +1193,7 @@ export default function NewsFeedPage() {
                   <p className="font-bold text-slate-900">{currentUserName}</p>
                   <p className="text-sm text-slate-500">{currentUserHandle}</p>
                 </div>
-              </div>
+              </button>
 
               <div className="space-y-3">
                 {quickStats.map((stat) => (
@@ -1053,15 +1230,6 @@ export default function NewsFeedPage() {
                 }}
                 className="flex w-full items-center gap-3 text-left"
               >
-                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 text-sm font-bold text-white">
-                  {currentProfileImageUrl ? (
-                    <img src={currentProfileImageUrl} alt={currentUserName} className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-400 to-blue-600">
-                      {getUsernameInitial(currentUserHandle || currentUserName)}
-                    </span>
-                  )}
-                </div>
                 <div className="flex-1 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-slate-500 transition hover:border-sky-200 hover:bg-sky-100">
                   Share something with your community...
                 </div>
@@ -1085,8 +1253,8 @@ export default function NewsFeedPage() {
                     <div className="flex items-start gap-3">
                       <button
                         type="button"
-                        onClick={() => navigate(`/profile/${encodeURIComponent(post.userId ?? 'me')}`)}
-                        className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br text-sm font-bold text-white shadow-sm ring-1 ring-sky-100 transition hover:scale-[1.02]"
+                        onClick={() => goToProfile(post.userId)}
+                        className="flex h-12 w-12 cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br text-sm font-bold text-white shadow-sm ring-1 ring-sky-100 transition hover:scale-[1.02]"
                         aria-label={`View ${post.author}'s profile`}
                         style={{ backgroundImage: post.profileImageUrl ? 'none' : undefined }}
                       >
@@ -1101,8 +1269,22 @@ export default function NewsFeedPage() {
 
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-bold text-slate-900">{post.author}</p>
-                          <span className="text-sm text-slate-500">{post.handle}</span>
+                          <button
+                            type="button"
+                            onClick={() => goToProfile(post.userId)}
+                            className="cursor-pointer text-left font-bold text-slate-900 transition hover:text-sky-700"
+                            aria-label={`View ${post.author}'s profile`}
+                          >
+                            {post.author}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => goToProfile(post.userId)}
+                            className="cursor-pointer text-left text-sm text-slate-500 transition hover:text-sky-700"
+                            aria-label={`View ${post.author}'s profile`}
+                          >
+                            {post.handle}
+                          </button>
                         </div>
                         <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
                           <span>{post.time}</span>
@@ -1252,11 +1434,22 @@ export default function NewsFeedPage() {
 
                             return (
                               <div key={comment.id} className="rounded-2xl bg-white px-3 py-2 shadow-sm ring-1 ring-slate-100">
-                                <div className="mb-1 flex items-center justify-between gap-3">
-                                  <span className="text-sm font-semibold text-slate-800">{comment.author}</span>
-                                  <span className="text-[11px] text-slate-400">{comment.time}</span>
+                                <div className="mb-2 flex items-start gap-3">
+                                  <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-[10px] font-bold text-white ring-1 ring-sky-100">
+                                    {comment.profileImageUrl ? (
+                                      <img src={comment.profileImageUrl} alt={comment.author} className="h-full w-full object-cover" />
+                                    ) : (
+                                      <span>{getInitials(comment.author)}</span>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="mb-1 flex items-center justify-between gap-3">
+                                      <span className="text-sm font-semibold text-slate-800">{comment.author}</span>
+                                      <span className="text-[11px] text-slate-400">{comment.time}</span>
+                                    </div>
+                                    <p className="text-sm leading-6 text-slate-600">{comment.text}</p>
+                                  </div>
                                 </div>
-                                <p className="text-sm leading-6 text-slate-600">{comment.text}</p>
 
                                 {comment.replyCount && comment.replyCount > 0 ? (
                                   <button
@@ -1326,11 +1519,22 @@ export default function NewsFeedPage() {
                                   <div className="mt-3 space-y-2 border-l border-sky-200 pl-3">
                                     {(comment.replies ?? []).map((reply) => (
                                       <div key={reply.id} className="rounded-xl bg-sky-50 px-2.5 py-2">
-                                        <div className="mb-1 flex items-center justify-between gap-3">
-                                          <span className="text-xs font-semibold text-slate-800">{reply.author}</span>
-                                          <span className="text-[10px] text-slate-400">{reply.time}</span>
+                                        <div className="flex items-start gap-2">
+                                          <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-[9px] font-bold text-white ring-1 ring-sky-100">
+                                            {reply.profileImageUrl ? (
+                                              <img src={reply.profileImageUrl} alt={reply.author} className="h-full w-full object-cover" />
+                                            ) : (
+                                              <span>{getInitials(reply.author)}</span>
+                                            )}
+                                          </div>
+                                          <div className="min-w-0 flex-1">
+                                            <div className="mb-1 flex items-center justify-between gap-3">
+                                              <span className="text-xs font-semibold text-slate-800">{reply.author}</span>
+                                              <span className="text-[10px] text-slate-400">{reply.time}</span>
+                                            </div>
+                                            <p className="text-xs leading-5 text-slate-600">{reply.text}</p>
+                                          </div>
                                         </div>
-                                        <p className="text-xs leading-5 text-slate-600">{reply.text}</p>
                                       </div>
                                     ))}
                                   </div>

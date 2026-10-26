@@ -257,7 +257,7 @@ type SearchUserResponse struct{
 }
 
 type UserPublicDataResponse struct{
-	UserID uint64
+	TargetUserId uint64
 	UserName string
 	Name string
 	ProfileImgUrl string

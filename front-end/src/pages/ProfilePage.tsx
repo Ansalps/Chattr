@@ -8,6 +8,7 @@ type FeedComment = {
   author: string;
   text: string;
   time: string;
+  profileImageUrl?: string;
   replyCount?: number;
   replies?: FeedComment[];
 };
@@ -87,6 +88,12 @@ const getInitials = (value: string) =>
     .join('')
     .toUpperCase() || 'A';
 
+const normalizeUsername = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '@user';
+  return trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
+};
+
 const normalizeLinkUrl = (value: string) => value.trim().replace(/\/+$/, '').toLowerCase();
 
 const normalizeProfilePosts = (value: unknown): ProfilePost[] => {
@@ -163,9 +170,11 @@ export default function ProfilePage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isUpdatingFollowState, setIsUpdatingFollowState] = useState(false);
   const [error, setError] = useState('');
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
-  const isOwnProfile = !userId;
+  const isOwnProfile = !userId || userId === 'me';
   const [selectedPost, setSelectedPost] = useState<ProfilePost | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showComments, setShowComments] = useState(false);
@@ -197,6 +206,96 @@ export default function ProfilePage() {
         const data = Array.isArray(payload.data) ? payload.data : Array.isArray(payload) ? payload : [];
         const normalized = normalizeProfilePosts(data);
         setPosts(normalized);
+
+        if (!isOwnProfileRequest) {
+          const publicProfileResponse = await fetch(`${API_BASE_URL}/user/${targetUserId}/get-public-profile`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          const publicProfilePayload = await publicProfileResponse.json().catch(() => ({}));
+
+          if (!publicProfileResponse.ok || publicProfilePayload.status_code >= 400) {
+            throw new Error(publicProfilePayload.message || 'Unable to load this profile.');
+          }
+
+          const userInfo =
+            (publicProfilePayload && typeof publicProfilePayload === 'object' && 'user_info' in publicProfilePayload
+              ? (publicProfilePayload as Record<string, unknown>).user_info
+              : publicProfilePayload) as Record<string, unknown>;
+          const socialStats =
+            (publicProfilePayload && typeof publicProfilePayload === 'object' && 'social_stats' in publicProfilePayload
+              ? (publicProfilePayload as Record<string, unknown>).social_stats
+              : {}) as Record<string, unknown>;
+
+          const resolvedName =
+            (typeof userInfo.Name === 'string' && userInfo.Name) ||
+            (typeof userInfo.name === 'string' && userInfo.name) ||
+            'User Profile';
+
+          const resolvedUsername = normalizeUsername(
+            (typeof userInfo.UserName === 'string' && userInfo.UserName) ||
+              (typeof userInfo.userName === 'string' && userInfo.userName) ||
+              (typeof userInfo.username === 'string' && userInfo.username) ||
+              '@user',
+          );
+
+          const resolvedBio =
+            (typeof userInfo.Bio === 'string' && userInfo.Bio) ||
+            (typeof userInfo.bio === 'string' && userInfo.bio) ||
+            undefined;
+
+          const resolvedWebsite =
+            (typeof userInfo.Website === 'string' && userInfo.Website) ||
+            (typeof userInfo.website === 'string' && userInfo.website) ||
+            undefined;
+
+          const resolvedLinkedin =
+            (typeof userInfo.LinkedIn === 'string' && userInfo.LinkedIn) ||
+            (typeof userInfo.linkedin === 'string' && userInfo.linkedin) ||
+            undefined;
+
+          const resolvedInstagram =
+            (typeof userInfo.Instagram === 'string' && userInfo.Instagram) ||
+            (typeof userInfo.instagram === 'string' && userInfo.instagram) ||
+            undefined;
+
+          const resolvedProfileImageUrl =
+            (typeof userInfo.ProfileImgUrl === 'string' && userInfo.ProfileImgUrl) ||
+            (typeof userInfo.profile_image_url === 'string' && userInfo.profile_image_url) ||
+            (typeof userInfo.profileImageUrl === 'string' && userInfo.profileImageUrl) ||
+            undefined;
+
+          const resolvedFollowerCount = Number(socialStats.followers ?? socialStats.FollowerCount ?? 0) || 0;
+          const resolvedFollowingCount = Number(socialStats.following ?? socialStats.FollowingCount ?? 0) || 0;
+          const resolvedIsAlreadyFollowing = Boolean(
+            socialStats.is_already_following ??
+            socialStats.isAlreadyFollowing ??
+            socialStats.IsAlreadyFollowing ??
+            false,
+          );
+
+          setFollowerCount(resolvedFollowerCount);
+          setFollowingCount(resolvedFollowingCount);
+          setIsFollowing(resolvedIsAlreadyFollowing);
+
+          setUser({
+            id: String(targetUserId),
+            name: resolvedName,
+            username: resolvedUsername,
+            profileImageUrl: resolvedProfileImageUrl,
+            bio: resolvedBio,
+            website: resolvedWebsite,
+            linkedin: resolvedLinkedin,
+            instagram: resolvedInstagram,
+            followerCount: resolvedFollowerCount,
+            followingCount: resolvedFollowingCount,
+          });
+          return;
+        }
 
         let profileInfo: Record<string, unknown> = {};
         try {
@@ -315,6 +414,7 @@ export default function ProfilePage() {
 
         setFollowerCount(resolvedFollowerCount);
         setFollowingCount(resolvedFollowingCount);
+        setIsFollowing(false);
 
         setUser({
           id: String(targetUserId ?? 'me'),
@@ -339,6 +439,36 @@ export default function ProfilePage() {
 
     fetchProfile();
   }, [userId]);
+
+  const handleFollowToggle = async () => {
+    if (!userId || userId === 'me') return;
+
+    setIsUpdatingFollowState(true);
+    setError('');
+
+    try {
+      const method = isFollowing ? 'DELETE' : 'POST';
+      const endpoint = `${API_BASE_URL}/user/relation/${isFollowing ? 'unfollow' : 'follow'}/${encodeURIComponent(userId)}`;
+      const response = await fetch(endpoint, {
+        method,
+        credentials: 'include',
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok || payload.status_code >= 400) {
+        throw new Error(payload.message || payload.error || `Unable to ${isFollowing ? 'unfollow' : 'follow'} this user.`);
+      }
+
+      setIsFollowing((current) => !current);
+      setFollowerCount((current) => Math.max(0, current + (isFollowing ? -1 : 1)));
+    } catch (followError) {
+      const message = followError instanceof Error ? followError.message : 'Unable to update follow status.';
+      setError(message);
+    } finally {
+      setIsUpdatingFollowState(false);
+    }
+  };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -441,6 +571,15 @@ export default function ProfilePage() {
           (typeof comment.commentText === 'string' && comment.commentText) ||
           'Comment';
 
+        const profileImageUrl =
+          (typeof comment.ProfileImgUrl === 'string' && comment.ProfileImgUrl) ||
+          (typeof comment.profile_image_url === 'string' && comment.profile_image_url) ||
+          (typeof comment.profileImageUrl === 'string' && comment.profileImageUrl) ||
+          (typeof userDetails.ProfileImgUrl === 'string' && userDetails.ProfileImgUrl) ||
+          (typeof userDetails.profile_image_url === 'string' && userDetails.profile_image_url) ||
+          (typeof userDetails.profileImageUrl === 'string' && userDetails.profileImageUrl) ||
+          '';
+
         const time =
           (typeof comment.CommentAge === 'string' && comment.CommentAge) ||
           (typeof comment.comment_age === 'string' && comment.comment_age) ||
@@ -474,6 +613,15 @@ export default function ProfilePage() {
             (typeof child.commentText === 'string' && child.commentText) ||
             'Comment';
 
+          const childProfileImageUrl =
+            (typeof child.ProfileImgUrl === 'string' && child.ProfileImgUrl) ||
+            (typeof child.profile_image_url === 'string' && child.profile_image_url) ||
+            (typeof child.profileImageUrl === 'string' && child.profileImageUrl) ||
+            (typeof childUserDetails.ProfileImgUrl === 'string' && childUserDetails.ProfileImgUrl) ||
+            (typeof childUserDetails.profile_image_url === 'string' && childUserDetails.profile_image_url) ||
+            (typeof childUserDetails.profileImageUrl === 'string' && childUserDetails.profileImageUrl) ||
+            '';
+
           const childTime =
             (typeof child.CommentAge === 'string' && child.CommentAge) ||
             (typeof child.comment_age === 'string' && child.comment_age) ||
@@ -484,6 +632,7 @@ export default function ProfilePage() {
             author: childAuthor,
             text: childText,
             time: childTime,
+            profileImageUrl: childProfileImageUrl,
           };
         });
 
@@ -492,6 +641,7 @@ export default function ProfilePage() {
           author,
           text,
           time,
+          profileImageUrl,
           replyCount: Number(comment.ChildCommentCount ?? comment.child_comment_count ?? replies.length) || replies.length,
           replies,
         };
@@ -620,13 +770,42 @@ export default function ProfilePage() {
             ← Back to newsfeed
           </button>
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => navigate('/profile/edit')}
-              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 shadow-sm"
-            >
-              Edit Profile
-            </button>
+            {!isOwnProfile && (
+              <div className="flex items-center gap-2">
+                {isFollowing ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 shadow-sm"
+                  >
+                    Following
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={isUpdatingFollowState}
+                  onClick={handleFollowToggle}
+                  className={`rounded-2xl px-4 py-2 text-sm font-semibold shadow-sm transition ${
+                    isFollowing
+                      ? 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                      : 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-300/40'
+                  } disabled:cursor-not-allowed disabled:opacity-70`}
+                >
+                  {isUpdatingFollowState
+                    ? isFollowing ? 'Unfollowing...' : 'Following...'
+                    : isFollowing ? 'Unfollow' : 'Follow'}
+                </button>
+              </div>
+            )}
+            {isOwnProfile && (
+              <button
+                type="button"
+                onClick={() => navigate('/profile/edit')}
+                className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-700 shadow-sm"
+              >
+                Edit Profile
+              </button>
+            )}
             <button
               type="button"
               onClick={() => navigate('/newsfeed')}
@@ -917,11 +1096,22 @@ export default function ProfilePage() {
 
                           return (
                             <div key={comment.id} className="rounded-2xl bg-slate-50 px-3 py-2 ring-1 ring-slate-100">
-                              <div className="mb-1 flex items-center justify-between gap-3">
-                                <span className="text-sm font-semibold text-slate-800">{comment.author}</span>
-                                <span className="text-[11px] text-slate-400">{comment.time}</span>
+                              <div className="mb-2 flex items-start gap-3">
+                                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-[10px] font-bold text-white ring-1 ring-sky-100">
+                                  {comment.profileImageUrl ? (
+                                    <img src={comment.profileImageUrl} alt={comment.author} className="h-full w-full object-cover" />
+                                  ) : (
+                                    <span>{getInitials(comment.author)}</span>
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="mb-1 flex items-center justify-between gap-3">
+                                    <span className="text-sm font-semibold text-slate-800">{comment.author}</span>
+                                    <span className="text-[11px] text-slate-400">{comment.time}</span>
+                                  </div>
+                                  <p className="text-sm leading-6 text-slate-600">{comment.text}</p>
+                                </div>
                               </div>
-                              <p className="text-sm leading-6 text-slate-600">{comment.text}</p>
 
                               {comment.replyCount && comment.replyCount > 0 ? (
                                 <button
@@ -991,11 +1181,22 @@ export default function ProfilePage() {
                                 <div className="mt-3 space-y-2 border-l border-sky-200 pl-3">
                                   {(comment.replies ?? []).map((reply) => (
                                     <div key={reply.id} className="rounded-xl bg-white px-2.5 py-2 ring-1 ring-slate-100">
-                                      <div className="mb-1 flex items-center justify-between gap-3">
-                                        <span className="text-xs font-semibold text-slate-800">{reply.author}</span>
-                                        <span className="text-[10px] text-slate-400">{reply.time}</span>
+                                      <div className="mb-1 flex items-start gap-2">
+                                        <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-300 to-blue-500 text-[8px] font-bold text-white ring-1 ring-sky-100">
+                                          {reply.profileImageUrl ? (
+                                            <img src={reply.profileImageUrl} alt={reply.author} className="h-full w-full object-cover" />
+                                          ) : (
+                                            <span>{getInitials(reply.author)}</span>
+                                          )}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <div className="mb-1 flex items-center justify-between gap-3">
+                                            <span className="text-xs font-semibold text-slate-800">{reply.author}</span>
+                                            <span className="text-[10px] text-slate-400">{reply.time}</span>
+                                          </div>
+                                          <p className="text-xs leading-5 text-slate-600">{reply.text}</p>
+                                        </div>
                                       </div>
-                                      <p className="text-xs leading-5 text-slate-600">{reply.text}</p>
                                     </div>
                                   ))}
                                 </div>

@@ -151,11 +151,13 @@ message Post{
 }
 message PostFollowCountRequest{
     uint64 UserId=1;
+    uint64 TargetUserId=2;
 }
 message PostFollowCountResponse{
     uint64 PostCount=1;
     uint64 FollowerCount=2;
     uint64 FollowingCount=3;
+    bool IsAlreadyFollowing=4;
 }
 
 message FetchCommentsRequest{

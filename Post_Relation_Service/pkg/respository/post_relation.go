@@ -670,3 +670,24 @@ func (ad *PostRelationRepository)InsertUserIntoFollowCount(userid uint64)(error)
 	}
 	return nil
 }
+
+func (ad *PostRelationRepository) IsAlreadyFollowing(userId, targetUserId uint64) (bool, error) {
+	// The query checks if a record exists matching the IDs
+	query := `
+		SELECT EXISTS (
+			SELECT 1 
+			FROM relations 
+			WHERE follower_id = ? AND following_id = ?
+		);
+	`
+
+	var exists bool
+	// GORM uses Raw() for executing raw SQL queries and Scan() to bind results
+	err := ad.DB.Raw(query, userId, targetUserId).Scan(&exists).Error
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
