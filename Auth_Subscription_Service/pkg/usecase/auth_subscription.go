@@ -855,6 +855,7 @@ func (as *AuthSubscriptionUsecase) CheckAllUsersExists(users []uint64) ([]uint64
 }
 
 func (as *AuthSubscriptionUsecase) GetProfileInformation(req requestmodels.GetProfileInformationRequest) (responsemodels.GetProfileInformationResponse, error) {
+	fmt.Println("hello")
 	resp, err := as.AuthSubscriptionRepository.GetProfileInformation(req)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -865,6 +866,7 @@ func (as *AuthSubscriptionUsecase) GetProfileInformation(req requestmodels.GetPr
 	resp1,err:=as.PostRelationClient.PostFollowCount(context.Background(),&pb.PostFollowCountRequest{
 		UserId: req.UserId,
 	})
+	fmt.Println("res1-------",resp1)
 	if err!=nil{
 		fmt.Println("error in ",err)
 		return resp,fmt.Errorf("%w: %v:",domain.ErrInternal,err)

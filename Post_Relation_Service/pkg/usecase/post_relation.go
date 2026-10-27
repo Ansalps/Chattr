@@ -602,6 +602,21 @@ func (as *PostRelationUsecase) FetchComments(fetchCommentsReq requestmodels.Fetc
 }
 
 func (as *PostRelationUsecase) PostFollowCount(userId,targetUserId uint64) (responsemodels.PostFollowCountResponse, error) {
+	
+	if targetUserId==0{
+		
+		postCount, err := as.PostRelationRepository.FetchPostCountByUserId(userId)
+		if err != nil {
+			return responsemodels.PostFollowCountResponse{}, err
+		}
+		
+		resp, err := as.PostRelationRepository.FetchFollowCountByUserId(userId)
+		if err != nil {
+			return responsemodels.PostFollowCountResponse{}, err
+		}
+		resp.PostCount = postCount
+		return resp,nil
+	}
 	postCount, err := as.PostRelationRepository.FetchPostCountByUserId(targetUserId)
 	if err != nil {
 		return responsemodels.PostFollowCountResponse{}, err

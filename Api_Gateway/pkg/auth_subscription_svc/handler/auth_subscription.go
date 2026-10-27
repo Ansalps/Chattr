@@ -846,6 +846,7 @@ func (as *AuthSubscriptionHandler) GetProfileInformation(c *gin.Context) {
 	}
 	var req requestmodels.GetProfileInformationRequest
 	req.UserId = jwtClaims.ID
+	//var res responsemodels.GetProfileInformationResponse
 	res, err := as.GPPC_Client.GetProfileInformation(req)
 	if err != nil {
 		code, msg := utils.GRPCtoHTTP(err)

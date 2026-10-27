@@ -257,11 +257,13 @@ func (ad *PostRelationRepository) FetchPostCountByUserId(userid uint64) (uint64,
 }
 func (ad *PostRelationRepository) FetchFollowCountByUserId(userid uint64) (responsemodels.PostFollowCountResponse, error) {
 	var resp responsemodels.PostFollowCountResponse
+	
 	query := `SELECT COUNT(*) FILTER (WHERE following_id=$1) AS follower_count,COUNT(*) FILTER (WHERE follower_id=$2) AS following_count FROM relations`
 	result := ad.DB.Raw(query, userid, userid).Scan(&resp)
 	if result.Error != nil {
 		return responsemodels.PostFollowCountResponse{}, result.Error
 	}
+	
 	return resp, nil
 }
 

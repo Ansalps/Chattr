@@ -81,11 +81,11 @@ func (as *PostRelationServer) LikePost(ctx context.Context, req *pb.LikePostRequ
 	}
 	likePostRes, err := as.PostRelationUsecase.LikePost(likePostReq)
 	if err != nil {
-		log.Info("user id",logger.Field{
-			Key: "user_id",Value: req.UserId,
+		log.Info("user id", logger.Field{
+			Key: "user_id", Value: req.UserId,
 		})
-		log.Info("post_id",logger.Field{
-			Key: "post_id",Value: req.PostId,
+		log.Info("post_id", logger.Field{
+			Key: "post_id", Value: req.PostId,
 		})
 		log.Error("Client/server Error", logger.Field{Key: "details", Value: err})
 		//fmt.Println("hi hwillo")
@@ -248,20 +248,21 @@ func (as *PostRelationServer) FetchComments(ctx context.Context, req *pb.FetchCo
 }
 
 func (as *PostRelationServer) PostFollowCount(ctx context.Context, req *pb.PostFollowCountRequest) (*pb.PostFollowCountResponse, error) {
-	resp, err := as.PostRelationUsecase.PostFollowCount(req.UserId,req.TargetUserId)
+
+	resp, err := as.PostRelationUsecase.PostFollowCount(req.UserId, req.TargetUserId)
 	if err != nil {
 		return nil, err
 	}
 	return &pb.PostFollowCountResponse{
-		PostCount:      resp.PostCount,
-		FollowerCount:  resp.FollowerCount,
-		FollowingCount: resp.FollowingCount,
+		PostCount:          resp.PostCount,
+		FollowerCount:      resp.FollowerCount,
+		FollowingCount:     resp.FollowingCount,
 		IsAlreadyFollowing: resp.IsAlreadyFollowing,
 	}, nil
 }
-func (as *PostRelationServer)FetchPostByPostID(ctx context.Context,req *pb.FetchPostRequest)(*pb.FetchPostResponse,error){
-	fetchPostReq:=requestmodels.FetchPostByPostIDRequest{
-		PostID:req.PostId,
+func (as *PostRelationServer) FetchPostByPostID(ctx context.Context, req *pb.FetchPostRequest) (*pb.FetchPostResponse, error) {
+	fetchPostReq := requestmodels.FetchPostByPostIDRequest{
+		PostID: req.PostId,
 		UserID: req.UserId,
 	}
 	resp, err := as.PostRelationUsecase.FetchPostByPostID(fetchPostReq)
@@ -269,12 +270,12 @@ func (as *PostRelationServer)FetchPostByPostID(ctx context.Context,req *pb.Fetch
 		return nil, err
 	}
 	return &pb.FetchPostResponse{
-		PostId:        uint64(resp.ID),
-		CreatedAt:     utils.ToProtoTimestamp(resp.CreatedAt),
-		UpdatedAt:     utils.ToProtoTimestamp(resp.UpdatedAt),
-		UserId:        uint64(resp.UserID),
-		Caption:       resp.Caption,
-		MediaUrls:     func() []string {
+		PostId:    uint64(resp.ID),
+		CreatedAt: utils.ToProtoTimestamp(resp.CreatedAt),
+		UpdatedAt: utils.ToProtoTimestamp(resp.UpdatedAt),
+		UserId:    uint64(resp.UserID),
+		Caption:   resp.Caption,
+		MediaUrls: func() []string {
 			var s1 []string
 			for _, v := range resp.Media {
 				s1 = append(s1, v.MediaUrl)
@@ -285,7 +286,7 @@ func (as *PostRelationServer)FetchPostByPostID(ctx context.Context,req *pb.Fetch
 		CommentsCount: uint64(resp.CommentsCount),
 		PostAge:       resp.Age,
 		IsLiked:       resp.IsLiked,
-	},nil
+	}, nil
 }
 func (as *PostRelationServer) FetchAllPosts(ctx context.Context, req *pb.FetchAllPostsRequest) (*pb.FetchAllPostsResponse, error) {
 	fetchPostsReq := requestmodels.FetchAllPostsReq{

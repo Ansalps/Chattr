@@ -759,6 +759,7 @@ func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
 }
 
 func (as *ChatHandler) GetRecentChatProfiles(c *gin.Context) {
+	fmt.Println("is it reaching here????")
 	requestID := c.GetHeader("X-Request-ID")
 	log := as.Log.With(
 		logger.Field{Key: "request_id", Value: requestID},
@@ -893,6 +894,7 @@ func (as *ChatHandler) GetChat(c *gin.Context) {
 		CurrentPage: page,
 		PageSize:    limit,
 	}
+	fmt.Println("response of GetChat ---",resp)
 	c.JSON(http.StatusOK, resp)
 }
 func (as *ChatHandler) SetGroupProfileImage(c *gin.Context) {

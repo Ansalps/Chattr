@@ -41,7 +41,7 @@ func DependencyInjection(cfg *config.Config, log logger.Logger) (*services.PostR
 	)
 	
 	PostRelationRepository := repository.NewPostRelationRepository(gormDB)
-	fmt.Println("444444")
+	
 	PostRelationUsecase := usecase.NewPostRelationUsecase(PostRelationRepository, authSubscriptionClient,
 		RedisRepository, kafkaProducer, log, cfg)
 		

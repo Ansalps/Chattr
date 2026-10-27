@@ -121,6 +121,25 @@ const formatFriendlyTime = (value: unknown): string => {
   return 'just now';
 };
 
+const formatChatMessageTime = (value: unknown): string => {
+  if (typeof value !== 'string') {
+    return 'now';
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) return 'now';
+
+  const parsedDate = new Date(trimmed);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return trimmed;
+  }
+
+  return parsedDate.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
+
 const PROFILE_STORAGE_KEY = 'chattr_profile_info';
 
 const readStoredProfile = () => {
@@ -432,6 +451,37 @@ export default function NewsFeedPage() {
     Array<{ id: string; name: string; username: string; profileImageUrl: string }>
   >([]);
   const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatSearch, setChatSearch] = useState('');
+  const [chatSearchResults, setChatSearchResults] = useState<
+    Array<{ id: string; name: string; username: string; profileImageUrl: string }>
+  >([]);
+  const [isSearchingChatUsers, setIsSearchingChatUsers] = useState(false);
+  const [chatSessions, setChatSessions] = useState<
+    Array<{
+      id: string;
+      conversationId: string;
+      name: string;
+      username: string;
+      profileImageUrl: string;
+      lastMessage: string;
+      lastMessageTime: string;
+    }>
+  >([]);
+  const [chatSelectedUser, setChatSelectedUser] = useState<{
+    id: string;
+    conversationId?: string;
+    name: string;
+    username: string;
+    profileImageUrl: string;
+  } | null>(null);
+  const [chatMessages, setChatMessages] = useState<
+    Array<{ id: string; senderId: string; content: string; createdAt: string; mine: boolean }>
+  >([]);
+  const [chatDraft, setChatDraft] = useState('');
+  const [chatSocket, setChatSocket] = useState<WebSocket | null>(null);
+  const [chatError, setChatError] = useState('');
+  const [isLoadingChatHistory, setIsLoadingChatHistory] = useState(false);
 
   const storedProfile = readStoredProfile();
   const currentUserId = currentUserProfile.id || storedProfile.id || '';
@@ -611,6 +661,149 @@ export default function NewsFeedPage() {
     navigate(`/profile/${encodeURIComponent(userId)}`);
   };
 
+  const fetchRecentChatProfiles = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/get-recent-chat-profiles?page=1&limit=20`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to load recent chats.');
+      }
+
+      const payload = await response.json().catch(() => ({}));
+      const data =
+        (payload && typeof payload === 'object' && 'data' in payload ? (payload as Record<string, unknown>).data : undefined) ||
+        (payload && typeof payload === 'object' && 'response' in payload ? (payload as Record<string, unknown>).response : undefined) ||
+        payload;
+      const chatProfiles = Array.isArray((data as Record<string, unknown>)?.ChatProfiles)
+        ? ((data as Record<string, unknown>).ChatProfiles as unknown[])
+        : Array.isArray((data as Record<string, unknown>)?.chatProfiles)
+          ? ((data as Record<string, unknown>).chatProfiles as unknown[])
+          : Array.isArray((data as Record<string, unknown>)?.data)
+            ? ((data as Record<string, unknown>).data as unknown[])
+            : [];
+
+      const normalizedChats = chatProfiles
+        .map((conversation) => {
+          const source = (conversation ?? {}) as Record<string, unknown>;
+          const conversationId = String(
+            source.chat_id ?? source.ChatID ?? source.chatId ?? source.ConversationID ?? source.conversation_id ?? '',
+          );
+          const name = String(
+            source.chat_name ?? source.ChatName ?? source.chatName ?? source.name ?? source.Name ?? 'User',
+          );
+          const username = normalizeUsername(
+            String(source.username ?? source.UserName ?? source.userName ?? source.name ?? source.Name ?? '@user'),
+          );
+          const profileImageUrl =
+            (typeof source.chat_image === 'string' && source.chat_image) ||
+            (typeof source.ChatImage === 'string' && source.ChatImage) ||
+            (typeof source.chatImage === 'string' && source.chatImage) ||
+            (typeof source.profile_image_url === 'string' && source.profile_image_url) ||
+            (typeof source.ProfileImgUrl === 'string' && source.ProfileImgUrl) ||
+            '';
+          const lastMessage = String(source.last_message ?? source.LastMessage ?? '');
+          const lastMessageTime = formatFriendlyTime(
+            source.last_message_time ?? source.LastMessageTime ?? source.lastMessageTime ?? new Date().toISOString(),
+          );
+
+          if (!conversationId && !name) return null;
+
+          return {
+            id: String(source.user_id ?? source.UserID ?? source.userId ?? source.UserId ?? name ?? conversationId),
+            conversationId,
+            name,
+            username,
+            profileImageUrl,
+            lastMessage,
+            lastMessageTime,
+          };
+        })
+        .filter(Boolean) as Array<{
+          id: string;
+          conversationId: string;
+          name: string;
+          username: string;
+          profileImageUrl: string;
+          lastMessage: string;
+          lastMessageTime: string;
+        }>;
+
+      setChatSessions(normalizedChats);
+    } catch (chatError) {
+      console.error('loading recent chats failed', chatError);
+      setChatSessions([]);
+    }
+  };
+
+  const openChatSession = async (user: {
+    id: string;
+    conversationId?: string;
+    name: string;
+    username: string;
+    profileImageUrl: string;
+  }) => {
+    setChatSelectedUser(user);
+    setChatSearch('');
+    setChatSearchResults([]);
+    setChatDraft('');
+    setChatError('');
+    setChatMessages([]);
+    setIsLoadingChatHistory(true);
+
+    try {
+      if (!user.conversationId) {
+        return;
+      }
+
+      const historyResponse = await fetch(`${API_BASE_URL}/user/chat/${encodeURIComponent(user.conversationId)}?page=1&limit=50`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!historyResponse.ok) {
+        throw new Error('Unable to load chat history.');
+      }
+
+      const historyPayload = await historyResponse.json().catch(() => ({}));
+      const historyData =
+        (historyPayload && typeof historyPayload === 'object' && 'data' in historyPayload
+          ? (historyPayload as Record<string, unknown>).data
+          : historyPayload) ?? {};
+      const historyMessages = Array.isArray((historyData as Record<string, unknown>)?.messages)
+        ? ((historyData as Record<string, unknown>).messages as unknown[])
+        : Array.isArray((historyData as Record<string, unknown>)?.Messages)
+          ? ((historyData as Record<string, unknown>).Messages as unknown[])
+          : [];
+
+      const normalizedMessages = historyMessages.map((message, index) => {
+        const item = (message ?? {}) as Record<string, unknown>;
+        const senderId = String(item.sender_id ?? item.SenderID ?? item.senderId ?? '');
+        const content = String(item.content ?? item.Content ?? '');
+        const createdAt = String(item.created_at ?? item.CreatedAt ?? item.createdAt ?? new Date().toISOString());
+
+        return {
+          id: String(item.message_id ?? item.MessageID ?? item.id ?? `${senderId}-${createdAt}-${index}`),
+          senderId,
+          content,
+          createdAt,
+          mine: senderId === (currentUserId || storedProfile.id || ''),
+        };
+      });
+
+      setChatMessages(normalizedMessages.filter((message) => message.content.trim()));
+    } catch (historyError) {
+      console.error('loading chat history failed', historyError);
+      setChatMessages([]);
+    } finally {
+      setIsLoadingChatHistory(false);
+    }
+  };
+
   useEffect(() => {
     const trimmedQuery = userSearch.trim();
     if (!trimmedQuery) {
@@ -700,6 +893,195 @@ export default function NewsFeedPage() {
       controller.abort();
     };
   }, [userSearch]);
+
+  useEffect(() => {
+    if (isChatOpen) {
+      fetchRecentChatProfiles();
+    }
+  }, [isChatOpen]);
+
+  useEffect(() => {
+    const trimmedQuery = chatSearch.trim();
+    if (!trimmedQuery) {
+      setChatSearchResults([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        setIsSearchingChatUsers(true);
+        const response = await fetch(`${API_BASE_URL}/user/search?username=${encodeURIComponent(trimmedQuery)}&limit=5&offset=0`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok || payload.status_code >= 400) {
+          throw new Error(payload.message || 'Unable to search chat users.');
+        }
+
+        const dataPayload =
+          (payload && typeof payload === 'object' && 'data' in payload ? (payload as Record<string, unknown>).data : undefined) ||
+          (payload && typeof payload === 'object' && 'response' in payload ? (payload as Record<string, unknown>).response : undefined) ||
+          payload;
+
+        const userList: unknown[] =
+          Array.isArray((dataPayload as Record<string, unknown>)?.UserMeataData)
+            ? ((dataPayload as Record<string, unknown>).UserMeataData as unknown[])
+            : Array.isArray((dataPayload as Record<string, unknown>)?.userMeataData)
+              ? ((dataPayload as Record<string, unknown>).userMeataData as unknown[])
+              : Array.isArray((dataPayload as Record<string, unknown>)?.data)
+                ? ((dataPayload as Record<string, unknown>).data as unknown[])
+                : Array.isArray((dataPayload as Record<string, unknown>)?.Data)
+                  ? ((dataPayload as Record<string, unknown>).Data as unknown[])
+                  : [];
+
+        const normalizedResults = userList
+          .map((user) => {
+            const source = (user ?? {}) as Record<string, unknown>;
+            const userId = String(
+              source.UserId ?? source.userId ?? source.user_id ?? source.UserID ?? source.userID ?? '',
+            );
+            const name = String(
+              source.Name ?? source.name ?? source.FullName ?? source.full_name ?? source.UserName ?? source.userName ?? 'User',
+            );
+            const username = String(
+              source.UserName ?? source.userName ?? source.username ?? '@user',
+            );
+            const profileImageUrl =
+              (typeof source.ProfileImgUrl === 'string' && source.ProfileImgUrl) ||
+              (typeof source.profile_image_url === 'string' && source.profile_image_url) ||
+              (typeof source.profileImageUrl === 'string' && source.profileImageUrl) ||
+              '';
+
+            if (!userId && !name && !username) return null;
+
+            return {
+              id: userId || name || username,
+              name,
+              username: normalizeUsername(username),
+              profileImageUrl,
+            };
+          })
+          .filter(Boolean) as Array<{ id: string; name: string; username: string; profileImageUrl: string }>;
+
+        setChatSearchResults(normalizedResults.filter((user) => user.id !== (currentUserId || storedProfile.id || '')));
+      } catch (searchError) {
+        if (searchError instanceof DOMException && searchError.name === 'AbortError') {
+          return;
+        }
+
+        console.error('search chat users failed', searchError);
+        setChatSearchResults([]);
+      } finally {
+        setIsSearchingChatUsers(false);
+      }
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [chatSearch, currentUserId, storedProfile.id]);
+
+  useEffect(() => {
+    if (!chatSelectedUser) {
+      return;
+    }
+
+    const socketUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:3000/user/ws`;
+    const socket = new WebSocket(socketUrl);
+
+    socket.onopen = () => {
+      setChatError('');
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data as string);
+
+        if (payload && payload.error) {
+          setChatError(String(payload.error));
+          return;
+        }
+
+        const senderId = String(payload.sender_id ?? payload.SenderID ?? payload.senderId ?? '');
+        const content = String(payload.content ?? payload.Content ?? '');
+        if (!senderId && !content) {
+          return;
+        }
+
+        setChatMessages((currentMessages) => {
+          const nextMessage = {
+            id: String(payload.message_id ?? payload.MessageID ?? payload.id ?? `${senderId}-${content}-${Date.now()}`),
+            senderId,
+            content,
+            createdAt: String(payload.created_at ?? payload.CreatedAt ?? payload.createdAt ?? new Date().toISOString()),
+            mine: senderId === (currentUserId || storedProfile.id || ''),
+          };
+
+          const alreadyExists = currentMessages.some((message) => message.id === nextMessage.id);
+          return alreadyExists ? currentMessages : [...currentMessages, nextMessage];
+        });
+      } catch (error) {
+        console.error('failed to parse chat websocket payload', error);
+      }
+    };
+
+    socket.onerror = () => {
+      setChatError('Unable to connect to chat right now.');
+    };
+
+    setChatSocket(socket);
+
+    return () => {
+      socket.close();
+      setChatSocket(null);
+    };
+  }, [chatSelectedUser, currentUserId, storedProfile.id]);
+
+  const handleSendChatMessage = () => {
+    if (!chatSelectedUser) {
+      return;
+    }
+
+    const trimmedMessage = chatDraft.trim();
+    if (!trimmedMessage) {
+      return;
+    }
+
+    if (!chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
+      setChatError('Chat is not connected yet. Please try again.');
+      return;
+    }
+
+    const messagePayload = {
+      type: 'individual',
+      recipient_id: Number(chatSelectedUser.id),
+      content: trimmedMessage,
+      created_at: new Date().toISOString(),
+    };
+
+    chatSocket.send(JSON.stringify(messagePayload));
+    setChatMessages((currentMessages) => [
+      ...currentMessages,
+      {
+        id: `local-${Date.now()}`,
+        senderId: currentUserId || storedProfile.id || 'me',
+        content: trimmedMessage,
+        createdAt: new Date().toISOString(),
+        mine: true,
+      },
+    ]);
+    setChatDraft('');
+    setChatError('');
+  };
 
   const handleToggleLike = async (postId: string, currentLiked: boolean) => {
     try {
@@ -1663,6 +2045,244 @@ export default function NewsFeedPage() {
           </div>
         </div>
       )}
+
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+        {isChatOpen && (
+          <div className="h-[480px] w-[360px] overflow-hidden rounded-[28px] border border-sky-100 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-3 text-white">
+              <div className="flex items-center gap-3">
+                {chatSelectedUser ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChatSelectedUser(null);
+                      setChatMessages([]);
+                      setChatDraft('');
+                      setChatError('');
+                      setChatSearch('');
+                      setChatSearchResults([]);
+                    }}
+                    className="rounded-full border border-white/30 px-2 py-1 text-xs font-medium text-white/90"
+                  >
+                    Back
+                  </button>
+                ) : (
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/60 bg-white/15 text-lg">
+                    💬
+                  </div>
+                )}
+
+                {chatSelectedUser ? (
+                  <>
+                    {chatSelectedUser.profileImageUrl ? (
+                      <img
+                        src={chatSelectedUser.profileImageUrl}
+                        alt={chatSelectedUser.name}
+                        className="h-9 w-9 rounded-full border border-white/60 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/60 bg-white/15 text-xs font-bold">
+                        {getInitials(chatSelectedUser.name)}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-bold">{chatSelectedUser.name}</p>
+                      <p className="text-[10px] text-sky-100">{chatSelectedUser.username}</p>
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <p className="text-sm font-bold">Messages</p>
+                    <p className="text-[10px] text-sky-100">Recent chats</p>
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsChatOpen(false)}
+                className="rounded-full border border-white/30 px-2 py-1 text-xs font-medium text-white/90"
+              >
+                Close
+              </button>
+            </div>
+
+            {!chatSelectedUser ? (
+              <div className="flex h-[calc(480px-64px)] flex-col bg-slate-50">
+                <div className="relative border-b border-slate-100 bg-slate-50 p-3">
+                  <div className="relative">
+                    <input
+                      value={chatSearch}
+                      onChange={(event) => setChatSearch(event.target.value)}
+                      placeholder="Search messages or people"
+                      className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-sky-400 focus:outline-none"
+                    />
+                    {isSearchingChatUsers && (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-medium uppercase tracking-[0.18em] text-sky-600">
+                        Searching
+                      </span>
+                    )}
+                  </div>
+
+                  {chatSearch && chatSearchResults.length > 0 && (
+                    <div className="absolute left-3 right-3 top-[calc(100%+6px)] z-20 max-h-52 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
+                      {chatSearchResults.map((user) => (
+                        <button
+                          key={user.id}
+                          type="button"
+                          onClick={() => {
+                            setChatSearch('');
+                            setChatSearchResults([]);
+                            void openChatSession({
+                              id: user.id,
+                              name: user.name,
+                              username: user.username,
+                              profileImageUrl: user.profileImageUrl,
+                              conversationId: '',
+                            });
+                          }}
+                          className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-slate-50"
+                        >
+                          {user.profileImageUrl ? (
+                            <img src={user.profileImageUrl} alt={user.name} className="h-9 w-9 rounded-full object-cover" />
+                          ) : (
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700">
+                              {getInitials(user.name)}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-slate-800">{user.name}</p>
+                            <p className="truncate text-xs text-slate-500">{user.username}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 overflow-y-auto px-2 py-2">
+                  {chatSessions.length === 0 ? (
+                    <div className="flex h-full items-center justify-center px-4 text-center text-sm text-slate-500">
+                      No recent chats yet. Search for someone to start one.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {chatSessions
+                        .filter((session) => {
+                          const query = chatSearch.trim().toLowerCase();
+                          if (!query) return true;
+                          return (
+                            session.name.toLowerCase().includes(query) ||
+                            session.username.toLowerCase().includes(query.replace(/^@/, '')) ||
+                            session.lastMessage.toLowerCase().includes(query)
+                          );
+                        })
+                        .map((session) => (
+                          <button
+                            key={session.conversationId || session.id}
+                            type="button"
+                            onClick={() => void openChatSession(session)}
+                            className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-slate-100 transition hover:bg-slate-50"
+                          >
+                            {session.profileImageUrl ? (
+                              <img src={session.profileImageUrl} alt={session.name} className="h-12 w-12 rounded-full object-cover" />
+                            ) : (
+                              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-sm font-bold text-white">
+                                {getInitials(session.name)}
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <div className="mb-1 flex items-center justify-between gap-2">
+                                <p className="truncate text-sm font-semibold text-slate-800">{session.name}</p>
+                                <span className="text-[10px] text-slate-400">{session.lastMessageTime}</span>
+                              </div>
+                              <p className="truncate text-xs text-slate-500">{session.username}</p>
+                              <p className="mt-1 truncate text-xs text-slate-600">{session.lastMessage || 'Start a conversation'}</p>
+                            </div>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex h-[calc(480px-64px)] flex-col bg-slate-50">
+                <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3">
+                  {isLoadingChatHistory ? (
+                    <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading conversation...</div>
+                  ) : chatMessages.length > 0 ? (
+                    chatMessages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${message.mine ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
+                            message.mine
+                              ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white'
+                              : 'bg-white text-slate-700 ring-1 ring-slate-200'
+                          }`}
+                        >
+                          <div>{message.content}</div>
+                          <div
+                            className={`mt-1 text-[10px] ${
+                              message.mine ? 'text-sky-100' : 'text-slate-400'
+                            }`}
+                          >
+                            {formatChatMessageTime(message.createdAt)}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-center text-sm text-slate-500">
+                      Start the conversation with {chatSelectedUser.name}
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-slate-200 bg-white p-3">
+                  {chatError && (
+                    <div className="mb-2 rounded-xl border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-600">
+                      {chatError}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={chatDraft}
+                      onChange={(event) => setChatDraft(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' && !event.shiftKey) {
+                          event.preventDefault();
+                          handleSendChatMessage();
+                        }
+                      }}
+                      placeholder="Type a message"
+                      className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-sky-400 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSendChatMessage}
+                      className="rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-2 text-sm font-semibold text-white"
+                    >
+                      Send
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setIsChatOpen((current) => !current)}
+          className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 text-2xl text-white shadow-[0_18px_40px_rgba(59,130,246,0.45)] transition hover:scale-[1.02]"
+          aria-label="Open messages"
+        >
+          💬
+        </button>
+      </div>
     </div>
   );
 }
