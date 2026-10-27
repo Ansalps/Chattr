@@ -17,18 +17,21 @@ type RemoveMemberResponse struct {
 	MemberID  uint64 `json:"group_members" validate:"required"`
 	CreatorID uint64 `json:"creator_id"`
 }
-type GetGroupMembersResponse struct{
-	UserID uint64
-	UserName string
-	ProfileImgUrl string
+type GetGroupMembersResponse struct {
+	UserID        uint64 `json:"user_id"`
+	Name          string `json:"name,omitempty"`
+	UserName      string `json:"user_name"`
+	ProfileImgUrl string `json:"profile_image_url"`
 }
-type GetGroupMembers struct{
-	GetGroupMembers []GetGroupMembersResponse
-	Pagination PaginationDetails
+
+type GetGroupMembers struct {
+	Members    []GetGroupMembersResponse `json:"members"`
+	Pagination PaginationDetails         `json:"pagination"`
 }
-type PaginationDetails struct{
-	CurrentPage int
-	PageSize int
+
+type PaginationDetails struct {
+	CurrentPage int `json:"current_page"`
+	PageSize    int `json:"page_size"`
 }
 type ChatProfileResponse struct {
 	ChatID          string    `json:"chat_id"`
@@ -37,29 +40,29 @@ type ChatProfileResponse struct {
 	LastMessage     string    `json:"last_message"`
 	LastMessageTime time.Time `json:"last_message_time"`
 	IsGroup         bool      `json:"is_group"`
-	GroupID string `json:"group_id,omitempty"`
+	GroupID         string    `json:"group_id,omitempty"`
 }
 
-type ChatProfileFinalResponse struct{
+type ChatProfileFinalResponse struct {
 	ChatProfiles []ChatProfileResponse
-	Pagination PaginationDetails
+	Pagination   PaginationDetails
 }
 
 type MessageResponse struct {
-    MessageID      string    `json:"message_id"`
-    SenderID       uint64    `json:"sender_id"`
-    SenderName     string    `json:"sender_name"`
-    SenderProfileImgUrl  string    `json:"sender_profile"`
-    Content        string    `json:"content"`
-    CreatedAt      time.Time `json:"created_at"`
-    Status         string    `json:"status"`
+	MessageID           string    `json:"message_id"`
+	SenderID            uint64    `json:"sender_id"`
+	SenderName          string    `json:"sender_name"`
+	SenderProfileImgUrl string    `json:"sender_profile"`
+	Content             string    `json:"content"`
+	CreatedAt           time.Time `json:"created_at"`
+	Status              string    `json:"status"`
 }
 
 type GetChatResponse struct {
-    ConversationID string            `json:"conversation_id"`
-    Messages       []MessageResponse `json:"messages"`
-    HasMore        bool              `json:"has_more"`
-	Pagination PaginationDetails
+	ConversationID string            `json:"conversation_id"`
+	Messages       []MessageResponse `json:"messages"`
+	HasMore        bool              `json:"has_more"`
+	Pagination     PaginationDetails
 }
 
 type GroupMeta struct {

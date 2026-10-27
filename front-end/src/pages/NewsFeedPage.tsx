@@ -1,34 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-
-type FeedComment = {
-  id: string;
-  author: string;
-  text: string;
-  time: string;
-  profileImageUrl?: string;
-  replyCount?: number;
-  replies?: FeedComment[];
-};
-
-type FeedPost = {
-  id: string;
-  userId?: string;
-  author: string;
-  handle: string;
-  time: string;
-  content: string;
-  imageUrls: string[];
-  profileImageUrl?: string;
-  isLiked: boolean;
-  likes: number;
-  comments: number;
-  shares: number;
-  accent: string;
-  tag: string;
-};
+import {
+  buildChatMessagePayload,
+  connectChatSocket,
+  fetchRecentChatProfiles,
+  loadChatSessionData,
+  searchUsersByUsername,
+  searchUsersForSelection,
+} from '../features/chat/chatService';
+import {
+  addMemberToGroup,
+  createGroup,
+  fetchGroupMembers,
+  removeMemberFromGroup,
+  updateGroupProfileImage,
+} from '../features/groups/groupService';
+import {
+  addCommentToPost,
+  createPostWithMedia,
+  deletePostById,
+  fetchCommentsForPost,
+  fetchNewsFeed,
+  toggleLikePost,
+  updatePostContent,
+} from '../features/feed/feedService';
+import { ChatPanel } from '../features/chat/ChatPanel';
+import { PostComposerModal } from '../features/newsfeed/PostComposerModal';
+import { fetchCurrentUserProfile, logoutCurrentUser } from '../features/profile/profileService';
+import type { ChatSession, ChatUserProfile, FeedComment, FeedPost } from '../shared/types';
+import { formatCount, formatFriendlyTime } from '../shared/utils/formatting';
+import { PROFILE_STORAGE_KEY, readStoredProfile } from '../shared/utils/normalizers';
 
 const fallbackPosts: FeedPost[] = [
   {
@@ -78,93 +79,6 @@ const fallbackPosts: FeedPost[] = [
   },
 ];
 
-const formatCount = (value: number) =>
-  new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
-
-const formatFriendlyTime = (value: unknown): string => {
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (!trimmed) return 'just now';
-
-    const lower = trimmed.toLowerCase();
-    if (lower.includes('ago') || lower.includes('just now') || lower.includes('today') || lower.includes('yesterday')) {
-      return trimmed;
-    }
-
-    const parsedDate = new Date(trimmed);
-    if (!Number.isNaN(parsedDate.getTime())) {
-      const diffMs = parsedDate.getTime() - Date.now();
-      const diffMinutes = Math.round(diffMs / 60000);
-      const diffHours = Math.round(diffMs / 3600000);
-      const diffDays = Math.round(diffMs / 86400000);
-
-      if (Math.abs(diffMinutes) < 60) {
-        return `${Math.abs(diffMinutes) || 1}m ago`;
-      }
-      if (Math.abs(diffHours) < 24) {
-        return `${Math.abs(diffHours) || 1}h ago`;
-      }
-      if (Math.abs(diffDays) < 7) {
-        return `${Math.abs(diffDays) || 1}d ago`;
-      }
-
-      return parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    }
-
-    return trimmed;
-  }
-
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return formatFriendlyTime(value.toISOString());
-  }
-
-  return 'just now';
-};
-
-const formatChatMessageTime = (value: unknown): string => {
-  if (typeof value !== 'string') {
-    return 'now';
-  }
-
-  const trimmed = value.trim();
-  if (!trimmed) return 'now';
-
-  const parsedDate = new Date(trimmed);
-  if (Number.isNaN(parsedDate.getTime())) {
-    return trimmed;
-  }
-
-  return parsedDate.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-};
-
-const PROFILE_STORAGE_KEY = 'chattr_profile_info';
-
-const readStoredProfile = () => {
-  try {
-    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
-    if (!raw) return { id: '', name: '', username: '', profileImageUrl: '' };
-
-    const parsed = JSON.parse(raw) as Partial<{
-      id?: string | number;
-      userId?: string | number;
-      name?: string;
-      username?: string;
-      profileImageUrl?: string;
-    }>;
-    return {
-      id: parsed.id !== undefined && parsed.id !== null ? String(parsed.id) : parsed.userId !== undefined && parsed.userId !== null ? String(parsed.userId) : '',
-      name: typeof parsed.name === 'string' ? parsed.name : '',
-      username: typeof parsed.username === 'string' ? parsed.username : '',
-      profileImageUrl: typeof parsed.profileImageUrl === 'string' ? parsed.profileImageUrl : '',
-    };
-  } catch (error) {
-    return { id: '', name: '', username: '', profileImageUrl: '' };
-  }
-};
-
 const getInitials = (value: string) =>
   value
     .split(/\s+/)
@@ -177,244 +91,6 @@ const getInitials = (value: string) =>
 const getUsernameInitial = (value: string) => {
   const trimmed = value.replace(/^@/, '').trim();
   return trimmed ? trimmed.charAt(0).toUpperCase() : 'A';
-};
-
-const normalizeUsername = (value: string) => {
-  const trimmed = value.trim();
-  if (!trimmed) return '@user';
-  return trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
-};
-
-const normalizeStringArray = (value: unknown): string[] => {
-  if (Array.isArray(value)) {
-    return value
-      .map((entry) => {
-        if (typeof entry === 'string') return entry;
-        if (entry && typeof entry === 'object') {
-          const item = entry as Record<string, unknown>;
-          return typeof item.url === 'string' ? item.url : typeof item.media_url === 'string' ? item.media_url : '';
-        }
-        return '';
-      })
-      .filter((entry): entry is string => Boolean(entry));
-  }
-
-  if (typeof value === 'string' && value.trim()) {
-    return [value];
-  }
-
-  return [];
-};
-
-const getPostIdFromResponse = (value: unknown): string | null => {
-  if (!value || typeof value !== 'object') return null;
-
-  const source = value as Record<string, unknown>;
-  const candidates = [
-    source.res,
-    source.data,
-    source,
-  ];
-
-  for (const candidate of candidates) {
-    if (!candidate || typeof candidate !== 'object') continue;
-
-    const item = candidate as Record<string, unknown>;
-    const rawId =
-      item.post_id ??
-      item.PostId ??
-      item.postId ??
-      item.PostID ??
-      item.post_id ??
-      item.id ??
-      item.ID;
-
-    if (rawId === undefined || rawId === null || rawId === '') continue;
-
-    const asNumber = Number(rawId);
-    if (Number.isFinite(asNumber)) {
-      return String(asNumber);
-    }
-  }
-
-  return null;
-};
-
-const normalizeFeedPosts = (value: unknown): FeedPost[] => {
-  const list = Array.isArray(value)
-    ? value
-    : value && typeof value === 'object'
-      ? (value as Record<string, unknown>).PostUserData && Array.isArray((value as Record<string, unknown>).PostUserData)
-        ? ((value as Record<string, unknown>).PostUserData as unknown[])
-        : (value as Record<string, unknown>).data && Array.isArray((value as Record<string, unknown>).data)
-          ? ((value as Record<string, unknown>).data as unknown[])
-          : []
-      : [];
-
-  return list
-    .map((item) => {
-      const source = item as Record<string, unknown>;
-      const userMeta =
-        (source.user_meta_data as Record<string, unknown>) ||
-        (source.userMetaData as Record<string, unknown>) ||
-        (source.UserMetaData as Record<string, unknown>) ||
-        (source.user as Record<string, unknown>) ||
-        (source.UserData as Record<string, unknown>) ||
-        (source.userData as Record<string, unknown>) ||
-        {};
-
-      const nestedUserData =
-        (source.UserData as Record<string, unknown>) ||
-        (source.userData as Record<string, unknown>) ||
-        {};
-
-      const rawName =
-        (typeof source.name === 'string' && source.name) ||
-        (typeof source.Name === 'string' && source.Name) ||
-        (typeof source.full_name === 'string' && source.full_name) ||
-        (typeof source.FullName === 'string' && source.FullName) ||
-        (typeof userMeta.name === 'string' && userMeta.name) ||
-        (typeof userMeta.Name === 'string' && userMeta.Name) ||
-        (typeof userMeta.full_name === 'string' && userMeta.full_name) ||
-        (typeof userMeta.FullName === 'string' && userMeta.FullName) ||
-        '';
-
-      const rawUsername =
-        (typeof source.UserName === 'string' && source.UserName) ||
-        (typeof source.userName === 'string' && source.userName) ||
-        (typeof source.username === 'string' && source.username) ||
-        (typeof source.handle === 'string' && source.handle) ||
-        (typeof source.Handle === 'string' && source.Handle) ||
-        (typeof userMeta.UserName === 'string' && userMeta.UserName) ||
-        (typeof userMeta.userName === 'string' && userMeta.userName) ||
-        (typeof userMeta.username === 'string' && userMeta.username) ||
-        (typeof userMeta.handle === 'string' && userMeta.handle) ||
-        (typeof userMeta.Handle === 'string' && userMeta.Handle) ||
-        '';
-
-      const author = rawName || rawUsername.replace(/^@/, '') || 'Chattr User';
-
-      const profileImageUrl =
-        (typeof source.profile_image_url === 'string' && source.profile_image_url) ||
-        (typeof source.profileImageUrl === 'string' && source.profileImageUrl) ||
-        (typeof source.ProfileImgUrl === 'string' && source.ProfileImgUrl) ||
-        (typeof userMeta.profile_image_url === 'string' && userMeta.profile_image_url) ||
-        (typeof userMeta.ProfileImgUrl === 'string' && userMeta.ProfileImgUrl) ||
-        '';
-
-      const handle =
-        (typeof source.handle === 'string' && normalizeUsername(source.handle)) ||
-        (typeof source.Handle === 'string' && normalizeUsername(source.Handle)) ||
-        (typeof userMeta.username === 'string' && normalizeUsername(userMeta.username)) ||
-        (typeof userMeta.UserName === 'string' && normalizeUsername(userMeta.UserName)) ||
-        (typeof userMeta.userName === 'string' && normalizeUsername(userMeta.userName)) ||
-        (rawUsername ? normalizeUsername(rawUsername) : `@${author.toLowerCase().replace(/\s+/g, '') || 'user'}`);
-
-      const content =
-        (typeof source.content === 'string' && source.content) ||
-        (typeof source.Content === 'string' && source.Content) ||
-        (typeof source.caption === 'string' && source.caption) ||
-        (typeof source.Caption === 'string' && source.Caption) ||
-        (typeof source.description === 'string' && source.description) ||
-        '';
-
-      const imageUrls = normalizeStringArray(
-        source.media_urls ??
-          source.mediaUrls ??
-          source.MediaUrls ??
-          source.Media ??
-          source.media ??
-          source.images ??
-          source.image_urls ??
-          source.imageUrls ??
-          source.Images,
-      );
-
-      const isLiked = Boolean(
-        source.isLiked ??
-          source.IsLiked ??
-          source.is_liked ??
-          source.Isliked ??
-          source.isLiked ??
-          false,
-      );
-
-      const likes = Number(
-        source.likes ??
-          source.Likes ??
-          source.LikeCount ??
-          source.likeCount ??
-          source.like_count ??
-          source.likes_count ??
-          source.LikesCount ??
-          source.likesCount ??
-          0,
-      ) || 0;
-      const comments = Number(
-        source.comments ??
-          source.Comments ??
-          source.CommentsCount ??
-          source.commentsCount ??
-          source.comment_count ??
-          source.comments_count ??
-          0,
-      ) || 0;
-      const shares = Number(
-        source.shares ??
-          source.share_count ??
-          source.shareCount ??
-          source.Shares ??
-          0,
-      ) || 0;
-
-      const userId = String(
-        source.user_id ??
-          source.UserID ??
-          source.userId ??
-          source.userID ??
-          (nestedUserData.UserID as string | number | undefined) ??
-          (nestedUserData.userID as string | number | undefined) ??
-          (userMeta.user_id as string | number | undefined) ??
-          (userMeta.UserID as string | number | undefined) ??
-          (userMeta.userID as string | number | undefined) ??
-          'me',
-      );
-
-      return {
-        id: String(
-          source.id ??
-            source.post_id ??
-            source.PostID ??
-            source.PostId ??
-            `${author}-${Math.random()}`,
-        ),
-        userId,
-        author,
-        handle,
-        time: formatFriendlyTime(
-          source.post_age ??
-            source.PostAge ??
-            source.time ??
-            source.created_at ??
-            source.createdAt ??
-            source.CreatedAt ??
-            new Date().toISOString(),
-        ),
-        content,
-        imageUrls,
-        profileImageUrl,
-        isLiked,
-        likes,
-        comments,
-        shares,
-        accent:
-          typeof source.accent === 'string' && source.accent
-            ? source.accent
-            : 'from-sky-400 to-blue-600',
-        tag: typeof source.tag === 'string' && source.tag ? source.tag : 'Update',
-      };
-    })
-    .filter((post) => !!post.content || post.imageUrls.length > 0);
 };
 
 export default function NewsFeedPage() {
@@ -457,31 +133,33 @@ export default function NewsFeedPage() {
     Array<{ id: string; name: string; username: string; profileImageUrl: string }>
   >([]);
   const [isSearchingChatUsers, setIsSearchingChatUsers] = useState(false);
-  const [chatSessions, setChatSessions] = useState<
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [groupNameDraft, setGroupNameDraft] = useState('');
+  const [groupMemberSearch, setGroupMemberSearch] = useState('');
+  const [groupMemberResults, setGroupMemberResults] = useState<ChatUserProfile[]>([]);
+  const [selectedGroupMembers, setSelectedGroupMembers] = useState<ChatUserProfile[]>([]);
+  const [chatSelectedUser, setChatSelectedUser] = useState<
+    (ChatUserProfile & { conversationId?: string; isGroup?: boolean; groupId?: string }) | null
+  >(null);
+  const [chatMessages, setChatMessages] = useState<
     Array<{
       id: string;
-      conversationId: string;
-      name: string;
-      username: string;
-      profileImageUrl: string;
-      lastMessage: string;
-      lastMessageTime: string;
+      senderId: string;
+      senderName: string;
+      senderProfileImageUrl: string;
+      content: string;
+      createdAt: string;
+      mine: boolean;
     }>
-  >([]);
-  const [chatSelectedUser, setChatSelectedUser] = useState<{
-    id: string;
-    conversationId?: string;
-    name: string;
-    username: string;
-    profileImageUrl: string;
-  } | null>(null);
-  const [chatMessages, setChatMessages] = useState<
-    Array<{ id: string; senderId: string; content: string; createdAt: string; mine: boolean }>
   >([]);
   const [chatDraft, setChatDraft] = useState('');
   const [chatSocket, setChatSocket] = useState<WebSocket | null>(null);
   const [chatError, setChatError] = useState('');
   const [isLoadingChatHistory, setIsLoadingChatHistory] = useState(false);
+  const [isGroupDetailOpen, setIsGroupDetailOpen] = useState(false);
+  const [groupMembers, setGroupMembers] = useState<ChatUserProfile[]>([]);
+  const [groupCreatorId, setGroupCreatorId] = useState('');
 
   const storedProfile = readStoredProfile();
   const currentUserId = currentUserProfile.id || storedProfile.id || '';
@@ -507,119 +185,19 @@ export default function NewsFeedPage() {
     (currentUserProfile.profileImageUrl ? currentUserProfile.profileImageUrl : storedProfile.profileImageUrl) || '';
 
   useEffect(() => {
-    const fetchCurrentUserProfile = async () => {
+    const loadProfile = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/user/get-profile-information`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        const payload = await response.json().catch(() => ({}));
-
-        if (!response.ok || payload.status_code >= 400) {
-          throw new Error(payload.message || 'Unable to load your profile details.');
-        }
-
-        const rawProfile =
-          (payload && typeof payload === 'object' && 'response' in payload ? (payload as Record<string, unknown>).response : undefined) ||
-          (payload && typeof payload === 'object' && 'reponse' in payload ? (payload as Record<string, unknown>).reponse : undefined) ||
-          (payload && typeof payload === 'object' && 'data' in payload ? (payload as Record<string, unknown>).data : undefined) ||
-          payload;
-
-        const profileInfo = (rawProfile && typeof rawProfile === 'object' ? rawProfile as Record<string, unknown> : {}) || {};
-        const storedName = (storedProfile.name || '').trim();
-        const storedUsername = (storedProfile.username || '').replace(/^@/, '').trim();
-        const resolvedId = String(profileInfo.UserID ?? profileInfo.userID ?? profileInfo.user_id ?? storedProfile.id ?? '');
-        const resolvedName = String(
-          profileInfo.Name ??
-            profileInfo.name ??
-            (storedName && storedName.toLowerCase() !== storedUsername.toLowerCase() ? storedName : '') ??
-            'User Profile',
-        );
-        const resolvedUsername = normalizeUsername(
-          String(
-            profileInfo.UserName ??
-              profileInfo.userName ??
-              profileInfo.username ??
-              storedProfile.username ??
-              'user',
-          ),
-        );
-        const resolvedProfileImageUrl =
-          (typeof profileInfo.ProfileImgUrl === 'string' && profileInfo.ProfileImgUrl) ||
-          (typeof profileInfo.profile_image_url === 'string' && profileInfo.profile_image_url) ||
-          (typeof profileInfo.profileImageUrl === 'string' && profileInfo.profileImageUrl) ||
-          storedProfile.profileImageUrl ||
-          '';
-        const resolvedFollowerCount = Number(profileInfo.FollowerCount ?? profileInfo.follower_count ?? 0) || 0;
-        const resolvedFollowingCount = Number(profileInfo.FollowingCount ?? profileInfo.following_count ?? 0) || 0;
-        const resolvedPostCount = Number(profileInfo.PostCount ?? profileInfo.post_count ?? 0) || 0;
-
-        const nextProfile = {
-          id: resolvedId,
-          name: resolvedName,
-          username: resolvedUsername,
-          profileImageUrl: resolvedProfileImageUrl,
-          followerCount: resolvedFollowerCount,
-          followingCount: resolvedFollowingCount,
-          postCount: resolvedPostCount,
-        };
-
+        const nextProfile = await fetchCurrentUserProfile();
         setCurrentUserProfile(nextProfile);
-        localStorage.setItem(
-          PROFILE_STORAGE_KEY,
-          JSON.stringify({
-            ...storedProfile,
-            id: resolvedId,
-            name: resolvedName,
-            username: resolvedUsername.startsWith('@') ? resolvedUsername.slice(1) : resolvedUsername,
-            profileImageUrl: resolvedProfileImageUrl,
-          }),
-        );
       } catch (profileError) {
         console.error('fetch user profile info failed', profileError);
       }
     };
 
-    const fetchNewsFeed = async () => {
+    const loadNewsFeed = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/user/newsfeed`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        const payload = await response.json();
-
-        if (!response.ok || payload.status_code >= 400) {
-          throw new Error(payload.message || 'Unable to load your news feed right now.');
-        }
-
-        const feedData =
-          Array.isArray(payload)
-            ? payload
-            : Array.isArray(payload.PostUserData)
-              ? payload.PostUserData
-              : Array.isArray(payload.postUserData)
-                ? payload.postUserData
-                : Array.isArray(payload.data)
-                  ? payload.data
-                  : Array.isArray(payload.data?.posts)
-                    ? payload.data.posts
-                    : Array.isArray(payload.data?.PostUserData)
-                      ? payload.data.PostUserData
-                      : Array.isArray(payload.data?.newsfeed)
-                        ? payload.data.newsfeed
-                        : Array.isArray(payload.data?.items)
-                          ? payload.data.items
-                          : [];
-
-        setPosts(normalizeFeedPosts(feedData));
+        const nextPosts = await fetchNewsFeed();
+        setPosts(nextPosts);
       } catch (feedError) {
         const message =
           feedError instanceof Error ? feedError.message : 'Unable to load your news feed right now.';
@@ -631,8 +209,8 @@ export default function NewsFeedPage() {
       }
     };
 
-    fetchCurrentUserProfile();
-    fetchNewsFeed();
+    loadProfile();
+    loadNewsFeed();
   }, []);
 
   const quickStats = useMemo(
@@ -661,77 +239,9 @@ export default function NewsFeedPage() {
     navigate(`/profile/${encodeURIComponent(userId)}`);
   };
 
-  const fetchRecentChatProfiles = async () => {
+  const loadRecentChats = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/get-recent-chat-profiles?page=1&limit=20`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error('Unable to load recent chats.');
-      }
-
-      const payload = await response.json().catch(() => ({}));
-      const data =
-        (payload && typeof payload === 'object' && 'data' in payload ? (payload as Record<string, unknown>).data : undefined) ||
-        (payload && typeof payload === 'object' && 'response' in payload ? (payload as Record<string, unknown>).response : undefined) ||
-        payload;
-      const chatProfiles = Array.isArray((data as Record<string, unknown>)?.ChatProfiles)
-        ? ((data as Record<string, unknown>).ChatProfiles as unknown[])
-        : Array.isArray((data as Record<string, unknown>)?.chatProfiles)
-          ? ((data as Record<string, unknown>).chatProfiles as unknown[])
-          : Array.isArray((data as Record<string, unknown>)?.data)
-            ? ((data as Record<string, unknown>).data as unknown[])
-            : [];
-
-      const normalizedChats = chatProfiles
-        .map((conversation) => {
-          const source = (conversation ?? {}) as Record<string, unknown>;
-          const conversationId = String(
-            source.chat_id ?? source.ChatID ?? source.chatId ?? source.ConversationID ?? source.conversation_id ?? '',
-          );
-          const name = String(
-            source.chat_name ?? source.ChatName ?? source.chatName ?? source.name ?? source.Name ?? 'User',
-          );
-          const username = normalizeUsername(
-            String(source.username ?? source.UserName ?? source.userName ?? source.name ?? source.Name ?? '@user'),
-          );
-          const profileImageUrl =
-            (typeof source.chat_image === 'string' && source.chat_image) ||
-            (typeof source.ChatImage === 'string' && source.ChatImage) ||
-            (typeof source.chatImage === 'string' && source.chatImage) ||
-            (typeof source.profile_image_url === 'string' && source.profile_image_url) ||
-            (typeof source.ProfileImgUrl === 'string' && source.ProfileImgUrl) ||
-            '';
-          const lastMessage = String(source.last_message ?? source.LastMessage ?? '');
-          const lastMessageTime = formatFriendlyTime(
-            source.last_message_time ?? source.LastMessageTime ?? source.lastMessageTime ?? new Date().toISOString(),
-          );
-
-          if (!conversationId && !name) return null;
-
-          return {
-            id: String(source.user_id ?? source.UserID ?? source.userId ?? source.UserId ?? name ?? conversationId),
-            conversationId,
-            name,
-            username,
-            profileImageUrl,
-            lastMessage,
-            lastMessageTime,
-          };
-        })
-        .filter(Boolean) as Array<{
-          id: string;
-          conversationId: string;
-          name: string;
-          username: string;
-          profileImageUrl: string;
-          lastMessage: string;
-          lastMessageTime: string;
-        }>;
-
+      const normalizedChats = await fetchRecentChatProfiles();
       setChatSessions(normalizedChats);
     } catch (chatError) {
       console.error('loading recent chats failed', chatError);
@@ -739,13 +249,7 @@ export default function NewsFeedPage() {
     }
   };
 
-  const openChatSession = async (user: {
-    id: string;
-    conversationId?: string;
-    name: string;
-    username: string;
-    profileImageUrl: string;
-  }) => {
+  const openChatSession = async (user: ChatUserProfile & { conversationId?: string; isGroup?: boolean; groupId?: string }) => {
     setChatSelectedUser(user);
     setChatSearch('');
     setChatSearchResults([]);
@@ -753,54 +257,101 @@ export default function NewsFeedPage() {
     setChatError('');
     setChatMessages([]);
     setIsLoadingChatHistory(true);
+    setIsGroupDetailOpen(false);
 
     try {
-      if (!user.conversationId) {
-        return;
-      }
-
-      const historyResponse = await fetch(`${API_BASE_URL}/user/chat/${encodeURIComponent(user.conversationId)}?page=1&limit=50`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+      const { messages, groupMembers: nextGroupMembers } = await loadChatSessionData({
+        conversationId: user.conversationId,
+        currentUserId: currentUserId || storedProfile.id || '',
+        groupId: user.groupId,
+        isGroup: user.isGroup,
       });
 
-      if (!historyResponse.ok) {
-        throw new Error('Unable to load chat history.');
-      }
-
-      const historyPayload = await historyResponse.json().catch(() => ({}));
-      const historyData =
-        (historyPayload && typeof historyPayload === 'object' && 'data' in historyPayload
-          ? (historyPayload as Record<string, unknown>).data
-          : historyPayload) ?? {};
-      const historyMessages = Array.isArray((historyData as Record<string, unknown>)?.messages)
-        ? ((historyData as Record<string, unknown>).messages as unknown[])
-        : Array.isArray((historyData as Record<string, unknown>)?.Messages)
-          ? ((historyData as Record<string, unknown>).Messages as unknown[])
-          : [];
-
-      const normalizedMessages = historyMessages.map((message, index) => {
-        const item = (message ?? {}) as Record<string, unknown>;
-        const senderId = String(item.sender_id ?? item.SenderID ?? item.senderId ?? '');
-        const content = String(item.content ?? item.Content ?? '');
-        const createdAt = String(item.created_at ?? item.CreatedAt ?? item.createdAt ?? new Date().toISOString());
-
-        return {
-          id: String(item.message_id ?? item.MessageID ?? item.id ?? `${senderId}-${createdAt}-${index}`),
-          senderId,
-          content,
-          createdAt,
-          mine: senderId === (currentUserId || storedProfile.id || ''),
-        };
-      });
-
-      setChatMessages(normalizedMessages.filter((message) => message.content.trim()));
+      setChatMessages(messages);
+      setGroupMembers(nextGroupMembers.filter((member) => member.id));
     } catch (historyError) {
       console.error('loading chat history failed', historyError);
       setChatMessages([]);
     } finally {
       setIsLoadingChatHistory(false);
+    }
+  };
+
+  const refreshGroupMembers = async (groupId: string) => {
+    if (!groupId) {
+      setGroupMembers([]);
+      return;
+    }
+
+    try {
+      const { members, creatorId } = await fetchGroupMembers(groupId);
+      setGroupCreatorId(creatorId || currentUserId || '');
+      setGroupMembers(members.filter((member) => member.id));
+    } catch (error) {
+      console.error('refresh group members failed', error);
+      setGroupMembers([]);
+    }
+  };
+
+  const handleAddMemberToGroup = async (member: ChatUserProfile) => {
+    if (!chatSelectedUser?.groupId) {
+      return;
+    }
+
+    try {
+      await addMemberToGroup(chatSelectedUser.groupId, member.id);
+      setGroupMemberSearch('');
+      setGroupMemberResults([]);
+      await refreshGroupMembers(chatSelectedUser.groupId);
+      setChatError('');
+    } catch (error) {
+      console.error('add member to group failed', error);
+      setChatError(error instanceof Error ? error.message : 'Unable to add member to group.');
+    }
+  };
+
+  const handleRemoveMemberFromGroup = async (member: ChatUserProfile) => {
+    if (!chatSelectedUser?.groupId) {
+      return;
+    }
+
+    try {
+      await removeMemberFromGroup(chatSelectedUser.groupId, member.id);
+      setGroupMembers((current) => current.filter((candidate) => candidate.id !== member.id));
+      setChatError('');
+    } catch (error) {
+      console.error('remove member from group failed', error);
+      setChatError(error instanceof Error ? error.message : 'Unable to remove member from group.');
+    }
+  };
+
+  const handleGroupProfileImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !chatSelectedUser?.groupId) {
+      return;
+    }
+
+    try {
+      const finalProfileImageUrl = await updateGroupProfileImage(chatSelectedUser.groupId, file);
+
+      setChatSelectedUser((current) =>
+        current
+          ? { ...current, profileImageUrl: finalProfileImageUrl }
+          : current,
+      );
+      setChatSessions((current) =>
+        current.map((session) =>
+          session.groupId === chatSelectedUser.groupId || session.conversationId === chatSelectedUser.groupId
+            ? { ...session, profileImageUrl: finalProfileImageUrl }
+            : session,
+        ),
+      );
+      setChatError('');
+    } catch (error) {
+      console.error('group profile image update failed', error);
+      setChatError(error instanceof Error ? error.message : 'Unable to update group profile image.');
+    } finally {
+      event.target.value = '';
     }
   };
 
@@ -815,66 +366,7 @@ export default function NewsFeedPage() {
     const timeoutId = window.setTimeout(async () => {
       try {
         setIsSearchingUsers(true);
-        const response = await fetch(`${API_BASE_URL}/user/search?username=${encodeURIComponent(trimmedQuery)}&limit=5&offset=0`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          signal: controller.signal,
-        });
-
-        const payload = await response.json().catch(() => ({}));
-
-        if (!response.ok || payload.status_code >= 400) {
-          throw new Error(payload.message || 'Unable to search users.');
-        }
-
-        const dataPayload =
-          (payload && typeof payload === 'object' && 'data' in payload ? (payload as Record<string, unknown>).data : undefined) ||
-          (payload && typeof payload === 'object' && 'response' in payload ? (payload as Record<string, unknown>).response : undefined) ||
-          payload;
-
-        const userList: unknown[] =
-          Array.isArray((dataPayload as Record<string, unknown>)?.UserMeataData)
-            ? ((dataPayload as Record<string, unknown>).UserMeataData as unknown[])
-            : Array.isArray((dataPayload as Record<string, unknown>)?.userMeataData)
-              ? ((dataPayload as Record<string, unknown>).userMeataData as unknown[])
-              : Array.isArray((dataPayload as Record<string, unknown>)?.data)
-                ? ((dataPayload as Record<string, unknown>).data as unknown[])
-                : Array.isArray((dataPayload as Record<string, unknown>)?.Data)
-                  ? ((dataPayload as Record<string, unknown>).Data as unknown[])
-                  : [];
-
-        const normalizedResults = userList
-          .map((user) => {
-            const source = (user ?? {}) as Record<string, unknown>;
-            const userId = String(
-              source.UserId ?? source.userId ?? source.user_id ?? source.UserID ?? source.userID ?? '',
-            );
-            const name = String(
-              source.Name ?? source.name ?? source.FullName ?? source.full_name ?? source.UserName ?? source.userName ?? 'User',
-            );
-            const username = String(
-              source.UserName ?? source.userName ?? source.username ?? '@user',
-            );
-            const profileImageUrl =
-              (typeof source.ProfileImgUrl === 'string' && source.ProfileImgUrl) ||
-              (typeof source.profile_image_url === 'string' && source.profile_image_url) ||
-              (typeof source.profileImageUrl === 'string' && source.profileImageUrl) ||
-              '';
-
-            if (!userId && !name && !username) return null;
-
-            return {
-              id: userId || name || username,
-              name,
-              username: normalizeUsername(username),
-              profileImageUrl,
-            };
-          })
-          .filter(Boolean) as Array<{ id: string; name: string; username: string; profileImageUrl: string }>;
-
+        const normalizedResults = await searchUsersByUsername(trimmedQuery);
         setUserSearchResults(normalizedResults);
       } catch (searchError) {
         if (searchError instanceof DOMException && searchError.name === 'AbortError') {
@@ -896,9 +388,36 @@ export default function NewsFeedPage() {
 
   useEffect(() => {
     if (isChatOpen) {
-      fetchRecentChatProfiles();
+      loadRecentChats();
     }
   }, [isChatOpen]);
+
+  useEffect(() => {
+    const trimmedQuery = groupMemberSearch.trim();
+    if (!trimmedQuery) {
+      setGroupMemberResults([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const normalizedResults = await searchUsersForSelection(trimmedQuery, currentUserId || storedProfile.id || '');
+        setGroupMemberResults(normalizedResults);
+      } catch (searchError) {
+        if (searchError instanceof DOMException && searchError.name === 'AbortError') {
+          return;
+        }
+        console.error('search members for group failed', searchError);
+        setGroupMemberResults([]);
+      }
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [groupMemberSearch, currentUserId, storedProfile.id]);
 
   useEffect(() => {
     const trimmedQuery = chatSearch.trim();
@@ -911,67 +430,8 @@ export default function NewsFeedPage() {
     const timeoutId = window.setTimeout(async () => {
       try {
         setIsSearchingChatUsers(true);
-        const response = await fetch(`${API_BASE_URL}/user/search?username=${encodeURIComponent(trimmedQuery)}&limit=5&offset=0`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          signal: controller.signal,
-        });
-
-        const payload = await response.json().catch(() => ({}));
-
-        if (!response.ok || payload.status_code >= 400) {
-          throw new Error(payload.message || 'Unable to search chat users.');
-        }
-
-        const dataPayload =
-          (payload && typeof payload === 'object' && 'data' in payload ? (payload as Record<string, unknown>).data : undefined) ||
-          (payload && typeof payload === 'object' && 'response' in payload ? (payload as Record<string, unknown>).response : undefined) ||
-          payload;
-
-        const userList: unknown[] =
-          Array.isArray((dataPayload as Record<string, unknown>)?.UserMeataData)
-            ? ((dataPayload as Record<string, unknown>).UserMeataData as unknown[])
-            : Array.isArray((dataPayload as Record<string, unknown>)?.userMeataData)
-              ? ((dataPayload as Record<string, unknown>).userMeataData as unknown[])
-              : Array.isArray((dataPayload as Record<string, unknown>)?.data)
-                ? ((dataPayload as Record<string, unknown>).data as unknown[])
-                : Array.isArray((dataPayload as Record<string, unknown>)?.Data)
-                  ? ((dataPayload as Record<string, unknown>).Data as unknown[])
-                  : [];
-
-        const normalizedResults = userList
-          .map((user) => {
-            const source = (user ?? {}) as Record<string, unknown>;
-            const userId = String(
-              source.UserId ?? source.userId ?? source.user_id ?? source.UserID ?? source.userID ?? '',
-            );
-            const name = String(
-              source.Name ?? source.name ?? source.FullName ?? source.full_name ?? source.UserName ?? source.userName ?? 'User',
-            );
-            const username = String(
-              source.UserName ?? source.userName ?? source.username ?? '@user',
-            );
-            const profileImageUrl =
-              (typeof source.ProfileImgUrl === 'string' && source.ProfileImgUrl) ||
-              (typeof source.profile_image_url === 'string' && source.profile_image_url) ||
-              (typeof source.profileImageUrl === 'string' && source.profileImageUrl) ||
-              '';
-
-            if (!userId && !name && !username) return null;
-
-            return {
-              id: userId || name || username,
-              name,
-              username: normalizeUsername(username),
-              profileImageUrl,
-            };
-          })
-          .filter(Boolean) as Array<{ id: string; name: string; username: string; profileImageUrl: string }>;
-
-        setChatSearchResults(normalizedResults.filter((user) => user.id !== (currentUserId || storedProfile.id || '')));
+        const normalizedResults = await searchUsersForSelection(trimmedQuery, currentUserId || storedProfile.id || '');
+        setChatSearchResults(normalizedResults);
       } catch (searchError) {
         if (searchError instanceof DOMException && searchError.name === 'AbortError') {
           return;
@@ -995,48 +455,16 @@ export default function NewsFeedPage() {
       return;
     }
 
-    const socketUrl = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.hostname}:3000/user/ws`;
-    const socket = new WebSocket(socketUrl);
-
-    socket.onopen = () => {
-      setChatError('');
-    };
-
-    socket.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data as string);
-
-        if (payload && payload.error) {
-          setChatError(String(payload.error));
-          return;
-        }
-
-        const senderId = String(payload.sender_id ?? payload.SenderID ?? payload.senderId ?? '');
-        const content = String(payload.content ?? payload.Content ?? '');
-        if (!senderId && !content) {
-          return;
-        }
-
+    const socket = connectChatSocket({
+      currentUserId: currentUserId || storedProfile.id || '',
+      onError: (message) => setChatError(message),
+      onMessage: (nextMessage) => {
         setChatMessages((currentMessages) => {
-          const nextMessage = {
-            id: String(payload.message_id ?? payload.MessageID ?? payload.id ?? `${senderId}-${content}-${Date.now()}`),
-            senderId,
-            content,
-            createdAt: String(payload.created_at ?? payload.CreatedAt ?? payload.createdAt ?? new Date().toISOString()),
-            mine: senderId === (currentUserId || storedProfile.id || ''),
-          };
-
           const alreadyExists = currentMessages.some((message) => message.id === nextMessage.id);
           return alreadyExists ? currentMessages : [...currentMessages, nextMessage];
         });
-      } catch (error) {
-        console.error('failed to parse chat websocket payload', error);
-      }
-    };
-
-    socket.onerror = () => {
-      setChatError('Unable to connect to chat right now.');
-    };
+      },
+    });
 
     setChatSocket(socket);
 
@@ -1045,6 +473,53 @@ export default function NewsFeedPage() {
       setChatSocket(null);
     };
   }, [chatSelectedUser, currentUserId, storedProfile.id]);
+
+  const toggleGroupMember = (member: { id: string; name: string; username: string; profileImageUrl: string }) => {
+    setSelectedGroupMembers((current) => {
+      const exists = current.some((candidate) => candidate.id === member.id);
+      if (exists) {
+        return current.filter((candidate) => candidate.id !== member.id);
+      }
+      return [...current, member];
+    });
+  };
+
+  const handleCreateGroup = async () => {
+    const cleanedGroupName = groupNameDraft.trim();
+    if (!cleanedGroupName) {
+      setChatError('Please provide a group name.');
+      return;
+    }
+
+    if (selectedGroupMembers.length === 0) {
+      setChatError('Add at least one participant to create a group.');
+      return;
+    }
+
+    const payloadMembers = selectedGroupMembers
+      .map((member) => Number(member.id))
+      .filter((memberId) => Number.isFinite(memberId) && memberId > 0);
+
+    if (payloadMembers.length === 0) {
+      setChatError('Selected members are invalid. Please choose valid users.');
+      return;
+    }
+
+    try {
+      await createGroup(cleanedGroupName, payloadMembers);
+
+      setIsCreatingGroup(false);
+      setGroupNameDraft('');
+      setGroupMemberSearch('');
+      setGroupMemberResults([]);
+      setSelectedGroupMembers([]);
+      setChatError('');
+      await fetchRecentChatProfiles();
+    } catch (error) {
+      console.error('create group failed', error);
+      setChatError(error instanceof Error ? error.message : 'Unable to create group.');
+    }
+  };
 
   const handleSendChatMessage = () => {
     if (!chatSelectedUser) {
@@ -1061,12 +536,7 @@ export default function NewsFeedPage() {
       return;
     }
 
-    const messagePayload = {
-      type: 'individual',
-      recipient_id: Number(chatSelectedUser.id),
-      content: trimmedMessage,
-      created_at: new Date().toISOString(),
-    };
+    const messagePayload = buildChatMessagePayload(chatSelectedUser, trimmedMessage);
 
     chatSocket.send(JSON.stringify(messagePayload));
     setChatMessages((currentMessages) => [
@@ -1074,6 +544,8 @@ export default function NewsFeedPage() {
       {
         id: `local-${Date.now()}`,
         senderId: currentUserId || storedProfile.id || 'me',
+        senderName: currentUserName || storedProfile.name || 'You',
+        senderProfileImageUrl: currentProfileImageUrl || '',
         content: trimmedMessage,
         createdAt: new Date().toISOString(),
         mine: true,
@@ -1085,17 +557,7 @@ export default function NewsFeedPage() {
 
   const handleToggleLike = async (postId: string, currentLiked: boolean) => {
     try {
-      const endpoint = `${API_BASE_URL}/user/post/${postId}/${currentLiked ? 'unlike' : 'like'}`;
-      console.log(`post Id: ${postId}`)
-      const response = await fetch(endpoint, {
-        method: currentLiked ? 'DELETE' : 'POST',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.message || payload.error || 'Unable to update like status.');
-      }
+      await toggleLikePost(postId, currentLiked);
 
       setPosts((currentPosts) =>
         currentPosts.map((post) => {
@@ -1113,132 +575,13 @@ export default function NewsFeedPage() {
     }
   };
 
-  const fetchCommentsForPost = async (postId: string) => {
+  const loadCommentsForPost = async (postId: string) => {
     if (commentLoading[postId]) return;
 
     setCommentLoading((current) => ({ ...current, [postId]: true }));
 
     try {
-      const response = await fetch(`${API_BASE_URL}/user/post/${postId}/comment?limit=20&offset=0`, {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      const payload = await response.json().catch(() => ({}));
-
-      if (!response.ok || payload.status_code >= 400) {
-        throw new Error(payload.message || payload.error || 'Unable to load comments.');
-      }
-
-      const data = payload.data ?? payload;
-      const commentList = Array.isArray(data?.Comments)
-        ? data.Comments
-        : Array.isArray(data?.comments)
-          ? data.comments
-          : Array.isArray(payload.Comments)
-            ? payload.Comments
-            : Array.isArray(payload.comments)
-              ? payload.comments
-              : [];
-
-      const normalizedComments: FeedComment[] = commentList.map((comment: Record<string, unknown>, index: number) => {
-        const userDetails =
-          (comment.UserDetails as Record<string, unknown>) ||
-          (comment.userDetails as Record<string, unknown>) ||
-          (comment.user_details as Record<string, unknown>) ||
-          {};
-
-        const author =
-          (typeof comment.Name === 'string' && comment.Name) ||
-          (typeof comment.name === 'string' && comment.name) ||
-          (typeof userDetails.Name === 'string' && userDetails.Name) ||
-          (typeof userDetails.name === 'string' && userDetails.name) ||
-          (typeof userDetails.UserName === 'string' && userDetails.UserName) ||
-          (typeof userDetails.userName === 'string' && userDetails.userName) ||
-          'User';
-
-        const text =
-          (typeof comment.CommentText === 'string' && comment.CommentText) ||
-          (typeof comment.comment_text === 'string' && comment.comment_text) ||
-          (typeof comment.commentText === 'string' && comment.commentText) ||
-          'Comment';
-
-        const profileImageUrl =
-          (typeof comment.ProfileImgUrl === 'string' && comment.ProfileImgUrl) ||
-          (typeof comment.profile_image_url === 'string' && comment.profile_image_url) ||
-          (typeof comment.profileImageUrl === 'string' && comment.profileImageUrl) ||
-          (typeof userDetails.ProfileImgUrl === 'string' && userDetails.ProfileImgUrl) ||
-          (typeof userDetails.profile_image_url === 'string' && userDetails.profile_image_url) ||
-          (typeof userDetails.profileImageUrl === 'string' && userDetails.profileImageUrl) ||
-          '';
-
-        const time =
-          (typeof comment.CommentAge === 'string' && comment.CommentAge) ||
-          (typeof comment.comment_age === 'string' && comment.comment_age) ||
-          'just now';
-
-        const rawChildComments = Array.isArray(comment.ChildComment)
-          ? comment.ChildComment
-          : Array.isArray(comment.childComment)
-            ? comment.childComment
-            : [];
-
-        const replies = rawChildComments.map((child: Record<string, unknown>, childIndex: number) => {
-          const childUserDetails =
-            (child.UserDetails as Record<string, unknown>) ||
-            (child.userDetails as Record<string, unknown>) ||
-            (child.user_details as Record<string, unknown>) ||
-            {};
-
-          const childAuthor =
-            (typeof child.Name === 'string' && child.Name) ||
-            (typeof child.name === 'string' && child.name) ||
-            (typeof childUserDetails.Name === 'string' && childUserDetails.Name) ||
-            (typeof childUserDetails.name === 'string' && childUserDetails.name) ||
-            (typeof childUserDetails.UserName === 'string' && childUserDetails.UserName) ||
-            (typeof childUserDetails.userName === 'string' && childUserDetails.userName) ||
-            'User';
-
-          const childText =
-            (typeof child.CommentText === 'string' && child.CommentText) ||
-            (typeof child.comment_text === 'string' && child.comment_text) ||
-            (typeof child.commentText === 'string' && child.commentText) ||
-            'Comment';
-
-          const childProfileImageUrl =
-            (typeof child.ProfileImgUrl === 'string' && child.ProfileImgUrl) ||
-            (typeof child.profile_image_url === 'string' && child.profile_image_url) ||
-            (typeof child.profileImageUrl === 'string' && child.profileImageUrl) ||
-            (typeof childUserDetails.ProfileImgUrl === 'string' && childUserDetails.ProfileImgUrl) ||
-            (typeof childUserDetails.profile_image_url === 'string' && childUserDetails.profile_image_url) ||
-            (typeof childUserDetails.profileImageUrl === 'string' && childUserDetails.profileImageUrl) ||
-            '';
-
-          const childTime =
-            (typeof child.CommentAge === 'string' && child.CommentAge) ||
-            (typeof child.comment_age === 'string' && child.comment_age) ||
-            'just now';
-
-          return {
-            id: String(child.CommentID ?? child.comment_id ?? child.id ?? `${postId}-${index}-${childIndex}`),
-            author: childAuthor,
-            text: childText,
-            time: childTime,
-            profileImageUrl: childProfileImageUrl,
-          };
-        });
-
-        return {
-          id: String(comment.CommentID ?? comment.comment_id ?? comment.id ?? `${postId}-${index}`),
-          author,
-          text,
-          time,
-          profileImageUrl,
-          replyCount: Number(comment.ChildCommentCount ?? comment.child_comment_count ?? replies.length) || replies.length,
-          replies,
-        };
-      });
-
+      const normalizedComments = await fetchCommentsForPost(postId);
       setCommentsByPost((current) => ({ ...current, [postId]: normalizedComments }));
     } catch (error) {
       console.error('fetch comments failed', error);
@@ -1254,7 +597,7 @@ export default function NewsFeedPage() {
       return;
     }
 
-    await fetchCommentsForPost(postId);
+    await loadCommentsForPost(postId);
     setOpenCommentFor(postId);
   };
 
@@ -1264,22 +607,7 @@ export default function NewsFeedPage() {
     if (!commentText) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/user/post/${postId}/comment`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          comment_text: commentText,
-          ...(parentCommentId ? { parent_comment_id: Number(parentCommentId) } : {}),
-        }),
-      });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.message || payload.error || 'Unable to add your comment.');
-      }
+      await addCommentToPost(postId, commentText, parentCommentId);
 
       setPosts((currentPosts) =>
         currentPosts.map((post) =>
@@ -1296,7 +624,7 @@ export default function NewsFeedPage() {
         setCommentDrafts((currentDrafts) => ({ ...currentDrafts, [postId]: '' }));
       }
 
-      await fetchCommentsForPost(postId);
+      await loadCommentsForPost(postId);
     } catch (error) {
       console.error('add comment failed', error);
     }
@@ -1304,16 +632,7 @@ export default function NewsFeedPage() {
 
   const handleDeletePost = async (postId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/post/${postId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok || payload.status_code >= 400) {
-        throw new Error(payload.message || payload.error || 'Unable to delete this post.');
-      }
-
+      await deletePostById(postId);
       setPosts((currentPosts) => currentPosts.filter((post) => post.id !== postId));
       setPostMenuOpenFor(null);
     } catch (error) {
@@ -1341,10 +660,7 @@ export default function NewsFeedPage() {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${API_BASE_URL}/user/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await logoutCurrentUser();
     } catch (error) {
       console.error('logout failed', error);
     } finally {
@@ -1375,22 +691,7 @@ export default function NewsFeedPage() {
 
     try {
       if (editingPostId) {
-        const response = await fetch(`${API_BASE_URL}/user/post/${editingPostId}`, {
-          method: 'PATCH',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            caption: postText.trim(),
-          }),
-        });
-
-        const payload = await response.json().catch(() => ({}));
-
-        if (!response.ok || payload.status_code >= 400) {
-          throw new Error(payload.message || payload.error || 'Unable to update your post.');
-        }
+        await updatePostContent(editingPostId, postText.trim());
 
         setPosts((currentPosts) =>
           currentPosts.map((post) =>
@@ -1402,45 +703,16 @@ export default function NewsFeedPage() {
         return;
       }
 
-      const formData = new FormData();
-      if (postText.trim()) {
-        formData.append('caption', postText.trim());
-      }
-      selectedFiles.forEach((file) => {
-        formData.append('media', file);
-      });
-
-      const response = await fetch(`${API_BASE_URL}/user/post`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      });
-
-      const payload = await response.json();
-
-      if (!response.ok || payload.status_code >= 400) {
-        throw new Error(payload.message || payload.error || 'Unable to create your post.');
-      }
-
-      const createdPostId = getPostIdFromResponse(payload) ?? `local-${Date.now()}`;
-
-      const createdPost: FeedPost = {
-        id: createdPostId,
+      const createdPost = await createPostWithMedia(postText.trim(), selectedFiles, {
         author: currentUserName,
         handle: currentUserHandle || '@user',
-        time: formatFriendlyTime(new Date().toISOString()),
-        content: postText.trim(),
-        imageUrls: selectedFiles.length > 0 ? selectedFiles.map((file) => URL.createObjectURL(file)) : [],
         profileImageUrl: currentProfileImageUrl || undefined,
-        isLiked: false,
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        accent: 'from-sky-400 to-blue-600',
-        tag: 'New',
-      };
+      });
 
-      setPosts((currentPosts) => [createdPost, ...currentPosts]);
+      setPosts((currentPosts) => [{
+        ...createdPost,
+        time: formatFriendlyTime(new Date().toISOString()),
+      }, ...currentPosts]);
       setPostText('');
       setSelectedFiles([]);
       setComposerSuccess('Post created successfully.');
@@ -1973,306 +1245,59 @@ export default function NewsFeedPage() {
         </div>
       </div>
 
-      {isComposerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-xl rounded-[30px] border border-sky-100 bg-white p-5 shadow-[0_25px_80px_rgba(15,23,42,0.2)]">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-600">
-                  {editingPostId ? 'Edit post' : 'Create post'}
-                </p>
-                <h2 className="mt-2 text-2xl font-black text-slate-900">
-                  {editingPostId ? 'Update your post' : 'Share an update'}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={closeComposer}
-                className="rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-500"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <textarea
-                value={postText}
-                onChange={(e) => setPostText(e.target.value)}
-                rows={5}
-                placeholder={editingPostId ? 'Edit your caption...' : 'What would you like to share with your community?'}
-                className="w-full rounded-2xl border border-sky-200 bg-sky-50/60 px-4 py-3 text-base text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200"
-              />
-
-              {!editingPostId && (
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Add media</label>
-                  <input
-                    type="file"
-                    accept="image/*,video/*,audio/*"
-                    multiple
-                    onChange={(event) => setSelectedFiles(Array.from(event.target.files ?? []))}
-                    className="block w-full rounded-2xl border border-dashed border-sky-200 bg-sky-50 p-3 text-sm text-slate-600 file:mr-3 file:rounded-full file:border-0 file:bg-sky-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-sky-700"
-                  />
-                  {selectedFiles.length > 0 && (
-                    <div className="mt-2 text-xs text-slate-500">
-                      {selectedFiles.length} file(s) selected
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {composerError && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                  {composerError}
-                </div>
-              )}
-
-              {composerSuccess && (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                  {composerSuccess}
-                </div>
-              )}
-
-              <button
-                type="button"
-                disabled={isPosting}
-                onClick={handleCreatePost}
-                className="flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-3.5 text-base font-semibold text-white shadow-lg shadow-sky-300/40 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isPosting ? (editingPostId ? 'Updating...' : 'Posting...') : editingPostId ? 'Update Post' : 'Create Post'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PostComposerModal
+        isOpen={isComposerOpen}
+        editingPostId={editingPostId}
+        postText={postText}
+        setPostText={setPostText}
+        selectedFiles={selectedFiles}
+        setSelectedFiles={setSelectedFiles}
+        composerError={composerError}
+        composerSuccess={composerSuccess}
+        isPosting={isPosting}
+        onClose={closeComposer}
+        onPublish={handleCreatePost}
+      />
 
       <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
-        {isChatOpen && (
-          <div className="h-[480px] w-[360px] overflow-hidden rounded-[28px] border border-sky-100 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
-            <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-3 text-white">
-              <div className="flex items-center gap-3">
-                {chatSelectedUser ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setChatSelectedUser(null);
-                      setChatMessages([]);
-                      setChatDraft('');
-                      setChatError('');
-                      setChatSearch('');
-                      setChatSearchResults([]);
-                    }}
-                    className="rounded-full border border-white/30 px-2 py-1 text-xs font-medium text-white/90"
-                  >
-                    Back
-                  </button>
-                ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/60 bg-white/15 text-lg">
-                    💬
-                  </div>
-                )}
-
-                {chatSelectedUser ? (
-                  <>
-                    {chatSelectedUser.profileImageUrl ? (
-                      <img
-                        src={chatSelectedUser.profileImageUrl}
-                        alt={chatSelectedUser.name}
-                        className="h-9 w-9 rounded-full border border-white/60 object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/60 bg-white/15 text-xs font-bold">
-                        {getInitials(chatSelectedUser.name)}
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm font-bold">{chatSelectedUser.name}</p>
-                      <p className="text-[10px] text-sky-100">{chatSelectedUser.username}</p>
-                    </div>
-                  </>
-                ) : (
-                  <div>
-                    <p className="text-sm font-bold">Messages</p>
-                    <p className="text-[10px] text-sky-100">Recent chats</p>
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsChatOpen(false)}
-                className="rounded-full border border-white/30 px-2 py-1 text-xs font-medium text-white/90"
-              >
-                Close
-              </button>
-            </div>
-
-            {!chatSelectedUser ? (
-              <div className="flex h-[calc(480px-64px)] flex-col bg-slate-50">
-                <div className="relative border-b border-slate-100 bg-slate-50 p-3">
-                  <div className="relative">
-                    <input
-                      value={chatSearch}
-                      onChange={(event) => setChatSearch(event.target.value)}
-                      placeholder="Search messages or people"
-                      className="w-full rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-sky-400 focus:outline-none"
-                    />
-                    {isSearchingChatUsers && (
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-medium uppercase tracking-[0.18em] text-sky-600">
-                        Searching
-                      </span>
-                    )}
-                  </div>
-
-                  {chatSearch && chatSearchResults.length > 0 && (
-                    <div className="absolute left-3 right-3 top-[calc(100%+6px)] z-20 max-h-52 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-lg">
-                      {chatSearchResults.map((user) => (
-                        <button
-                          key={user.id}
-                          type="button"
-                          onClick={() => {
-                            setChatSearch('');
-                            setChatSearchResults([]);
-                            void openChatSession({
-                              id: user.id,
-                              name: user.name,
-                              username: user.username,
-                              profileImageUrl: user.profileImageUrl,
-                              conversationId: '',
-                            });
-                          }}
-                          className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-slate-50"
-                        >
-                          {user.profileImageUrl ? (
-                            <img src={user.profileImageUrl} alt={user.name} className="h-9 w-9 rounded-full object-cover" />
-                          ) : (
-                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700">
-                              {getInitials(user.name)}
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-slate-800">{user.name}</p>
-                            <p className="truncate text-xs text-slate-500">{user.username}</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex-1 overflow-y-auto px-2 py-2">
-                  {chatSessions.length === 0 ? (
-                    <div className="flex h-full items-center justify-center px-4 text-center text-sm text-slate-500">
-                      No recent chats yet. Search for someone to start one.
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {chatSessions
-                        .filter((session) => {
-                          const query = chatSearch.trim().toLowerCase();
-                          if (!query) return true;
-                          return (
-                            session.name.toLowerCase().includes(query) ||
-                            session.username.toLowerCase().includes(query.replace(/^@/, '')) ||
-                            session.lastMessage.toLowerCase().includes(query)
-                          );
-                        })
-                        .map((session) => (
-                          <button
-                            key={session.conversationId || session.id}
-                            type="button"
-                            onClick={() => void openChatSession(session)}
-                            className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-slate-100 transition hover:bg-slate-50"
-                          >
-                            {session.profileImageUrl ? (
-                              <img src={session.profileImageUrl} alt={session.name} className="h-12 w-12 rounded-full object-cover" />
-                            ) : (
-                              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-sm font-bold text-white">
-                                {getInitials(session.name)}
-                              </div>
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <div className="mb-1 flex items-center justify-between gap-2">
-                                <p className="truncate text-sm font-semibold text-slate-800">{session.name}</p>
-                                <span className="text-[10px] text-slate-400">{session.lastMessageTime}</span>
-                              </div>
-                              <p className="truncate text-xs text-slate-500">{session.username}</p>
-                              <p className="mt-1 truncate text-xs text-slate-600">{session.lastMessage || 'Start a conversation'}</p>
-                            </div>
-                          </button>
-                        ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="flex h-[calc(480px-64px)] flex-col bg-slate-50">
-                <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3">
-                  {isLoadingChatHistory ? (
-                    <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading conversation...</div>
-                  ) : chatMessages.length > 0 ? (
-                    chatMessages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex ${message.mine ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
-                            message.mine
-                              ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white'
-                              : 'bg-white text-slate-700 ring-1 ring-slate-200'
-                          }`}
-                        >
-                          <div>{message.content}</div>
-                          <div
-                            className={`mt-1 text-[10px] ${
-                              message.mine ? 'text-sky-100' : 'text-slate-400'
-                            }`}
-                          >
-                            {formatChatMessageTime(message.createdAt)}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-center text-sm text-slate-500">
-                      Start the conversation with {chatSelectedUser.name}
-                    </div>
-                  )}
-                </div>
-
-                <div className="border-t border-slate-200 bg-white p-3">
-                  {chatError && (
-                    <div className="mb-2 rounded-xl border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-600">
-                      {chatError}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={chatDraft}
-                      onChange={(event) => setChatDraft(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' && !event.shiftKey) {
-                          event.preventDefault();
-                          handleSendChatMessage();
-                        }
-                      }}
-                      placeholder="Type a message"
-                      className="flex-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-sky-400 focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSendChatMessage}
-                      className="rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-2 text-sm font-semibold text-white"
-                    >
-                      Send
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <ChatPanel
+          isChatOpen={isChatOpen}
+          chatSearch={chatSearch}
+          setChatSearch={setChatSearch}
+          chatSearchResults={chatSearchResults}
+          isSearchingChatUsers={isSearchingChatUsers}
+          chatSessions={chatSessions}
+          openChatSession={openChatSession}
+          isLoadingChatHistory={isLoadingChatHistory}
+          chatSelectedUser={chatSelectedUser}
+          setChatSelectedUser={setChatSelectedUser}
+          chatMessages={chatMessages}
+          chatDraft={chatDraft}
+          setChatDraft={setChatDraft}
+          chatError={chatError}
+          handleSendChatMessage={handleSendChatMessage}
+          isGroupDetailOpen={isGroupDetailOpen}
+          setIsGroupDetailOpen={setIsGroupDetailOpen}
+          groupMembers={groupMembers}
+          groupCreatorId={groupCreatorId}
+          groupMemberSearch={groupMemberSearch}
+          setGroupMemberSearch={setGroupMemberSearch}
+          groupMemberResults={groupMemberResults}
+          refreshGroupMembers={refreshGroupMembers}
+          handleAddMemberToGroup={handleAddMemberToGroup}
+          handleRemoveMemberFromGroup={handleRemoveMemberFromGroup}
+          handleGroupProfileImageChange={handleGroupProfileImageChange}
+          setChatError={setChatError}
+          isCreatingGroup={isCreatingGroup}
+          setIsCreatingGroup={setIsCreatingGroup}
+          groupNameDraft={groupNameDraft}
+          setGroupNameDraft={setGroupNameDraft}
+          selectedGroupMembers={selectedGroupMembers}
+          setSelectedGroupMembers={setSelectedGroupMembers}
+          toggleGroupMember={toggleGroupMember}
+          handleCreateGroup={handleCreateGroup}
+          onCloseChat={() => setIsChatOpen(false)}
+        />
 
         <button
           type="button"

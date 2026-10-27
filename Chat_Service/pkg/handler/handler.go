@@ -6,12 +6,15 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Ansalps/Chattr_Chat_Service/logger"
+	"github.com/Ansalps/Chattr_Chat_Service/pkg/client"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/config"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/domain"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/handler/interfacesHandler"
+	"github.com/Ansalps/Chattr_Chat_Service/pkg/pb"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/requestmodels"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/responsemodels"
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/usecase/interfacesUsecase"
@@ -24,14 +27,16 @@ import (
 
 type ChatHandler struct {
 	ChatUsecase   interfacesUsecase.ChatUsecase
+	AuthClient    pb.AuthSubscriptionServiceClient
 	KafkaProducer interfacesHandler.KafkaProducer
 	Config        *config.Config
 	Log           logger.Logger
 }
 
-func NewChatHandler(usecase interfacesUsecase.ChatUsecase, kafkaProducer interfacesHandler.KafkaProducer, config *config.Config, log logger.Logger) *ChatHandler {
+func NewChatHandler(usecase interfacesUsecase.ChatUsecase, authClient pb.AuthSubscriptionServiceClient, kafkaProducer interfacesHandler.KafkaProducer, config *config.Config, log logger.Logger) *ChatHandler {
 	return &ChatHandler{
 		ChatUsecase:   usecase,
+		AuthClient:    authClient,
 		KafkaProducer: kafkaProducer,
 		Config:        config,
 		Log:           log,
@@ -80,10 +85,12 @@ var upgrader = websocket.Upgrader{
 }
 
 func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
+	fmt.Println("1111")
 	requestID := c.GetHeader("X-Request-ID")
 	log := as.Log.With(
 		logger.Field{Key: "request_id", Value: requestID},
 	)
+	fmt.Println("2222222")
 	// 1️⃣ Read trusted headers from API Gateway
 	userIdStr := c.GetHeader("X-User-ID")
 	if userIdStr == "" {
@@ -93,6 +100,7 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 		})
 		return
 	}
+	fmt.Println("2222222")
 	userID, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
 		log.Error("failed to parse user id",
@@ -104,6 +112,7 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 		})
 		return
 	}
+	fmt.Println("3333333")
 	authSource := c.GetHeader("X-Auth-Source")
 
 	//log.Println("Headers:", c.Request.Header)
@@ -119,19 +128,21 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 		})
 		return
 	}
+	fmt.Println("444444444")
 	log.Info("websocket upgrade request received",
 		logger.Field{Key: "user_id", Value: userID},
 	)
 	// 2️⃣ Upgrade HTTP → WebSocket
 	wsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
+		fmt.Println("555555", err)
 		log.Error("websocket upgrade failed",
 			logger.Field{Key: "user_id", Value: userID},
 			logger.Field{Key: "error", Value: err},
 		)
 		return
 	}
-
+	fmt.Println("66666666")
 	// 3️⃣ Register connection (optional but recommended)
 	// client,err:=as.ChatUsecase.RegisterClient(userID, wsConn)
 	// if err!=nil{
@@ -147,8 +158,10 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 	log.Info("websocket client connected",
 		logger.Field{Key: "user_id", Value: userID},
 	)
+	fmt.Println("777777")
 	// 4️⃣ Start WebSocket read loop
 	go as.reader(client, hub)
+	fmt.Println("88888888")
 }
 
 func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub) {
@@ -195,6 +208,15 @@ func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub) {
 			continue
 		}
 		dm.SenderID = c.UserID
+		if authRes, err := client.FetchUserMetaData(as.AuthClient, []uint64{c.UserID}); err == nil && authRes != nil {
+			if user, ok := authRes.Users[c.UserID]; ok {
+				dm.SenderName = user.Name
+				if strings.TrimSpace(dm.SenderName) == "" {
+					dm.SenderName = user.UserName
+				}
+				dm.SenderProfileImgUrl = user.ProfileImgUrl
+			}
+		}
 
 		// cancel()
 		switch dm.Type {
@@ -570,46 +592,7 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 	resp, err := as.ChatUsecase.AddMembers(req)
 	if err != nil {
 
-		// if errors.As(err, &userErr) {
-		// 	c.JSON(http.StatusBadRequest, gin.H{
-		// 		"error":            "some users do not exist",
-		// 		"missing_user_ids": userErr.UserIDs,
-		// 	})
-		// 	return
-		// }
-
-		// switch {
-		// case errors.As(err, &userErr):
-		// 	log.Warn("Invalid userids persent",
-		// 		logger.Field{Key: "error", Value: err})
-		// 	c.JSON(http.StatusBadRequest, gin.H{
-		// 		"error":            "some users do not exist",
-		// 		"missing_user_ids": userErr.UserIDs,
-		// 	})
-		// case errors.Is(err, domain.ErrGroupNotFound):
-		// 	log.Warn("Invalid group id",
-		// 		logger.Field{Key: "error", Value: err})
-		// 	c.JSON(http.StatusNotFound, utils.ClientResponse(404, domain.ErrGroupNotFound.Error(), nil))
-		// case errors.Is(err, domain.ErrNotGroupMember):
-		// 	log.Warn("Not a Group Member",
-		// 		logger.Field{Key: "error", Value: err})
-		// 	c.JSON(http.StatusForbidden, utils.ClientResponse(403, domain.ErrNotGroupMember.Error(), nil))
-		// case errors.Is(err, domain.ErrDatabaseTimeout):
-		// 	log.Error("Database Connection timed out",
-		// 		logger.Field{Key: "error", Value: err})
-		// 	c.JSON(500, utils.ClientResponse(500, domain.ErrDatabaseTimeout.Error(), nil))
-		// case errors.Is(err, domain.ErrInternal):
-		// 	log.Error("Internal server error",
-		// 		logger.Field{Key: "error", Value: err})
-		// 	c.JSON(500, utils.ClientResponse(500, domain.ErrInternal.Error(), nil))
-		// default:
-		// 	log.Error("internal server errot",
-		// 		logger.Field{Key: "error", Value: err})
-		// 	// ✅ fallback (VERY IMPORTANT)
-		// 	c.JSON(http.StatusInternalServerError, gin.H{
-		// 		"error": "internal server error",
-		// 	})
-		// }
+		
 		utils.MapDomainError(c, log, err)
 		return
 	}
@@ -664,19 +647,7 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 
 	resp, err := as.ChatUsecase.RemoveMember(req)
 	if err != nil {
-		//log.Println(err)
-		// switch err {
-		// case domain.ErrGroupNotFound:
-		// 	c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		// case domain.ErrNotGroupMember:
-		// 	c.JSON(403, gin.H{"error": err.Error()})
-		// case domain.ErrUserNotPresent:
-		// 	c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		// default:
-		// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		// }
-
-		//c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		
 		utils.MapDomainError(c, log, err)
 		return
 	}
@@ -749,12 +720,13 @@ func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
 		return
 	}
 	resp1 := responsemodels.GetGroupMembers{
-		GetGroupMembers: resp,
+		Members: resp,
 		Pagination: responsemodels.PaginationDetails{
 			CurrentPage: page,
 			PageSize:    limit,
 		},
 	}
+	fmt.Println("resp1------", resp1)
 	c.JSON(http.StatusOK, resp1)
 }
 
@@ -894,7 +866,7 @@ func (as *ChatHandler) GetChat(c *gin.Context) {
 		CurrentPage: page,
 		PageSize:    limit,
 	}
-	fmt.Println("response of GetChat ---",resp)
+	fmt.Println("response of GetChat ---", resp)
 	c.JSON(http.StatusOK, resp)
 }
 func (as *ChatHandler) SetGroupProfileImage(c *gin.Context) {

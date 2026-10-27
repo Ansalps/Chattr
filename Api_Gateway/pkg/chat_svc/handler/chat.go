@@ -84,14 +84,14 @@ func NewChatHandler(cfg *config.Config) *ChatHandler {
 //		go io.Copy(backendConn, clientConn)
 //		go io.Copy(clientConn, backendConn)
 //	}
-func loadConfig() (*config.Config,error){
+func loadConfig() (*config.Config, error) {
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		//log.Fatalf("cannot load configuration: %v", err)
 		log.Fatal("cannot load configuration:",
 			logger.Field{Key: "error", Value: err})
 	}
-	return cfg,err
+	return cfg, err
 }
 func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
@@ -117,6 +117,11 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 }
 
 func (as *ChatHandler) CreateGroup(c *gin.Context) {
+	cfg, err := loadConfig()
+	if err != nil {
+		log.Fatal("cannot load configuration:",
+			logger.Field{Key: "error", Value: err})
+	}
 	requestID := c.GetString("request_id")
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
@@ -139,7 +144,7 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 		return
 	}
 
-	url := "http://chat-service:50053/user/group"
+	url := fmt.Sprintf("http://%s/user/group", cfg.ChatSvcUrl)
 
 	httpReq, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -169,6 +174,11 @@ func (as *ChatHandler) CreateGroup(c *gin.Context) {
 }
 
 func (as *ChatHandler) SetGroupProfileImage(c *gin.Context) {
+	cfg, err := loadConfig()
+	if err != nil {
+		log.Fatal("cannot load configuration:",
+			logger.Field{Key: "error", Value: err})
+	}
 	requestID := c.GetString("request_id")
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 	groupIdStr := c.Param("group_id")
@@ -242,13 +252,15 @@ func (as *ChatHandler) SetGroupProfileImage(c *gin.Context) {
 
 	req.Image = data
 	req.ContentType = contentType
+	req.UserID = claims.ID
+	req.GroupID = groupIdStr
 
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to encode request"})
 		return
 	}
-	url := fmt.Sprintf("http://chat-service:50053/user/group/%s/set-group-profile-image", groupIdStr)
+	url := fmt.Sprintf("http://%s/user/group/%s/set-group-profile-image", cfg.ChatSvcUrl, groupIdStr)
 
 	httpReq, err := http.NewRequest("PATCH", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -279,6 +291,11 @@ func (as *ChatHandler) SetGroupProfileImage(c *gin.Context) {
 }
 
 func (as *ChatHandler) AddMembers(c *gin.Context) {
+	cfg, err := loadConfig()
+	if err != nil {
+		log.Fatal("cannot load configuration:",
+			logger.Field{Key: "error", Value: err})
+	}
 	requestID := c.GetString("request_id")
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
@@ -306,7 +323,7 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 		return
 	}
 
-	url := "http://chat-service:50053/user/group/add-members"
+	url := fmt.Sprintf("http://%s/user/group/add-members", cfg.ChatSvcUrl)
 
 	httpReq, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -337,6 +354,11 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 }
 
 func (as *ChatHandler) RemoveMember(c *gin.Context) {
+	cfg, err := loadConfig()
+	if err != nil {
+		log.Fatal("cannot load configuration:",
+			logger.Field{Key: "error", Value: err})
+	}
 	requestID := c.GetString("request_id")
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
@@ -371,7 +393,7 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 		return
 	}
 
-	url := "http://chat-service:50053/user/group/remove-member"
+	url := fmt.Sprintf("http://%s/user/group/remove-member", cfg.ChatSvcUrl)
 
 	httpReq, err := http.NewRequest("DELETE", url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -403,6 +425,11 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 }
 
 func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
+	cfg, err := loadConfig()
+	if err != nil {
+		log.Fatal("cannot load configuration:",
+			logger.Field{Key: "error", Value: err})
+	}
 	requestID := c.GetString("request_id")
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
@@ -423,7 +450,7 @@ func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
 
 	offset := (page - 1) * limit
 
-	url := fmt.Sprintf("http://chat-service:50053/user/group/%s/members?limit=%d&offset=%d", groupIdStr, limit, offset)
+	url := fmt.Sprintf("http://%s/user/group/%s/members?limit=%d&offset=%d", cfg.ChatSvcUrl, groupIdStr, limit, offset)
 
 	httpReq, err := http.NewRequest("GET", url, nil)
 
@@ -454,17 +481,25 @@ func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
 }
 
 func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
-	cfg,err:=loadConfig()
-	if err!=nil{
+
+	cfg, err := loadConfig()
+	if err != nil {
+
 		log.Fatal("cannot load configuration:",
 			logger.Field{Key: "error", Value: err})
 	}
 
 	requestID := c.GetString("request_id")
-	
+
 	// 1. Parse Pagination
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil {
+		fmt.Println("333")
+	}
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if err != nil {
+		fmt.Println("444444")
+	}
 
 	if page < 1 || limit < 1 || limit > 100 {
 		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "invalid page or limit", nil))
@@ -476,7 +511,7 @@ func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
 	fmt.Println("i hope it reaches here also")
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 	fmt.Println("what happens here")
-	fullURL := fmt.Sprintf("http://%s/user/get-recent-chat-profiles?limit=%d&offset=%d",cfg.ChatSvcUrl, limit, offset)
+	fullURL := fmt.Sprintf("http://%s/user/get-recent-chat-profiles?limit=%d&offset=%d", cfg.ChatSvcUrl, limit, offset)
 	httpReq, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
 		fmt.Println("i bet its not here")
@@ -494,29 +529,34 @@ func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
 		httpReq.Header.Set("X-Request-ID", requestID)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
-	fmt.Println("it is simple")
+	
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(httpReq)
-	fmt.Println("is it a context error?")
+
 	if err != nil {
 		fmt.Println("how can we handle?", err)
 		c.JSON(502, gin.H{"error": "chat service unavailable"})
 		return
 	}
-	fmt.Println("is contex error?")
+
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("error rrrrrr", err)
 	}
-	fmt.Println("is it finally coming back", body)
+	// Option 1: Using fmt.Println
+	fmt.Println("API Response JSON:", string(body))
+
+	// Option 2: Using your log package (more consistent with your other logs)
+	//log.Printf("API Response JSON: %s", string(body))
+
 	c.Data(resp.StatusCode, "application/json", body)
 }
 
 func (as *ChatHandler) GetChat(c *gin.Context) {
-	cfg,err:=loadConfig()
-	if err!=nil{
+	cfg, err := loadConfig()
+	if err != nil {
 		log.Fatal("cannot load configuration:",
 			logger.Field{Key: "error", Value: err})
 	}
@@ -539,7 +579,7 @@ func (as *ChatHandler) GetChat(c *gin.Context) {
 
 	claims := c.MustGet("claims").(responsemodels.JwtClaims)
 
-	fullURL := fmt.Sprintf("http://%s/user/chat/%s?limit=%d&offset=%d",cfg.ChatSvcUrl, convIdStr, limit, offset)
+	fullURL := fmt.Sprintf("http://%s/user/chat/%s?limit=%d&offset=%d", cfg.ChatSvcUrl, convIdStr, limit, offset)
 	httpReq, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
 		log.Printf("Failed to create request: %v", err)
@@ -565,13 +605,18 @@ func (as *ChatHandler) GetChat(c *gin.Context) {
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	
+
 	c.Data(resp.StatusCode, "application/json", body)
 }
 
 func (as *ChatHandler) PanicInChat(c *gin.Context) {
+	cfg, err := loadConfig()
+	if err != nil {
+		log.Fatal("cannot load configuration:",
+			logger.Field{Key: "error", Value: err})
+	}
 	//panic("intentional test panic in api gateway")
-	fullURL := fmt.Sprintf("http://chat-service:50053/chat/panic")
+	fullURL := fmt.Sprintf("http://%s/chat/panic", cfg.ChatSvcUrl)
 	httpReq, err := http.NewRequest("POST", fullURL, nil)
 	if err != nil {
 		log.Printf("Failed to create request: %v", err)

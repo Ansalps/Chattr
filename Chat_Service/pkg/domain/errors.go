@@ -6,25 +6,26 @@ import (
 )
 
 var (
-	ErrNotCreatorId          = errors.New("user is not the creator of the group since can't add members")
-	ErrUserNotPresent        = errors.New("Member to remove is not present in the group")
-	ErrNotGroupMember        = errors.New("cannot add or remove members if you are already not a group member")
-	ErrUserNotInConversation = errors.New("unauthorized: user not in conversation")
-	ErrGroupNotFound         = errors.New("Group id does not exist")
-	ErrNoUsersFound          = errors.New("No users exist or found")
+	ErrNotCreatorId             = errors.New("user is not the creator of the group since can't add members")
+	ErrCannotRemoveGroupCreator = errors.New("cannot remove the group creator")
+	ErrUserNotPresent           = errors.New("Member to remove is not present in the group")
+	ErrNotGroupMember           = errors.New("cannot add or remove members if you are already not a group member")
+	ErrUserNotInConversation    = errors.New("unauthorized: user not in conversation")
+	ErrGroupNotFound            = errors.New("Group id does not exist")
+	ErrNoUsersFound             = errors.New("No users exist or found")
 	//ErrNontExistingUsers=errors.New("All or some of the users are non-existent")
-	ErrContentTypeNil=errors.New("content type is nil")
+	ErrContentTypeNil = errors.New("content type is nil")
 
-	ErrInternal=errors.New("internal server error")
+	ErrInternal        = errors.New("internal server error")
 	ErrUserNotFound    = errors.New("User not found")
-	ErrDatabase=errors.New("Database error: ")
-	ErrDatabaseTimeout=errors.New("Mongodb Database Connection time out")
+	ErrDatabase        = errors.New("Database error: ")
+	ErrDatabaseTimeout = errors.New("Mongodb Database Connection time out")
 
-	ErrInvalidGroupID= errors.New("Invalid Group ID")
+	ErrInvalidGroupID = errors.New("Invalid Group ID")
 
-	ErrUsersNotFound=errors.New("Users not found")
+	ErrUsersNotFound = errors.New("Users not found")
 
-	ErrS3UploadFail=errors.New("profile image updload failed")
+	ErrS3UploadFail = errors.New("profile image updload failed")
 )
 
 type NonExistingUsersError struct {

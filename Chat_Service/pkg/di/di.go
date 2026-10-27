@@ -16,7 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func DependencyInjection(router *gin.Engine, cfg *config.Config,log logger.Logger) error {
+func DependencyInjection(router *gin.Engine, cfg *config.Config, log logger.Logger) error {
 	mongoClient, err := db.ConnectMongo(cfg)
 	if err != nil {
 		return err
@@ -33,14 +33,14 @@ func DependencyInjection(router *gin.Engine, cfg *config.Config,log logger.Logge
 		[]byte(cfg.Kafka.AccessCert),
 		[]byte(cfg.Kafka.AccessKey),
 	)
-	
+
 	AwsS3Client, err := awss3.NewS3Client(cfg.Aws.AwsAccessKey, cfg.Aws.AwsSecretAccessKey, cfg.Aws.AwsRegion)
 	if err != nil {
-		return  fmt.Errorf("failed to initialize s3 client: %w", err)
+		return fmt.Errorf("failed to initialize s3 client: %w", err)
 	}
 	ChatRepository := repository.NewChatRepository(mongoClient.Client())
-	ChatUsecase := usecase.NewChatUsecase(ChatRepository, authClient, AwsS3Client, cfg.Aws.AwsBucket,cfg)
-	ChatHandler := handler.NewChatHandler(ChatUsecase, kafkaProducer, cfg,log)
+	ChatUsecase := usecase.NewChatUsecase(ChatRepository, authClient, AwsS3Client, cfg.Aws.AwsBucket, cfg)
+	ChatHandler := handler.NewChatHandler(ChatUsecase, authClient, kafkaProducer, cfg, log)
 	routes.ChatServiceRoutes(router, ChatHandler)
 	return nil
 }

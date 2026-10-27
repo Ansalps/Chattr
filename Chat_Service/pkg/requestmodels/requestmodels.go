@@ -41,38 +41,40 @@ type RemoveMemberRequest struct {
 // }
 
 type MessageRequest struct {
-	SenderID    uint64    `json:"sender_id"`
-	RecipientID uint64    `json:"recipient_id,omitempty"`
-	Content     string    `json:"content" `
-	CreatedAt   time.Time `json:"created_at"`
-	Type        string    `json:"type" validate:"required"`
+	SenderID            uint64    `json:"sender_id"`
+	RecipientID         uint64    `json:"recipient_id,omitempty"`
+	Content             string    `json:"content" `
+	CreatedAt           time.Time `json:"created_at"`
+	Type                string    `json:"type" validate:"required"`
+	SenderName          string    `json:"sender_name,omitempty"`
+	SenderProfileImgUrl string    `json:"sender_profile,omitempty"`
 	//Status      string    `json:"Status"`
 	GroupID string `json:"group_id,omitempty"`
 	//TypingStat  bool
 }
 
-type GetGroupMembersRequest struct{
+type GetGroupMembersRequest struct {
 	GroupID string
-	UserID uint64
-	Limit int
-	Offset int
+	UserID  uint64
+	Limit   int
+	Offset  int
 }
-type RecentChatProfilesRequest struct{
+type RecentChatProfilesRequest struct {
 	UserID uint64
-	Limit int
+	Limit  int
 	Offset int
 }
 
-type GetChatRequest struct{
+type GetChatRequest struct {
 	ConvID string
 	UserID uint64
-	Limit int
+	Limit  int
 	Offset int
 }
 
-type GroupProfileImageRequest struct{
-	UserID uint64
-	GroupID string
-    ContentType string `json:"content_type" binding:"required"`
-    Image       []byte	`json:"image" binding:"required"`
+type GroupProfileImageRequest struct {
+	UserID      uint64
+	GroupID     string
+	ContentType string `json:"content_type" binding:"required"`
+	Image       []byte `json:"image" binding:"required"`
 }
