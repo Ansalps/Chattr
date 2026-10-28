@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { ChatSession, ChatUserProfile } from '../../shared/types';
 import { formatMessageTimestamp } from '../../shared/utils/formatting';
 
@@ -58,6 +58,27 @@ const getInitials = (value: string) =>
     .join('')
     .toUpperCase() || 'A';
 
+type AvatarImageProps = {
+  src?: string;
+  name: string;
+  className: string;
+  fallbackClassName: string;
+};
+
+function AvatarImage({ src, name, className, fallbackClassName }: AvatarImageProps) {
+  const [hasImageError, setHasImageError] = useState(false);
+
+  if (!src || hasImageError) {
+    return (
+      <div className={fallbackClassName}>
+        {getInitials(name)}
+      </div>
+    );
+  }
+
+  return <img src={src} alt={name} onError={() => setHasImageError(true)} className={className} />;
+}
+
 export function ChatPanel({
   isChatOpen,
   chatSearch,
@@ -96,6 +117,7 @@ export function ChatPanel({
   handleCreateGroup,
   onCloseChat,
 }: ChatPanelProps) {
+    console.log(`chatSearch: ${chatSearch} chatsearchResults: ${chatSearchResults}`)
   if (!isChatOpen) {
     return null;
   }
@@ -135,13 +157,12 @@ export function ChatPanel({
                 }}
                 className="flex items-center gap-3 text-left"
               >
-                {chatSelectedUser.profileImageUrl ? (
-                  <img src={chatSelectedUser.profileImageUrl} alt={chatSelectedUser.name} className="h-9 w-9 rounded-full border border-white/60 object-cover" />
-                ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/60 bg-white/15 text-xs font-bold">
-                    {getInitials(chatSelectedUser.name)}
-                  </div>
-                )}
+                <AvatarImage
+                  src={chatSelectedUser.profileImageUrl}
+                  name={chatSelectedUser.name}
+                  className="h-9 w-9 rounded-full border border-white/60 object-cover"
+                  fallbackClassName="flex h-9 w-9 items-center justify-center rounded-full border border-white/60 bg-white/15 text-xs font-bold"
+                />
                 <div>
                   <p className="text-sm font-bold">{chatSelectedUser.name}</p>
                   <p className="text-[10px] text-sky-100">{chatSelectedUser.username}</p>
@@ -149,13 +170,12 @@ export function ChatPanel({
               </button>
             ) : (
               <>
-                {chatSelectedUser.profileImageUrl ? (
-                  <img src={chatSelectedUser.profileImageUrl} alt={chatSelectedUser.name} className="h-9 w-9 rounded-full border border-white/60 object-cover" />
-                ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/60 bg-white/15 text-xs font-bold">
-                    {getInitials(chatSelectedUser.name)}
-                  </div>
-                )}
+                <AvatarImage
+                  src={chatSelectedUser.profileImageUrl}
+                  name={chatSelectedUser.name}
+                  className="h-9 w-9 rounded-full border border-white/60 object-cover"
+                  fallbackClassName="flex h-9 w-9 items-center justify-center rounded-full border border-white/60 bg-white/15 text-xs font-bold"
+                />
                 <div>
                   <p className="text-sm font-bold">{chatSelectedUser.name}</p>
                   <p className="text-[10px] text-sky-100">{chatSelectedUser.username}</p>
@@ -266,13 +286,12 @@ export function ChatPanel({
                       onClick={() => void openChatSession(session)}
                       className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-slate-100 transition hover:bg-slate-50"
                     >
-                      {session.profileImageUrl ? (
-                        <img src={session.profileImageUrl} alt={session.name} className="h-12 w-12 rounded-full object-cover" />
-                      ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-sm font-bold text-white">
-                          {getInitials(session.name)}
-                        </div>
-                      )}
+                      <AvatarImage
+                        src={session.profileImageUrl}
+                        name={session.name}
+                        className="h-12 w-12 rounded-full object-cover"
+                        fallbackClassName="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-sm font-bold text-white"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="mb-1 flex items-center justify-between gap-2">
                           <p className="truncate text-sm font-semibold text-slate-800">{session.name}</p>
@@ -359,13 +378,12 @@ export function ChatPanel({
           <div className="w-full max-w-md rounded-3xl bg-white p-4 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                {chatSelectedUser.profileImageUrl ? (
-                  <img src={chatSelectedUser.profileImageUrl} alt={chatSelectedUser.name} className="h-11 w-11 rounded-full object-cover" />
-                ) : (
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-sm font-bold text-white">
-                    {getInitials(chatSelectedUser.name)}
-                  </div>
-                )}
+                <AvatarImage
+                  src={chatSelectedUser.profileImageUrl}
+                  name={chatSelectedUser.name}
+                  className="h-11 w-11 rounded-full object-cover"
+                  fallbackClassName="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-sm font-bold text-white"
+                />
                 <div>
                   <p className="text-sm font-semibold text-slate-800">{chatSelectedUser.name}</p>
                   <p className="text-xs text-slate-500">{chatSelectedUser.username}</p>

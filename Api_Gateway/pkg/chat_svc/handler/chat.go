@@ -480,6 +480,83 @@ func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
 	c.Data(resp.StatusCode, "application/json", body)
 }
 
+func normalizeRecentChatProfilesBody(body []byte) []byte {
+	if len(body) == 0 {
+		return body
+	}
+
+	var decoded any
+	if err := json.Unmarshal(body, &decoded); err != nil {
+		return body
+	}
+
+	var normalize func(any)
+	normalize = func(value any) {
+		switch typed := value.(type) {
+		case map[string]any:
+			for key, nested := range typed {
+				normalize(nested)
+				if key == "data" || key == "response" {
+					normalize(nested)
+				}
+			}
+
+			if profiles, ok := typed["ChatProfiles"]; ok {
+				typed["chat_profiles"] = profiles
+			}
+			if profiles, ok := typed["chatProfiles"]; ok {
+				typed["chat_profiles"] = profiles
+			}
+			if profiles, ok := typed["chat_profiles"]; ok {
+				switch items := profiles.(type) {
+				case []any:
+					for _, item := range items {
+						if profile, ok := item.(map[string]any); ok {
+							if _, exists := profile["chat_image"]; !exists {
+								for _, altKey := range []string{"ChatImage", "chatImage", "group_image_url", "GroupImageURL", "groupImageUrl", "groupimageurl", "profile_image_url", "ProfileImgUrl"} {
+									if value, ok := profile[altKey]; ok {
+										profile["chat_image"] = value
+										break
+									}
+								}
+							}
+							if _, exists := profile["chat_name"]; !exists {
+								for _, altKey := range []string{"ChatName", "chatName", "name", "Name"} {
+									if value, ok := profile[altKey]; ok {
+										profile["chat_name"] = value
+										break
+									}
+								}
+							}
+							if _, exists := profile["group_id"]; !exists {
+								for _, altKey := range []string{"GroupID", "groupId", "group_id", "conversation_id"} {
+									if value, ok := profile[altKey]; ok {
+										profile["group_id"] = value
+										break
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		case []any:
+			for _, item := range typed {
+				normalize(item)
+			}
+		}
+	}
+
+	normalize(decoded)
+
+	normalizedBody, err := json.Marshal(decoded)
+	if err != nil {
+		return body
+	}
+
+	return normalizedBody
+}
+
 func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
 
 	cfg, err := loadConfig()
@@ -529,7 +606,7 @@ func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
 		httpReq.Header.Set("X-Request-ID", requestID)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
-	
+
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(httpReq)
 
@@ -545,13 +622,11 @@ func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
 	if err != nil {
 		fmt.Println("error rrrrrr", err)
 	}
-	// Option 1: Using fmt.Println
-	fmt.Println("API Response JSON:", string(body))
 
-	// Option 2: Using your log package (more consistent with your other logs)
-	//log.Printf("API Response JSON: %s", string(body))
+	normalizedBody := normalizeRecentChatProfilesBody(body)
+	fmt.Println("API Response JSON:", string(normalizedBody))
 
-	c.Data(resp.StatusCode, "application/json", body)
+	c.Data(resp.StatusCode, "application/json", normalizedBody)
 }
 
 func (as *ChatHandler) GetChat(c *gin.Context) {

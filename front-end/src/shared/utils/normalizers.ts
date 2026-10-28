@@ -27,6 +27,7 @@ export const readStoredProfile = () => {
       profileImageUrl: typeof parsed.profileImageUrl === 'string' ? parsed.profileImageUrl : '',
     };
   } catch (error) {
+    console.error(error)
     return { id: '', name: '', username: '', profileImageUrl: '' };
   }
 };

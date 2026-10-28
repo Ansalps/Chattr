@@ -73,8 +73,8 @@ type GetChatRequest struct {
 }
 
 type GroupProfileImageRequest struct {
-	UserID      uint64
-	GroupID     string
+	UserID      uint64 `json:"user_id" binding:"required"`
+	GroupID     string `json:"group_id" binding:"required"`
 	ContentType string `json:"content_type" binding:"required"`
 	Image       []byte `json:"image" binding:"required"`
 }

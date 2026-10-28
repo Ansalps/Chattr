@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { FloatingChatWidget } from './features/chat/FloatingChatWidget';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLogin from './pages/AdminLogin';
 import LandingPage from './pages/LandingPage';
@@ -12,6 +13,7 @@ import EditProfilePage from './pages/EditProfilePage';
 function App() {
   return (
     <Router>
+      <FloatingChatWidget />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<UserLogin />} />

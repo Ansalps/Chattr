@@ -1,7 +1,74 @@
 import { normalizeUsername } from '../../shared/utils/formatting';
 import type { ChatSession, ChatUserProfile } from '../../shared/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+export type SearchUserResult = {
+  id: string;
+  name: string;
+  username: string;
+  profileImageUrl: string;
+};
+
+export async function searchUsersByUsername(username: string): Promise<SearchUserResult[]> {
+  const trimmed = username.trim();
+  if (!trimmed) return [];
+
+  const response = await fetch(`${API_BASE_URL}/user/search?username=${encodeURIComponent(trimmed)}&limit=5&offset=0`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok || (payload && typeof payload === 'object' && 'status_code' in payload && Number((payload as Record<string, unknown>).status_code) >= 400)) {
+    throw new Error((payload as Record<string, unknown>).message ? String((payload as Record<string, unknown>).message) : 'Unable to search users.');
+  }
+
+  const dataPayload =
+    (payload && typeof payload === 'object' && 'data' in payload ? (payload as Record<string, unknown>).data : undefined) ||
+    (payload && typeof payload === 'object' && 'response' in payload ? (payload as Record<string, unknown>).response : undefined) ||
+    payload;
+
+  const userList: unknown[] =
+    Array.isArray((dataPayload as Record<string, unknown>)?.UserMeataData)
+      ? ((dataPayload as Record<string, unknown>).UserMeataData as unknown[])
+      : Array.isArray((dataPayload as Record<string, unknown>)?.userMeataData)
+        ? ((dataPayload as Record<string, unknown>).userMeataData as unknown[])
+        : Array.isArray((dataPayload as Record<string, unknown>)?.data)
+          ? ((dataPayload as Record<string, unknown>).data as unknown[])
+          : Array.isArray((dataPayload as Record<string, unknown>)?.Data)
+            ? ((dataPayload as Record<string, unknown>).Data as unknown[])
+            : [];
+
+  return userList
+    .map((user) => {
+      const source = (user ?? {}) as Record<string, unknown>;
+      const userId = String(
+        source.UserId ?? source.userId ?? source.user_id ?? source.UserID ?? source.userID ?? '',
+      );
+      const name = String(
+        source.Name ?? source.name ?? source.FullName ?? source.full_name ?? source.UserName ?? source.userName ?? 'User',
+      );
+      const username = String(source.UserName ?? source.userName ?? source.username ?? '@user');
+      const profileImageUrl =
+        (typeof source.ProfileImgUrl === 'string' && source.ProfileImgUrl) ||
+        (typeof source.profile_image_url === 'string' && source.profile_image_url) ||
+        (typeof source.profileImageUrl === 'string' && source.profileImageUrl) ||
+        '';
+
+      if (!userId && !name && !username) return null;
+
+      return {
+        id: userId || name || username,
+        name,
+        username: normalizeUsername(username),
+        profileImageUrl,
+      };
+    })
+    .filter(Boolean) as SearchUserResult[];
+}
 
 export type ChatMessage = {
   id: string;
@@ -13,12 +80,7 @@ export type ChatMessage = {
   mine: boolean;
 };
 
-export type SearchUserResult = {
-  id: string;
-  name: string;
-  username: string;
-  profileImageUrl: string;
-};
+
 
 export async function searchUsersForSelection(query: string, currentUserId: string): Promise<SearchUserResult[]> {
   const results = await searchUsersByUsername(query);
@@ -122,157 +184,69 @@ export function connectChatSocket({
   return socket;
 }
 
+// 1. Define the shape of a single item coming from the API
+export type ChatProfileResponse = {
+  chat_id: string;
+  chat_image?: string;
+  chat_name: string;
+  group_id?: string;
+  is_group: boolean;
+  last_message: string;
+  last_message_time: string;
+};
+
+// 2. Define the overall API response wrapper
+export type RecentChatsPayload = {
+  chat_profiles: ChatProfileResponse[];
+  pagination: {
+    current_page: number;
+    page_size: number;
+  };
+};
+
 export async function fetchRecentChatProfiles(): Promise<ChatSession[]> {
   const response = await fetch(`${API_BASE_URL}/user/get-recent-chat-profiles?page=1&limit=20`, {
     method: 'GET',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
   });
-
+ 
   if (!response.ok) {
     throw new Error('Unable to load recent chats.');
   }
 
-  const payload = await response.json().catch(() => ({}));
-  const data =
-    (payload && typeof payload === 'object' && 'data' in payload ? (payload as Record<string, unknown>).data : undefined) ||
-    (payload && typeof payload === 'object' && 'response' in payload ? (payload as Record<string, unknown>).response : undefined) ||
-    payload;
+  // Type the parsed JSON payload safely
+  const payload: RecentChatsPayload = await response.json().catch(() => ({ chat_profiles: [] }));
 
-  const chatProfiles = Array.isArray((data as Record<string, unknown>)?.ChatProfiles)
-    ? ((data as Record<string, unknown>).ChatProfiles as unknown[])
-    : Array.isArray((data as Record<string, unknown>)?.chatProfiles)
-      ? ((data as Record<string, unknown>).chatProfiles as unknown[])
-      : Array.isArray((data as Record<string, unknown>)?.data)
-        ? ((data as Record<string, unknown>).data as unknown[])
-        : [];
+  const chatProfiles = Array.isArray(payload?.chat_profiles) ? payload.chat_profiles : [];
 
-  return chatProfiles
-    .map((conversation) => {
-      const source = (conversation ?? {}) as Record<string, unknown>;
-      const conversationId = String(
-        source.chat_id ?? source.ChatID ?? source.chatId ?? source.ConversationID ?? source.conversation_id ?? '',
-      );
+  return chatProfiles.map((source) => {
+    // TypeScript now knows `source` is of type `ChatProfileResponse`!
+    const conversationId = source.chat_id;
+    const name = source.chat_name;
+    const username = normalizeUsername(name);
+    const profileImageUrl = source.chat_image ?? '';
+    const lastMessage = source.last_message;
+    const lastMessageTime = source.last_message_time;
+    const isGroup = source.is_group;
+    const groupId = source.group_id ?? '';
 
-      const rawUsername =
-        (typeof source.user_name === 'string' && source.user_name) ||
-        (typeof source.UserName === 'string' && source.UserName) ||
-        (typeof source.userName === 'string' && source.userName) ||
-        (typeof source.username === 'string' && source.username) ||
-        (typeof source.Username === 'string' && source.Username) ||
-        (typeof source.chat_name === 'string' && source.chat_name) ||
-        (typeof source.ChatName === 'string' && source.ChatName) ||
-        (typeof source.chatName === 'string' && source.chatName) ||
-        (typeof source.name === 'string' && source.name) ||
-        (typeof source.Name === 'string' && source.Name) ||
-        '@user';
-
-      const name = String(
-        (typeof source.name === 'string' && source.name) ||
-          (typeof source.Name === 'string' && source.Name) ||
-          (typeof source.chat_name === 'string' && source.chat_name) ||
-          (typeof source.ChatName === 'string' && source.ChatName) ||
-          (typeof source.chatName === 'string' && source.chatName) ||
-          rawUsername.replace(/^@/, '') ||
-          'User',
-      );
-      const username = normalizeUsername(String(rawUsername));
-      const profileImageUrl =
-        (typeof source.chat_image === 'string' && source.chat_image) ||
-        (typeof source.ChatImage === 'string' && source.ChatImage) ||
-        (typeof source.chatImage === 'string' && source.chatImage) ||
-        (typeof source.group_image_url === 'string' && source.group_image_url) ||
-        (typeof source.groupImageUrl === 'string' && source.groupImageUrl) ||
-        (typeof source.groupimageurl === 'string' && source.groupimageurl) ||
-        (typeof source.GroupImageURL === 'string' && source.GroupImageURL) ||
-        (typeof source.profile_image_url === 'string' && source.profile_image_url) ||
-        (typeof source.ProfileImgUrl === 'string' && source.ProfileImgUrl) ||
-        '';
-      const lastMessage = String(source.last_message ?? source.LastMessage ?? '');
-      const lastMessageTime = String(
-        source.last_message_time ?? source.LastMessageTime ?? source.lastMessageTime ?? new Date().toISOString(),
-      );
-      const isGroup = Boolean(
-        source.is_group || source.IsGroup || source.isGroup || source.type === 'group' || source.Type === 'group',
-      );
-      const groupId = String(source.group_id ?? source.GroupID ?? source.groupId ?? '');
-
-      if (!conversationId && !name) return null;
-
-      return {
-        id: String(source.user_id ?? source.UserID ?? source.userId ?? source.UserId ?? name ?? conversationId),
-        conversationId,
-        name,
-        username,
-        profileImageUrl,
-        lastMessage,
-        lastMessageTime,
-        isGroup,
-        groupId,
-      };
-    })
-    .filter(Boolean) as ChatSession[];
-}
-
-export async function searchUsersByUsername(username: string): Promise<SearchUserResult[]> {
-  const trimmed = username.trim();
-  if (!trimmed) return [];
-
-  const response = await fetch(`${API_BASE_URL}/user/search?username=${encodeURIComponent(trimmed)}&limit=5&offset=0`, {
-    method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    
+    return {
+      id: conversationId, // Every chat has a unique chat_id / conversationId
+      conversationId,
+      name,
+      username,
+      profileImageUrl,
+      lastMessage,
+      lastMessageTime,
+      isGroup,
+      groupId,
+    };
   });
-
-  const payload = await response.json().catch(() => ({}));
-
-  if (!response.ok || (payload && typeof payload === 'object' && 'status_code' in payload && Number((payload as Record<string, unknown>).status_code) >= 400)) {
-    throw new Error((payload as Record<string, unknown>).message ? String((payload as Record<string, unknown>).message) : 'Unable to search users.');
-  }
-
-  const dataPayload =
-    (payload && typeof payload === 'object' && 'data' in payload ? (payload as Record<string, unknown>).data : undefined) ||
-    (payload && typeof payload === 'object' && 'response' in payload ? (payload as Record<string, unknown>).response : undefined) ||
-    payload;
-
-  const userList: unknown[] =
-    Array.isArray((dataPayload as Record<string, unknown>)?.UserMeataData)
-      ? ((dataPayload as Record<string, unknown>).UserMeataData as unknown[])
-      : Array.isArray((dataPayload as Record<string, unknown>)?.userMeataData)
-        ? ((dataPayload as Record<string, unknown>).userMeataData as unknown[])
-        : Array.isArray((dataPayload as Record<string, unknown>)?.data)
-          ? ((dataPayload as Record<string, unknown>).data as unknown[])
-          : Array.isArray((dataPayload as Record<string, unknown>)?.Data)
-            ? ((dataPayload as Record<string, unknown>).Data as unknown[])
-            : [];
-
-  return userList
-    .map((user) => {
-      const source = (user ?? {}) as Record<string, unknown>;
-      const userId = String(
-        source.UserId ?? source.userId ?? source.user_id ?? source.UserID ?? source.userID ?? '',
-      );
-      const name = String(
-        source.Name ?? source.name ?? source.FullName ?? source.full_name ?? source.UserName ?? source.userName ?? 'User',
-      );
-      const username = String(source.UserName ?? source.userName ?? source.username ?? '@user');
-      const profileImageUrl =
-        (typeof source.ProfileImgUrl === 'string' && source.ProfileImgUrl) ||
-        (typeof source.profile_image_url === 'string' && source.profile_image_url) ||
-        (typeof source.profileImageUrl === 'string' && source.profileImageUrl) ||
-        '';
-
-      if (!userId && !name && !username) return null;
-
-      return {
-        id: userId || name || username,
-        name,
-        username: normalizeUsername(username),
-        profileImageUrl,
-      };
-    })
-    .filter(Boolean) as SearchUserResult[];
 }
+
+
 
 export async function fetchChatHistory(conversationId: string, currentUserId: string): Promise<ChatMessage[]> {
   const response = await fetch(`${API_BASE_URL}/user/chat/${encodeURIComponent(conversationId)}?page=1&limit=50`, {

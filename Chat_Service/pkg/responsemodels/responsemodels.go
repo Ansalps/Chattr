@@ -44,8 +44,8 @@ type ChatProfileResponse struct {
 }
 
 type ChatProfileFinalResponse struct {
-	ChatProfiles []ChatProfileResponse
-	Pagination   PaginationDetails
+	ChatProfiles []ChatProfileResponse `json:"chat_profiles"`
+	Pagination   PaginationDetails     `json:"pagination"`
 }
 
 type MessageResponse struct {

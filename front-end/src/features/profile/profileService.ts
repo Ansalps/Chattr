@@ -51,6 +51,105 @@ export type ProfilePageData = {
   isFollowing: boolean;
 };
 
+export type SocialConnectionUser = {
+  id: string;
+  name: string;
+  username: string;
+  profileImageUrl?: string;
+};
+
+const getNestedUserList = (value: unknown): unknown[] => {
+  if (Array.isArray(value)) {
+    return value as unknown[];
+  }
+
+  if (!value || typeof value !== 'object') {
+    return [];
+  }
+
+  const source = value as Record<string, unknown>;
+  const keys = [
+    'UserMetaData',
+    'userMetaData',
+    'UserMeataData',
+    'userMeataData',
+    'users',
+    'Users',
+    'followers',
+    'following',
+    'data',
+    'response',
+    'reponse',
+  ];
+
+  for (const key of keys) {
+    const candidate = source[key];
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+
+    if (candidate && typeof candidate === 'object') {
+      const nested = getNestedUserList(candidate);
+      if (nested.length > 0) {
+        return nested;
+      }
+    }
+  }
+
+  return [];
+};
+
+const normalizeSocialConnectionUser = (value: unknown): SocialConnectionUser | null => {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const source = value as Record<string, unknown>;
+  const id = String(
+    source.UserID ??
+      source.userID ??
+      source.user_id ??
+      source.UserId ??
+      source.id ??
+      source.User ??
+      '',
+  );
+  const username = normalizeUsername(
+    String(
+      source.UserName ??
+        source.userName ??
+        source.username ??
+        source.user_name ??
+        source.Username ??
+        source.User ??
+        '@user',
+    ),
+  );
+  const name = String(
+    source.Name ??
+      source.name ??
+      source.FullName ??
+      source.full_name ??
+      (username && username !== '@user' ? username.replace(/^@/, '') : 'User'),
+  );
+  const profileImageUrl =
+    (typeof source.ProfileImgUrl === 'string' && source.ProfileImgUrl) ||
+    (typeof source.profile_image_url === 'string' && source.profile_image_url) ||
+    (typeof source.profileImageUrl === 'string' && source.profileImageUrl) ||
+    '';
+
+  if (!id && !name && !username) {
+    return null;
+  }
+
+  return {
+    id: id || name || username,
+    name: name || username.replace(/^@/, '') || 'User',
+    username: username || '@user',
+    profileImageUrl: profileImageUrl || undefined,
+  };
+};
+
 const normalizeProfilePosts = (value: unknown): ProfilePost[] => {
   const items = Array.isArray(value)
     ? value
@@ -186,6 +285,54 @@ export async function fetchCurrentUserProfile() {
   );
 
   return nextProfile;
+}
+
+export async function fetchFollowersList(targetUserId?: string): Promise<SocialConnectionUser[]> {
+  const userId = targetUserId && targetUserId !== 'me' ? targetUserId : undefined;
+  const endpoint = userId
+    ? `${API_BASE_URL}/user/${encodeURIComponent(userId)}/relation/followers?limit=50&offset=0`
+    : `${API_BASE_URL}/user/relation/followers?limit=50&offset=0`;
+
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok || (payload && typeof payload === 'object' && 'status_code' in payload && Number((payload as Record<string, unknown>).status_code) >= 400)) {
+    throw new Error((payload as Record<string, unknown>).message ? String((payload as Record<string, unknown>).message) : 'Unable to load followers.');
+  }
+
+  const followerList = getNestedUserList(payload);
+  return followerList
+    .map((entry) => normalizeSocialConnectionUser(entry))
+    .filter((entry): entry is SocialConnectionUser => Boolean(entry));
+}
+
+export async function fetchFollowingList(targetUserId?: string): Promise<SocialConnectionUser[]> {
+  const userId = targetUserId && targetUserId !== 'me' ? targetUserId : undefined;
+  const endpoint = userId
+    ? `${API_BASE_URL}/user/${encodeURIComponent(userId)}/relation/following?limit=50&offset=0`
+    : `${API_BASE_URL}/user/relation/following?limit=50&offset=0`;
+
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok || (payload && typeof payload === 'object' && 'status_code' in payload && Number((payload as Record<string, unknown>).status_code) >= 400)) {
+    throw new Error((payload as Record<string, unknown>).message ? String((payload as Record<string, unknown>).message) : 'Unable to load following.');
+  }
+
+  const followingList = getNestedUserList(payload);
+  return followingList
+    .map((entry) => normalizeSocialConnectionUser(entry))
+    .filter((entry): entry is SocialConnectionUser => Boolean(entry));
 }
 
 export async function logoutCurrentUser(): Promise<void> {

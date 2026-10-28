@@ -1,5 +1,5 @@
 import type { FeedComment, FeedPost } from '../../shared/types';
-import { normalizeFeedPosts } from '../../shared/utils/normalizers';
+import { getPostIdFromResponse, normalizeFeedPosts } from '../../shared/utils/normalizers';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -251,8 +251,13 @@ export async function createPostWithMedia(
     throw new Error((payload as Record<string, unknown>).message ? String((payload as Record<string, unknown>).message) : 'Unable to create your post.');
   }
 
+  const createdPostId = getPostIdFromResponse(payload);
+  if (!createdPostId) {
+    throw new Error('The server did not return a valid post id.');
+  }
+
   return {
-    id: String((payload as Record<string, unknown>).id ?? `local-${Date.now()}`),
+    id: createdPostId,
     author: authorInfo?.author || 'You',
     handle: authorInfo?.handle || '@you',
     time: 'just now',

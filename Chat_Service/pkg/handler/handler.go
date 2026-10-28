@@ -592,7 +592,6 @@ func (as *ChatHandler) AddMembers(c *gin.Context) {
 	resp, err := as.ChatUsecase.AddMembers(req)
 	if err != nil {
 
-		
 		utils.MapDomainError(c, log, err)
 		return
 	}
@@ -647,7 +646,7 @@ func (as *ChatHandler) RemoveMember(c *gin.Context) {
 
 	resp, err := as.ChatUsecase.RemoveMember(req)
 	if err != nil {
-		
+
 		utils.MapDomainError(c, log, err)
 		return
 	}
@@ -910,9 +909,10 @@ func (as *ChatHandler) SetGroupProfileImage(c *gin.Context) {
 	var req requestmodels.GroupProfileImageRequest
 	req.UserID = userID
 	req.GroupID = groupIdStr
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		log.Warn("error binding request:",
 			logger.Field{Key: "error", Value: err})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group profile image payload"})
 		return
 	}
 	resp, err := as.ChatUsecase.SetGroupProfileImage(req)
@@ -921,7 +921,11 @@ func (as *ChatHandler) SetGroupProfileImage(c *gin.Context) {
 		utils.MapDomainError(c, log, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"group_profile_image_url": resp})
+	c.JSON(http.StatusOK, gin.H{
+		"group_profile_image_url": resp,
+		"groupProfileImageUrl":    resp,
+		"image_url":               resp,
+	})
 }
 
 func (as *ChatHandler) PanicInChat(c *gin.Context) {

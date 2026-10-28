@@ -167,9 +167,17 @@ export async function updateGroupProfileImage(groupId: string, file: File): Prom
   const serverImageUrl =
     (typeof rawPayload.group_profile_image_url === 'string' && rawPayload.group_profile_image_url) ||
     (typeof rawPayload.groupProfileImageUrl === 'string' && rawPayload.groupProfileImageUrl) ||
+    (typeof rawPayload.image_url === 'string' && rawPayload.image_url) ||
+    (typeof rawPayload.ImageURL === 'string' && rawPayload.ImageURL) ||
     (typeof data?.group_profile_image_url === 'string' && data.group_profile_image_url) ||
     (typeof data?.groupProfileImageUrl === 'string' && data.groupProfileImageUrl) ||
+    (typeof data?.image_url === 'string' && data.image_url) ||
+    (typeof data?.ImageURL === 'string' && data.ImageURL) ||
     '';
 
-  return typeof serverImageUrl === 'string' && serverImageUrl.trim() ? serverImageUrl : URL.createObjectURL(file);
+  if (!serverImageUrl.trim()) {
+    throw new Error('The server did not return a valid group profile image URL.');
+  }
+
+  return serverImageUrl;
 }
