@@ -89,6 +89,7 @@ export async function searchUsersForSelection(query: string, currentUserId: stri
 
 export type BuildChatMessageInput = {
   id: string;
+  recipientId?: string;
   conversationId?: string;
   groupId?: string;
   isGroup?: boolean;
@@ -109,7 +110,7 @@ export function buildChatMessagePayload(
       }
     : {
         type: 'individual',
-        recipient_id: Number(chatUser.id),
+        recipient_id: Number(chatUser.recipientId ?? chatUser.id),
         content,
         created_at: new Date().toISOString(),
       };
@@ -187,6 +188,7 @@ export function connectChatSocket({
 // 1. Define the shape of a single item coming from the API
 export type ChatProfileResponse = {
   chat_id: string;
+  recipient_id?: string | number;
   chat_image?: string;
   chat_name: string;
   group_id?: string;
@@ -235,6 +237,7 @@ export async function fetchRecentChatProfiles(): Promise<ChatSession[]> {
     return {
       id: conversationId, // Every chat has a unique chat_id / conversationId
       conversationId,
+      recipientId: source.recipient_id === undefined ? undefined : String(source.recipient_id),
       name,
       username,
       profileImageUrl,

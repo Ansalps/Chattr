@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -29,7 +30,7 @@ func StartNotificationConsumer(brokerStr string, topic string, hub *websockethub
 	cert, err := tls.X509KeyPair(accessCert, accessKey)
 	if err != nil {
 		log.Fatal("failed to load client cert/key",
-		logger.Field{Key: "error", Value: err})
+			logger.Field{Key: "error", Value: err})
 	}
 
 	caCertPool := x509.NewCertPool()
@@ -51,13 +52,13 @@ func StartNotificationConsumer(brokerStr string, topic string, hub *websockethub
 		Brokers:  strings.Split(brokerStr, ","),
 		Topic:    topic,
 		GroupID:  "notification-group", // This ensures we don't miss messages
-		Dialer:   dialer, // Crucial: Tell the reader to use TLS
+		Dialer:   dialer,               // Crucial: Tell the reader to use TLS
 		MinBytes: 10e3,                 // 10KB
 		MaxBytes: 10e6,                 // 10MB
 	})
 
 	log.Info("Listening for Kafka messages on topic: ",
-		logger.Field{Key: "topic", Value: "topic"})
+		logger.Field{Key: "topic", Value: topic})
 
 	for {
 		// 2. Block until a message arrives
@@ -79,7 +80,7 @@ func StartNotificationConsumer(brokerStr string, topic string, hub *websockethub
 				logger.Field{Key: "error", Value: err})
 			continue
 		}
-
+		fmt.Println("base.Type", base.Type)
 		switch base.Type {
 		case "USER_FOLLOW":
 			var event requestmodels.UserEvent

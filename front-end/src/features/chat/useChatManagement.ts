@@ -243,6 +243,12 @@ export function useChatManagement({
       return;
     }
 
+    const recipientId = Number(chatSelectedUser.recipientId ?? chatSelectedUser.id);
+    if (!chatSelectedUser.isGroup && (!Number.isSafeInteger(recipientId) || recipientId <= 0)) {
+      setChatError('This chat is missing a valid recipient. Please reopen the chat and try again.');
+      return;
+    }
+
     if (!chatSocket || chatSocket.readyState !== WebSocket.OPEN) {
       setChatError('Chat is not connected yet. Please try again.');
       return;

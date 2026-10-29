@@ -55,28 +55,59 @@ func NewKafkaProducer(brokers []string, caCert, accessCert, accessKey []byte) in
         log.Fatalf("❌ Failed to read cluster partitions: %v", err)
     }
 
-    topicExists := false
-    for _, p := range partitions {
-        if p.Topic == "post-events" {
-            topicExists = true
-            break
-        }
+    // Collect existing topic names.
+    existingTopics := make(map[string]bool)
+    for _, partition := range partitions {
+        existingTopics[partition.Topic] = true
     }
 
-	if !topicExists {
-        log.Println("⚠️ Topic 'post-events' not found. Attempting to create it...")
-        err = metaConn.CreateTopics(kafka.TopicConfig{
-            Topic:             "post-events",
+    // Topics required by the service.
+    requiredTopics := []string{
+        "post-events",
+        "user-events",
+    }
+    // topicExists := false
+    // for _, p := range partitions {
+    //     if p.Topic == "post-events" {
+    //         topicExists = true
+    //         break
+    //     }
+    // }
+
+    // Create any missing topics.
+    for _, topic := range requiredTopics {
+        if existingTopics[topic] {
+            log.Printf("KAFKA: Topic '%s' exists and is reachable", topic)
+            continue
+        }
+
+        log.Printf("KAFKA: Topic '%s' not found. Attempting to create it...", topic)
+
+        err := metaConn.CreateTopics(kafka.TopicConfig{
+            Topic:             topic,
             NumPartitions:     1,
             ReplicationFactor: 1,
         })
         if err != nil {
-            log.Fatalf("❌ Failed to create topic 'post-events': %v", err)
+            log.Fatalf("KAFKA: Failed to create topic '%s': %v", topic, err)
         }
-        log.Println("✅ Successfully created topic 'post-events'")
-    } else {
-        log.Println("✅ Topic 'post-events' exists and is reachable")
+
+        log.Printf("KAFKA: Successfully created topic '%s'", topic)
     }
+	// if !topicExists {
+    //     log.Println("⚠️ Topic 'post-events' not found. Attempting to create it...")
+    //     err = metaConn.CreateTopics(kafka.TopicConfig{
+    //         Topic:             "post-events",
+    //         NumPartitions:     1,
+    //         ReplicationFactor: 1,
+    //     })
+    //     if err != nil {
+    //         log.Fatalf("❌ Failed to create topic 'post-events': %v", err)
+    //     }
+    //     log.Println("✅ Successfully created topic 'post-events'")
+    // } else {
+    //     log.Println("✅ Topic 'post-events' exists and is reachable")
+    // }
 
 	// 3. Initialize a persistent kafka.Writer (Best Practice)
     writer := &kafka.Writer{

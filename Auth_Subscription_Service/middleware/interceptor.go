@@ -64,7 +64,6 @@ func LoggerInterceptor(baseLogger logger.Logger) grpc.UnaryServerInterceptor {
 
 			switch {
 			case errors.Is(err,domain.ErrNoSubscription):
-				fmt.Println("11111111111")
 				return nil,nil
 			case errors.Is(err, domain.ErrInternal):
 				return nil, status.Error(codes.Internal, domain.ErrInternal.Error())

@@ -34,6 +34,7 @@ export type ChatUserProfile = {
 
 export type ChatSession = ChatUserProfile & {
   conversationId: string;
+  recipientId?: string;
   lastMessage: string;
   lastMessageTime: string;
   isGroup?: boolean;

@@ -85,12 +85,10 @@ var upgrader = websocket.Upgrader{
 }
 
 func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
-	fmt.Println("1111")
 	requestID := c.GetHeader("X-Request-ID")
 	log := as.Log.With(
 		logger.Field{Key: "request_id", Value: requestID},
 	)
-	fmt.Println("2222222")
 	// 1️⃣ Read trusted headers from API Gateway
 	userIdStr := c.GetHeader("X-User-ID")
 	if userIdStr == "" {
@@ -100,7 +98,6 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 		})
 		return
 	}
-	fmt.Println("2222222")
 	userID, err := strconv.ParseUint(userIdStr, 10, 64)
 	if err != nil {
 		log.Error("failed to parse user id",
@@ -112,7 +109,6 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 		})
 		return
 	}
-	fmt.Println("3333333")
 	authSource := c.GetHeader("X-Auth-Source")
 
 	//log.Println("Headers:", c.Request.Header)
@@ -128,21 +124,18 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 		})
 		return
 	}
-	fmt.Println("444444444")
 	log.Info("websocket upgrade request received",
 		logger.Field{Key: "user_id", Value: userID},
 	)
 	// 2️⃣ Upgrade HTTP → WebSocket
 	wsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		fmt.Println("555555", err)
 		log.Error("websocket upgrade failed",
 			logger.Field{Key: "user_id", Value: userID},
 			logger.Field{Key: "error", Value: err},
 		)
 		return
 	}
-	fmt.Println("66666666")
 	// 3️⃣ Register connection (optional but recommended)
 	// client,err:=as.ChatUsecase.RegisterClient(userID, wsConn)
 	// if err!=nil{
@@ -158,10 +151,8 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 	log.Info("websocket client connected",
 		logger.Field{Key: "user_id", Value: userID},
 	)
-	fmt.Println("777777")
 	// 4️⃣ Start WebSocket read loop
 	go as.reader(client, hub)
-	fmt.Println("88888888")
 }
 
 func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub) {
@@ -207,6 +198,12 @@ func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub) {
 			wshub.SendWSError(c, log, "invalid websocket json payload", hub)
 			continue
 		}
+		log.Info("parsed websocket message",
+			logger.Field{Key: "message_type", Value: dm.Type},
+			logger.Field{Key: "sender_id", Value: dm.SenderID},
+			logger.Field{Key: "recipient_id", Value: dm.RecipientID},
+			logger.Field{Key: "group_id", Value: dm.GroupID},
+		)
 		dm.SenderID = c.UserID
 		if authRes, err := client.FetchUserMetaData(as.AuthClient, []uint64{c.UserID}); err == nil && authRes != nil {
 			if user, ok := authRes.Users[c.UserID]; ok {
@@ -217,6 +214,13 @@ func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub) {
 				dm.SenderProfileImgUrl = user.ProfileImgUrl
 			}
 		}
+
+		log.Info("parsed websocket message",
+			logger.Field{Key: "message_type", Value: dm.Type},
+			logger.Field{Key: "sender_id", Value: dm.SenderID},
+			logger.Field{Key: "recipient_id", Value: dm.RecipientID},
+			logger.Field{Key: "group_id", Value: dm.GroupID},
+		)
 
 		// cancel()
 		switch dm.Type {
@@ -865,7 +869,7 @@ func (as *ChatHandler) GetChat(c *gin.Context) {
 		CurrentPage: page,
 		PageSize:    limit,
 	}
-	fmt.Println("response of GetChat ---", resp)
+	
 	c.JSON(http.StatusOK, resp)
 }
 func (as *ChatHandler) SetGroupProfileImage(c *gin.Context) {

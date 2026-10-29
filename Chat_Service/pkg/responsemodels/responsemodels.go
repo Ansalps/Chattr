@@ -35,6 +35,7 @@ type PaginationDetails struct {
 }
 type ChatProfileResponse struct {
 	ChatID          string    `json:"chat_id"`
+	RecipientID     uint64    `json:"recipient_id,omitempty"`
 	ChatName        string    `json:"chat_name"`
 	ChatImage       string    `json:"chat_image"` // URL from Auth Service OR Default Group Icon
 	LastMessage     string    `json:"last_message"`

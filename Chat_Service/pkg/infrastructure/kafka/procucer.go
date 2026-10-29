@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net"
 	"time"
 
 	"github.com/Ansalps/Chattr_Chat_Service/pkg/handler/interfacesHandler"
@@ -43,35 +42,62 @@ func NewKafkaProducer(brokers []string, caCert, accessCert, accessKey []byte) in
 		TLS:       tlsConfig,
 		ClientID:  "chattr-producer",
 	}
-	// Using one transport prevents the "Unknown Topic" error caused by metadata lag
-	sharedTransport := &kafka.Transport{
-		TLS: tlsConfig,
-		Dial: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return dialer.DialContext(ctx, network, addr)
-		},
-	}
 
 	// 3. Quick Connection Test (Bootstrapping)
-	conn, err := sharedTransport.Dial(context.Background(), "tcp", brokers[0])
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	metaConn, err := dialer.DialContext(ctx, "tcp", brokers[0])
 	if err != nil {
-		log.Fatalf("KAFKA AUTH ERROR: Connection failed: %v", err)
+		log.Fatalf("KAFKA: Failed to connect to broker: %v", err)
 	}
-	conn.Close()
+	defer metaConn.Close()
 	log.Println("KAFKA AUTH SUCCESS: TLS Handshake complete.")
 
-	conn, err = dialer.DialLeader(
-		context.Background(),
+	partitions, err := metaConn.ReadPartitions()
+	if err != nil {
+		log.Fatalf("KAFKA: Failed to read cluster partitions: %v", err)
+	}
+
+	// Collect existing topics.
+	existingTopics := make(map[string]bool)
+	for _, partition := range partitions {
+		existingTopics[partition.Topic] = true
+	}
+
+	// Create chat-events if it doesn't exist.
+	topic := "chat-events"
+
+	if existingTopics[topic] {
+		log.Printf("KAFKA: Topic '%s' already exists", topic)
+	} else {
+		log.Printf("KAFKA: Topic '%s' not found. Attempting to create it...", topic)
+
+		err = metaConn.CreateTopics(kafka.TopicConfig{
+			Topic:             topic,
+			NumPartitions:     1,
+			ReplicationFactor: 1,
+		})
+		if err != nil {
+			log.Fatalf("KAFKA: Failed to create topic '%s': %v", topic, err)
+		}
+
+		log.Printf("KAFKA: Successfully created topic '%s'", topic)
+	}
+
+	conn, err := dialer.DialLeader(
+		ctx,
 		"tcp",
 		brokers[0],
-		"post-events",
+		topic,
 		0, // partition
 	)
 	if err != nil {
-		log.Fatalf("❌ Topic NOT reachable: %v", err)
+		log.Fatalf("KAFKA: Topic '%s' is not reachable: %v", topic, err)
 	}
-	defer conn.Close()
+	conn.Close()
 
-	log.Println("✅ Topic is reachable and partition exists")
+	log.Printf("KAFKA: Topic '%s' is reachable", topic)
 	// 4. Return Producer with a dynamic Writer
 	return &kafkaProducer{
 		dialer:  dialer,
