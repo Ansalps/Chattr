@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPlan, getPlans, setPlanActive, type SubscriptionPlan } from '../features/subscription/subscriptionService';
 
 type AdminUser = {
@@ -7,6 +8,7 @@ type AdminUser = {
 };
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [adminUser, setAdminUser] = useState<AdminUser>({});
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [planError, setPlanError] = useState('');
@@ -123,6 +125,7 @@ export default function AdminDashboard() {
                 {['Manage users', 'Review reports', 'Subscription plans', 'Moderation queue'].map((action) => (
                   <button
                     key={action}
+                    onClick={() => { if (action === 'Manage users') navigate('/admin/users'); }}
                     className="flex w-full items-center justify-between rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:bg-sky-100"
                   >
                     <span>{action}</span>

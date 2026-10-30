@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { FloatingChatWidget } from './features/chat/FloatingChatWidget';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLogin from './pages/AdminLogin';
+import AdminUsersPage from './pages/AdminUsersPage';
 import LandingPage from './pages/LandingPage';
 import UserLogin from './pages/UserLogin';
 import UserSignup from './pages/UserSignup';
@@ -27,6 +28,7 @@ function App() {
         <Route path="/profile/:userId" element={<ProfilePage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/users" element={<AdminUsersPage />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
