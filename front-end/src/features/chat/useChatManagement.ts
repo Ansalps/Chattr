@@ -24,6 +24,7 @@ type StoredProfile = {
 };
 
 type ChatTargetUser = ChatUserProfile & {
+  recipientId?: string;
   conversationId?: string;
   isGroup?: boolean;
   groupId?: string;
@@ -43,6 +44,7 @@ export function useChatManagement({
   storedProfile,
 }: UseChatManagementOptions) {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [chatSearch, setChatSearch] = useState('');
   const [chatSearchResults, setChatSearchResults] = useState<ChatUserProfile[]>([]);
   const [isSearchingChatUsers, setIsSearchingChatUsers] = useState(false);
@@ -334,22 +336,31 @@ export function useChatManagement({
   useEffect(() => {
     if (isChatOpen) {
       void loadRecentChats();
+      setUnreadMessageCount(0);
     }
   }, [isChatOpen]);
 
   useEffect(() => {
-    if (!chatSelectedUser) {
+    const userId = currentUserId || storedProfile.id || '';
+    if (!userId) {
       return;
     }
 
     const socket = connectChatSocket({
-      currentUserId: currentUserId || storedProfile.id || '',
+      currentUserId: userId,
       onError: (message) => setChatError(message),
       onMessage: (nextMessage) => {
-        setChatMessages((currentMessages) => {
-          const alreadyExists = currentMessages.some((message) => message.id === nextMessage.id);
-          return alreadyExists ? currentMessages : [...currentMessages, nextMessage];
-        });
+        if (!nextMessage.mine && !isChatOpen) {
+          setUnreadMessageCount((current) => current + 1);
+        }
+
+        const selectedUserId = chatSelectedUser?.recipientId ?? chatSelectedUser?.id;
+        if (selectedUserId && nextMessage.senderId === selectedUserId) {
+          setChatMessages((currentMessages) => {
+            const alreadyExists = currentMessages.some((message) => message.id === nextMessage.id);
+            return alreadyExists ? currentMessages : [...currentMessages, nextMessage];
+          });
+        }
       },
     });
 
@@ -359,11 +370,12 @@ export function useChatManagement({
       socket.close();
       setChatSocket(null);
     };
-  }, [chatSelectedUser, currentUserId, storedProfile.id]);
+  }, [chatSelectedUser?.id, chatSelectedUser?.recipientId, currentUserId, isChatOpen, storedProfile.id]);
 
   return {
     isChatOpen,
     setIsChatOpen,
+    unreadMessageCount,
     chatSearch,
     setChatSearch,
     chatSearchResults,

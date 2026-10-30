@@ -156,7 +156,6 @@ func (as *ChatHandler) WebSocketConnection(c *gin.Context) {
 }
 
 func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub) {
-	fmt.Println("is it getting called?")
 	log := as.Log.With(
 		logger.Field{Key: "user_id", Value: c.UserID},
 		logger.Field{Key: "request_id", Value: c.RequestID},
@@ -171,7 +170,6 @@ func (as *ChatHandler) reader(c *wshub.Client, hub *wshub.Hub) {
 	}()
 
 	for {
-		fmt.Println("is it entering here?")
 		_, p, err := c.Conn.ReadMessage()
 		if err != nil {
 			// log.Error("failed to read websocket message",
@@ -734,7 +732,6 @@ func (as *ChatHandler) GetGroupMembers(c *gin.Context) {
 }
 
 func (as *ChatHandler) GetRecentChatProfiles(c *gin.Context) {
-	fmt.Println("is it reaching here????")
 	requestID := c.GetHeader("X-Request-ID")
 	log := as.Log.With(
 		logger.Field{Key: "request_id", Value: requestID},

@@ -122,7 +122,7 @@ func (as *PostRelationServer) AddComment(ctx context.Context, req *pb.AddComment
 	if err != nil {
 		return nil, err
 	}
-	//fmt.Println("is it reaching here", addCommentRes)
+	
 
 	return &pb.AddCommentResponse{
 		UserId:          addCommentRes.UserID,

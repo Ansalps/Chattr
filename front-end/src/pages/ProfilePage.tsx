@@ -134,6 +134,7 @@ export default function ProfilePage() {
           dedupedCustomLinks={dedupedCustomLinks}
           onBack={() => navigate('/newsfeed')}
           onGoEdit={() => navigate('/profile/edit')}
+          onGoSubscription={() => navigate('/subscription')}
           onFollowToggle={handleFollowToggle}
           onAvatarUpload={handleAvatarUpload}
         />

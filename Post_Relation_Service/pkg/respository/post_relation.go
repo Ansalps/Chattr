@@ -198,7 +198,7 @@ func (ad *PostRelationRepository) DeleteCommentById(deleteCommentReq requestmode
 		return responsemodels.DeleteCommentResponse{}, result.Error
 	}
 	if result.RowsAffected == 0 {
-		//fmt.Println("is it really happening in database?")
+		
 		return responsemodels.DeleteCommentResponse{}, gorm.ErrRecordNotFound
 	}
 	return responsemodels.DeleteCommentResponse{
@@ -338,7 +338,6 @@ func (ad *PostRelationRepository) FetchFollowingUserIds(req requestmodels.FetchF
 	query := `SELECT following_id FROM relations WHERE follower_id=$1 LIMIT $2 OFFSET $3`
 	result := ad.DB.Raw(query, req.UserID, req.Limit, req.Offset).Scan(&resp)
 	if result.Error != nil {
-		//fmt.Println("is it reaching in error")
 		return nil, result.Error
 	}
 	// if result.RowsAffected == 0 {

@@ -91,7 +91,6 @@ func (as *ChatUsecase) SetGroupProfileImage(req requestmodels.GroupProfileImageR
 		ContentType: aws.String(req.ContentType),
 	})
 	if err != nil {
-		//fmt.Println("is it here")
 		return "", fmt.Errorf("%w: %v", domain.ErrS3UploadFail, err)
 	}
 	// Construct URL
@@ -571,7 +570,7 @@ func (as *ChatUsecase) GetRecentChatProfiles(req requestmodels.RecentChatProfile
 		}
 		finalProfiles = append(finalProfiles, profile)
 	}
-	fmt.Println("final-----profiles", finalProfiles)
+	
 	return finalProfiles, nil
 }
 

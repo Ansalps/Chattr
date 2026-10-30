@@ -4,6 +4,7 @@ import { searchUsersByUsername } from '../features/chat/chatService';
 import { useFeedManagement } from '../features/feed/useFeedManagement';
 import { FeedPostCard } from '../features/newsfeed/FeedPostCard';
 import { PostComposerModal } from '../features/newsfeed/PostComposerModal';
+import { connectNotificationSocket, fetchNotifications, type NotificationItem } from '../features/notifications/notificationService';
 import { fetchCurrentUserProfile, logoutCurrentUser } from '../features/profile/profileService';
 import { formatCount } from '../shared/utils/formatting';
 import { PROFILE_STORAGE_KEY, readStoredProfile } from '../shared/utils/normalizers';
@@ -80,10 +81,15 @@ export default function NewsFeedPage() {
     name: '',
     username: '',
     profileImageUrl: '',
+    blueTick: false,
     followerCount: 0,
     followingCount: 0,
     postCount: 0,
   });
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [liveNotification, setLiveNotification] = useState<NotificationItem | null>(null);
   const storedProfile = readStoredProfile();
   const currentUserId = currentUserProfile.id || storedProfile.id || '';
   const storedDisplayName = (storedProfile.name || '').trim();
@@ -171,6 +177,67 @@ export default function NewsFeedPage() {
     void loadProfile();
   }, []);
 
+  useEffect(() => {
+    const loadNotifications = async () => {
+      try {
+        setNotifications(await fetchNotifications());
+      } catch (notificationError) {
+        console.error('load notifications failed', notificationError);
+      }
+    };
+
+    void loadNotifications();
+
+    let isUnmounted = false;
+    let socket: WebSocket | null = null;
+    let reconnectTimer: number | undefined;
+    const connect = () => {
+      socket = connectNotificationSocket(
+        (notification) => {
+          setNotifications((current) => [notification, ...current.filter((item) => item.id !== notification.id)]);
+          setUnreadNotifications((current) => current + 1);
+          setLiveNotification(notification);
+        },
+        () => {
+          if (!isUnmounted) reconnectTimer = window.setTimeout(connect, 3000);
+        },
+      );
+    };
+
+    connect();
+    return () => {
+      isUnmounted = true;
+      if (reconnectTimer) window.clearTimeout(reconnectTimer);
+      socket?.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!liveNotification) return;
+    const timeoutId = window.setTimeout(() => setLiveNotification(null), 5000);
+    return () => window.clearTimeout(timeoutId);
+  }, [liveNotification]);
+
+  const openNotifications = () => {
+    setIsNotificationOpen((current) => !current);
+    setUnreadNotifications(0);
+  };
+
+  const handleNotificationClick = (notification: NotificationItem) => {
+    setIsNotificationOpen(false);
+    if (notification.type === 'USER_FOLLOW' && notification.actorId) {
+      navigate(`/profile/${encodeURIComponent(notification.actorId)}`);
+    }
+  };
+
+  const notificationIcon = (type: string) => {
+    if (type === 'POST_LIKE') return '♥';
+    if (type === 'POST_COMMENT') return '◌';
+    if (type === 'USER_FOLLOW') return '＋';
+    if (type === 'DIRECT_MESSAGE' || type === 'GROUP_MESSAGE') return '✉';
+    return '•';
+  };
+
   const quickStats = useMemo(
     () => [
       { label: 'Followers', value: formatCount(currentUserProfile.followerCount) },
@@ -204,6 +271,30 @@ export default function NewsFeedPage() {
 
   return (
     <div className="min-h-screen bg-[#f3f7fb] text-slate-800">
+      {liveNotification && (
+        <div className="fixed left-1/2 top-5 z-[60] w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2">
+          <div className="flex items-start gap-3 rounded-2xl border border-sky-200 bg-white px-4 py-3 shadow-[0_18px_50px_rgba(14,116,144,0.2)]" role="status">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-700">
+              {notificationIcon(liveNotification.type)}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleNotificationClick(liveNotification)}
+              className="min-w-0 flex-1 text-left text-sm font-semibold text-slate-800"
+            >
+              {liveNotification.message}
+            </button>
+            <button
+              type="button"
+              onClick={() => setLiveNotification(null)}
+              className="rounded-lg px-2 py-1 text-sm text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Dismiss notification"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <header className="mb-6 rounded-[28px] border border-sky-100 bg-white/90 p-4 shadow-[0_20px_50px_rgba(14,116,144,0.08)] backdrop-blur-xl">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -284,6 +375,52 @@ export default function NewsFeedPage() {
               >
                 Create Post
               </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={openNotifications}
+                  className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-100 bg-white text-xl text-slate-700 shadow-sm transition hover:bg-sky-50"
+                  aria-label="Open notifications"
+                  aria-expanded={isNotificationOpen}
+                >
+                  ♡
+                  {unreadNotifications > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                    </span>
+                  )}
+                </button>
+
+                {isNotificationOpen && (
+                  <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-[0_18px_50px_rgba(14,116,144,0.16)]">
+                    <div className="border-b border-slate-100 px-4 py-3">
+                      <p className="font-bold text-slate-900">Notifications</p>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto p-2">
+                      {notifications.length === 0 ? (
+                        <p className="px-3 py-7 text-center text-sm text-slate-500">You are all caught up.</p>
+                      ) : (
+                        notifications.map((notification) => (
+                          <button
+                            key={notification.id}
+                            type="button"
+                            onClick={() => handleNotificationClick(notification)}
+                            className="flex w-full items-start gap-3 rounded-xl p-3 text-left transition hover:bg-sky-50"
+                          >
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-700">
+                              {notificationIcon(notification.type)}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-medium text-slate-700">{notification.message}</span>
+                              <span className="mt-1 block text-xs text-slate-400">{new Date(notification.createdAt).toLocaleString()}</span>
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={handleLogout}
@@ -313,7 +450,7 @@ export default function NewsFeedPage() {
                   )}
                 </div>
                 <div>
-                  <p className="font-bold text-slate-900">{currentUserName}</p>
+                  <div className="flex items-center gap-1.5"><p className="font-bold text-slate-900">{currentUserName}</p>{(currentUserProfile.blueTick || storedProfile.blueTick) && <span title="Verified account" aria-label="Verified account" className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-sky-500 text-[10px] font-black leading-none text-white">✓</span>}</div>
                   <p className="text-sm text-slate-500">{currentUserHandle}</p>
                 </div>
               </button>

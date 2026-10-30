@@ -9,6 +9,7 @@ import VerifyOtp from './pages/VerifyOtp';
 import NewsFeedPage from './pages/NewsFeedPage';
 import ProfilePage from './pages/ProfilePage';
 import EditProfilePage from './pages/EditProfilePage';
+import SubscriptionPage from './pages/SubscriptionPage';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/newsfeed" element={<NewsFeedPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/edit" element={<EditProfilePage />} />
+        <Route path="/subscription" element={<SubscriptionPage />} />
         <Route path="/profile/:userId" element={<ProfilePage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />

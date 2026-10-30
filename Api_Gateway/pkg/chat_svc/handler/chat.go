@@ -591,9 +591,7 @@ func (as *ChatHandler) RecentChatProfiles(c *gin.Context) {
 	fullURL := fmt.Sprintf("http://%s/user/get-recent-chat-profiles?limit=%d&offset=%d", cfg.ChatSvcUrl, limit, offset)
 	httpReq, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
-		fmt.Println("i bet its not here")
 		log.Printf("Failed to create request: %v", err)
-		fmt.Println("is it error")
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}

@@ -457,7 +457,7 @@ func (ad *AuthSubscriptionRepository) FetchAmountCurrencyFromSubscriptionPlan(id
 
 func (ad *AuthSubscriptionRepository) FetchRazorpaySubscriptionIdFromUserId(userid uint64) (string, error) {
 	var razorpaySubscriptionId string
-	query := `SELECT razorpay_subscription_id FROM user_subscriptions WHERE user_id=? and status!='cancelled' and status!='completed'`
+	query := `SELECT razorpay_subscription_id FROM user_subscriptions WHERE user_id=? and status!='cancelled' and status!='completed' ORDER BY created_at DESC, id DESC LIMIT 1`
 	result := ad.DB.Raw(query, userid).Scan(&razorpaySubscriptionId)
 	if result.Error != nil {
 		return "", result.Error
@@ -470,15 +470,14 @@ func (ad *AuthSubscriptionRepository) FetchRazorpaySubscriptionIdFromUserId(user
 
 func (ad *AuthSubscriptionRepository) SetCancelReason(req requestmodels.UnsubscribeRequest) (responsemodels.UnsubscribeResponse, error) {
 	var subId uint64
-	query := `UPDATE user_subscriptions SET cancel_reason=$1 WHERE razorpay_subscription_id=$2 returning id`
+	query := `UPDATE user_subscriptions SET cancel_reason=$1 WHERE razorpay_subscription_id=$2 RETURNING id`
 	result := ad.DB.Raw(query, req.CancelReason, req.RazorpaySubId).Scan(&subId)
 	if result.Error != nil {
 		return responsemodels.UnsubscribeResponse{}, result.Error
 	}
-	// if result.RowsAffected==0{
-	// 	return responsemodels.UnsubscribeResponse{},gorm.ErrRecordNotFound
-	// }
-	//fmt.Println("printing user id", userSubscription.UserID)
+	if result.RowsAffected == 0 {
+		return responsemodels.UnsubscribeResponse{}, gorm.ErrRecordNotFound
+	}
 	return responsemodels.UnsubscribeResponse{
 		SubId: subId,
 	}, nil
@@ -733,7 +732,7 @@ func (ad *AuthSubscriptionRepository) SearchUser(req requestmodels.SearchUser) (
 }
 func (ad *AuthSubscriptionRepository) FetchUserPublicData(userid uint64) (responsemodels.UserPublicDataResponse, error) {
 	var resp responsemodels.UserPublicDataResponse
-	query := `SELECT id as user_id,user_name,name,profile_img_url,bio,links,blue_tick,razorpay_customer_id,phone FROM users WHERE id=$1`
+	query := `SELECT id as target_user_id,user_name,name,profile_img_url,bio,links,blue_tick,razorpay_customer_id,phone FROM users WHERE id=$1`
 	result := ad.DB.Raw(query, userid).Scan(&resp)
 	if result.Error != nil {
 		return responsemodels.UserPublicDataResponse{}, result.Error
@@ -807,6 +806,7 @@ func (ad *AuthSubscriptionRepository) GetSubscriptionDetails(req requestmodels.G
     FROM user_subscriptions us 
     JOIN subscription_plans sp ON us.razorpay_plan_id = sp.razorpay_plan_id 
     WHERE us.user_id = $1 and (us.status='active' or us.status='halted' or us.status='created')
+    ORDER BY us.created_at DESC, us.id DESC
     LIMIT 1`
 	result := ad.DB.Raw(query, req.UserID).Scan(&resp)
 	if result.Error != nil {

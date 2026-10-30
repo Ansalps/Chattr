@@ -41,6 +41,7 @@ export type ProfileUser = {
   customLinks?: CustomLink[];
   followerCount?: number;
   followingCount?: number;
+  blueTick?: boolean;
 };
 
 export type ProfilePageData = {
@@ -262,12 +263,15 @@ export async function fetchCurrentUserProfile() {
   const resolvedFollowerCount = Number(profileInfo.FollowerCount ?? profileInfo.follower_count ?? 0) || 0;
   const resolvedFollowingCount = Number(profileInfo.FollowingCount ?? profileInfo.following_count ?? 0) || 0;
   const resolvedPostCount = Number(profileInfo.PostCount ?? profileInfo.post_count ?? 0) || 0;
+  const blueTickValue = profileInfo.blue_tick ?? profileInfo.BlueTick ?? profileInfo.blueTick;
+  const resolvedBlueTick = blueTickValue === true || blueTickValue === 'true';
 
   const nextProfile: CurrentUserProfile = {
     id: resolvedId,
     name: resolvedName,
     username: resolvedUsername,
     profileImageUrl: resolvedProfileImageUrl,
+    blueTick: resolvedBlueTick,
     followerCount: resolvedFollowerCount,
     followingCount: resolvedFollowingCount,
     postCount: resolvedPostCount,
@@ -281,6 +285,7 @@ export async function fetchCurrentUserProfile() {
       name: resolvedName,
       username: resolvedUsername.startsWith('@') ? resolvedUsername.slice(1) : resolvedUsername,
       profileImageUrl: resolvedProfileImageUrl,
+      blueTick: resolvedBlueTick,
     }),
   );
 
@@ -431,6 +436,7 @@ export async function fetchProfilePageData(targetUserId?: string): Promise<Profi
         undefined,
       followerCount: Number(socialStats.followers ?? socialStats.FollowerCount ?? 0) || 0,
       followingCount: Number(socialStats.following ?? socialStats.FollowingCount ?? 0) || 0,
+      blueTick: Boolean(userInfo.blue_tick ?? userInfo.BlueTick ?? userInfo.blueTick),
     };
 
     return {
@@ -574,6 +580,7 @@ export async function fetchProfilePageData(targetUserId?: string): Promise<Profi
       customLinks: resolvedCustomLinks,
       followerCount: resolvedFollowerCount,
       followingCount: resolvedFollowingCount,
+      blueTick: Boolean(profileInfo.blue_tick ?? profileInfo.BlueTick ?? profileInfo.blueTick),
     },
     followerCount: resolvedFollowerCount,
     followingCount: resolvedFollowingCount,

@@ -36,6 +36,7 @@ export type ProfileUser = {
   customLinks?: CustomLink[];
   followerCount?: number;
   followingCount?: number;
+  blueTick?: boolean;
 };
 
 export type ProfilePageData = {

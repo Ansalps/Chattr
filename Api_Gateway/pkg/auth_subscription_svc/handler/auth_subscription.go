@@ -1,10 +1,11 @@
 package handler
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -79,13 +80,13 @@ func (as *AuthSubscriptionHandler) AdminLogin(c *gin.Context) {
 		true,
 	)
 	success := response.ClientResponse(
-        http.StatusOK,
-        "Admin authenticated successfully",
-        map[string]interface{}{
-            "id":    admin.Admin.ID,
-            "email": admin.Admin.Email,
-        },
-    )
+		http.StatusOK,
+		"Admin authenticated successfully",
+		map[string]interface{}{
+			"id":    admin.Admin.ID,
+			"email": admin.Admin.Email,
+		},
+	)
 	c.JSON(success.StatusCode, success)
 }
 
@@ -131,14 +132,14 @@ func (as *AuthSubscriptionHandler) UserSignUp(c *gin.Context) {
 		true,
 	)
 	success := response.ClientResponse(http.StatusOK,
-		 "Otp Sent Successfully to email address provided, verify your otp within 5 minutes before getting expired",
+		"Otp Sent Successfully to email address provided, verify your otp within 5 minutes before getting expired",
 		map[string]interface{}{
-			"id": userResponse.ID,
-			"name":userResponse.Name,
-			"username":userResponse.UserName,
-			"email":userResponse.Email,
+			"id":       userResponse.ID,
+			"name":     userResponse.Name,
+			"username": userResponse.UserName,
+			"email":    userResponse.Email,
 		},
-	 )
+	)
 	c.JSON(success.StatusCode, success)
 }
 
@@ -193,11 +194,11 @@ func (as *AuthSubscriptionHandler) VerifyOtp(c *gin.Context) {
 		true,
 	)
 
-	success := response.ClientResponse(http.StatusOK, 
-		"Otp verifeid successfully", 
+	success := response.ClientResponse(http.StatusOK,
+		"Otp verifeid successfully",
 		map[string]interface{}{
-			"email":otpResponse.Email,
-			"status":otpResponse.Status,
+			"email":  otpResponse.Email,
+			"status": otpResponse.Status,
 		},
 	)
 	c.JSON(success.StatusCode, success)
@@ -256,33 +257,33 @@ func (as *AuthSubscriptionHandler) AccessRegenerator(c *gin.Context) {
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
-	if accessRegeneratorResponse.Role=="admin"{
+	if accessRegeneratorResponse.Role == "admin" {
 		c.SetCookie(
-		"jwt_admin_access_token",
-		accessRegeneratorResponse.NewAccessToken,
-		86400,
-		"/",
-		"",
-		false,
-		true,
-	)
-	} else if accessRegeneratorResponse.Role=="user"{
+			"jwt_admin_access_token",
+			accessRegeneratorResponse.NewAccessToken,
+			86400,
+			"/",
+			"",
+			false,
+			true,
+		)
+	} else if accessRegeneratorResponse.Role == "user" {
 		c.SetCookie(
-		"jwt_user_access_token",
-		accessRegeneratorResponse.NewAccessToken,
-		86400,
-		"/",
-		"",
-		false,
-		true,
-	)
+			"jwt_user_access_token",
+			accessRegeneratorResponse.NewAccessToken,
+			86400,
+			"/",
+			"",
+			false,
+			true,
+		)
 	}
-	success := response.ClientResponse(http.StatusOK, 
+	success := response.ClientResponse(http.StatusOK,
 		"New Access token generated",
 		map[string]interface{}{
-			"id":accessRegeneratorResponse.Id,
-			"email":accessRegeneratorResponse.Email,
-			"role":accessRegeneratorResponse.Role,
+			"id":    accessRegeneratorResponse.Id,
+			"email": accessRegeneratorResponse.Email,
+			"role":  accessRegeneratorResponse.Role,
 		},
 	)
 	c.JSON(success.StatusCode, success)
@@ -314,12 +315,12 @@ func (as *AuthSubscriptionHandler) ForgotPassword(c *gin.Context) {
 		true,
 	)
 	success := response.ClientResponse(
-		http.StatusOK, 
+		http.StatusOK,
 		"Otp code sent successully to the email provided",
-		 map[string]interface{}{
-			"email":forgotPasswordRes.Email,
-		 },
-		)
+		map[string]interface{}{
+			"email": forgotPasswordRes.Email,
+		},
+	)
 	c.JSON(success.StatusCode, success)
 }
 
@@ -356,7 +357,7 @@ func (as *AuthSubscriptionHandler) ResetPassword(c *gin.Context) {
 		c.JSON(code, response.ClientResponse(code, msg, nil))
 		return
 	}
-	
+
 	success := response.ClientResponse(http.StatusOK, "password reset successful, please login again with new password", resetPasswordResponse)
 	c.JSON(success.StatusCode, success)
 }
@@ -432,15 +433,15 @@ func (as *AuthSubscriptionHandler) UserLogin(c *gin.Context) {
 		true,
 	)
 	success := response.ClientResponse(
-		http.StatusOK, 
-		"User authenticated successfully", 
+		http.StatusOK,
+		"User authenticated successfully",
 		map[string]interface{}{
-			"id":user.User.Id,
-			"name":user.User.Name,
-			"user_name":user.User.UserName,
-			"email":user.User.Email,
-			"status":user.User.Status,
-			"blue_tick":user.User.BlueTick,
+			"id":        user.User.Id,
+			"name":      user.User.Name,
+			"user_name": user.User.UserName,
+			"email":     user.User.Email,
+			"status":    user.User.Status,
+			"blue_tick": user.User.BlueTick,
 		},
 	)
 	c.JSON(success.StatusCode, success)
@@ -643,12 +644,14 @@ func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
 		return
 	}
 	//fmt.Println("jwt claims", jwtClaims)
-	subscribeReq.UserId = jwtClaims.ID
-	subscribeReq.UserEmail = jwtClaims.Email
 	err = utils.BindingJson(c, &subscribeReq, log)
 	if err != nil {
 		return
 	}
+	// Take identity from the authenticated session after binding the request body,
+	// so a client supplied user_id can never override the JWT identity.
+	subscribeReq.UserId = jwtClaims.ID
+	subscribeReq.UserEmail = jwtClaims.Email
 
 	subscribeResponse, err := as.GPPC_Client.Subscribe(subscribeReq)
 	if err != nil {
@@ -660,41 +663,11 @@ func (as *AuthSubscriptionHandler) Subscribe(c *gin.Context) {
 
 	//fmt.Println("razorpay subscription id", subscribeResponse.RazorpaySubscriptionId)
 	data := gin.H{
-		"SubscriptionID": subscribeResponse.RazorpaySubscriptionId,
-		"KeyID":          as.config.Razorpay.KeyId,
+		"subscription": subscribeResponse,
+		"key_id":       as.config.Razorpay.KeyId,
 	}
-	c.HTML(http.StatusOK, "razorpaydoc.html", data)
-	success := response.ClientResponse(http.StatusOK, "User subscribe to the plan successfully", subscribeResponse)
+	success := response.ClientResponse(http.StatusOK, "User subscribe to the plan successfully", data)
 	c.JSON(success.StatusCode, success)
-}
-
-func (as *AuthSubscriptionHandler) VerifySubscriptionPayment(c *gin.Context) {
-	var verifySubscriptionPaymentReq requestmodels.VerifySubscriptionPaymentRequest
-	if err := c.ShouldBindJSON(&verifySubscriptionPaymentReq); err != nil {
-		if validationErrors := utils.FormatValidationError(err); validationErrors != nil {
-			c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Validation failed", validationErrors))
-			return
-		}
-		log.Printf("Bind error: %v", err)
-		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid request body", nil))
-		return
-	}
-	// Validate signature
-	if !utils.VerifyRazorpaySignature(verifySubscriptionPaymentReq.RazorpayPaymentId, verifySubscriptionPaymentReq.RazorpaySubscriptionId, verifySubscriptionPaymentReq.RazorpaySignature, as.config.Razorpay.KeySecret) {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"success": false,
-			"message": "Invalid payment signature. Request cannot be authenticated.",
-		})
-		return
-	}
-	verifySubscriptionPaymentRes, err := as.GPPC_Client.VerifySubscriptionPayment(verifySubscriptionPaymentReq)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "server internal error",
-		})
-		return
-	}
-	c.JSON(http.StatusOK, verifySubscriptionPaymentRes)
 }
 
 func (as *AuthSubscriptionHandler) Unsubscribe(c *gin.Context) {
@@ -856,9 +829,9 @@ func (as *AuthSubscriptionHandler) GetProfileInformation(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-	"reponse":res,
-	"test":"key 1",
-})
+		"reponse": res,
+		"test":    "key 1",
+	})
 
 }
 
@@ -1050,12 +1023,12 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 			errChan <- err
 			return
 		}
-		fmt.Println("printing authresp in handler",authresp)
+		fmt.Println("printing authresp in handler", authresp)
 		authChan <- authresp
 	}()
 	go func() {
 		postresp, err := as.PostDirectClient.Client.PostFollowCount(c.Request.Context(), &post_relation.PostFollowCountRequest{
-			UserId: req.UserID,
+			UserId:       req.UserID,
 			TargetUserId: req.TargetUserID,
 		})
 		if err != nil {
@@ -1074,10 +1047,10 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 			authData = res
 		case res := <-postChan:
 			postData = res
-		case res:=<-errChan:
+		case res := <-errChan:
 			// Handle error or just ignore to allow partial success
 			code, msg := utils.GRPCtoHTTP(res)
-			fmt.Println("code",code,msg)
+			fmt.Println("code", code, msg)
 			utils.LogApiWithUserID(log, jwtClaims.Email, jwtClaims.ID, code, msg)
 			c.JSON(code, response.ClientResponse(code, msg, nil))
 			return
@@ -1097,13 +1070,13 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 		return
 	}
 	user_info_resp := responsemodels.AuthData{
-		TargetUserId:        authData.TargetUserId,
+		TargetUserId:  authData.TargetUserId,
 		UserName:      authData.UserName,
 		Name:          authData.Name,
 		ProfileImgUrl: authData.ProfileImgUrl,
 		BlueTick:      authData.BlueTick,
-		Bio: authData.Bio,
-		Links: authData.Links,
+		Bio:           authData.Bio,
+		Links:         authData.Links,
 	}
 
 	// 2. Optional Data: Did we get stats?
@@ -1113,7 +1086,7 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 		followers = postData.FollowerCount
 		following = postData.FollowingCount
 		posts = postData.PostCount
-		isAlreadyFollowing=postData.IsAlreadyFollowing
+		isAlreadyFollowing = postData.IsAlreadyFollowing
 	} else {
 		// Log that the post service is down, but don't stop the request
 		log.Warn("Warning: post_relation service unavailable for user",
@@ -1124,11 +1097,11 @@ func (as *AuthSubscriptionHandler) GetPublicProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"user_info": user_info_resp,
 		"social_stats": gin.H{
-			"followers": followers,
-			"following": following,
-			"posts":     posts,
-			"is_already_following":isAlreadyFollowing,
-			"is_stale":  postData == nil, // Helpful for frontend to know data might be old
+			"followers":            followers,
+			"following":            following,
+			"posts":                posts,
+			"is_already_following": isAlreadyFollowing,
+			"is_stale":             postData == nil, // Helpful for frontend to know data might be old
 		},
 	})
 }
@@ -1170,32 +1143,44 @@ func (as *AuthSubscriptionHandler) Logout(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) Webhook(c *gin.Context) {
-	fmt.Println("is it reaching here in webhook any way")
-	// 2. Verify Signature
-	// signature := c.GetHeader("X-Razorpay-Signature")
-	// if signature!="postman-bypass"{
-	// 	if !utils.VerifyRazorpayWebhookSignature(body, as.config.Razorpay.WebhookSecret, signature) {
-	// 		fmt.Println("Security Alert: Invalid Webhook Signature")
-	// 		c.JSON(http.StatusForbidden, response.ClientResponse(403, "invalid signature", nil))
-	// 		return // IMPORTANT: Don't forget to return here!
-	// 	}
-	// }
 	log := utils.GetLogger(c)
-	var webhookReq requestmodels.RazorpayEvent
-	err := utils.BindingJson(c, &webhookReq, log)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		fmt.Println("JSON Binding Failed:", err) // Add this
+		fmt.Println("is here")
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Unable to read webhook body", nil))
+		return
+	}
+	// signature := c.GetHeader("X-Razorpay-Signature")
+	// if as.config.Razorpay.WebhookSecret == "" || signature == "" || !utils.VerifyRazorpayWebhookSignature(body, as.config.Razorpay.WebhookSecret, signature) {
+	// 	c.JSON(http.StatusForbidden, response.ClientResponse(http.StatusForbidden, "Invalid webhook signature", nil))
+	// 	return
+	// }
+	var webhookReq requestmodels.RazorpayEvent
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.UseNumber()
+	if err := decoder.Decode(&webhookReq); err != nil {
+		utils.WarnBind(log, err)
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Invalid webhook payload", nil))
 		return
 	}
 	//fmt.Printf("Type: %T, Value: %v\n", webhookReq.Payload.Subscription.Entity.Notes["user_id"], webhookReq.Payload.Subscription.Entity.Notes["user_id"])
-	UserIdStr := webhookReq.Payload.Subscription.Entity.Notes["user_id"]
-	UserID, err := strconv.ParseUint(UserIdStr, 10, 64)
+	var userIDText string
+	switch userIDNote := webhookReq.Payload.Subscription.Entity.Notes["user_id"].(type) {
+	case string:
+		userIDText = userIDNote
+	case json.Number:
+		userIDText = userIDNote.String()
+	default:
+		c.JSON(http.StatusBadRequest, response.ClientResponse(http.StatusBadRequest, "Webhook subscription is missing a valid user_id note", nil))
+		return
+	}
+	UserID, err := strconv.ParseUint(userIDText, 10, 64)
 	if err != nil {
 		utils.LogAdminApi(log, 500, "error in conver string user id to uint64: "+err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error in conver string user id to uint64"})
 		return
 	}
-	fmt.Println("webhook req",webhookReq)
+	fmt.Println("webhook req", webhookReq)
 	// 4. Validate Event Type
 	var res *auth_subscription.WebhookSubscriptionActivatedResponse
 	switch webhookReq.Event {
@@ -1324,8 +1309,8 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 		return
 	}
 
-	if resp.SubsciptionPlan.Id==0{
-		c.JSON(http.StatusOK,response.ClientResponse(http.StatusOK,"NO Subsciption to Show",nil))
+	if resp.SubsciptionPlan.Id == 0 {
+		c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "NO Subsciption to Show", nil))
 		return
 	}
 
@@ -1335,7 +1320,7 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 		UpdatedAt:      resp.SubsciptionPlan.UpdatedAt.AsTime(),
 		RazorpayPlanId: resp.SubsciptionPlan.RazorpayPlanId,
 		Name:           resp.SubsciptionPlan.Name,
-		Price:          resp.SubsciptionPlan.Price / 100,
+		Price:          resp.SubsciptionPlan.Price,
 		Currency:       resp.SubsciptionPlan.Currency,
 		Period:         resp.SubsciptionPlan.Period,
 		Interval:       resp.SubsciptionPlan.Interval,
@@ -1379,7 +1364,10 @@ func (as *AuthSubscriptionHandler) GetSubscriptionDetails(c *gin.Context) {
 		CancelReason:           resp.CancelReason,
 	}
 
-	c.JSON(http.StatusOK, resp1)
+	c.JSON(http.StatusOK, response.ClientResponse(http.StatusOK, "Subscription details retrieved", gin.H{
+		"subscription": resp1,
+		"key_id":       as.config.Razorpay.KeyId,
+	}))
 }
 
 func (as *AuthSubscriptionHandler) Panic(c *gin.Context) {
@@ -1399,8 +1387,8 @@ func (as *AuthSubscriptionHandler) PanicInAuth(c *gin.Context) {
 }
 
 func (as *AuthSubscriptionHandler) Health(c *gin.Context) {
-    c.JSON(200, gin.H{
-        "status": "ok",
-		"message":"health check",
-    })
+	c.JSON(200, gin.H{
+		"status":  "ok",
+		"message": "health check",
+	})
 }

@@ -6,7 +6,7 @@ export const PROFILE_STORAGE_KEY = 'chattr_profile_info';
 export const readStoredProfile = () => {
   try {
     const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
-    if (!raw) return { id: '', name: '', username: '', profileImageUrl: '' };
+    if (!raw) return { id: '', name: '', username: '', profileImageUrl: '', blueTick: false };
 
     const parsed = JSON.parse(raw) as Partial<{
       id?: string | number;
@@ -14,6 +14,7 @@ export const readStoredProfile = () => {
       name?: string;
       username?: string;
       profileImageUrl?: string;
+      blueTick?: boolean;
     }>;
     return {
       id:
@@ -25,10 +26,11 @@ export const readStoredProfile = () => {
       name: typeof parsed.name === 'string' ? parsed.name : '',
       username: typeof parsed.username === 'string' ? parsed.username : '',
       profileImageUrl: typeof parsed.profileImageUrl === 'string' ? parsed.profileImageUrl : '',
+      blueTick: parsed.blueTick === true,
     };
   } catch (error) {
     console.error(error)
-    return { id: '', name: '', username: '', profileImageUrl: '' };
+    return { id: '', name: '', username: '', profileImageUrl: '', blueTick: false };
   }
 };
 
@@ -110,6 +112,17 @@ export const normalizeFeedPosts = (value: unknown): FeedPost[] => {
         {};
 
       const nestedUserData = (source.UserData as Record<string, unknown>) || (source.userData as Record<string, unknown>) || {};
+      const blueTickValue =
+        source.blue_tick ??
+        source.blueTick ??
+        source.BlueTick ??
+        userMeta.blue_tick ??
+        userMeta.blueTick ??
+        userMeta.BlueTick ??
+        nestedUserData.blue_tick ??
+        nestedUserData.blueTick ??
+        nestedUserData.BlueTick;
+      const blueTick = blueTickValue === true || blueTickValue === 'true';
 
       const rawName =
         (typeof source.name === 'string' && source.name) ||
@@ -232,6 +245,7 @@ export const normalizeFeedPosts = (value: unknown): FeedPost[] => {
         ),
         userId,
         author,
+        blueTick,
         handle,
         time: formatFriendlyTime(
           source.post_age ??

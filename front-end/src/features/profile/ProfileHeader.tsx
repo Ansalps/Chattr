@@ -13,6 +13,7 @@ type ProfileHeaderProps = {
   dedupedCustomLinks: Array<{ id: string; label: string; url: string }>;
   onBack: () => void;
   onGoEdit: () => void;
+  onGoSubscription?: () => void;
   onFollowToggle: () => void;
   onAvatarUpload: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
 };
@@ -28,6 +29,7 @@ export function ProfileHeader({
   dedupedCustomLinks,
   onBack,
   onGoEdit,
+  onGoSubscription,
   onFollowToggle,
   onAvatarUpload,
 }: ProfileHeaderProps) {
@@ -72,6 +74,9 @@ export function ProfileHeader({
             </>
           )}
 
+          {isOwnProfile && (
+            <button type="button" onClick={onGoSubscription} className="rounded-2xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm">Get verified</button>
+          )}
           {isOwnProfile && (
             <button
               type="button"
@@ -134,7 +139,7 @@ export function ProfileHeader({
 
               <div className="pt-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">Profile</p>
-                <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900">{user.name}</h1>
+                <div className="mt-2 flex items-center gap-2"><h1 className="text-3xl font-black tracking-tight text-slate-900">{user.name}</h1>{user.blueTick && <span title="Verified account" className="flex h-5 w-5 items-center justify-center rounded-full bg-sky-500 text-[11px] font-black text-white">✓</span>}</div>
                 <p className="text-sm text-slate-500">{user.username}</p>
                 {user.bio && <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">{user.bio}</p>}
               </div>

@@ -12,6 +12,7 @@ export type FeedPost = {
   id: string;
   userId?: string;
   author: string;
+  blueTick?: boolean;
   handle: string;
   time: string;
   content: string;
@@ -46,6 +47,7 @@ export type CurrentUserProfile = {
   name: string;
   username: string;
   profileImageUrl: string;
+  blueTick?: boolean;
   followerCount: number;
   followingCount: number;
   postCount: number;

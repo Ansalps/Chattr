@@ -402,7 +402,7 @@ func (as *AuthSubscriptionServer) Subscribe(ctx context.Context, req *pb.Subscri
 		CreatedAt: utils.ToProtoTimestamp(subscribeRes.CreatedAt),
 		UpdatedAt: utils.ToProtoTimestamp(subscribeRes.UpdatedAt),
 
-		UserId: subscribeRes.ID,
+		UserId: subscribeRes.UserID,
 
 		RazorpaySubcriptionId: subscribeRes.RazorpaySubscriptionId,
 		SubscriptionPlanId:    subscribeRes.SubscriptionPlanID,

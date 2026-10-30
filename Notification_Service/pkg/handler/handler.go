@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -17,14 +18,14 @@ import (
 type NotificationHandler struct {
 	NotificationUsecase interfacesUsecase.NotificationUsecase
 	Hub                 *websockethub.Hub
-	Log logger.Logger
+	Log                 logger.Logger
 }
 
-func NewNotificationHandler(usecase interfacesUsecase.NotificationUsecase, hub *websockethub.Hub,log logger.Logger) *NotificationHandler {
+func NewNotificationHandler(usecase interfacesUsecase.NotificationUsecase, hub *websockethub.Hub, log logger.Logger) *NotificationHandler {
 	return &NotificationHandler{
 		NotificationUsecase: usecase,
 		Hub:                 hub,
-		Log: log,
+		Log:                 log,
 	}
 }
 
@@ -45,9 +46,6 @@ func (as *NotificationHandler) WebSocketConnection(c *gin.Context) {
 		log.Println("failed to convert userid from string to uint", err)
 	}
 	authSource := c.GetHeader("X-Auth-Source")
-
-	log.Println("Headers:", c.Request.Header)
-	log.Println("User ID:", userID)
 
 	if userIdStr == "" || authSource != "gateway" {
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -87,11 +85,13 @@ func (as *NotificationHandler) ConsumeWebsocket(client *websockethub.Client) {
 	for {
 		// We read from the connection. If the user disconnects,
 		// ReadMessage will return an error, breaking the loop.
-		_, _, err := client.Conn.ReadMessage()
+		messageType, p, err := client.Conn.ReadMessage()
 		if err != nil {
 			log.Printf("User %d disconnected: %v", client.UserID, err)
 			break
 		}
+		p1 := string(p)
+		fmt.Printf("messge type: %d p: %s", messageType, p1)
 	}
 }
 
@@ -141,7 +141,7 @@ func (as *NotificationHandler) GetAllNotifications(c *gin.Context) {
 	c.JSON(http.StatusOK, resp1)
 }
 
-func (as *NotificationHandler)PanicInNotification(c *gin.Context){
+func (as *NotificationHandler) PanicInNotification(c *gin.Context) {
 	panic("intentional test panic in notifications service")
 }
 

@@ -196,7 +196,7 @@ func (as *AuthSubscriptionUsecase) UserSignUp(ctx context.Context, userReq reque
 	if err != nil {
 		fmt.Println("DeleteOtpByEmail",err)
 		if errors.Is(err, domain.ErrDatabaseConnectionTimeOut) {
-			fmt.Println("is its here")
+			fmt.Println("error: ",err)
 			return responsemodels.UserSignupResponse{}, err
 		}
 		if err != gorm.ErrRecordNotFound {
@@ -255,7 +255,7 @@ func (as *AuthSubscriptionUsecase) VerifyOtp(ctx context.Context, otpReq request
 		return responsemodels.OtpVerificationResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	if otp.OTP != otpReq.OtpCode {
-		fmt.Println("is it that")
+		fmt.Println("Typed otp code not mathing")
 		return responsemodels.OtpVerificationResponse{}, domain.ErrInvalidCredentials
 	}
 	if time.Now().After(otp.Expiration) {
@@ -471,6 +471,7 @@ func (as *AuthSubscriptionUsecase) CreateSubscriptionPlan(createSubscriptionPlan
 		"interval": createSubscriptionPlanReq.Interval,
 		"item": map[string]interface{}{
 			"name":        createSubscriptionPlanReq.Name,
+			// The admin API accepts whole rupees; Razorpay expects paise.
 			"amount":      createSubscriptionPlanReq.Price * 100,
 			"currency":    createSubscriptionPlanReq.Currency,
 			"description": createSubscriptionPlanReq.Description,
@@ -582,6 +583,7 @@ func (as *AuthSubscriptionUsecase) GetAllActiveSubscriptionPlans(getAllActiveSub
 func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.SubscribeRequest) (responsemodels.SubscribeResponse, error) {
 	razorpayPlanId, err := as.AuthSubscriptionRepository.FetchRazorpayPlanIdFromId(subscribeReq.PlanId)
 	if err != nil {
+		fmt.Println("is it here 1",err)
 		if err == gorm.ErrRecordNotFound {
 			return responsemodels.SubscribeResponse{}, domain.ErrSubPlanNotFound
 		}
@@ -592,24 +594,29 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 	eligible, err := as.AuthSubscriptionRepository.IsEligibleForSubsciption(subscribeReq)
 	if err != nil {
 		log.Println(err)
+		fmt.Println("error--------",err)
 		return responsemodels.SubscribeResponse{}, err
 	}
 	if !eligible {
+		fmt.Println("not eligible")
 		return responsemodels.SubscribeResponse{}, domain.ErrNotEligible
 	}
 
 	userDetail, err := as.AuthSubscriptionRepository.FetchUserPublicData(subscribeReq.UserId)
 	if err != nil {
+		fmt.Println("whats err",err)
 		return responsemodels.SubscribeResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
-
+	fmt.Println("user details",userDetail)
+	fmt.Println("user id",userDetail.TargetUserId)
 	if userDetail.RazorpayCustomerID == "" {
 		userDetail.RazorpayCustomerID, err = as.createAndSaveCustomer(userDetail, subscribeReq.UserEmail)
 		if err != nil {
+			fmt.Println("probable error---",err)
 			return responsemodels.SubscribeResponse{}, err
 		}
 	}
-
+	fmt.Println("customer id saved ------")
 	//razorpayClient:=utils.NewRazorpayClient(as.RazorpayCredentials.KeyId,as.RazorpayCredentials.KeySecret)
 	subscriptionData := map[string]interface{}{
 		"plan_id":     razorpayPlanId,
@@ -634,14 +641,16 @@ func (as *AuthSubscriptionUsecase) Subscribe(subscribeReq requestmodels.Subscrib
 	}
 	subscription, err := as.RazorpayGateway.CreateSubscription(subscriptionData)
 	if err != nil {
+		fmt.Println("chance----",err)
 		return responsemodels.SubscribeResponse{}, fmt.Errorf("payment gateway provider error: %w", err)
 	}
 	//fmt.Println(subscription)
 	subcribeRes, err := as.AuthSubscriptionRepository.CreateSubscription(subscribeReq, subscription)
 	if err != nil {
+		fmt.Println("chance 2 ---",err)
 		return responsemodels.SubscribeResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
-	//fmt.Println("subscribeRes",subcribeRes)
+	fmt.Println("subscribeRes",subcribeRes)
 	return subcribeRes, nil
 }
 
@@ -657,12 +666,15 @@ func (as *AuthSubscriptionUsecase) createAndSaveCustomer(userDetail responsemode
 	// Assuming as.RazorpayGateway is your initialized razorpay client
 	res, err := as.RazorpayGateway.Client.Customer.Create(customerParams, nil)
 	if err != nil {
+		fmt.Println("customer params",customerParams)
+		fmt.Println("print error inside too---",err)
 		return "", utils.MapRazorpayError(err)
 	}
 	// 3. Extract the ID from the response
 	// res is usually a map[string]interface{} or a specific struct depending on your SDK wrapper
 	customerID, ok := res["id"].(string)
 	if !ok {
+		fmt.Println("is it here")
 		return "", domain.ErrInvalidResponseRazorpay
 	}
 
@@ -670,7 +682,7 @@ func (as *AuthSubscriptionUsecase) createAndSaveCustomer(userDetail responsemode
 	// This links your internal UserID to the Razorpay CustomerID forever
 	err = as.AuthSubscriptionRepository.UpdateUserRazorpayCustomerID(userDetail.TargetUserId, customerID)
 	if err != nil {
-		//log.Printf("Failed to save customerID %s to DB for user %d: %v", customerID, userDetail.UserID, err)
+		log.Printf("Failed to save customerID %s to DB for user %d: %v", customerID, userDetail.TargetUserId, err)
 		if err == gorm.ErrRecordNotFound {
 			return "", domain.ErrUserNotFound
 		}
@@ -753,7 +765,6 @@ func (as *AuthSubscriptionUsecase) Unsubscribe(unsubscribeReq requestmodels.Unsu
 		return responsemodels.UnsubscribeResponse{}, fmt.Errorf("%w: %v:", domain.ErrDatabase, err)
 	}
 	unsubscribeReq.RazorpaySubId = razorpaySubscritpionId
-	//fmt.Println("is it actually nil,???", unsubscribeReq.RazorpaySubId)
 
 	status, err := as.AuthSubscriptionRepository.FetchUserSubscription(unsubscribeReq.RazorpaySubId)
 	if err != nil {
@@ -1009,7 +1020,7 @@ func (as *AuthSubscriptionUsecase) WebhookSubscriptionCharged(req requestmodels.
 		}
 		return responsemodels.WebhookSubscriptionChargedResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
 	}
-	//fmt.Println("is it coming here",req.RazorpaySubscriptionId)
+	
 	err = as.AuthSubscriptionRepository.UpdateNextChargeAt(req.NextChargeAt, req.RazorpaySubscriptionId)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {

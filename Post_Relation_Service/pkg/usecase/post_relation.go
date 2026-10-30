@@ -192,7 +192,6 @@ func (as *PostRelationUsecase) DeletePost(deletePostReq requestmodels.DeletePost
 }
 
 func (as *PostRelationUsecase) LikePost(likePostReq requestmodels.LikePostRequest) (responsemodels.LikePostResponse, error) {
-	log.Println("is it here reaching")
 	postOwnerId, err := as.PostRelationRepository.FetchPostOwnerIdByPostId(likePostReq.PostID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -401,7 +400,6 @@ func (as *PostRelationUsecase) Follow(followReq requestmodels.FollowRequest) (re
 	if err != nil {
 
 		if err == gorm.ErrRecordNotFound {
-			//fmt.Println("is it actually")
 			return responsemodels.FollowResponse{}, domain.ErrAlreadyFollowing
 		}
 		return responsemodels.FollowResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)
@@ -475,7 +473,6 @@ func (as *PostRelationUsecase) Unfollow(unfollowReq requestmodels.UnfollowReques
 	unfollowRes, err := as.PostRelationRepository.UnfollowUserById(unfollowReq)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			//fmt.Println("is it actually")
 			return responsemodels.UnfollowResponse{}, domain.ErrNoFollower
 		}
 		return responsemodels.UnfollowResponse{}, fmt.Errorf("%w: %v", domain.ErrDatabase, err)

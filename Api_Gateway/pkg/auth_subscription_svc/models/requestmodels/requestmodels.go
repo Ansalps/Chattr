@@ -182,7 +182,7 @@ type SubscriptionEntity struct {
     ID             string            `json:"id"`
     Status         string            `json:"status"`
     PlanID         string            `json:"plan_id"`
-    Notes          map[string]string `json:"notes"`
+	Notes          map[string]interface{} `json:"notes"`
     // Added fields
     StartAt        int64             `json:"start_at"`         // Use int64 for Unix timestamps
     EndAt          int64             `json:"end_at"`

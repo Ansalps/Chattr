@@ -112,6 +112,7 @@ export function FeedPostCard({
               >
                 {post.author}
               </button>
+              {post.blueTick && <span title="Verified account" aria-label="Verified account" className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-sky-500 text-[10px] font-black leading-none text-white">✓</span>}
               <button
                 type="button"
                 onClick={() => onGoToProfile(post.userId)}

@@ -84,10 +84,15 @@ export function FloatingChatWidget() {
       <button
         type="button"
         onClick={() => chat.setIsChatOpen((current) => !current)}
-        className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 text-2xl text-white shadow-[0_18px_40px_rgba(59,130,246,0.45)] transition hover:scale-[1.02]"
+        className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 text-2xl text-white shadow-[0_18px_40px_rgba(59,130,246,0.45)] transition hover:scale-[1.02]"
         aria-label="Open messages"
       >
         💬
+        {chat.unreadMessageCount > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-rose-500 px-1 text-[10px] font-bold text-white">
+            {chat.unreadMessageCount > 9 ? '9+' : chat.unreadMessageCount}
+          </span>
+        )}
       </button>
     </div>
   );
